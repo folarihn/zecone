@@ -1,0 +1,189 @@
+{
+  "recordedAt": "2026-10-12T07:11:28.287Z",
+  "mode": "Real Zcash Testnet payment and real Base Sepolia mint; no fixtures",
+  "deployment": {
+    "contract": "0x3a3f3b03349b5a9060d35c8252678f59dabf2a52",
+    "deploymentHash": "0xcf1e9447d18d4937731d4cad4b6f06c34cea424fdc0f3f62e4ca6be53f360d9f"
+  },
+  "orderId": "0xbda80ab32061662eb50fb6b80ada259a06daaa5a5502b2a0c7374dd845904821",
+  "recipient": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+  "tokenId": "85784032535824098315306333478855276873012693735756378089562305503754498099233",
+  "zcash": {
+    "network": "zcash-testnet",
+    "tip": 4491386,
+    "scanned": 4491386,
+    "observedAt": 1791789083,
+    "requiredConfirmations": 10,
+    "confirmedZatoshis": "1000000",
+    "outputs": [
+      {
+        "key": "e1c868b73be5d6f67121b415507ea3a7529fc7c0fe9f9423933b7abd62757942:4:1",
+        "height": 4491375,
+        "block_hash": "00000cbc254ae72453e942b7c4e76689c83cb1b431205cdb0bf72b2e0c825575"
+      }
+    ],
+    "payments": [
+      {
+        "txid": "e1c868b73be5d6f67121b415507ea3a7529fc7c0fe9f9423933b7abd62757942",
+        "pool": 4,
+        "index": 1,
+        "zatoshis": "1000000",
+        "height": 4491375,
+        "blockHash": "00000cbc254ae72453e942b7c4e76689c83cb1b431205cdb0bf72b2e0c825575",
+        "confirmations": 12
+      }
+    ]
+  },
+  "mint": {
+    "hash": "0x22bbd585b84a07ee048f0728a409925d2c9eb4f3405d915dc507a65ec3be1bc5",
+    "status": "success",
+    "blockNumber": "48010357",
+    "blockHash": "0x71784f715e621c3fed9f87a6f1115c70699ce58e2ff874fbea3e6f95a7eef4e6",
+    "observedHead": "48010400",
+    "confirmations": "44",
+    "consumed": true,
+    "events": [
+      {
+        "orderId": "0xbda80ab32061662eb50fb6b80ada259a06daaa5a5502b2a0c7374dd845904821",
+        "recipient": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+        "tokenId": "85784032535824098315306333478855276873012693735756378089562305503754498099233"
+      }
+    ],
+    "gasUsed": "104150"
+  },
+  "deploymentReceipt": {
+    "status": "success",
+    "blockNumber": "48009587",
+    "blockHash": "0x8f7a6054634a1e905c2128f9e71ed5ea6f80807472378cc5b73286100aec5810",
+    "gasUsed": "1463630"
+  },
+  "report": {
+    "orders": [
+      {
+        "id": "0xbda80ab32061662eb50fb6b80ada259a06daaa5a5502b2a0c7374dd845904821",
+        "nonce": "0x63209001b3ead0b1cf251dc232262a82df1f4bcfdd9d688044cc3d26c753d0b7",
+        "account": "4139cf37-2854-4285-9200-4ca7c75da0ed",
+        "address": "utest1sdzmq744ruc9ug9c05ntnrr4q5ngp3nzdjd7gwlnjxuh6t35twevy0fayumnlalfan6s4mfvexvm4yp8l9mwq3pcxs2uk2jxxnvkwddqem26l5mz9rkczquyg9wjtsg6uwdurc07l0vg0eur5f3q54dcv7jthzj5evzz5rdhrsfcs8s3",
+        "intent": "{\"recipient\":\"0x1865Dd77bFcb632571d3c93144D5634F0D93c714\",\"contract\":\"0x3A3F3B03349B5A9060d35c8252678f59DaBf2A52\",\"zatoshis\":\"1000000\",\"nonce\":\"0x63209001b3ead0b1cf251dc232262a82df1f4bcfdd9d688044cc3d26c753d0b7\",\"expiry\":1791873872,\"signature\":\"0xb540d1e943145fe1fe3fe461f02e1940b60f5e13681dd98110d04d4de1afab41161cc31f40af9e83fc25233a0ccb81669433b8e981de904222bf9c82339f0f181c\"}",
+        "state": "settled",
+        "created": 1791787487,
+        "observed_at": 1791789083,
+        "tx_hash": "0x22bbd585b84a07ee048f0728a409925d2c9eb4f3405d915dc507a65ec3be1bc5",
+        "received": "1000000",
+        "confirmed": "1000000"
+      }
+    ],
+    "payments": [
+      {
+        "key": "e1c868b73be5d6f67121b415507ea3a7529fc7c0fe9f9423933b7abd62757942:4:1",
+        "order_id": "0xbda80ab32061662eb50fb6b80ada259a06daaa5a5502b2a0c7374dd845904821",
+        "zatoshis": "1000000",
+        "height": 4491375,
+        "block_hash": "00000cbc254ae72453e942b7c4e76689c83cb1b431205cdb0bf72b2e0c825575",
+        "active": 1,
+        "confirmed": 1
+      }
+    ],
+    "recoveries": [],
+    "audit": [
+      {
+        "seq": 1,
+        "at": 1791787487,
+        "order_id": "0xbda80ab32061662eb50fb6b80ada259a06daaa5a5502b2a0c7374dd845904821",
+        "event": "created",
+        "detail": "{\"account\":\"4139cf37-2854-4285-9200-4ca7c75da0ed\",\"address\":\"utest1sdzmq744ruc9ug9c05ntnrr4q5ngp3nzdjd7gwlnjxuh6t35twevy0fayumnlalfan6s4mfvexvm4yp8l9mwq3pcxs2uk2jxxnvkwddqem26l5mz9rkczquyg9wjtsg6uwdurc07l0vg0eur5f3q54dcv7jthzj5evzz5rdhrsfcs8s3\"}"
+      },
+      {
+        "seq": 2,
+        "at": 1791788471,
+        "order_id": "0xbda80ab32061662eb50fb6b80ada259a06daaa5a5502b2a0c7374dd845904821",
+        "event": "zcash_send_consensus_rejected",
+        "detail": "{\"requestId\":\"d862b657-e9a8-4dba-ac99-efc778466f39\",\"txid\":\"4a10f571865ace3c61fc53ed6c032bb81b12bdfd605a1703c63bf0d7ba00046a\",\"expiryHeight\":4491367,\"serverBranch\":\"77190ad9\",\"reason\":\"obsolete consensus branch; preserve transaction and await verified expiry before replacement\"}"
+      },
+      {
+        "seq": 3,
+        "at": 1791788701,
+        "order_id": "0xbda80ab32061662eb50fb6b80ada259a06daaa5a5502b2a0c7374dd845904821",
+        "event": "zcash_send_replaced_after_expiry",
+        "detail": "{\"requestId\":\"c6b591fd-967a-4a82-9201-407a538d62f2\",\"replacesRequestId\":\"d862b657-e9a8-4dba-ac99-efc778466f39\",\"expiryEvidence\":{\"expiryHeight\":4491367,\"status\":\"expired-unmined\",\"tip\":4491368,\"txid\":\"4a10f571865ace3c61fc53ed6c032bb81b12bdfd605a1703c63bf0d7ba00046a\"}}"
+      },
+      {
+        "seq": 4,
+        "at": 1791788764,
+        "order_id": "0xbda80ab32061662eb50fb6b80ada259a06daaa5a5502b2a0c7374dd845904821",
+        "event": "scan_verified",
+        "detail": "{\"tip\":4491372,\"scanned\":4491372,\"observedAt\":1791788764,\"requiredConfirmations\":10,\"confirmedZatoshis\":\"0\",\"outputs\":[]}"
+      },
+      {
+        "seq": 5,
+        "at": 1791788884,
+        "order_id": "0xbda80ab32061662eb50fb6b80ada259a06daaa5a5502b2a0c7374dd845904821",
+        "event": "scan_verified",
+        "detail": "{\"tip\":4491380,\"scanned\":4491380,\"observedAt\":1791788884,\"requiredConfirmations\":10,\"confirmedZatoshis\":\"0\",\"outputs\":[{\"key\":\"e1c868b73be5d6f67121b415507ea3a7529fc7c0fe9f9423933b7abd62757942:4:1\",\"height\":4491375,\"block_hash\":\"00000cbc254ae72453e942b7c4e76689c83cb1b431205cdb0bf72b2e0c825575\"}]}"
+      },
+      {
+        "seq": 6,
+        "at": 1791788980,
+        "order_id": "0xbda80ab32061662eb50fb6b80ada259a06daaa5a5502b2a0c7374dd845904821",
+        "event": "scan_verified",
+        "detail": "{\"tip\":4491384,\"scanned\":4491384,\"observedAt\":1791788980,\"requiredConfirmations\":10,\"confirmedZatoshis\":\"1000000\",\"outputs\":[{\"key\":\"e1c868b73be5d6f67121b415507ea3a7529fc7c0fe9f9423933b7abd62757942:4:1\",\"height\":4491375,\"block_hash\":\"00000cbc254ae72453e942b7c4e76689c83cb1b431205cdb0bf72b2e0c825575\"}]}"
+      },
+      {
+        "seq": 7,
+        "at": 1791788980,
+        "order_id": "0xbda80ab32061662eb50fb6b80ada259a06daaa5a5502b2a0c7374dd845904821",
+        "event": "awaiting_payment->verified",
+        "detail": "{}"
+      },
+      {
+        "seq": 8,
+        "at": 1791788995,
+        "order_id": "0xbda80ab32061662eb50fb6b80ada259a06daaa5a5502b2a0c7374dd845904821",
+        "event": "scan_verified",
+        "detail": "{\"tip\":4491384,\"scanned\":4491384,\"observedAt\":1791788995,\"requiredConfirmations\":10,\"confirmedZatoshis\":\"1000000\",\"outputs\":[{\"key\":\"e1c868b73be5d6f67121b415507ea3a7529fc7c0fe9f9423933b7abd62757942:4:1\",\"height\":4491375,\"block_hash\":\"00000cbc254ae72453e942b7c4e76689c83cb1b431205cdb0bf72b2e0c825575\"}]}"
+      },
+      {
+        "seq": 9,
+        "at": 1791788999,
+        "order_id": "0xbda80ab32061662eb50fb6b80ada259a06daaa5a5502b2a0c7374dd845904821",
+        "event": "verified->prepared",
+        "detail": "{\"hash\":\"0x22bbd585b84a07ee048f0728a409925d2c9eb4f3405d915dc507a65ec3be1bc5\"}"
+      },
+      {
+        "seq": 10,
+        "at": 1791788999,
+        "order_id": "0xbda80ab32061662eb50fb6b80ada259a06daaa5a5502b2a0c7374dd845904821",
+        "event": "broadcast_attempt",
+        "detail": "{\"hash\":\"0x22bbd585b84a07ee048f0728a409925d2c9eb4f3405d915dc507a65ec3be1bc5\"}"
+      },
+      {
+        "seq": 11,
+        "at": 1791788999,
+        "order_id": "0xbda80ab32061662eb50fb6b80ada259a06daaa5a5502b2a0c7374dd845904821",
+        "event": "prepared->submitted",
+        "detail": "{}"
+      },
+      {
+        "seq": 12,
+        "at": 1791789021,
+        "order_id": "0xbda80ab32061662eb50fb6b80ada259a06daaa5a5502b2a0c7374dd845904821",
+        "event": "scan_verified",
+        "detail": "{\"tip\":4491384,\"scanned\":4491384,\"observedAt\":1791789021,\"requiredConfirmations\":10,\"confirmedZatoshis\":\"1000000\",\"outputs\":[{\"key\":\"e1c868b73be5d6f67121b415507ea3a7529fc7c0fe9f9423933b7abd62757942:4:1\",\"height\":4491375,\"block_hash\":\"00000cbc254ae72453e942b7c4e76689c83cb1b431205cdb0bf72b2e0c825575\"}]}"
+      },
+      {
+        "seq": 13,
+        "at": 1791789024,
+        "order_id": "0xbda80ab32061662eb50fb6b80ada259a06daaa5a5502b2a0c7374dd845904821",
+        "event": "submitted->settled",
+        "detail": "{\"status\":\"success\",\"hash\":\"0x22bbd585b84a07ee048f0728a409925d2c9eb4f3405d915dc507a65ec3be1bc5\",\"block\":\"48010357\",\"recipient\":\"0x1865Dd77bFcb632571d3c93144D5634F0D93c714\",\"tokenId\":\"85784032535824098315306333478855276873012693735756378089562305503754498099233\"}"
+      },
+      {
+        "seq": 14,
+        "at": 1791789083,
+        "order_id": "0xbda80ab32061662eb50fb6b80ada259a06daaa5a5502b2a0c7374dd845904821",
+        "event": "scan_verified",
+        "detail": "{\"tip\":4491386,\"scanned\":4491386,\"observedAt\":1791789083,\"requiredConfirmations\":10,\"confirmedZatoshis\":\"1000000\",\"outputs\":[{\"key\":\"e1c868b73be5d6f67121b415507ea3a7529fc7c0fe9f9423933b7abd62757942:4:1\",\"height\":4491375,\"block_hash\":\"00000cbc254ae72453e942b7c4e76689c83cb1b431205cdb0bf72b2e0c825575\"}]}"
+      }
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "notice": "Public testnet addresses only. See docs/RESULTS.md for live transaction outcomes.",
+  "base": {
+    "network": "base-sepolia",
+    "chainId": 84532,
+    "user": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+    "relayer": "0xf9dE6070331A3B68233c3b2062BceB7105162Cd2"
+  },
+  "zcash": {
+    "network": "zcash-testnet",
+    "payer": {
+      "account": "2679c691-537a-4fe2-859b-c0a83d5769ba",
+      "address": "utest1tfwnjvtsxwr5jxeaea6sy05q3gnyh887wsx9hcd77tahuymnml35he5hdu2w7eeqrfpnjg200wph33480ztfp0en4slyudwayks0jnphl94wz6nwg2mdh6chwsdk8y0wkd3x4h2vf8qs0rjar4c3dlf06jfxhhme32dptvhe3c7z860m",
+      "label": "funding",
+      "saplingAddress": "ztestsapling1uezal3serdplgyq2lsjlnulwj4yqd3pxagecp2dm9x3x5xn5c4wenkqyep0nc7rhvj3rzef205a"
+    },
+    "merchant": {
+      "account": "bf6fe79f-e933-47f8-b5a7-fdb307931f48",
+      "address": "utest19jukdaa8cavdj7dqrf6plhq7ec9umf79d9klc0aum9ue3f4dvw8g4hueynng8fwwt8zx2l6r6gf0sz4rkuqk6evhtg63t9jf4397vnqdjggz2pje36xwcjx5wq4zcw6rye2v28x4k2mjdjyhy0m2qn5wdh8g0gzq63vy7yuuycd7hnpr",
+      "label": "funding",
+      "saplingAddress": "ztestsapling1cvdj78ahf3rvv4epaqmvq4jgg9fecju6ps0u7v3l56fvwgl9vu7cpxwugsn3u8w0kk3527fzzfl"
+    }
+  }
+}

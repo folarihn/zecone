@@ -1,0 +1,15 @@
+.secrets/
+.state/
+.research/
+.env
+.env.*
+!.env.example
+node_modules/
+target/
+out/
+cache/
+dist/
+*.log
+*.sqlite*
+*.db*
+

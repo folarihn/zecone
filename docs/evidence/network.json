@@ -1,0 +1,48 @@
+{
+  "recordedAt": "2026-10-12T07:11:28.658Z",
+  "mode": "read-only; no transactions or faucet claims",
+  "baseChainId": "0x14a34",
+  "userBalanceWei": "0x2386f26fc10000",
+  "relayerBalanceWei": "0x1633cea33b80952",
+  "zcashCommunityFaucet": {
+    "httpStatus": 200,
+    "url": "https://zcashfaucet.jinolabs.xyz/"
+  },
+  "zcashPayer": {
+    "network": "zcash-testnet",
+    "observedAt": 1791789090,
+    "payments": [
+      {
+        "account": "2679c691-537a-4fe2-859b-c0a83d5769ba",
+        "blockHash": "0000168ba1a4d72bd231b06c9c93ae79eeca215383aad1cc9f7d25223c0d45b1",
+        "height": 4490256,
+        "index": 1,
+        "pool": 2,
+        "txid": "2ff278de8aaf45428ba67232284be725025efcedfd05e7e9369d698c86b01628",
+        "zatoshis": "12500000"
+      }
+    ],
+    "scanned": 4491386,
+    "tip": 4491386
+  },
+  "zcashMerchant": {
+    "network": "zcash-testnet",
+    "observedAt": 1791789091,
+    "payments": [
+      {
+        "account": "4139cf37-2854-4285-9200-4ca7c75da0ed",
+        "blockHash": "00000cbc254ae72453e942b7c4e76689c83cb1b431205cdb0bf72b2e0c825575",
+        "height": 4491375,
+        "index": 1,
+        "pool": 4,
+        "txid": "e1c868b73be5d6f67121b415507ea3a7529fc7c0fe9f9423933b7abd62757942",
+        "zatoshis": "1000000"
+      }
+    ],
+    "scanned": 4491388,
+    "tip": 4491388
+  },
+  "zcashOfficialLinkedFaucet": {
+    "status": "unavailable-from-this-environment"
+  }
+}

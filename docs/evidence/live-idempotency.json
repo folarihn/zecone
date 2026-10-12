@@ -1,0 +1,21 @@
+{
+  "recordedAt": "2026-10-12T07:11:24.434Z",
+  "result": "passed",
+  "description": "Identical intent reused the settled order; another worker tick issued no transaction",
+  "before": {
+    "state": "settled",
+    "txHash": "0x22bbd585b84a07ee048f0728a409925d2c9eb4f3405d915dc507a65ec3be1bc5",
+    "orderCount": 1,
+    "paymentCount": 1,
+    "broadcastAttempts": 1,
+    "nonce": 2
+  },
+  "after": {
+    "state": "settled",
+    "txHash": "0x22bbd585b84a07ee048f0728a409925d2c9eb4f3405d915dc507a65ec3be1bc5",
+    "orderCount": 1,
+    "paymentCount": 1,
+    "broadcastAttempts": 1,
+    "nonce": 2
+  }
+}

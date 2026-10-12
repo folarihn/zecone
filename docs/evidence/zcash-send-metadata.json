@@ -1,0 +1,22 @@
+{
+  "recordedAt": "2026-10-12T07:12:03.426Z",
+  "source": "Native payer wallet after sync; metadata only, no keys or raw bytes",
+  "transactions": [
+    {
+      "mined_height": null,
+      "fee": 20000,
+      "target_height": 4491327,
+      "expiry_height": 4491367,
+      "serializedBytes": 11518,
+      "txid": "4a10f571865ace3c61fc53ed6c032bb81b12bdfd605a1703c63bf0d7ba00046a"
+    },
+    {
+      "mined_height": 4491375,
+      "fee": 20000,
+      "target_height": 4491369,
+      "expiry_height": 4491409,
+      "serializedBytes": 11518,
+      "txid": "e1c868b73be5d6f67121b415507ea3a7529fc7c0fe9f9423933b7abd62757942"
+    }
+  ]
+}

@@ -1,0 +1,674 @@
+mod cache;
+use anyhow::{Context, Result, anyhow, bail, ensure};
+use clap::{Parser, Subcommand};
+use rand::{RngCore, rngs::OsRng};
+use rand10::{
+    SeedableRng,
+    rngs::{StdRng, SysRng},
+};
+use secrecy::{ExposeSecret, SecretVec};
+use serde_json::{Value, json};
+use std::{
+    fs::{self, OpenOptions},
+    io::Write,
+    num::NonZeroUsize,
+    path::{Path, PathBuf},
+    str::FromStr,
+    time::{SystemTime, UNIX_EPOCH},
+};
+use tonic::transport::{Channel, ClientTlsConfig};
+use zcash_client_backend::{
+    data_api::{
+        Account, AccountBirthday, WalletRead, WalletWrite,
+        wallet::{
+            ConfirmationsPolicy, SpendingKeys, create_proposed_transactions,
+            input_selection::{GreedyInputSelector, SpendPolicy},
+            propose_transfer,
+        },
+    },
+    fees::{DustOutputPolicy, SplitPolicy, StandardFeeRule, standard::MultiOutputChangeStrategy},
+    proto::service::{self, compact_tx_streamer_client::CompactTxStreamerClient},
+    wallet::OvkPolicy,
+};
+use zcash_client_sqlite::{WalletDb, util::SystemClock, wallet::init::init_wallet_db};
+use zcash_keys::{
+    address::Address,
+    keys::{UnifiedAddressRequest, UnifiedSpendingKey},
+};
+use zcash_protocol::{ShieldedPool, consensus::Network, value::Zatoshis};
+const NET: Network = Network::TestNetwork;
+type Db = WalletDb<rusqlite::Connection, Network, SystemClock, rand10::rngs::ThreadRng>;
+
+#[derive(Parser)]
+struct Cli {
+    #[arg(long)]
+    wallet: PathBuf,
+    #[arg(long, default_value = "https://testnet.zec.rocks:443")]
+    server: String,
+    #[command(subcommand)]
+    command: Command,
+}
+#[derive(Subcommand)]
+enum Command {
+    Init,
+    /// Idempotent, dedicated shielded account for a payment request.
+    Allocate {
+        #[arg(long)]
+        label: String,
+    },
+    Sync,
+    /// Syncs first; never emits stale offline settlement evidence.
+    Observe,
+    /// Read public server network and consensus information.
+    NetworkInfo,
+    /// Reconcile and optionally rebroadcast the exact persisted transaction; never reconstruct.
+    ReconcileSend {
+        #[arg(long)]
+        request_id: uuid::Uuid,
+        #[arg(long)]
+        allow_testnet_broadcast: bool,
+    },
+    /// Local signing, shielded destinations only. Explicit live flag required.
+    Send {
+        /// Stable UUID for this payment; reuse it after an uncertain outcome.
+        #[arg(long)]
+        request_id: uuid::Uuid,
+        #[arg(long)]
+        account: String,
+        #[arg(long)]
+        address: String,
+        #[arg(long)]
+        zatoshis: u64,
+        #[arg(long)]
+        allow_testnet_broadcast: bool,
+    },
+    /// Read already generated public addresses only.
+    Addresses,
+}
+
+struct WalletLock(PathBuf);
+impl Drop for WalletLock {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.0);
+    }
+}
+fn lock_wallet(path: &Path) -> Result<WalletLock> {
+    fs::create_dir_all(path)?;
+    let file = path.join("process.lock");
+    write_new(&file, std::process::id().to_string().as_bytes())
+        .context("wallet is locked; review the recorded process before removing a stale lock")?;
+    Ok(WalletLock(file))
+}
+
+fn db(path: &Path) -> Result<Db> {
+    ensure!(
+        fs::read_to_string(path.join("network"))? == "zcash-testnet",
+        "wallet is not testnet"
+    );
+    Ok(WalletDb::for_path(
+        path.join("wallet.sqlite"),
+        NET,
+        SystemClock,
+        rand10::rng(),
+    )?)
+}
+fn seed(path: &Path) -> Result<SecretVec<u8>> {
+    let bytes = fs::read(path.join("seed.bin"))?;
+    ensure!(bytes.len() == 32, "invalid seed length");
+    Ok(SecretVec::new(bytes))
+}
+async fn connect(url: &str) -> Result<CompactTxStreamerClient<Channel>> {
+    ensure!(url.starts_with("https://"), "TLS is required");
+    let channel = Channel::from_shared(url.to_string())?
+        .connect_timeout(std::time::Duration::from_secs(20))
+        .timeout(std::time::Duration::from_secs(120))
+        .tls_config(ClientTlsConfig::new().with_webpki_roots())?
+        .connect()
+        .await?;
+    let mut client = CompactTxStreamerClient::new(channel);
+    let info = client
+        .get_lightd_info(service::Empty {})
+        .await?
+        .into_inner();
+    ensure!(
+        info.chain_name == "test",
+        "lightwalletd is not standard Zcash testnet"
+    );
+    verify_branch(info.block_height, &info.consensus_branch_id)?;
+    Ok(client)
+}
+
+fn verify_branch(height: u64, reported: &str) -> Result<()> {
+    let height = u32::try_from(height).context("invalid chain height")?;
+    let expected = u32::from(zcash_protocol::consensus::BranchId::for_height(
+        &NET,
+        height.into(),
+    ));
+    let actual = u32::from_str_radix(reported.trim_start_matches("0x"), 16)
+        .context("invalid server consensus branch")?;
+    ensure!(
+        actual == expected,
+        "unsupported testnet consensus: server {actual:08x}, library {expected:08x}; upgrade before spending"
+    );
+    Ok(())
+}
+async fn birthday(client: &mut CompactTxStreamerClient<Channel>) -> Result<AccountBirthday> {
+    let height = client
+        .get_latest_block(service::ChainSpec::default())
+        .await?
+        .into_inner()
+        .height;
+    ensure!(height > 100, "invalid chain tip");
+    let tree = client
+        .get_tree_state(service::BlockId {
+            height: height - 100,
+            hash: vec![],
+        })
+        .await?
+        .into_inner();
+    ensure!(tree.network == "test", "tree state is not testnet");
+    Ok(AccountBirthday::from_treestate(tree, None)?)
+}
+fn write_new(path: &Path, bytes: &[u8]) -> Result<()> {
+    let mut opts = OpenOptions::new();
+    opts.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        opts.mode(0o600);
+    }
+    let mut file = opts.open(path)?;
+    file.write_all(bytes)?;
+    file.sync_all()?;
+    Ok(())
+}
+fn addresses(path: &Path) -> Result<Value> {
+    let conn = rusqlite::Connection::open_with_flags(
+        path.join("wallet.sqlite"),
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )?;
+    let mut stmt = conn.prepare("SELECT a.name, a.uuid, d.address FROM accounts a JOIN addresses d ON d.account_id = a.id WHERE d.exposed_at_height IS NOT NULL ORDER BY a.id, d.id")?;
+    let rows = stmt.query_map([], |r| {
+        let uuid: Vec<u8> = r.get(1)?;
+        let address: String = r.get(2)?;
+        let sapling = match Address::decode(&NET, &address) {
+            Some(Address::Unified(ua)) => ua.sapling().map(|a| Address::Sapling(Box::new(*a)).encode(&NET)),
+            _ => None,
+        };
+        Ok(json!({"label": r.get::<_, String>(0)?, "account": uuid::Uuid::from_slice(&uuid).unwrap().to_string(), "address":address, "saplingAddress":sapling}))
+    })?;
+    Ok(Value::Array(rows.collect::<Result<Vec<_>, _>>()?))
+}
+fn existing_address(path: &Path, label: &str) -> Result<Option<Value>> {
+    let all = addresses(path)?;
+    for value in all
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|v| v["label"] == label)
+    {
+        if matches!(Address::decode(&NET, value["address"].as_str().unwrap()), Some(Address::Unified(ua)) if ua.transparent().is_none())
+        {
+            return Ok(Some(value.clone()));
+        }
+    }
+    Ok(None)
+}
+async fn allocate(
+    path: &Path,
+    wallet: &mut Db,
+    client: &mut CompactTxStreamerClient<Channel>,
+    label: &str,
+) -> Result<Value> {
+    ensure!(
+        !label.is_empty() && label.len() <= 128,
+        "invalid account label"
+    );
+    if let Some(found) = existing_address(path, label)? {
+        return Ok(found);
+    }
+    // Reuse an account after a crash between account creation and address exposure.
+    let existing = wallet.get_account_ids()?.into_iter().find(|id| {
+        wallet
+            .get_account(*id)
+            .ok()
+            .flatten()
+            .is_some_and(|a| a.name() == Some(label))
+    });
+    let id = match existing {
+        Some(id) => id,
+        None => {
+            wallet
+                .create_account(label, &seed(path)?, &birthday(client).await?, None)?
+                .0
+        }
+    };
+    // create_account already exposes a default address. Return that same address on first
+    // creation and retry; do not accidentally allocate a second address on the first call.
+    if let Some(found) = existing_address(path, label)? {
+        return Ok(found);
+    }
+    let (ua, _) = wallet
+        .get_next_available_address(id, UnifiedAddressRequest::SHIELDED)?
+        .ok_or(anyhow!("address unavailable"))?;
+    ensure!(
+        ua.transparent().is_none(),
+        "transparent receiver prohibited"
+    );
+    Ok(json!({"label":label, "account":id.expose_uuid().to_string(), "address":ua.encode(&NET)}))
+}
+async fn sync(wallet: &mut Db, client: &mut CompactTxStreamerClient<Channel>) -> Result<()> {
+    zcash_client_backend::sync::run(client, &NET, &cache::Cache::default(), wallet, 1000).await?;
+    let tip = wallet.chain_height()?.context("chain tip missing")?;
+    let scanned = wallet
+        .block_fully_scanned()?
+        .context("wallet has not scanned any blocks")?;
+    ensure!(scanned.block_height() == tip, "wallet scan is incomplete");
+    Ok(())
+}
+fn observation(path: &Path, wallet: &Db) -> Result<Value> {
+    let tip = u32::from(wallet.chain_height()?.context("missing chain tip")?);
+    let scanned = u32::from(
+        wallet
+            .block_fully_scanned()?
+            .context("missing scan")?
+            .block_height(),
+    );
+    let conn = rusqlite::Connection::open_with_flags(
+        path.join("wallet.sqlite"),
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )?;
+    let mut stmt = conn.prepare("SELECT a.uuid, t.txid, r.pool, r.output_index, r.value, t.mined_height, b.hash FROM v_received_outputs r JOIN accounts a ON a.id=r.account_id JOIN transactions t ON t.id_tx=r.transaction_id JOIN blocks b ON b.height=t.mined_height WHERE r.pool IN (2,3,4) AND r.is_change=0 AND r.value>0")?;
+    let rows = stmt.query_map([], |r| {
+        let uuid: Vec<u8> = r.get(0)?;
+        let mut txid: Vec<u8> = r.get(1)?; txid.reverse();
+        let mut hash: Vec<u8> = r.get(6)?; hash.reverse();
+        Ok(json!({"account": uuid::Uuid::from_slice(&uuid).unwrap().to_string(), "txid":hex::encode(txid), "pool":r.get::<_,u32>(2)?, "index":r.get::<_,u32>(3)?, "zatoshis":r.get::<_,u64>(4)?.to_string(), "height":r.get::<_,u32>(5)?, "blockHash":hex::encode(hash)}))
+    })?;
+    Ok(
+        json!({"network":"zcash-testnet", "tip":tip, "scanned":scanned, "observedAt":SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(), "payments":rows.collect::<Result<Vec<_>, _>>()?}),
+    )
+}
+async fn send(
+    wallet: &mut Db,
+    client: &mut CompactTxStreamerClient<Channel>,
+    path: &Path,
+    account: &str,
+    recipient: &str,
+    value: u64,
+    request_id: uuid::Uuid,
+) -> Result<Value> {
+    let request_file = path.join(format!("request-{request_id}.json"));
+    let started_file = path.join(format!("request-{request_id}.started.json"));
+    if request_file.exists() {
+        let prior: Value = serde_json::from_slice(&fs::read(&request_file)?)?;
+        ensure!(
+            prior["recipient"] == recipient
+                && prior["zatoshis"] == value.to_string()
+                && prior["account"] == account,
+            "payment request idempotency conflict"
+        );
+        return Ok(
+            json!({"txid":prior["txid"], "status":"previously-constructed-reconcile-before-retry"}),
+        );
+    }
+    ensure!(
+        !started_file.exists(),
+        "previous construction has an uncertain outcome; reconcile the wallet transaction history before retrying"
+    );
+    let addr = Address::decode(&NET, recipient).context("invalid testnet recipient")?;
+    match &addr {
+        Address::Sapling(_) => (),
+        Address::Unified(ua) if ua.transparent().is_none() => (),
+        _ => bail!("shielded-only recipient required"),
+    }
+    ensure!(value > 0, "amount must be positive");
+    sync(wallet, client).await?;
+    let id = wallet
+        .get_account_ids()?
+        .into_iter()
+        .find(|id| id.expose_uuid().to_string() == account)
+        .context("account not found")?;
+    let acc = wallet.get_account(id)?.context("account missing")?;
+    let derivation = acc
+        .source()
+        .key_derivation()
+        .context("not a spending account")?;
+    let usk = UnifiedSpendingKey::from_seed(
+        &NET,
+        seed(path)?.expose_secret(),
+        derivation.account_index(),
+    )
+    .map_err(|_| anyhow!("key derivation failed"))?;
+    let request = zip321::TransactionRequest::new(vec![
+        zip321::Payment::new(
+            zcash_address::ZcashAddress::from_str(recipient)?,
+            Some(Zatoshis::from_u64(value)?),
+            None,
+            None,
+            None,
+            vec![],
+        )
+        .map_err(|_| anyhow!("invalid payment"))?,
+    ])?;
+    let change = MultiOutputChangeStrategy::new(
+        StandardFeeRule::Zip317,
+        None,
+        ShieldedPool::Orchard,
+        DustOutputPolicy::default(),
+        SplitPolicy::with_min_output_value(
+            NonZeroUsize::new(1).unwrap(),
+            Zatoshis::from_u64(10000000)?,
+        ),
+    );
+    let proposal = propose_transfer::<_, _, _, _, std::convert::Infallible>(
+        wallet,
+        &NET,
+        id,
+        &GreedyInputSelector::new(),
+        &change,
+        request,
+        ConfirmationsPolicy::default(),
+        &SpendPolicy::default(),
+        None,
+        None,
+    )
+    .map_err(|e| anyhow!("proposal failed: {e:?}"))?;
+    let prover = zcash_proofs::prover::LocalTxProver::bundled();
+    write_new(
+        &started_file,
+        serde_json::to_string(
+            &json!({"account":account,"recipient":recipient,"zatoshis":value.to_string()}),
+        )?
+        .as_bytes(),
+    )?;
+    let txids = create_proposed_transactions::<
+        _,
+        _,
+        std::convert::Infallible,
+        _,
+        std::convert::Infallible,
+        _,
+    >(
+        wallet,
+        &NET,
+        &SystemClock,
+        &mut StdRng::try_from_rng(&mut SysRng).map_err(|_| anyhow!("OS randomness unavailable"))?,
+        &prover,
+        &prover,
+        &SpendingKeys::from_unified_spending_key(usk),
+        OvkPolicy::Sender,
+        &proposal,
+        None,
+    )
+    .map_err(|e| anyhow!("transaction construction failed: {e:?}"))?;
+    ensure!(
+        txids.len() == 1,
+        "multi-transaction proposal requires manual recovery"
+    );
+    let txid = *txids.first();
+    let tx = wallet
+        .get_transaction(txid)?
+        .context("constructed transaction missing")?;
+    let mut raw = service::RawTransaction::default();
+    tx.write(&mut raw.data)?;
+    // Save reference before broadcast. Unknown outcomes need txid reconciliation, never blind re-send.
+    let pending = json!({"txid":txid.to_string(), "status":"constructed", "recipient":recipient, "zatoshis":value.to_string(), "account":account});
+    write_new(
+        &request_file,
+        serde_json::to_string_pretty(&pending)?.as_bytes(),
+    )?;
+    let response = client.send_transaction(raw).await?.into_inner();
+    ensure!(
+        response.error_code == 0,
+        "testnet broadcast rejected (code {}): {}",
+        response.error_code,
+        response
+            .error_message
+            .chars()
+            .take(1000)
+            .collect::<String>()
+    );
+    Ok(json!({"txid":txid.to_string(), "status":"broadcast-not-confirmed"}))
+}
+fn main() -> Result<()> {
+    // Shielded proving in debug builds can exceed Windows' default main-thread stack.
+    // Run the async entry point on an explicitly sized stack; RUST_MIN_STACK alone
+    // does not change the process main thread's stack.
+    std::thread::Builder::new()
+        .name("zcash-wallet".into())
+        .stack_size(64 * 1024 * 1024)
+        .spawn(|| {
+            tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .thread_stack_size(64 * 1024 * 1024)
+                .build()?
+                .block_on(run())
+        })?
+        .join()
+        .map_err(|_| anyhow!("wallet worker panicked; reconcile saved request before retrying"))?
+}
+
+async fn run() -> Result<()> {
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .map_err(|_| anyhow!("TLS provider initialization failed"))?;
+    let args = Cli::parse();
+    let _lock = lock_wallet(&args.wallet)?;
+    if matches!(args.command, Command::Init) {
+        fs::create_dir_all(&args.wallet)?;
+        ensure!(
+            !args.wallet.join("seed.bin").exists(),
+            "wallet exists; refusing to overwrite"
+        );
+        let mut client = connect(&args.server).await?;
+        let birthday = birthday(&mut client).await?;
+        // CSPRNG output is never printed.
+        let mut entropy = [0u8; 32];
+        OsRng.fill_bytes(&mut entropy);
+        write_new(&args.wallet.join("seed.bin"), &entropy)?;
+        use secrecy::Zeroize;
+        entropy.zeroize();
+        let bytes = seed(&args.wallet)?;
+        write_new(&args.wallet.join("network"), b"zcash-testnet")?;
+        let mut wallet = db(&args.wallet)?;
+        init_wallet_db(&mut wallet, Some(seed(&args.wallet)?))?;
+        let (id, _) = wallet.create_account("funding", &bytes, &birthday, None)?;
+        let (ua, _) = wallet
+            .get_next_available_address(id, UnifiedAddressRequest::SHIELDED)?
+            .context("no address")?;
+        let sapling = ua
+            .sapling()
+            .map(|a| Address::Sapling(Box::new(*a)).encode(&NET));
+        println!(
+            "{}",
+            json!({"network":"zcash-testnet", "account":id.expose_uuid().to_string(), "address":ua.encode(&NET), "saplingAddress":sapling, "birthday":u32::from(birthday.height())})
+        );
+        return Ok(());
+    }
+    let mut wallet = db(&args.wallet)?;
+    init_wallet_db(&mut wallet, Some(seed(&args.wallet)?))?;
+    if matches!(args.command, Command::Addresses) {
+        println!("{}", addresses(&args.wallet)?);
+        return Ok(());
+    }
+    let mut client = connect(&args.server).await?;
+    let value = match args.command {
+        Command::NetworkInfo => {
+            let info = client
+                .get_lightd_info(service::Empty {})
+                .await?
+                .into_inner();
+            json!({"network": info.chain_name, "height": info.block_height, "consensusBranchId": info.consensus_branch_id, "serverVersion": info.version, "nodeVersion": info.zcashd_build, "upgradeName": info.upgrade_name, "upgradeHeight": info.upgrade_height})
+        }
+        Command::ReconcileSend {
+            request_id,
+            allow_testnet_broadcast,
+        } => {
+            let saved: Value = serde_json::from_slice(&fs::read(
+                args.wallet.join(format!("request-{request_id}.json")),
+            )?)?;
+            let txid = zcash_protocol::TxId::from_hex(
+                saved["txid"].as_str().context("saved txid missing")?,
+            )
+            .context("invalid saved txid")?;
+            match client
+                .get_transaction(service::TxFilter {
+                    hash: txid.as_ref().to_vec(),
+                    ..Default::default()
+                })
+                .await
+            {
+                Ok(found) => {
+                    json!({"txid":txid.to_string(), "status":"known-to-server-requires-wallet-confirmation", "height":found.into_inner().height})
+                }
+                Err(e) if e.code() == tonic::Code::NotFound => {
+                    if allow_testnet_broadcast {
+                        let tx = wallet
+                            .get_transaction(txid)?
+                            .context("saved transaction missing from wallet")?;
+                        ensure!(tx.txid() == txid, "saved transaction ID mismatch");
+                        let mut raw = service::RawTransaction::default();
+                        tx.write(&mut raw.data)?;
+                        let r = client.send_transaction(raw).await?.into_inner();
+                        json!({"txid":txid.to_string(), "status":if r.error_code == 0 {"broadcast-not-confirmed"} else {"broadcast-rejected"}, "errorCode":r.error_code, "errorMessage":r.error_message.chars().take(1000).collect::<String>()})
+                    } else {
+                        sync(&mut wallet, &mut client).await?;
+                        // Refresh absence after sync so the native status is tied to that tip.
+                        match client
+                            .get_transaction(service::TxFilter {
+                                hash: txid.as_ref().to_vec(),
+                                ..Default::default()
+                            })
+                            .await
+                        {
+                            Err(e) if e.code() == tonic::Code::NotFound => (),
+                            _ => bail!(
+                                "transaction absence changed or lookup failed; reconcile again"
+                            ),
+                        }
+                        let tx = wallet
+                            .get_transaction(txid)?
+                            .context("saved transaction missing")?;
+                        let expiry = u32::from(tx.expiry_height());
+                        let tip = u32::from(wallet.chain_height()?.context("missing tip")?);
+                        wallet.set_transaction_status(
+                            txid,
+                            zcash_client_backend::data_api::TransactionStatus::TxidNotRecognized,
+                        )?;
+                        json!({"txid":txid.to_string(), "status":if expiry > 0 && tip > expiry {"expired-unmined"} else {"not-found-on-server"}, "expiryHeight":expiry, "tip":tip})
+                    }
+                }
+                Err(e) => {
+                    return Err(anyhow!(
+                        "transaction lookup failed with gRPC code {:?}; no rebroadcast attempted",
+                        e.code()
+                    ));
+                }
+            }
+        }
+        Command::Allocate { label } => {
+            allocate(&args.wallet, &mut wallet, &mut client, &label).await?
+        }
+        Command::Sync | Command::Observe => {
+            sync(&mut wallet, &mut client).await?;
+            observation(&args.wallet, &wallet)?
+        }
+        Command::Send {
+            request_id,
+            account,
+            address,
+            zatoshis,
+            allow_testnet_broadcast,
+        } => {
+            ensure!(
+                allow_testnet_broadcast,
+                "explicit --allow-testnet-broadcast required"
+            );
+            send(
+                &mut wallet,
+                &mut client,
+                &args.wallet,
+                &account,
+                &address,
+                zatoshis,
+                request_id,
+            )
+            .await?
+        }
+        _ => unreachable!(),
+    };
+    println!("{value}");
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn consensus_preflight_rejects_old_or_unknown_branch() {
+        assert!(verify_branch(4_465_026, "77190ad9").is_ok());
+        assert!(verify_branch(4_465_026, "37a5165b").is_err());
+        assert!(verify_branch(4_465_025, "37a5165b").is_ok());
+        assert!(verify_branch(4_465_026, "ffffffff").is_err());
+    }
+    #[test]
+    fn wallet_schema_matches_observation_query() {
+        use zcash_client_backend::data_api::chain::ChainState;
+        use zcash_primitives::block::BlockHash;
+        let tmp = tempfile::tempdir().unwrap();
+        write_new(&tmp.path().join("network"), b"zcash-testnet").unwrap();
+        let mut entropy = vec![0u8; 32];
+        OsRng.fill_bytes(&mut entropy);
+        let secret = SecretVec::new(entropy);
+        let mut wallet = db(tmp.path()).unwrap();
+        init_wallet_db(&mut wallet, None).unwrap();
+        // Synthetic pre-Sapling birthday is confined to this offline schema test.
+        let birthday = AccountBirthday::from_parts(
+            ChainState::empty(279999u32.into(), BlockHash([0; 32])),
+            None,
+        );
+        let (id, _) = wallet
+            .create_account("fixture", &secret, &birthday, None)
+            .unwrap();
+        wallet.update_chain_tip(280000u32.into()).unwrap();
+        let first = existing_address(tmp.path(), "fixture").unwrap().unwrap();
+        assert_eq!(
+            first,
+            existing_address(tmp.path(), "fixture").unwrap().unwrap()
+        );
+        wallet
+            .get_next_available_address(id, UnifiedAddressRequest::SHIELDED)
+            .unwrap()
+            .unwrap();
+        assert!(
+            !addresses(tmp.path())
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+        let conn = rusqlite::Connection::open_with_flags(
+            tmp.path().join("wallet.sqlite"),
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )
+        .unwrap();
+        conn.prepare("SELECT a.uuid,t.txid,r.pool,r.output_index,r.value,t.mined_height,b.hash FROM v_received_outputs r JOIN accounts a ON a.id=r.account_id JOIN transactions t ON t.id_tx=r.transaction_id JOIN blocks b ON b.height=t.mined_height WHERE r.pool IN (2,3,4) AND r.is_change=0 AND r.value>0").unwrap();
+    }
+    #[test]
+    fn seed_is_exclusive_and_address_is_testnet_shielded() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut entropy = [0u8; 32];
+        OsRng.fill_bytes(&mut entropy);
+        write_new(&tmp.path().join("seed.bin"), &entropy).unwrap();
+        assert!(write_new(&tmp.path().join("seed.bin"), &entropy).is_err());
+        let usk = UnifiedSpendingKey::from_seed(&NET, &entropy, 0u32.try_into().unwrap()).unwrap();
+        let (ua, _) = usk
+            .to_unified_full_viewing_key()
+            .default_address(UnifiedAddressRequest::SHIELDED)
+            .unwrap();
+        assert!(ua.encode(&NET).starts_with("utest"));
+        assert!(ua.transparent().is_none());
+        assert!(Address::decode(&Network::MainNetwork, &ua.encode(&NET)).is_none());
+    }
+}

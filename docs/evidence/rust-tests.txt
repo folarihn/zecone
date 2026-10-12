@@ -1,0 +1,21 @@
+cargo : warning: hard linking files in the incremental compilation cache failed. copying files instead. consider 
+moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn 
+Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\zecone_zcash-3nn6demx4lu7g\s-hn4w4x4xkm-10a0fig-working`
+At C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\scripts\verify.ps1:6 char:1
++ cargo test --locked --offline 2>&1 | Tee-Object -FilePath 'docs/evide ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (warning: hard l...0a0fig-working`:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+warning: `zecone-zcash` (bin "zecone-zcash" test) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.77s
+     Running unittests src\main.rs (target\debug\deps\zecone_zcash-d2793140936f1c12.exe)
+
+running 3 tests
+test tests::consensus_preflight_rejects_old_or_unknown_branch ... ok
+test tests::seed_is_exclusive_and_address_is_testnet_shielded ... ok
+test tests::wallet_schema_matches_observation_query ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.84s
+

@@ -1,0 +1,36 @@
+
+> test
+> node --import tsx --test tests/*.test.ts
+
+(node:19680) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ local EVM: real viem signing, persisted raw tx, receipt/event/owner reconciliation and chain guard (1440.5523ms)
+(node:33860) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ duplicate snapshots and outputs do not increase paid amount (75.364ms)
+✔ underpayments accumulate but never settle early (28.0773ms)
+✔ nine confirmations and unmined observations cannot authorize (27.2263ms)
+✔ Ironwood notes require ten confirmations and retain pool-specific identity (28.8548ms)
+✔ invalid network, partial scan, stale snapshot and transparent output fail closed (24.5303ms)
+✔ expired orders with funds enter auditable recovery and cannot revive (28.0301ms)
+✔ a late payment to an already expired order stays expired (28.141ms)
+✔ overpayment authorizes only one mint and records excess recovery (25.0262ms)
+✔ reorg before preparation removes authorization (26.686ms)
+✔ reorg after preparation stops broadcast and creates recovery (28.2144ms)
+✔ conflicting duplicate outputs reject the entire snapshot atomically (22.998ms)
+✔ payment attribution cannot be replayed against another account (25.0498ms)
+✔ same request is idempotent; reusing nonce for another intent fails (24.3083ms)
+✔ crash after broadcast preserves raw transaction across restart (39.8549ms)
+✔ receipt reconciliation prevents duplicate settlement on retries (27.4965ms)
+✔ confirmed revert records failure; explicit retry requires fresh payment (30.2643ms)
+✔ expired pending settlement does not rebroadcast (23.7964ms)
+✔ altered recipient, contract, price, expiry and signature are rejected (29.9777ms)
+✔ a slow prepare cannot bypass the freshness check before persistence (23.2941ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4286.8352
