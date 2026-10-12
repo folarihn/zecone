@@ -1,4 +1,31 @@
-# Phase 0 architecture
+# ZecOne architecture
+
+## Phase 1 local application boundary
+
+The Phase 1 Next.js/React/Tailwind application is served by one custom Node gateway bound to `127.0.0.1:3210`. A local launcher exchanges a ten-minute single-use capability for a one-hour HttpOnly SameSite=Strict session. Literal Host, Origin, fetch metadata, JSON content type and session-bound CSRF checks protect a narrow API. Production CSP uses per-request script nonces; no analytics or external assets are loaded.
+
+The authenticated browser receives an allowlisted projection, not `Store.report()`. Internal account UUIDs, merchant receiving addresses, intent signatures, raw transactions, viewing keys and full audit mappings never enter the browser response. Local data remains private/no-store. Public Base explorer links are explicit user actions.
+
+```mermaid
+flowchart TB
+  B[Browser: local paired session] --> G[Loopback gateway: auth + CSRF + approvals]
+  G --> U[Separate local user signing helper]
+  G --> D[Private browser checkout journal]
+  G --> P[Rust payer: native balance, unsigned fee quote, approved send]
+  G --> O[Existing order verifier and merchant scanner]
+  O --> R[Existing prefunded Base relayer]
+  R --> N[Existing NFT contract: user-owned recipient]
+```
+
+Ownership challenges bind the origin, chain, configured user address, nonce and expiry. The helper signs only gateway-authored approval files and the gateway verifies the recovered address. Creating an order signs fixed EIP-712 mint terms; it cannot send Zcash. Sending requires a separate short-lived, session/order-bound quote. The native signer rejects fees above the approved ceiling. A durable compare-and-set and stable request UUID precede construction, so retries cannot create a new payment.
+
+The engine serializes native work and uses the original service lock for merchant scanning/settlement. Background settlement is restricted to checkouts whose payment was explicitly approved. Restarted in-flight actions enter review; reconciliation reuses saved signatures or transaction references. Session expiry or closing the browser does not cancel already authorized work.
+
+Native balances use `get_wallet_summary`, including shielded spendable amounts; receipt totals are never used as wallet balances. Native wallet history and known ZecOne Base mint receipts are projected separately. NFT candidates come from this verifier's settled orders and are checked with live `ownerOf`. This is deliberately not a universal NFT/transaction indexer. Collection art in the UI is a local illustration, not an on-chain image.
+
+The process split is not a security boundary against a malicious same-OS-user program. The local operator still controls payment attestation and can correlate checkout activity. See [security review](PHASE1-SECURITY.md), [runbook](PHASE1-RUNBOOK.md), and [risks](RISKS.md).
+
+## Preserved Phase 0 payment engine
 
 ## Boundaries
 
@@ -30,4 +57,4 @@ Expired, underpaid, overpaid, orphaned and failed settlements remain visible. Re
 
 No arbitrary contract calls, chain selection or calldata are accepted in an order. Only the configured Base Sepolia contract and fixed mint method are permitted. Recipient signatures bind all order terms and contract address. Contract-level replay protection survives application restarts. User key and relayer key have separate files and code paths; no server key becomes the NFT owner. Same-OS-user filesystem isolation is a development boundary, not hardened key custody.
 
-The merchant Zcash seed is local. A separate payer seed models the paying user. For scale, migrate receiving to a viewing-key-only scanner and an isolated signing process. Testnet only; no frontend, bridge liquidity, pricing oracle or production exchange.
+The merchant Zcash seed is local. A separate payer seed models the paying user. For scale, migrate receiving to a viewing-key-only scanner and an isolated signing process. Testnet only; no bridge liquidity, pricing oracle or production exchange. Phase 1 adds the explicitly authorized local frontend above this unchanged settlement model.

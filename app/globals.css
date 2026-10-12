@@ -260,6 +260,14 @@ summary:focus-visible {
   align-items: center;
   gap: 14px;
 }
+.mobile-lock {
+  display: none;
+}
+@media (max-width: 580px) {
+  .mobile-lock {
+    display: inline-flex;
+  }
+}
 .network-pill {
   font-size: 11px;
   display: flex;
@@ -900,6 +908,26 @@ summary:focus-visible {
 .checkout-panel h2 {
   font-size: 21px;
   line-height: 1.35;
+}
+.saved-checkouts {
+  display: block;
+  font-size: 11px;
+  color: #5e6e54;
+  margin-bottom: 20px;
+}
+.saved-checkouts select {
+  width: 100%;
+  margin-top: 8px;
+  border: 1px solid #dce4d3;
+  background: #f7f9f2;
+  border-radius: 7px;
+  padding: 10px;
+  font: inherit;
+  color: #314d36;
+}
+.saved-checkouts select:focus-visible {
+  outline: 3px solid #557aab;
+  outline-offset: 3px;
 }
 .review-list {
   margin: 19px 0;

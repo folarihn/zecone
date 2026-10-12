@@ -1,8 +1,10 @@
-# ZecOne — Phase 0
+# ZecOne — local testnet wallet
 
-Testnet payment-to-NFT feasibility prototype. Native Rust Zcash wallet, durable TypeScript/SQLite order service, prefunded Base Sepolia relayer, and fixed ERC-721 mint. **No frontend. No bridge or real asset exchange.**
+Next.js wallet application over a native Rust Zcash wallet, durable TypeScript/SQLite order service, prefunded Base Sepolia relayer, and fixed ERC-721 mint. **Testnets only. No bridge or real asset exchange.**
 
-**Phase 0 live test passed on 2026-10-12.** A real 0.01 TAZ shielded Testnet payment reached ten confirmations and authorized one successful Base Sepolia NFT mint to the user's separate wallet. Receipt, ownership and duplicate-processing checks passed. See [results and transaction references](docs/RESULTS.md). Work stops before the frontend. NU7 requires the pinned official prerelease Rust libraries; this is a trusted testnet relayer prototype, not a production bridge.
+**Open the wallet:** double-click `Launch-ZecOne.cmd`. It starts the local gateway and securely opens your browser at `http://127.0.0.1:3210`. The existing funded wallets and deployed contract are reused. See the [Phase 1 runbook](docs/PHASE1-RUNBOOK.md), [implementation results](docs/PHASE1-RESULTS.md), and [browser security review](docs/PHASE1-SECURITY.md).
+
+**Phase 0 remains preserved.** Its real 0.01 TAZ shielded payment, ten-confirmation authorization, Base NFT receipt, ownership and idempotency evidence are recorded in [Phase 0 results](docs/RESULTS.md). Checkpoint `482fc57` precedes all Phase 1 changes. NU7 requires the pinned official prerelease Rust libraries; this remains a trusted testnet relayer prototype. Phase 2 is not authorized.
 
 - [Feasibility and verified dependencies](docs/FEASIBILITY.md)
 - [Architecture](docs/ARCHITECTURE.md), [risks](docs/RISKS.md), [phases](docs/PHASES.md)
@@ -17,8 +19,10 @@ Use Rust 1.97.1, Node 24.12.0, npm 11.6.2, Foundry/Anvil 1.7.1, and Solidity 0.8
 npm.cmd ci --ignore-scripts
 cargo build --locked
 forge build
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-phase1.ps1
 ```
+
+The Phase 1 verifier writes to a separate evidence directory, preserving Phase 0 logs. Build the frontend with `npm run wallet:build`, then use the launcher. The [Phase 1 runbook](docs/PHASE1-RUNBOOK.md) lists exact frontend dependencies and isolated browser tests.
 
 The Anvil integration test starts a loopback-only process, creates disposable random local keys, and injects synthetic payment observations only inside the test. It is not evidence of a real Zcash or Base Sepolia transaction. Some sandboxes require permission to launch/connect to this loopback process.
 

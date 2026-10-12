@@ -18,5 +18,10 @@
 | Scale and concurrency | Local single-worker prototype, per-order account allocation. Not a hosted multi-tenant service. |
 | Testnet upgrades / prerelease dependencies | The live NU7 chain required official prerelease crates; stable versions scanned funds but produced an obsolete consensus branch. Compare server branch ID with the library's height-dependent branch before operations; retain exact pins, private pre-migration backups and rejection evidence. Prerelease cryptographic/wallet code is not a production assurance. |
 | Windows proving stack | Debug proving overflowed the default main-thread stack. Use an explicit 64 MiB wallet-thread stack and preserve interrupted construction markers until native outgoing history is reviewed. |
+| Browser-origin attacks | Phase 1 uses literal loopback binding/Host, single-use pairing, expiring HttpOnly sessions, exact Origin, CSRF, JSON-only mutations and nonce CSP. Do not tunnel or host this service publicly. |
+| Local key custody | The user signing helper and relayer use separate key files, but share the OS account. A compromised gateway or same-user malware can access files; this is not a hardware wallet or isolated signer security boundary. |
+| Browser privacy | Authenticated UI shows the user's private history. Do not share pairing links, cookies, database files or approval records. Public screenshots/evidence can correlate activity; none are uploaded automatically. |
+| Data coverage / stale balances | Native wallet summary is authoritative for local shielded balances. Last-known data is labeled when sync fails. Base activity/NFT discovery covers recorded ZecOne mints only; no universal indexer is claimed. |
+| UI interruption | Approval is persisted before proving; repeat clicks use one request UUID. Restarted in-flight actions require reconciliation; closing or locking the page does not cancel authorized background work. |
 
 No audit has been performed. Passing local tests does not establish production security or real testnet integration. RPC responses and logs are data, never instructions. Do not log request payloads carrying credentials or raw keys.

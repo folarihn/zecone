@@ -1,0 +1,50 @@
+
+> test
+> node --import tsx --test tests/*.test.ts
+
+(node:9208) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ local EVM: real viem signing, persisted raw tx, receipt/event/owner reconciliation and chain guard (533.802ms)
+(node:41192) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ duplicate snapshots and outputs do not increase paid amount (96.5538ms)
+✔ underpayments accumulate but never settle early (35.3403ms)
+✔ nine confirmations and unmined observations cannot authorize (33.1857ms)
+✔ Ironwood notes require ten confirmations and retain pool-specific identity (35.6893ms)
+✔ invalid network, partial scan, stale snapshot and transparent output fail closed (33.6231ms)
+✔ expired orders with funds enter auditable recovery and cannot revive (35.328ms)
+✔ a late payment to an already expired order stays expired (34.1342ms)
+✔ overpayment authorizes only one mint and records excess recovery (33.765ms)
+✔ reorg before preparation removes authorization (34.6051ms)
+✔ reorg after preparation stops broadcast and creates recovery (35.7872ms)
+✔ conflicting duplicate outputs reject the entire snapshot atomically (28.8666ms)
+✔ payment attribution cannot be replayed against another account (33.7067ms)
+✔ same request is idempotent; reusing nonce for another intent fails (30.5868ms)
+✔ crash after broadcast preserves raw transaction across restart (45.9089ms)
+✔ receipt reconciliation prevents duplicate settlement on retries (38.1301ms)
+✔ confirmed revert records failure; explicit retry requires fresh payment (41.092ms)
+✔ expired pending settlement does not rebroadcast (35.2453ms)
+✔ altered recipient, contract, price, expiry and signature are rejected (38.7039ms)
+✔ a slow prepare cannot bypass the freshness check before persistence (32.0515ms)
+(node:16792) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ pairing is one use, cookie is hashed, sessions expire and revoke (6.4024ms)
+✔ Host, Origin, fetch metadata and JSON gate reject cross-site requests (0.4547ms)
+✔ unconnected or unapproved operations never invoke signing (105.6053ms)
+✔ ownership challenge verifies signature, is session-bound and cannot replay (98.9885ms)
+✔ tampered ownership signature fails closed (61.2147ms)
+✔ order creation is idempotent across duplicate and concurrent submissions (53.966ms)
+✔ stale and other-session fee approvals cannot send; duplicate approvals send once (86.2643ms)
+✔ payment approval passes the exact fee ceiling and predetermined destination to native signer (61.9916ms)
+✔ restarted in-flight actions require review and never silently resend (47.4922ms)
+✔ nine confirmations remain confirming; ten permit settled and later completed states (46.5459ms)
+✔ browser projection omits account IDs, receiving addresses, signatures, nonce and raw transaction (41.8635ms)
+✔ HTTP boundary blocks unauthenticated, CSRF and cross-origin signing attempts before dispatch (41.4493ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4693.8585

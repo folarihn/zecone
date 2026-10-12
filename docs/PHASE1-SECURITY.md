@@ -16,7 +16,7 @@ Keep the deployed ZecOneNFT, pinned NU7 Rust libraries, native wallet DBs and se
 - Proving is slow. An HTTP timeout or process restart cannot mean payment failure or permission to create a replacement. Persist approvals and request IDs before side effects; reconcile saved transactions and never clear uncertain markers automatically.
 - The local user key and relayer key share an OS user. Process separation prevents accidental key loading by the relayer but does not resist malicious software running as that user.
 
-## Planned controls
+## Implemented controls
 
 One local Node gateway serves Next.js and narrowly allowlisted JSON operations on `127.0.0.1:3210`. No public deployment, remote wallet RPC, generic shell command route, seed export, arbitrary destination or arbitrary calldata. Pair through a short-lived single-use local capability, exchange it for an HttpOnly SameSite=Strict session, and require a separate session-bound CSRF header on mutations. Sessions expire and can be revoked; pairing/login attempts are rate limited. Responses are private/no-store; no analytics, remote fonts or third-party image fetching.
 
@@ -27,3 +27,7 @@ The worker may scan and settle only an already user-approved fixed checkout. It 
 ## Validation gates
 
 Test unauthorized and expired sessions; hostile Host/Origin and missing CSRF; ownership signature tampering/replay; unapproved signing; idempotent order/approval submission; stale quotes and fee bounds; incomplete confirmation progress; failures/restart recovery; response data minimization; responsive layout, keyboard access and automated accessibility. Use real local wallet data in the application. Synthetic fixtures belong only in tests. Live spending is exercised only through the visible approval flow, within the user's authorized testnet demonstration.
+
+The HTTP connection is unencrypted literal loopback; the cookie is HttpOnly and SameSite=Strict but is not marked Secure because the application uses local HTTP. Same-user malware, browser compromise, administrators and a compromised gateway remain outside this prototype's protection. Pairing capabilities and browser automation session files are private local credentials. The gateway does not log request bodies, raw signer exceptions or RPC error objects.
+
+The browser necessarily displays the user's own private history and checkout references after local pairing. This is not a claim of privacy from the local operator or authenticated browser. Sharing screenshots/evidence can reveal activity correlations. No evidence is uploaded automatically. Full Base history and arbitrary NFT discovery require a separate, privacy-reviewed indexer and remain out of scope.

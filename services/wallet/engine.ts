@@ -118,7 +118,9 @@ export class Engine {
     }
   }
   dashboard(): Dashboard {
-    const merchantTip=this.app.db.prepare("SELECT value FROM app_meta WHERE key='merchant_tip'").get() as {value:string}|undefined;
+    const merchantTip = this.app.db
+      .prepare("SELECT value FROM app_meta WHERE key='merchant_tip'")
+      .get() as { value: string } | undefined;
     return {
       address: this.address,
       contract: this.contract,
@@ -146,7 +148,9 @@ export class Engine {
         })),
       checkouts: this.app
         .all()
-        .map((c) => checkoutView(c, this.store, Number(merchantTip?.value??0))),
+        .map((c) =>
+          checkoutView(c, this.store, Number(merchantTip?.value ?? 0)),
+        ),
     };
   }
   challenge(s: Session) {
@@ -427,18 +431,25 @@ export class Engine {
         .all()
         .filter((c) => ["sent", "sending"].includes(c.stage) && c.order_id);
       if (
-        this.app.all().filter(c=>c.order_id).some(
-          (c) =>
-            !["settled", "expired"].includes(
-              this.store.get(c.order_id!)?.state ?? "",
-            ),
-        )
+        this.app
+          .all()
+          .filter((c) => c.order_id)
+          .some(
+            (c) =>
+              !["settled", "expired"].includes(
+                this.store.get(c.order_id!)?.state ?? "",
+              ),
+          )
       ) {
         try {
           await locked(".state/service.lock", async () => {
-            const snapshot=await new Zcash().observe();
+            const snapshot = await new Zcash().observe();
             this.store.observe(snapshot, now());
-            this.app.db.prepare("INSERT INTO app_meta(key,value) VALUES('merchant_tip',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(String(snapshot.tip));
+            this.app.db
+              .prepare(
+                "INSERT INTO app_meta(key,value) VALUES('merchant_tip',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+              )
+              .run(String(snapshot.tip));
             const pending = this.store
               .all()
               .find(

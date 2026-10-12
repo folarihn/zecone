@@ -249,6 +249,13 @@ export default function Wallet() {
       await load();
     });
   }
+  async function lockWallet() {
+    await task(async () => {
+      await call("logout", {});
+      setSession(null);
+      setData(null);
+    });
+  }
   async function quote(c: CheckoutView) {
     await task(async () => {
       const q = await call("quote", { id: c.id });
@@ -386,6 +393,13 @@ export default function Wallet() {
         <header className="topbar">
           <span className="topbar-label">Your local wallet</span>
           <div className="account-controls">
+            <button
+              className="icon-button mobile-lock"
+              aria-label="Lock wallet"
+              onClick={lockWallet}
+            >
+              <LockKeyhole size={17} />
+            </button>
             <span className="network-pill">
               <span /> Base Sepolia
             </span>
@@ -704,6 +718,22 @@ export default function Wallet() {
                     </div>
                   </div>
                   <section className="checkout-panel">
+                    {data.checkouts.length > 1 && (
+                      <label className="saved-checkouts">
+                        Saved checkout
+                        <select
+                          value={checkout?.id ?? ""}
+                          onChange={(e) => setSelected(e.target.value)}
+                        >
+                          {data.checkouts.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {new Date(c.created * 1000).toLocaleString()} ·{" "}
+                              {c.status}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
                     <p className="eyebrow">
                       {checkout ? "YOUR CHECKOUT" : "REVIEW YOUR MINT"}
                     </p>
@@ -1127,7 +1157,7 @@ function CheckoutProgress({ c }: { c: CheckoutView }) {
           ? 3
           : c.confirmations >= 10
             ? 2
-            : c.paymentTx
+            : c.paymentTx || c.stage === "sending"
               ? 1
               : 0;
   return (
@@ -1138,6 +1168,7 @@ function CheckoutProgress({ c }: { c: CheckoutView }) {
           {c.confirmations} / {c.requiredConfirmations} confirmations
         </span>
       </div>
+      <p className="tiny">Received {units(c.receivedZatoshis)} / 0.01 TAZ</p>
       <div
         className="progress-track"
         role="progressbar"
@@ -1175,7 +1206,7 @@ function Activity({
     network: "Zcash Testnet",
     amount: `${BigInt(t.deltaZatoshis) > 0n ? "+" : ""}${units(t.deltaZatoshis)} TAZ`,
     status: t.expired
-      ? "Expired · not sent"
+      ? "Expired · unmined"
       : t.height
         ? `${Math.max(0, (data.zcash?.tip ?? 0) - t.height + 1)} confirmations`
         : "Pending confirmation",

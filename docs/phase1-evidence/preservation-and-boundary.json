@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-10-12T08:15:44.097Z",
+  "privateKeyFilesUnchanged": true,
+  "unauthenticatedReadRejected": true,
+  "crossOriginRejected": true,
+  "missingCsrfRejected": true,
+  "privatePathsNotServed": true,
+  "responseRedactionPassed": true,
+  "noStore": true,
+  "settlementSurvivedRestart": true,
+  "broadcastAttemptsAfterRestart": 1
+}
