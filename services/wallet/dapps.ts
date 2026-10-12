@@ -14,6 +14,7 @@ import {
 import { baseSepolia } from "viem/chains";
 import { exclusiveJson, readJson } from "../execution/io.ts";
 import { type Session, ApiError } from "./security.ts";
+import type { Purchases } from "../marketplace/service.ts";
 import { uuid, requireApproval } from "./engine.ts";
 import {
   DAPP_CHAIN,
@@ -58,6 +59,7 @@ export class Dapps {
   constructor(
     readonly user: Address,
     path = ".state/dapps.sqlite",
+    readonly purchases?: Purchases,
   ) {
     mkdirSync(".state", { recursive: true });
     this.db = new DatabaseSync(path);
@@ -103,6 +105,12 @@ export class Dapps {
   }
   revoke(origin: string) {
     originOf(origin);
+    for (const r of this.db
+      .prepare(
+        "SELECT id FROM requests WHERE origin=? AND method='zecone_payWithZec' AND state='pending'",
+      )
+      .all(origin))
+      this.purchases?.cancelDraft(String(r.id));
     this.db.prepare("DELETE FROM permissions WHERE origin=?").run(origin);
     this.db
       .prepare(
@@ -152,6 +160,7 @@ export class Dapps {
     if (!r || r.session !== s.id)
       throw new RpcError(4100, "Request session mismatch");
     if (r.state === "pending" && r.expires <= Date.now()) {
+      if (r.method === "zecone_payWithZec") this.purchases?.cancelDraft(id);
       this.db
         .prepare(
           "UPDATE requests SET state='expired',error='Approval expired' WHERE id=?",
@@ -177,6 +186,16 @@ export class Dapps {
       return this.status(s, id);
     }
     const allowed = this.permitted(origin);
+    if (method === "zecone_getPurchaseStatus") {
+      if (!allowed || !this.purchases)
+        throw new RpcError(4100, "Connect the marketplace first");
+      if (p.length !== 1 || typeof p[0] !== "string")
+        throw new RpcError(-32602, "Purchase reference required");
+      return {
+        done: true,
+        result: this.purchases.externalStatus(origin, uuid(p[0])),
+      };
+    }
     if (method === "eth_chainId") {
       if (p.length) throw new RpcError(-32602, "No parameters");
       return { done: true, result: DAPP_CHAIN };
@@ -208,6 +227,7 @@ export class Dapps {
         "personal_sign",
         "eth_signTypedData_v4",
         "eth_sendTransaction",
+        "zecone_payWithZec",
       ].includes(method)
     )
       throw new RpcError(4200, "Unsupported RPC method");
@@ -224,6 +244,11 @@ export class Dapps {
       .get() as { n: number };
     if (active.n >= 8) throw new RpcError(-32002, "Too many pending requests");
     let review: any = { account: this.user, chainId: 84532 };
+    if (method === "zecone_payWithZec") {
+      if (!this.purchases)
+        throw new RpcError(4200, "Marketplace funding is unavailable");
+      review = await this.purchases.review(s, origin, id, p);
+    }
     if (method === "personal_sign") {
       const raw = message(p, this.user);
       review = {
@@ -317,6 +342,8 @@ export class Dapps {
     if (!r || r.session !== s.id)
       throw new RpcError(4100, "Request session mismatch");
     if (approved === false) {
+      if (r.method === "zecone_payWithZec" && r.state === "pending")
+        this.purchases?.cancelDraft(id);
       this.db
         .prepare(
           "UPDATE requests SET state='rejected',error='User rejected request' WHERE id=? AND state='pending'",
@@ -360,6 +387,9 @@ export class Dapps {
           .prepare("INSERT OR IGNORE INTO permissions VALUES(?,?)")
           .run(r.origin, Date.now());
         result = [this.user];
+      } else if (r.method === "zecone_payWithZec") {
+        if (!this.purchases) throw Error("Marketplace unavailable");
+        result = await this.purchases.approve(s, id);
       } else {
         const path = resolve(".state/dapp-approvals", `${id}.json`);
         exclusiveJson(path, {

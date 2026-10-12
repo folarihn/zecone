@@ -5,7 +5,8 @@ import nextModule from "next";
 import { Engine } from "./engine.ts";
 import { Sessions, requireLocal } from "./security.ts";
 import { api } from "./api.ts";
-import { Dapps } from './dapps.ts';
+import { Dapps } from "./dapps.ts";
+import { Purchases } from "../marketplace/service.ts";
 const dev = process.argv.includes("--dev");
 process.env.NEXT_TELEMETRY_DISABLED = "1";
 // Next's CommonJS runtime is callable; its NodeNext declaration wraps the default.
@@ -14,13 +15,20 @@ const app = next({ dev, webpack: true, hostname: "127.0.0.1", port: 3210 });
 await app.prepare();
 const engine = new Engine(),
   sessions = new Sessions(engine.app.db),
-  dapps = new Dapps(engine.address),
-  handler = api(sessions, engine, dapps),
+  purchases = new Purchases(),
+  dapps = new Dapps(engine.address, ".state/dapps.sqlite", purchases),
+  handler = api(sessions, engine, dapps, purchases),
   nextHandler = app.getRequestHandler();
 const server = createServer(async (req, res) => {
   try {
-    const publicConnect = req.method === 'GET' && req.url?.split('?')[0] === '/connect' && req.headers.host === '127.0.0.1:3210' && req.headers['sec-fetch-mode'] === 'navigate' && req.headers['sec-fetch-dest'] === 'document';
-    if(!publicConnect) requireLocal(req.headers as Record<string, string | undefined>, false);
+    const publicConnect =
+      req.method === "GET" &&
+      req.url?.split("?")[0] === "/connect" &&
+      req.headers.host === "127.0.0.1:3210" &&
+      req.headers["sec-fetch-mode"] === "navigate" &&
+      req.headers["sec-fetch-dest"] === "document";
+    if (!publicConnect)
+      requireLocal(req.headers as Record<string, string | undefined>, false);
   } catch {
     res.writeHead(403);
     res.end("Local origin required");
@@ -37,8 +45,7 @@ const server = createServer(async (req, res) => {
   // retain the browser's default opener isolation policy.
   if (req.url?.split("?")[0] === "/connect")
     res.setHeader("Cross-Origin-Opener-Policy", "unsafe-none");
-  else
-    res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  else res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader(
     "Permissions-Policy",
@@ -66,6 +73,8 @@ server.listen(3210, "127.0.0.1", () => {
   engine.refresh();
   setInterval(() => engine.refresh(), 15000).unref();
   setInterval(() => void dapps.reconcile(), 10000).unref();
+  void purchases.tick();
+  setInterval(() => void purchases.tick(), 20000).unref();
 });
 server.on("error", () => {
   console.error(

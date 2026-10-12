@@ -25,7 +25,9 @@
     "phase2:live-sponsor": "tsx scripts/live-phase2-sponsor.ts --allow-testnet-spend",
     "phase2:sponsor-status": "tsx scripts/phase2-sponsor-status.ts",
     "phase2:readiness": "tsx scripts/phase2-readiness.ts",
-    "phase2:verify-live": "tsx scripts/verify-phase2-live.ts"
+    "phase2:verify-live": "tsx scripts/verify-phase2-live.ts",
+    "marketplace:dev": "tsx marketplace/server.ts",
+    "phase3:setup": "tsx scripts/phase3-setup.ts --allow-testnet-broadcast"
   },
   "dependencies": {
     "@openzeppelin/contracts": "5.6.1",
