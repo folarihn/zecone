@@ -1,6 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { ApiError, requireLocal, Sessions } from "./security.ts";
 import { uuid, type Engine } from "./engine.ts";
+import type { Dapps } from './dapps.ts';
+import { RpcError, originOf } from './dapp-policy.ts';
 type Backend = Pick<
   Engine,
   | "dashboard"
@@ -12,7 +14,7 @@ type Backend = Pick<
   | "pay"
   | "recheck"
 >;
-export function api(sessions: Sessions, engine: Backend) {
+export function api(sessions: Sessions, engine: Backend, dapps?: Dapps) {
   const attempts = new Map<string, { at: number; count: number }>();
   return async (req: IncomingMessage, res: ServerResponse) => {
     res.setHeader("Content-Type", "application/json");
@@ -38,7 +40,7 @@ export function api(sessions: Sessions, engine: Backend) {
         const chunks: Buffer[] = [];
         for await (const chunk of req) {
           length += chunk.length;
-          if (length > 8192) throw new ApiError(413, "Request too large.");
+          if (length > (path?.startsWith('/api/dapps/') ? 32768 : 8192)) throw new ApiError(413, "Request too large.");
           chunks.push(chunk);
         }
         try {
@@ -82,10 +84,22 @@ export function api(sessions: Sessions, engine: Backend) {
               ? { at: Date.now(), count: 1 }
               : { ...a, count: a.count + 1 };
         attempts.set(session.id, next);
-        if (next.count > 40)
+        if (next.count > (path?.startsWith('/api/dapps/') ? 200 : 40))
           throw new ApiError(429, "Too many requests. Please wait a minute.");
       }
       let data: unknown;
+      if(path?.startsWith('/api/dapps/') && dapps){
+        if(!session.connected) throw new ApiError(403,'Verify wallet ownership first.');
+        switch(`${method} ${path}`){
+          case 'GET /api/dapps/list': data=dapps.list(); break;
+          case 'POST /api/dapps/request': data=await dapps.request(session,body); break;
+          case 'POST /api/dapps/status': data=dapps.status(session,uuid(body.id)); break;
+          case 'POST /api/dapps/approve': data=await dapps.approve(session,uuid(body.id),String(body.reviewHash),body.approved); break;
+          case 'POST /api/dapps/revoke': dapps.revoke(originOf(body.origin)); data={revoked:true}; break;
+          default: throw new ApiError(404,'Operation not available.');
+        }
+        send(200,data);return;
+      }
       switch (`${method} ${path}`) {
         case "GET /api/session":
           data = { csrf: session.csrf, connected: !!session.connected };
@@ -103,6 +117,10 @@ export function api(sessions: Sessions, engine: Backend) {
         case "POST /api/connect":
           data = await engine.connect(session, uuid(body.id), body.approved);
           break;
+        case 'POST /api/action-draft':
+          data=(engine as Engine).actionDraft(session);break;
+        case 'POST /api/action-approve':
+          data=await (engine as Engine).createAction(session,uuid(body.id),String(body.digest),body.approved);break;
         case "POST /api/checkout":
           data = await engine.create(session, uuid(body.id), body.approved);
           break;
@@ -134,9 +152,10 @@ export function api(sessions: Sessions, engine: Backend) {
       }
       send(200, data);
     } catch (error) {
-      send(error instanceof ApiError ? error.status : 503, {
+      send(error instanceof RpcError ? 400 : error instanceof ApiError ? error.status : 503, {
+        ...(error instanceof RpcError ? {code:error.code} : {}),
         error:
-          error instanceof ApiError
+          error instanceof ApiError || error instanceof RpcError
             ? error.message
             : "The local operation could not finish. Your saved checkout is preserved. Recheck status before retrying.",
       });

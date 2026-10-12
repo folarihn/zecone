@@ -10,6 +10,7 @@ import {
   verifyMessage,
   type Address,
   type Hex,
+  encodeFunctionData, hashTypedData,
 } from "viem";
 import { baseSepolia } from "viem/chains";
 import { exclusiveJson, readJson, locked } from "../execution/io.ts";
@@ -21,6 +22,7 @@ import { executeOne } from "../execution/worker.ts";
 import { AppState, type Checkout } from "./state.ts";
 import { ApiError, ORIGIN, randomToken, type Session } from "./security.ts";
 import { checkoutView, type Dashboard, type WalletSummary } from "./view.ts";
+import { ActionBase, actionAbi, actionTyped, ACTION_BUDGET, NOTE, type ActionIntent } from '../execution/action.ts';
 const exec = promisify(execFile),
   now = () => Math.floor(Date.now() / 1000);
 export const uuid = (v: unknown): string => {
@@ -76,6 +78,36 @@ export class Engine {
           "review",
           "Interrupted action requires reconciliation.",
         );
+  }
+  actionDraft(s:Session){
+    requireApproval(s,true);
+    this.app.db.exec('CREATE TABLE IF NOT EXISTS action_drafts(id TEXT PRIMARY KEY,session TEXT NOT NULL,intent TEXT NOT NULL,digest TEXT NOT NULL,used INTEGER NOT NULL DEFAULT 0)');
+    if(!existsSync('.state/actions-confirmed.json'))throw new ApiError(503,'The fixed-action contract has not been deployed.');
+    const contract=readJson<{contract:Address}>('.state/actions-confirmed.json').contract,id=randomUUID(),orderId=`0x${randomToken()}` as Hex;
+    const intent:Omit<ActionIntent,'signature'>={kind:'action',orderId,nonce:orderId,chainId:84532,recipient:this.address,contract,target:contract,data:encodeFunctionData({abi:actionAbi,functionName:'recordFor',args:[this.address,NOTE]}),maxValue:'0',maxGasBudget:ACTION_BUDGET,zatoshis:PRICE.toString(),expiry:now()+86400};
+    const digest=hashTypedData(actionTyped(intent));this.app.db.prepare('INSERT INTO action_drafts(id,session,intent,digest) VALUES(?,?,?,?)').run(id,s.id,JSON.stringify(intent),digest);
+    return {id,intent,digest,description:'Record one sponsored ZecOne test action for your EVM account. No NFT is minted. Prefunded testnet sponsorship; no ZEC-to-ETH conversion. Gas budget covers EVM execution; Base L1 data fees are additional.'};
+  }
+  async createAction(s:Session,id:string,digest:string,approved:unknown){
+    requireApproval(s,approved);
+    return this.serial(async()=>{
+      const draft=this.app.db.prepare('SELECT * FROM action_drafts WHERE id=? AND session=?').get(id,s.id) as {intent:string;digest:string;used:number}|undefined;
+      if(!draft||draft.digest!==digest)throw new ApiError(403,'Exact action approval required');
+      const old=this.app.get(id);if(old)return checkoutView(old,this.store,this.zcash?.tip??0);
+      const i=JSON.parse(draft.intent) as Omit<ActionIntent,'signature'>;
+      if(i.expiry<=now()||draft.used||s.expires<=Date.now())throw new ApiError(409,'Action expired or already approved');
+      const active=this.app.all().find(c=>!['Completed','Failed'].includes(checkoutView(c,this.store,this.zcash?.tip??0).status));
+      if(active)throw new ApiError(409,'Finish or reconcile the existing checkout first');
+      this.app.db.prepare('UPDATE action_drafts SET used=1 WHERE id=?').run(id);
+      this.app.db.prepare('INSERT INTO checkouts(id,intent,request_id,stage,created) VALUES(?,?,?,?,?)').run(id,draft.intent,randomUUID(),'creating',now());
+      try{
+        const path=resolve(this.approvalDir,`${id}.json`);exclusiveJson(path,{kind:'action-intent',approved:true,expires:Math.min(Date.now()+300000,s.expires),intent:i});
+        const {intentFile}=await this.script<{intentFile:string}>('scripts/local-user-sign.ts',[path]);
+        const order=await this.script<{id:string}>('scripts/actions.ts',['create',intentFile]);
+        this.app.db.prepare("UPDATE checkouts SET order_id=?,stage='awaiting' WHERE id=?").run(order.id,id);
+      }catch(e){this.app.update(id,'review');throw e;}
+      return checkoutView(this.app.get(id)!,this.store,this.zcash?.tip??0);
+    });
   }
   private serial<T>(fn: () => Promise<T>): Promise<T> {
     this.queued++;
@@ -138,13 +170,14 @@ export class Engine {
         )
         .map((o) => ({
           hash: o.tx_hash!,
+          kind: JSON.parse(o.intent).kind === 'action' ? 'action' as const : 'mint' as const,
           status:
             o.state === "settled"
               ? "Confirmed"
               : o.state === "failed"
                 ? "Reverted"
                 : "Pending / review",
-          tokenId: BigInt(o.id).toString(),
+          tokenId: JSON.parse(o.intent).kind === 'action' ? null : BigInt(o.id).toString(),
         })),
       checkouts: this.app
         .all()
@@ -376,7 +409,7 @@ export class Engine {
         if (existsSync(signed)) {
           // Reuse the prior signature and nonce. Reconciliation never signs a new intent.
           const order = await this.script<{ id: string }>(
-            "services/execution/cli.ts",
+            JSON.parse(c.intent).kind==='action' ? 'scripts/actions.ts' : "services/execution/cli.ts",
             ["create", signed],
           );
           this.app.db
@@ -467,7 +500,7 @@ export class Engine {
               await executeOne(
                 this.store,
                 next.id,
-                new Base(this.contract),
+                JSON.parse(next.intent).kind==='action' ? new ActionBase(readJson<{contract:Address}>('.state/actions-confirmed.json').contract) : new Base(this.contract),
                 now,
               );
           });
@@ -492,7 +525,7 @@ export class Engine {
     for (const o of this.store
       .all()
       .filter((o) => o.state === "settled" && o.tx_hash)) {
-      if (getAddress(JSON.parse(o.intent).recipient) !== this.address) continue;
+      if (JSON.parse(o.intent).kind==='action' || getAddress(JSON.parse(o.intent).recipient) !== this.address) continue;
       const tokenId = BigInt(o.id);
       const owner = await this.public.readContract({
         address: this.contract,

@@ -5,6 +5,7 @@ import nextModule from "next";
 import { Engine } from "./engine.ts";
 import { Sessions, requireLocal } from "./security.ts";
 import { api } from "./api.ts";
+import { Dapps } from './dapps.ts';
 const dev = process.argv.includes("--dev");
 process.env.NEXT_TELEMETRY_DISABLED = "1";
 // Next's CommonJS runtime is callable; its NodeNext declaration wraps the default.
@@ -13,11 +14,13 @@ const app = next({ dev, webpack: true, hostname: "127.0.0.1", port: 3210 });
 await app.prepare();
 const engine = new Engine(),
   sessions = new Sessions(engine.app.db),
-  handler = api(sessions, engine),
+  dapps = new Dapps(engine.address),
+  handler = api(sessions, engine, dapps),
   nextHandler = app.getRequestHandler();
 const server = createServer(async (req, res) => {
   try {
-    requireLocal(req.headers as Record<string, string | undefined>, false);
+    const publicConnect = req.method === 'GET' && req.url?.split('?')[0] === '/connect' && req.headers.host === '127.0.0.1:3210' && req.headers['sec-fetch-mode'] === 'navigate' && req.headers['sec-fetch-dest'] === 'document';
+    if(!publicConnect) requireLocal(req.headers as Record<string, string | undefined>, false);
   } catch {
     res.writeHead(403);
     res.end("Local origin required");
@@ -29,6 +32,13 @@ const server = createServer(async (req, res) => {
   req.headers["content-security-policy"] = csp;
   res.setHeader("Content-Security-Policy", csp);
   res.setHeader("Referrer-Policy", "no-referrer");
+  // The explicitly opened approval popup needs its opener for origin-bound messaging.
+  // Keep this exception limited to the public connector document; private wallet pages
+  // retain the browser's default opener isolation policy.
+  if (req.url?.split("?")[0] === "/connect")
+    res.setHeader("Cross-Origin-Opener-Policy", "unsafe-none");
+  else
+    res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader(
     "Permissions-Policy",
@@ -55,6 +65,7 @@ server.listen(3210, "127.0.0.1", () => {
   );
   engine.refresh();
   setInterval(() => engine.refresh(), 15000).unref();
+  setInterval(() => void dapps.reconcile(), 10000).unref();
 });
 server.on("error", () => {
   console.error(

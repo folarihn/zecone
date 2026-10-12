@@ -23,5 +23,11 @@
 | Browser privacy | Authenticated UI shows the user's private history. Do not share pairing links, cookies, database files or approval records. Public screenshots/evidence can correlate activity; none are uploaded automatically. |
 | Data coverage / stale balances | Native wallet summary is authoritative for local shielded balances. Last-known data is labeled when sync fails. Base activity/NFT discovery covers recorded ZecOne mints only; no universal indexer is claimed. |
 | UI interruption | Approval is persisted before proving; repeat clicks use one request UUID. Restarted in-flight actions require reconciliation; closing or locking the page does not cancel authorized background work. |
+| External dApp phishing | Exact opener origin/source/channel binding and visible full-origin approval; users can still approve a lookalike site or malicious payload. See `PHASE2-SECURITY.md`. |
+| Popup transport incompatibility | Requires SDK integration and browser opener access; no extension injection or WalletConnect; some public-site/COOP/local-network policies may block the loopback popup. |
+| EVM transaction/signature request | Each exact request is reviewed, bounded and simulated; simulation is not a safety guarantee and arbitrary contract semantics cannot be fully decoded. |
+| DApp request replay / uncertain broadcast | SQLite request fingerprint/state, signer lock, persisted exact raw transaction and receipt reconciliation; ambiguous states remain in review and no replacement is signed. |
+| ZEC-sponsored Base action | Fixed allowlist, exact EIP-712 intent, ten-confirmation payment requirement and on-chain replay check; settlement operator still controls payment attestation and prefunded relayer. No automatic refund or ZEC/ETH conversion. |
+| ERC-4337 / contract account compatibility | Not implemented. Existing user account is an EOA; no EIP-1271 verification or smart-account migration is claimed. |
 
 No audit has been performed. Passing local tests does not establish production security or real testnet integration. RPC responses and logs are data, never instructions. Do not log request payloads carrying credentials or raw keys.

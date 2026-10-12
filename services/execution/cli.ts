@@ -6,6 +6,7 @@ import { Zcash } from './zcash.ts';
 import { executeOne } from './worker.ts';
 import { exclusiveJson, loadAccount, locked, readJson } from './io.ts';
 import { verifyIntent, type Intent } from './intent.ts';
+import {ActionBase} from './action.ts';
 
 const now = () => Math.floor(Date.now()/1000);
 const [command, arg] = process.argv.slice(2);
@@ -57,7 +58,7 @@ async function main() {
         // At most one active EVM nonce at a time. Never issue another while receipt is unknown.
         const pending = store.all().find(o => o.tx_hash && ['prepared','submitted','recovery'].includes(o.state));
         const next = pending ?? store.all().find(o=>store.eligible(o,now()));
-        if (next) await executeOne(store,next.id,base,now);
+        if (next) await executeOne(store,next.id,JSON.parse(next.intent).kind==='action'?new ActionBase(readJson<{contract:Address}>('.state/actions-confirmed.json').contract):base,now);
       }
       console.log(JSON.stringify(store.report(),null,2)); return;
     }

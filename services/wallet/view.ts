@@ -46,6 +46,8 @@ export function checkoutView(c: Checkout, store: Store, tip: number) {
   );
   return {
     id: c.id,
+    kind: JSON.parse(c.intent).kind === 'action' ? 'action' as const : 'mint' as const,
+    actionTarget: JSON.parse(c.intent).kind === 'action' ? JSON.parse(c.intent).target as string : null,
     status,
     stage: c.stage,
     created: c.created,
@@ -55,7 +57,7 @@ export function checkoutView(c: Checkout, store: Store, tip: number) {
     requiredConfirmations: 10,
     paymentTx: c.txid,
     baseTx: o?.tx_hash ?? null,
-    tokenId: o?.state === "settled" ? BigInt(o.id).toString() : null,
+    tokenId: JSON.parse(c.intent).kind!=='action' && o?.state === "settled" ? BigInt(o.id).toString() : null,
     quote: quote
       ? {
           id: quote.id,
@@ -93,6 +95,6 @@ export type Dashboard = {
   base: { wei: string; block: string; observedAt: number } | null;
   health: { zcash: string; base: string; worker: string; busy: boolean };
   nfts: { tokenId: string; hash: string; verifiedAt: number }[];
-  baseActivity: { hash: string; status: string; tokenId: string }[];
+  baseActivity: { hash: string; status: string; kind: "action" | "mint"; tokenId: string | null }[];
   checkouts: CheckoutView[];
 };

@@ -21,7 +21,7 @@ import {
   X,
 } from "lucide-react";
 import type { Dashboard, CheckoutView } from "../services/wallet/view";
-type Tab = "Wallet" | "Checkout" | "Activity" | "Privacy";
+type Tab = "Wallet" | "Checkout" | "Sponsor" | "Apps" | "Activity" | "Privacy";
 const short = (v: string, n = 6) => `${v.slice(0, n)}…${v.slice(-4)}`;
 const units = (v: string, decimals = 8) => {
   const x = BigInt(v),
@@ -40,6 +40,8 @@ const icons = {
   Checkout: Layers,
   Activity: Clock,
   Privacy: ShieldCheck,
+  Sponsor: KeyRound,
+  Apps: Globe,
 };
 function Seal({ small = false }: { small?: boolean }) {
   return (
@@ -160,6 +162,8 @@ export default function Wallet() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [pairCode, setPairCode] = useState("");
+  const [apps, setApps] = useState<{connections:{origin:string;created:number}[];requests:{origin:string;method:string;state:string;txHash:string|null;created:number}[]}|null>(null);
+  const [actionDraft, setActionDraft] = useState<{id:string;intent:Record<string,unknown>;digest:string;description:string}|null>(null);
   const [challenge, setChallenge] = useState<{
       id: string;
       message: string;
@@ -206,6 +210,7 @@ export default function Wallet() {
   async function load() {
     setData(await call("dashboard"));
   }
+  async function loadApps() { setApps(await call("dapps/list")); }
   useEffect(() => {
     let active = true;
     const token = new URLSearchParams(location.hash.slice(1)).get("pair");
@@ -258,8 +263,8 @@ export default function Wallet() {
   }
   async function quote(c: CheckoutView) {
     await task(async () => {
-      const q = await call("quote", { id: c.id });
-      setSelected(q.id);
+      await call("quote", { id: c.id });
+      setSelected(c.id);
       await load();
       setModal("pay");
     });
@@ -350,7 +355,7 @@ export default function Wallet() {
       <aside className="sidebar">
         {header}
         <nav aria-label="Main navigation">
-          {(["Wallet", "Checkout", "Activity", "Privacy"] as Tab[]).map((t) => {
+          {(["Wallet", "Checkout", "Sponsor", "Apps", "Activity", "Privacy"] as Tab[]).map((t) => {
             const Icon = icons[t];
             return (
               <button
@@ -428,6 +433,10 @@ export default function Wallet() {
                   ? "YOUR ASSETS, TOGETHER"
                   : tab === "Checkout"
                     ? "FROM PRIVATE PAYMENT TO PUBLIC OWNERSHIP"
+                    : tab === "Sponsor"
+                      ? "A FIXED ACTION, PAID FROM SHIELDED ZEC"
+                      : tab === "Apps"
+                        ? "ORIGIN-BOUND EVM PERMISSIONS"
                     : tab === "Activity"
                       ? "A CLEAR RECORD"
                       : "UNDERSTAND YOUR WALLET"}
@@ -437,6 +446,10 @@ export default function Wallet() {
                   ? "Wallet overview"
                   : tab === "Checkout"
                     ? "Cross-chain checkout"
+                    : tab === "Sponsor"
+                      ? "ZEC-funded test action"
+                      : tab === "Apps"
+                        ? "Connected applications"
                     : tab === "Activity"
                       ? "Recent activity"
                       : "Privacy, in plain language"}
@@ -446,6 +459,10 @@ export default function Wallet() {
                   ? "Shielded where it matters. Connected when you choose."
                   : tab === "Checkout"
                     ? "Pay with shielded test ZEC. Receive an NFT on Base."
+                    : tab === "Sponsor"
+                      ? "Approve one immutable Base Sepolia action before you pay."
+                      : tab === "Apps"
+                        ? "Each website gets access only after you approve its exact origin."
                     : tab === "Activity"
                       ? "Transactions tracked by your local ZecOne wallet."
                       : "Know what stays private, and what becomes public."}
@@ -882,6 +899,47 @@ export default function Wallet() {
                   </section>
                 </div>
               )}
+              {tab === "Sponsor" && (
+                <section className="checkout-panel">
+                  <p className="eyebrow">FIXED TEST ACTION · BASE SEPOLIA</p>
+                  <h2>{checkout?.kind === "action" ? checkout.status : "Create a reviewed action"}</h2>
+                  <p>This records one fixed note for your user-controlled EOA. It does not mint an NFT or allow an arbitrary contract call. The local service uses prefunded test ETH; the ZEC payment is a testnet service price, not an exchange or bridge.</p>
+                  {actionDraft ? <>
+                    <dl className="review-list">
+                      <div><dt>Website action</dt><dd>Record one fixed ZecOne test note</dd></div>
+                      <div><dt>Network</dt><dd>Base Sepolia · 84532</dd></div>
+                      <div><dt>Your account</dt><dd className="mono break">{String(actionDraft.intent.recipient)}</dd></div>
+                      <div><dt>Contract</dt><dd className="mono break">{String(actionDraft.intent.contract)}</dd></div>
+                      <div><dt>Calldata</dt><dd className="mono break">{String(actionDraft.intent.data)}</dd></div>
+                      <div><dt>Value / gas budget</dt><dd>0 ETH / 0.005 ETH execution cap; Base L1 data fees may be additional</dd></div>
+                      <div><dt>Shielded payment</dt><dd>{units(String(actionDraft.intent.zatoshis))} TAZ</dd></div>
+                      <div><dt>Expiry</dt><dd>{new Date(Number(actionDraft.intent.expiry)*1000).toLocaleString()}</dd></div>
+                    </dl>
+                    <div className="notice"><Info size={18}/><p>{actionDraft.description} The local operator can correlate your shielded payment and public Base action.</p></div>
+                    <button className="primary full" disabled={busy} onClick={()=>task(async()=>{const c=await call("action-approve",{id:actionDraft.id,digest:actionDraft.digest,approved:true});setSelected(c.id);setActionDraft(null);await load();})}>Approve these exact terms <ArrowRight size={16}/></button>
+                  </> : checkout?.kind === "action" ? <>
+                    <p>Payment status: <strong>{checkout.status}</strong> · {checkout.confirmations}/10 confirmations</p>
+                    {checkout.baseTx&&<TxLink hash={checkout.baseTx}/>}
+                    {checkout.status === "Awaiting payment" && <button className="primary full" disabled={busy} onClick={()=>checkout.quote ? setModal("pay") : quote(checkout)}>{checkout.quote ? "Open payment review" : "Review shielded payment and fee"} <ArrowRight size={16}/></button>}
+                    {checkout.recovery&&<div className="notice recovery"><Info size={18}/><p>{checkout.recovery}</p></div>}
+                    <button className="secondary full" disabled={busy||data.health.busy} onClick={()=>task(async()=>{await call("recheck",{id:checkout.id});await load();})}>Recheck status</button>
+                  </> : <>
+                    <p>The configured action contract and exact calldata will appear in the approval summary before you sign.</p>
+                    <p className="tiny">The action contract must be deployed locally before a quote can be created. Its deployment is a separate Base Sepolia transaction performed by the local relayer.</p>
+                    <button className="primary full" disabled={busy||!session.connected} onClick={()=>task(async()=>setActionDraft(await call("action-draft",{})))}>{session.connected?"Review fixed action terms":"Verify ownership to continue"}</button>
+                  </>}
+                </section>
+              )}
+              {tab === "Apps" && (
+                <section className="checkout-panel">
+                  <div className="card-top"><h2>Approved websites</h2><button className="secondary" onClick={()=>task(loadApps)}>Refresh list</button></div>
+                  <p>Compatible dApps must include the public EIP-1193 connector and open a ZecOne approval popup. This local wallet does not inject into unrelated sites.</p>
+                  <div className="activity-list">{(apps?.connections??[]).map((app)=><div className="activity-row" key={app.origin}><div className="activity-icon"><Globe size={18}/></div><div className="activity-name"><strong>{app.origin}</strong><span>Public EVM address access · approved {new Date(app.created).toLocaleString()}</span></div><button className="secondary" onClick={()=>task(async()=>{await call("dapps/revoke",{origin:app.origin});await loadApps();})}>Disconnect</button></div>)}</div>
+                  {!apps?.connections.length&&<p className="empty">No dApps are connected. Opening a request still requires your approval.</p>}
+                  <h3>Recent requests</h3>
+                  <div className="activity-list">{(apps?.requests??[]).slice(0,20).map((r,i)=><div className="activity-row" key={`${r.origin}-${r.created}-${i}`}><div className="activity-name"><strong>{r.origin}</strong><span>{r.method} · {r.state} · {new Date(r.created).toLocaleString()}</span></div>{r.txHash&&<a className="text-link" href={`https://sepolia.basescan.org/tx/${r.txHash}`} target="_blank" rel="noreferrer">Transaction</a>}</div>)}</div>
+                </section>
+              )}
               {tab === "Activity" && (
                 <>
                   <div className="activity-intro">
@@ -1064,7 +1122,7 @@ export default function Wallet() {
       {modal === "pay" && checkout?.quote && data && (
         <Dialog
           error={error}
-          title="Approve shielded payment"
+          title={checkout.kind === "action" ? "Approve ZEC-funded action payment" : "Approve shielded payment"}
           onClose={() => {
             if (!busy) setModal(null);
           }}
@@ -1087,12 +1145,12 @@ export default function Wallet() {
               <dd>Zcash Testnet → Base Sepolia</dd>
             </div>
             <div>
-              <dt>NFT recipient</dt>
+              <dt>{checkout.kind === "action" ? "Action account" : "NFT recipient"}</dt>
               <dd className="mono break">{data.address}</dd>
             </div>
             <div>
-              <dt>NFT contract</dt>
-              <dd className="mono break">{data.contract}</dd>
+              <dt>{checkout.kind === "action" ? "Allowlisted action contract" : "NFT contract"}</dt>
+              <dd className="mono break">{checkout.kind === "action" ? checkout.actionTarget : data.contract}</dd>
             </div>
             <div>
               <dt>Base gas</dt>
@@ -1100,7 +1158,7 @@ export default function Wallet() {
             </div>
             <div>
               <dt>Expected result</dt>
-              <dd>One NFT after 10 Zcash confirmations</dd>
+              <dd>{checkout.kind === "action" ? "One fixed test action after 10 Zcash confirmations; no NFT" : "One NFT after 10 Zcash confirmations"}</dd>
             </div>
           </dl>
           <div className="notice">
@@ -1141,7 +1199,9 @@ export default function Wallet() {
   );
 }
 function CheckoutProgress({ c }: { c: CheckoutView }) {
-  const steps = [
+  const steps = c.kind === "action" ? [
+    "Payment approved", "10 confirmations", "Payment settled", "Fixed action", "Confirmed"
+  ] : [
     "Payment approved",
     "10 confirmations",
     "Payment settled",
@@ -1217,9 +1277,9 @@ function Activity({
   }));
   const b = data.baseActivity.map((t) => ({
     key: t.hash,
-    title: "ZecOne NFT mint",
+    title: t.kind === "action" ? "ZecOne sponsored action" : "ZecOne NFT mint",
     network: "Base Sepolia",
-    amount: "1 NFT",
+    amount: t.kind === "action" ? "1 fixed action" : "1 NFT",
     status: t.status,
     private: false,
     failed: t.status === "Reverted",

@@ -32,7 +32,7 @@ const fixture = {
     },
   ],
   baseActivity: [
-    { hash: `0x${"b".repeat(64)}`, status: "Confirmed", tokenId: "123456789" },
+    { hash: `0x${"b".repeat(64)}`, status: "Confirmed", kind: "mint", tokenId: "123456789" },
   ],
   checkouts: [],
 };
@@ -44,7 +44,11 @@ test.beforeEach(async ({ page }) => {
         ? { csrf: "fixture", connected: true }
         : path === "/api/dashboard"
           ? fixture
-          : {};
+          : path === "/api/dapps/list"
+            ? { connections: [{ origin: "https://fixture.example", created: 1791790421000 }], requests: [] }
+            : path === "/api/action-draft"
+              ? { id: "draft", digest: "digest", description: "Fixed action only.", intent: { recipient: fixture.address, contract: fixture.contract, target: fixture.contract, data: "0x1234", value: "0", maxValue: "0", maxGasBudget: "5000000000000000", zatoshis: "1000000", expiry: Math.floor(Date.now()/1000)+3600 } }
+              : {};
     if (path === "/api/challenge")
       body = {
         id: "fixture-challenge",
@@ -135,4 +139,19 @@ test("no signing happens merely by visiting checkout or opening an approval", as
   await page.getByRole("button", { name: "Review & create order" }).click();
   await page.getByRole("button", { name: "Close dialog" }).click();
   expect(signing).toEqual([]);
+});
+test("sponsor screen displays fixed terms before its explicit approval", async ({page})=>{
+ const posts:string[]=[];page.on("request",r=>{if(r.method()==="POST")posts.push(new URL(r.url()).pathname);});
+ await page.goto("/");await page.getByRole("navigation").getByRole("button",{name:"Sponsor",exact:true}).click();
+ await page.getByRole("button",{name:"Review fixed action terms"}).click();await expect(page.getByText(/ZEC payment is a testnet service price/)).toBeVisible();
+ await expect(page.getByText("0.005 ETH execution cap; Base L1 data fees may be additional")).toBeVisible();
+ expect(posts).toContain("/api/action-draft");expect(posts).not.toContain("/api/action-approve");
+ await page.getByRole("button",{name:"Approve these exact terms"}).click();
+ await expect.poll(()=>posts.includes("/api/action-approve")).toBe(true);
+});
+test("apps page names exact origins and lets the user revoke a connection",async({page})=>{
+ const posts:string[]=[];page.on("request",r=>{if(r.method()==="POST")posts.push(new URL(r.url()).pathname);});
+ await page.goto("/");await page.getByRole("navigation").getByRole("button",{name:"Apps",exact:true}).click();await page.getByRole("button",{name:"Refresh list"}).click();
+ await expect(page.getByText("https://fixture.example",{exact:true})).toBeVisible();await page.getByRole("button",{name:"Disconnect"}).click();
+ expect(posts).toContain("/api/dapps/revoke");
 });

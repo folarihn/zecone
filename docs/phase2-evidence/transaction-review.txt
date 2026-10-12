@@ -1,0 +1,16 @@
+{
+  "account": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+  "chainId": 84532,
+  "to": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+  "data": "0x",
+  "value": "0",
+  "nonce": 0,
+  "gas": "25201",
+  "estimatedGas": "21000",
+  "maxFeePerGas": "7000000",
+  "maxPriorityFeePerGas": "1000000",
+  "executionFeeCapWei": "176407000000",
+  "method": "Native transfer",
+  "warning": "Public EVM transfer. Verify the recipient.",
+  "simulation": "eth_call and gas estimation succeeded. State can change. Simulation does not guarantee safety. Base L1 data fees are additional."
+}

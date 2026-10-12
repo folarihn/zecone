@@ -9,6 +9,7 @@ import {
 } from "../services/execution/io.ts";
 import { PRICE, typed, type Intent } from "../services/execution/intent.ts";
 import { ORIGIN } from "../services/wallet/security.ts";
+import { actionTerms, actionTyped, type ActionIntent } from '../services/execution/action.ts';
 async function main() {
   const file = resolve(process.argv[2] ?? "");
   const within = relative(resolve(".state/browser-approvals"), file);
@@ -41,6 +42,14 @@ async function main() {
       }),
     );
     return;
+  }
+  if(approval.kind==='action-intent' && approval.intent){
+    const i=approval.intent as Omit<ActionIntent,'signature'>;
+    const config=readJson<{contract:Address}>('.state/actions-confirmed.json');
+    actionTerms(i,config.contract,account.address,Math.floor(Date.now()/1000));
+    const output=file.replace(/\.json$/,'.signed.json');
+    if(!existsSync(output))exclusiveJson(output,{...i,signature:await account.signTypedData(actionTyped(i))});
+    console.log(JSON.stringify({intentFile:output}));return;
   }
   if (approval.kind !== "mint-intent" || !approval.intent)
     throw Error("Unsupported approval");
