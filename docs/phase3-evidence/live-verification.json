@@ -1,0 +1,174 @@
+{
+  "verifiedAt": "2026-10-12T18:10:22.058Z",
+  "live": true,
+  "networks": {
+    "zcash": "testnet",
+    "base": 84532
+  },
+  "purchaseId": "325a8e82-edae-4498-9712-0ee4aff3536f",
+  "orderId": "0x80505af16f35515c5631f96d83103c46576594cf9051adaac5aa4969d73bca4c",
+  "contracts": {
+    "marketplace": "0xad7dddee1eddbfc917efaeaffebd298d3fd4be39",
+    "nft": "0xad890bdbb04ea701b15dabd5677aa083456b4124",
+    "executor": "0x473db5dbb706e0b06d9403d150a923c48afa1f4d",
+    "origin": "http://127.0.0.1:4322",
+    "deploymentBlock": "48029352",
+    "seller": "0x7D26bC3A7CE602cB1cf9F8Bb4e3a8eDCb052C4b0",
+    "provider": "0xf9dE6070331A3B68233c3b2062BceB7105162Cd2",
+    "user": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+    "listingExpiry": 1791913427
+  },
+  "zcash": {
+    "txid": "09c49d32499e1fd2680a88308fbc154febbfb579ac765412795e9f445bd547b8",
+    "zatoshis": "1000000",
+    "pool": 4,
+    "outputIndex": 0,
+    "blockHeight": 4492959,
+    "blockHash": "00000c2418776281bb99d7f7dadf6f87e16c95b5352dc3e69f32aa200d75b3fa",
+    "scannedTip": 4492984,
+    "confirmations": 26,
+    "requiredConfirmations": 10,
+    "confirmationsAtAuthorization": 10,
+    "authorizedAt": 1791828243,
+    "nativeFeeZatoshis": "10000",
+    "totalUserDebitZatoshis": "1010000"
+  },
+  "base": {
+    "hash": "0x1a8dfe23529ba4ff29971d5633494de2b5ce7d36f15b787cd4efa0ac8f04a9f8",
+    "block": "48029979",
+    "blockHash": "0x18b084ad83bc62c0e344147f46ccd31d9f2daa28c8c7104a775de5f3d964e966",
+    "confirmations": "187",
+    "status": "success",
+    "owner": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+    "tokenId": "1",
+    "marketplaceEvent": {
+      "id": "1",
+      "payer": "0x473DB5dBB706E0b06D9403D150a923c48Afa1f4d",
+      "recipient": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+      "nft": "0xAd890BDbB04eA701B15DaBd5677AA083456b4124",
+      "tokenId": "1",
+      "seller": "0x7D26bC3A7CE602cB1cf9F8Bb4e3a8eDCb052C4b0",
+      "price": "100000000000000"
+    },
+    "transfer": {
+      "from": "0x7D26bC3A7CE602cB1cf9F8Bb4e3a8eDCb052C4b0",
+      "to": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+      "tokenId": "1"
+    },
+    "gasUsed": "208823",
+    "effectiveGasPrice": "6000000"
+  },
+  "liquidity": {
+    "before": {
+      "provider": "98964388276703496",
+      "seller": "996897609158483",
+      "user": "9999873999999741"
+    },
+    "after": {
+      "provider": "98863135337903908",
+      "seller": "1096897609158483",
+      "user": "9999873999999741"
+    },
+    "sellerReceivedWei": "100000000000000",
+    "providerSpentWei": "101252938799588",
+    "actualTotalFeeWei": "1252938799588",
+    "quotedGasReserveWei": "100000000000000",
+    "simulatedRateWeiPerZec": "20000000000000000",
+    "refundSent": false
+  },
+  "replay": {
+    "broadcastAttempts": 1,
+    "repeatCallRejected": true
+  },
+  "setup": [
+    {
+      "step": "listing-1",
+      "hash": "0x30ef74596bf13ec193a651ae4234e9aba91370540276bb2e9b8997728a05f3b6",
+      "block": "48029372",
+      "blockHash": "0xaa30d5713e66327da88c9ab7f9582f77168dd3f26d9b733e081e08d619c159e0",
+      "contract": null,
+      "gasUsed": "156956",
+      "effectiveGasPrice": "6000000",
+      "canonicalRechecked": true,
+      "initialReceiptHadPlaceholder": true
+    },
+    {
+      "step": "listing-2",
+      "hash": "0x19da8b4ffcb5cf40162c4aa60827f0a448611edcd27fe0279b2dbf733788d205",
+      "block": "48029376",
+      "blockHash": "0xc3b8e1df926e2759cecb9e67f0dfffe7dbb6b03909270aac196afb87f476c61b",
+      "contract": null,
+      "gasUsed": "156956",
+      "effectiveGasPrice": "6000000",
+      "canonicalRechecked": true,
+      "initialReceiptHadPlaceholder": true
+    },
+    {
+      "step": "listing-3",
+      "hash": "0x198e5626f48094b3e4eb84cedf0685b6d179fbe220d42ed937b705ea48403755",
+      "block": "48029380",
+      "blockHash": "0xbb089ac73421982c7c31c71728a3caeb82bac9550a3416df5de79aa57ccc039c",
+      "contract": null,
+      "gasUsed": "156968",
+      "effectiveGasPrice": "6000000",
+      "canonicalRechecked": true,
+      "initialReceiptHadPlaceholder": true
+    },
+    {
+      "step": "MarketTestNFT",
+      "hash": "0x93ba0527cdd333d34f0705eca5c3ca2fa4ee7436bd6f83480c24d46ff9e43969",
+      "block": "48029356",
+      "blockHash": "0xba44aaea69561b82c9538d768dbb1e56f79efdec1d767a427a2923e04462b0dc",
+      "contract": "0xad890bdbb04ea701b15dabd5677aa083456b4124",
+      "gasUsed": "1030308",
+      "effectiveGasPrice": "6000000",
+      "canonicalRechecked": true,
+      "initialReceiptHadPlaceholder": true
+    },
+    {
+      "step": "seller-approval",
+      "hash": "0xc7dd5fc6bbd2e40a7279472f3609118e2b52219c1ee592c843f829b08b4cf926",
+      "block": "48029368",
+      "blockHash": "0x2d762fd16f5d37fe76c287cdbc36d293b39cfbcf9dd1dc577727f91ba3126cb4",
+      "contract": null,
+      "gasUsed": "46184",
+      "effectiveGasPrice": "6000000",
+      "canonicalRechecked": true,
+      "initialReceiptHadPlaceholder": true
+    },
+    {
+      "step": "seller-gas",
+      "hash": "0x392dc0095b9916081e08f50cae9ec8b5a74552b706da797d3b07010cf161ec1a",
+      "block": "48029364",
+      "blockHash": "0x0ba0e35a91c677a7f9190a917b6bd487edbf3d072f5eb16905618685ff90bdfd",
+      "contract": null,
+      "gasUsed": "21000",
+      "effectiveGasPrice": "6000000",
+      "canonicalRechecked": true,
+      "initialReceiptHadPlaceholder": true
+    },
+    {
+      "step": "TestMarketplace",
+      "hash": "0xec9bac0ec8cef75c03df4158a88d022fa9377859c022518bd9412f65d81a6b6e",
+      "block": "48029352",
+      "blockHash": "0x0bd316f87716366663c9c804fde61c73ea1d229430847e9765608c3d852026db",
+      "contract": "0xad7dddee1eddbfc917efaeaffebd298d3fd4be39",
+      "gasUsed": "847668",
+      "effectiveGasPrice": "6000000",
+      "canonicalRechecked": true,
+      "initialReceiptHadPlaceholder": true
+    },
+    {
+      "step": "ZecOnePurchaseExecutor",
+      "hash": "0xa678148d551f214de4c7c1bb5aed283db1a4d8542e0a0fa1cffb8b81867e993b",
+      "block": "48029360",
+      "blockHash": "0x56540b21374e42bb1e7aac69837c179d397b4590e76babbe4d42b5b14651f535",
+      "contract": "0x473db5dbb706e0b06d9403d150a923c48afa1f4d",
+      "gasUsed": "1286683",
+      "effectiveGasPrice": "6000000",
+      "canonicalRechecked": true,
+      "initialReceiptHadPlaceholder": true
+    }
+  ],
+  "trust": "Trusted prefunded provider; simulated rate; public NFT purchase and ownership; provider can correlate payment. No production exchange or trustless bridge."
+}

@@ -1,0 +1,30 @@
+{
+  "verified": true,
+  "before": {
+    "at": "2026-10-12T18:08:01.066Z",
+    "purchaseId": "325a8e82-edae-4498-9712-0ee4aff3536f",
+    "orderId": "0x80505af16f35515c5631f96d83103c46576594cf9051adaac5aa4969d73bca4c",
+    "paymentTx": "09c49d32499e1fd2680a88308fbc154febbfb579ac765412795e9f445bd547b8",
+    "state": "settled",
+    "baseTx": "0x1a8dfe23529ba4ff29971d5633494de2b5ce7d36f15b787cd4efa0ac8f04a9f8",
+    "broadcasts": 1,
+    "scans": 38,
+    "auditSequence": 44,
+    "providerNonce": 10,
+    "providerWei": "98863135337903908"
+  },
+  "after": {
+    "at": "2026-10-12T18:10:16.889Z",
+    "purchaseId": "325a8e82-edae-4498-9712-0ee4aff3536f",
+    "orderId": "0x80505af16f35515c5631f96d83103c46576594cf9051adaac5aa4969d73bca4c",
+    "paymentTx": "09c49d32499e1fd2680a88308fbc154febbfb579ac765412795e9f445bd547b8",
+    "state": "settled",
+    "baseTx": "0x1a8dfe23529ba4ff29971d5633494de2b5ce7d36f15b787cd4efa0ac8f04a9f8",
+    "broadcasts": 1,
+    "scans": 41,
+    "auditSequence": 47,
+    "providerNonce": 10,
+    "providerWei": "98863135337903908"
+  },
+  "conclusion": "Restart and repeated scans retained one settlement hash, one broadcast and unchanged provider nonce/balance."
+}

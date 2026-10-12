@@ -14,9 +14,12 @@ import {
 } from "../services/execution/io.ts";
 import { Zcash } from "../services/execution/zcash.ts";
 import { Store } from "../services/execution/store.ts";
+import { providerReserved } from "../services/marketplace/journal.ts";
 async function main() {
   const command = process.argv[2];
   if (command === "deploy") {
+    if (providerReserved())
+      throw Error("Provider funds are reserved for a marketplace purchase");
     if (!process.argv.includes("--allow-testnet-broadcast"))
       throw Error("Explicit testnet deployment flag required");
     if (existsSync(".state/actions-confirmed.json")) {

@@ -42,4 +42,20 @@ The independent marketplace also supports ordinary injected-wallet ETH purchases
 - Rejected or unpaid expired quotes release reservations. Confirmed failed settlements release EVM liquidity but retain Zcash refund liability. Never equate released provider ETH with refunded ZEC.
 - A stale `.state/service.lock` requires checking the recorded PID and proving its worker exited before removing that single lock file. Do not remove an active lock or reset purchase databases.
 
+## Read-only live evidence and browser helpers
+
+```powershell
+node --import tsx scripts/phase3-status.ts
+node --import tsx scripts/verify-phase3-live.ts
+node --import tsx scripts/capture-phase3.ts completed
+```
+
+The first command reads a sanitized local journal projection. The second independently checks canonical RPC receipts, local scanner evidence, actual native fee, seller and provider balances, ownership and a simulated `Replay()` rejection. It never broadcasts. The screenshot helper uses the gitignored paired browser session and reads the same purchase through the marketplace's public status method.
+
+The one-time live demo used `scripts/pair-phase3-browser.ts`, `scripts/live-phase3-purchase.ts --allow-testnet-spend`, and then `scripts/resume-phase3-payment.ts --allow-testnet-spend` to recover its already-signed quote before any payment. These are deliberate spend helpers, not tests. The durable marker now refuses any further payment approval. Do not delete it. The restart proof used `scripts/phase3-restart-proof.ts before` and `after`; its existing before-record must also be preserved.
+
+Before rebuilding the production UI, stop the local gateway only after native scanner operations finish. Windows may retain a lock after a forced process stop. Verify the exact recorded PID has exited before removing that one stale lock; never remove database or request journals. The source now serializes user-wallet operations and waits up to one minute for scan-lock contention during approved quote creation.
+
+The setup helper now rejects placeholder or noncanonical RPC block hashes. If a previous setup step is ambiguous, preserve the exact transaction and reconcile its receipt; never redeploy blindly. The final live evidence rechecked all eight setup transactions against actual canonical blocks.
+
 No Phase 4 work is included.

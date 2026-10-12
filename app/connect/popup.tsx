@@ -355,7 +355,11 @@ export default function Connection() {
                 onClick={() => decide(true)}
                 disabled={busy}
               >
-                {busy ? "Processing…" : "Approve request"}
+                {busy
+                  ? "Processing…"
+                  : current.method === "zecone_payWithZec"
+                    ? "Approve purchase quote"
+                    : "Approve request"}
               </button>
             </div>
           ) : (

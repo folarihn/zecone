@@ -21,7 +21,7 @@ Step 6 passed on 2026-10-12: real shielded payment, confirmed Base Sepolia mint,
 6. Exercise one real browser-approved shielded payment through ten confirmations and a verified Base mint. Record independent receipts, ownership, screenshots and limitations in [PHASE1-RESULTS.md](PHASE1-RESULTS.md).
 7. Stop and report Phase 1. Do not begin Phase 2 automatically.
 
-## Phase 2 — complete; stop here
+## Phase 2 — complete and preserved
 
 1. Research current dApp provider, signature, permissions, chain-switching and Base Sepolia sponsorship boundaries using official specifications and repositories.
 2. Implement an opt-in separate-origin EIP-1193 popup connector and EIP-6963-compatible discovery SDK, with exact-origin approval, user-visible signing, transaction review, local EOA signing and revocation.
@@ -30,6 +30,15 @@ Step 6 passed on 2026-10-12: real shielded payment, confirmed Base Sepolia mint,
 5. Run the real shielded payment and one action for the user-controlled Base Sepolia wallet; independently verify the Zcash observation, exact Base event, recipient, replay state, and single broadcast. See [Phase 2 results](PHASE2-RESULTS.md).
 6. Stop after Phase 2. Do not begin the wallet frontend expansion, ERC-4337, arbitrary dApp support, production integration, or mainnet work automatically.
 
-## Phase 3 and later — not started
+## Phase 3 — complete; stop here
+
+1. Preserve the completed Phase 0–2 source and evidence at checkpoint `334c638`; keep the private runtime backup under `.secrets/phase3-checkpoint`.
+2. Extend the origin-bound provider with explicit shielded-payment methods and independently validate ordinary marketplace buy calldata.
+3. Deploy an ordinary ERC-721 marketplace, separate seller-owned NFT collection, and immutable user-signature-bound purchase executor on Base Sepolia.
+4. Persist signed quotes, unique shielded receiving accounts, confirmation evidence, liquidity reservations and manual recovery destinations. Require separate payment approval and ten confirmations before settlement.
+5. Verify real user NFT ownership, seller payment, single execution and restart persistence. Results and limitations are tracked in [PHASE3-RESULTS.md](PHASE3-RESULTS.md).
+6. Stop after Phase 3. Do not begin Phase 4.
+
+## Phase 4 and later — not started
 
 Potential later work includes user-owned smart accounts and ERC-4337 paymaster sponsorship, stronger viewing-key separation, verifying nodes, isolated/hardware signing, production custody/audits, liquidity and exchange design. Arbitrary dApps, third-party Zcash wallet connections and production deployment remain out of scope. The testnet relayer action is not a production bridge or asset exchange.

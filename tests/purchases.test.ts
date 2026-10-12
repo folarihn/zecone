@@ -22,6 +22,7 @@ import {
 import type { Snapshot } from "../services/execution/store.ts";
 import type { Session } from "../services/wallet/security.ts";
 import { Dapps } from "../services/wallet/dapps.ts";
+import { locked } from "../services/execution/io.ts";
 const hex = () => toHex(randomBytes(32)),
   address = () => privateKeyToAccount(generatePrivateKey()).address,
   now = () => Math.floor(Date.now() / 1000);
@@ -31,6 +32,55 @@ const session: Session = {
   connected: 1,
   expires: Date.now() + 3600000,
 };
+
+test("approved quote waits for a competing scan lock and reuses its signed identity", async () => {
+  const f = await fixture();
+  try {
+    const competing = locked(f.service.lockPath, async () => {
+      await new Promise((r) => setTimeout(r, 120));
+    });
+    await f.service.attach(f.store.row(f.id)!, f.signed);
+    await competing;
+    assert.equal(f.store.row(f.id)!.order_id, f.digest);
+    assert.equal(f.store.all().length, 1);
+  } finally {
+    f.close();
+  }
+});
+test("sent payment without a mined note is pending mining, never a payment request or completion", async () => {
+  const f = await fixture();
+  try {
+    assert.equal(
+      f.service.view(f.store.row(f.id)!).status,
+      "Payment sent — awaiting mining",
+    );
+    assert.equal(f.service.view(f.store.row(f.id)!).ownerVerified, false);
+  } finally {
+    f.close();
+  }
+});
+test("two service instances cannot concurrently settle one confirmed purchase twice", async () => {
+  const f = await fixture();
+  const secondStore = new PurchaseJournal(f.path);
+  try {
+    const second = new Purchases(
+      secondStore,
+      f.service.manifest,
+      f.service.scanner,
+    );
+    second.available = () => true;
+    second.base = () => f.service.base();
+    second.config = () => f.config;
+    second.lockPath = f.service.lockPath;
+    second.legacyPath = f.service.legacyPath;
+    await Promise.all([f.service.tick(), second.tick()]);
+    await second.tick();
+    assert.deepEqual(f.counts(), { prepares: 1, broadcasts: 1 });
+  } finally {
+    secondStore.close();
+    f.close();
+  }
+});
 async function fixture() {
   const dir = mkdtempSync(join(tmpdir(), "zecone-purchase-")),
     path = join(dir, "purchase.sqlite"),

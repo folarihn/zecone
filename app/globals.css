@@ -1448,7 +1448,7 @@ dialog .full {
   .sidebar nav {
     margin: 0;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 0;
     height: 100%;
     padding: 5px 8px;
@@ -1819,4 +1819,73 @@ dialog .full {
   .unlock-card h1 {
     font-size: 39px;
   }
+}
+/* Public connector popup: readable at its narrower window size. */
+.connect-shell {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 28px 24px;
+  overflow-wrap: anywhere;
+}
+.connect-shell h1 {
+  font-size: 29px;
+  line-height: 1.15;
+  margin: 14px 0;
+}
+.connect-shell h2 {
+  font-size: 22px;
+  margin: 18px 0;
+}
+.connect-shell p {
+  font-size: 14px;
+  line-height: 1.6;
+}
+.connect-shell .origin-box {
+  display: grid;
+  gap: 7px;
+  border: 1px solid #b5cbb9;
+  border-radius: 10px;
+  padding: 15px;
+  margin: 22px 0;
+  background: #edf4ee;
+}
+.connect-shell .origin-box small {
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+.connect-shell .origin-box strong {
+  font-size: 17px;
+}
+.connect-shell .review-list,
+.connect-shell .review-list .mono {
+  font-size: 13px;
+}
+.connect-shell .review-list dd {
+  min-width: 0;
+  max-width: 63%;
+}
+.approval-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 24px 0;
+}
+.approval-actions button {
+  border: 1px solid #b3c5b7;
+  border-radius: 8px;
+  padding: 12px 17px;
+  min-height: 44px;
+}
+.review-data {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  max-height: 280px;
+  overflow: auto;
+}
+.connect-shell .panel {
+  background: #fff;
+  border: 1px solid #dbe5dd;
+  border-radius: 12px;
 }

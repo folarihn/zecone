@@ -136,6 +136,21 @@ async function main() {
         confirmations: 3,
         timeout: 180000,
       });
+    // Some sequencer responses carry a placeholder block hash. Always refetch
+    // and compare with the canonical block before persisting confirmation.
+    receipt = await w.public.getTransactionReceipt({ hash: saved.hash });
+    const [head, canonical] = await Promise.all([
+      w.public.getBlockNumber(),
+      w.public.getBlock({ blockNumber: receipt.blockNumber }),
+    ]);
+    if (
+      head - receipt.blockNumber + 1n < 3n ||
+      receipt.blockHash === `0x${"0".repeat(64)}` ||
+      canonical.hash !== receipt.blockHash
+    )
+      throw Error(
+        "Setup confirmation is not canonical yet; preserve exact hash",
+      );
     if (receipt.status !== "success")
       throw Error("Setup reverted; preserve evidence");
     exclusiveJson(done, {

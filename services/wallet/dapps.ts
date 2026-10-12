@@ -442,6 +442,22 @@ export class Dapps {
     if (this.busy) return;
     this.busy = true;
     try {
+      if (this.purchases) {
+        for (const request of this.db
+          .prepare(
+            "SELECT id FROM requests WHERE method='zecone_payWithZec' AND state='review'",
+          )
+          .all()) {
+          const id = String(request.id),
+            saved = this.purchases.store.row(id);
+          if (saved?.order_id)
+            this.db
+              .prepare(
+                "UPDATE requests SET state='done',result=?,error=NULL WHERE id=? AND state='review'",
+              )
+              .run(JSON.stringify({ purchaseId: id }), id);
+        }
+      }
       if ((await this.public.getChainId()) !== 84532) return;
       const rows = this.db
         .prepare(

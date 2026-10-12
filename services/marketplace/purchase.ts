@@ -47,6 +47,7 @@ export const quoteTypes = {
 const tuple =
   "(bytes32 orderId,uint256 chainId,address marketplace,uint256 listingId,address nft,uint256 tokenId,address seller,address recipient,uint256 price,uint256 gasBudget,uint256 zatoshis,uint256 rate,uint256 maxSlippageBps,uint64 expiry,bytes32 calldataHash,bytes32 refundHash,bytes32 originHash)";
 export const executorAbi = parseAbi([
+  "error Replay()",
   `function execute(${tuple} q,bytes signature) payable`,
   `function quoteId(${tuple} q) view returns(bytes32)`,
   "function relayer() view returns(address)",

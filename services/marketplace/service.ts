@@ -22,7 +22,7 @@ import { Store } from "../execution/store.ts";
 import { locked, readJson, exclusiveJson } from "../execution/io.ts";
 import { requireApproval, uuid } from "../wallet/engine.ts";
 import { ApiError, type Session } from "../wallet/security.ts";
-import {userWalletNative} from '../wallet/native.ts';
+import { userWalletNative } from "../wallet/native.ts";
 const exec = promisify(execFile),
   now = () => Math.floor(Date.now() / 1000),
   hash = (v: unknown) =>
@@ -56,8 +56,8 @@ export class Purchases {
   base() {
     return new PurchaseBase(this.config());
   }
-  async native<T>(args: string[],deadline?:number): Promise<T> {
-    return userWalletNative<T>(args,deadline);
+  async native<T>(args: string[], deadline?: number): Promise<T> {
+    return userWalletNative<T>(args, deadline);
   }
   async review(s: Session, origin: string, id: string, p: unknown[]) {
     requireApproval(s, true);
@@ -178,7 +178,7 @@ export class Purchases {
         now(),
       );
     await b.validate(signed);
-    await locked(this.lockPath, async () => {
+    await this.withLock(async () => {
       const dest = await this.scanner.allocate(id);
       this.store.create(id, signed, dest.account, dest.address, now());
       this.store.db
@@ -244,11 +244,13 @@ export class Purchases {
                     ? `Confirming`
                     : r.stage === "sending"
                       ? "Sending shielded payment"
-                      : r.stage === "draft"
-                        ? "Awaiting quote approval"
-                        : r.stage === "cancelled"
-                          ? "Quote rejected"
-                          : "Awaiting payment";
+                      : r.stage === "sent"
+                        ? "Payment sent — awaiting mining"
+                        : r.stage === "draft"
+                          ? "Awaiting quote approval"
+                          : r.stage === "cancelled"
+                            ? "Quote rejected"
+                            : "Awaiting payment";
     const publicView = {
       id: r.id,
       status,
@@ -258,7 +260,10 @@ export class Purchases {
       recipient: i.recipient,
       baseTx: o?.tx_hash ?? null,
       ownerVerified: o?.state === "settled" && !recoveries.length,
-      manualRecovery: recoveries.length > 0 || r.stage === "review",
+      manualRecovery:
+        recoveries.length > 0 ||
+        r.stage === "review" ||
+        o?.state === "recovery",
     };
     return external
       ? publicView
@@ -355,20 +360,23 @@ export class Purchases {
     void (async () => {
       try {
         if (q.expires <= Date.now()) throw Error("fee_expired");
-        const paid = await this.native<{ txid: string }>([
-          "send",
-          "--request-id",
-          r.send_request,
-          "--account",
-          this.manifest.zcash.payer.account,
-          "--address",
-          o.address,
-          "--zatoshis",
-          JSON.parse(o.intent).zatoshis,
-          "--max-fee-zatoshis",
-          q.feeZatoshis,
-          "--allow-testnet-broadcast",
-        ],q.expires);
+        const paid = await this.native<{ txid: string }>(
+          [
+            "send",
+            "--request-id",
+            r.send_request,
+            "--account",
+            this.manifest.zcash.payer.account,
+            "--address",
+            o.address,
+            "--zatoshis",
+            JSON.parse(o.intent).zatoshis,
+            "--max-fee-zatoshis",
+            q.feeZatoshis,
+            "--allow-testnet-broadcast",
+          ],
+          q.expires,
+        );
         this.store.db
           .prepare(
             "UPDATE purchase_requests SET payment_tx=?,stage='sent' WHERE id=?",
@@ -414,8 +422,30 @@ export class Purchases {
       this.store.transition(id, "recovery", now());
     });
   }
+  async withLock<T>(fn: () => Promise<T>): Promise<T> {
+    const deadline = Date.now() + 60000;
+    for (;;) {
+      try {
+        return await locked(this.lockPath, fn);
+      } catch (e: any) {
+        if (
+          e.code !== "EEXIST" ||
+          e.path !== this.lockPath ||
+          Date.now() >= deadline
+        )
+          throw e;
+        await new Promise((r) => setTimeout(r, 300));
+      }
+    }
+  }
   async tick() {
     if (this.busy || !this.available() || !this.store.rows().length) return;
+    // Draft-only quotes need no merchant scan or global execution lock.
+    if (!this.store.all().length) {
+      for (const r of this.store.rows())
+        if (JSON.parse(r.intent).expiry <= now()) this.store.release(r.id);
+      return;
+    }
     this.busy = true;
     try {
       await locked(this.lockPath, async () => {
