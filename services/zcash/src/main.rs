@@ -59,6 +59,17 @@ enum Command {
     Sync,
     /// Syncs first; never emits stale offline settlement evidence.
     Observe,
+    /// Native balances and sanitized wallet history after a complete scan.
+    Summary,
+    /// Build an unsigned proposal to calculate the actual fee; never sign or broadcast.
+    Quote {
+        #[arg(long)]
+        account: String,
+        #[arg(long)]
+        address: String,
+        #[arg(long)]
+        zatoshis: u64,
+    },
     /// Read public server network and consensus information.
     NetworkInfo,
     /// Reconcile and optionally rebroadcast the exact persisted transaction; never reconstruct.
@@ -81,6 +92,9 @@ enum Command {
         zatoshis: u64,
         #[arg(long)]
         allow_testnet_broadcast: bool,
+        /// When supplied, refuse a proposal whose fee exceeds the user's approval.
+        #[arg(long)]
+        max_fee_zatoshis: Option<u64>,
     },
     /// Read already generated public addresses only.
     Addresses,
@@ -289,6 +303,13 @@ fn observation(path: &Path, wallet: &Db) -> Result<Value> {
         json!({"network":"zcash-testnet", "tip":tip, "scanned":scanned, "observedAt":SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(), "payments":rows.collect::<Result<Vec<_>, _>>()?}),
     )
 }
+fn enforce_fee_approval(fee: u64, max_fee: Option<u64>) -> Result<()> {
+    ensure!(
+        max_fee.is_none_or(|limit| fee <= limit),
+        "network fee exceeds approval; request a new quote"
+    );
+    Ok(())
+}
 async fn send(
     wallet: &mut Db,
     client: &mut CompactTxStreamerClient<Channel>,
@@ -297,6 +318,8 @@ async fn send(
     recipient: &str,
     value: u64,
     request_id: uuid::Uuid,
+    quote_only: bool,
+    max_fee: Option<u64>,
 ) -> Result<Value> {
     let request_file = path.join(format!("request-{request_id}.json"));
     let started_file = path.join(format!("request-{request_id}.started.json"));
@@ -334,12 +357,7 @@ async fn send(
         .source()
         .key_derivation()
         .context("not a spending account")?;
-    let usk = UnifiedSpendingKey::from_seed(
-        &NET,
-        seed(path)?.expose_secret(),
-        derivation.account_index(),
-    )
-    .map_err(|_| anyhow!("key derivation failed"))?;
+    let account_index = derivation.account_index();
     let request = zip321::TransactionRequest::new(vec![
         zip321::Payment::new(
             zcash_address::ZcashAddress::from_str(recipient)?,
@@ -374,6 +392,19 @@ async fn send(
         None,
     )
     .map_err(|e| anyhow!("proposal failed: {e:?}"))?;
+    ensure!(
+        proposal.steps().len() == 1,
+        "multi-transaction proposal requires review"
+    );
+    let fee = proposal.steps().first().balance().fee_required().into_u64();
+    enforce_fee_approval(fee, max_fee)?;
+    if quote_only {
+        return Ok(
+            json!({"zatoshis":value.to_string(),"feeZatoshis":fee.to_string(),"totalZatoshis":(value+fee).to_string(),"tip":u32::from(wallet.chain_height()?.context("missing tip")?),"quotedAt":SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs()}),
+        );
+    }
+    let usk = UnifiedSpendingKey::from_seed(&NET, seed(path)?.expose_secret(), account_index)
+        .map_err(|_| anyhow!("key derivation failed"))?;
     let prover = zcash_proofs::prover::LocalTxProver::bundled();
     write_new(
         &started_file,
@@ -494,6 +525,48 @@ async fn run() -> Result<()> {
     }
     let mut client = connect(&args.server).await?;
     let value = match args.command {
+        Command::Summary => {
+            sync(&mut wallet, &mut client).await?;
+            let summary = wallet
+                .get_wallet_summary(ConfirmationsPolicy::default())?
+                .context("wallet summary unavailable")?;
+            let mut total = 0u64;
+            let mut spendable = 0u64;
+            for balance in summary.account_balances().values() {
+                total += balance.sapling_balance().total().into_u64()
+                    + balance.orchard_balance().total().into_u64()
+                    + balance.ironwood_balance().total().into_u64();
+                spendable += balance.spendable_value().into_u64();
+            }
+            let conn = rusqlite::Connection::open_with_flags(
+                args.wallet.join("wallet.sqlite"),
+                rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+            )?;
+            let mut query = conn.prepare("SELECT txid,mined_height,account_balance_delta,fee_paid,block_time,expired_unmined FROM v_transactions ORDER BY COALESCE(mined_height,2147483647) DESC LIMIT 30")?;
+            let history = query.query_map([], |r| {
+                let mut txid:Vec<u8> = r.get(0)?; txid.reverse();
+                Ok(json!({"txid":hex::encode(txid),"height":r.get::<_,Option<u32>>(1)?,"deltaZatoshis":r.get::<_,i64>(2)?.to_string(),"feeZatoshis":r.get::<_,Option<u64>>(3)?.map(|v|v.to_string()),"time":r.get::<_,Option<u64>>(4)?,"expired":r.get::<_,Option<bool>>(5)?.unwrap_or(false)}))
+            })?.collect::<Result<Vec<_>,_>>()?;
+            json!({"totalZatoshis":total.to_string(),"spendableZatoshis":spendable.to_string(),"tip":u32::from(summary.chain_tip_height()),"scanned":u32::from(summary.fully_scanned_height()),"observedAt":SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),"history":history})
+        }
+        Command::Quote {
+            account,
+            address,
+            zatoshis,
+        } => {
+            send(
+                &mut wallet,
+                &mut client,
+                &args.wallet,
+                &account,
+                &address,
+                zatoshis,
+                uuid::Uuid::nil(),
+                true,
+                None,
+            )
+            .await?
+        }
         Command::NetworkInfo => {
             let info = client
                 .get_lightd_info(service::Empty {})
@@ -580,6 +653,7 @@ async fn run() -> Result<()> {
             address,
             zatoshis,
             allow_testnet_broadcast,
+            max_fee_zatoshis,
         } => {
             ensure!(
                 allow_testnet_broadcast,
@@ -593,6 +667,8 @@ async fn run() -> Result<()> {
                 &address,
                 zatoshis,
                 request_id,
+                false,
+                max_fee_zatoshis,
             )
             .await?
         }
@@ -604,6 +680,13 @@ async fn run() -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn fee_increase_cannot_exceed_approved_ceiling() {
+        assert!(super::enforce_fee_approval(20_000, Some(20_000)).is_ok());
+        assert!(super::enforce_fee_approval(20_001, Some(20_000)).is_err());
+        assert!(super::enforce_fee_approval(10_000, Some(20_000)).is_ok());
+        assert!(super::enforce_fee_approval(1, Some(0)).is_err());
+    }
     use super::*;
     #[test]
     fn consensus_preflight_rejects_old_or_unknown_branch() {

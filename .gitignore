@@ -9,6 +9,10 @@ target/
 out/
 cache/
 dist/
+.next/
+*.tsbuildinfo
+playwright-report/
+test-results/
 *.log
 *.sqlite*
 *.db*
