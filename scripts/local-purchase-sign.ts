@@ -1,3 +1,4 @@
+import { network, chainFor } from "../services/evm/networks.ts";
 // The user signer alone reads the user EVM key; the settlement service receives only the signed intent.
 import { resolve, relative, isAbsolute } from "node:path";
 import { existsSync } from "node:fs";
@@ -32,7 +33,7 @@ async function main() {
   }>(file);
   if (a.approved !== true || a.expires <= Date.now())
     throw Error("approval_expired");
-  const c = readJson<MarketConfig>(".state/marketplace-confirmed.json"),
+  const c = readJson<MarketConfig>(network(a.intent.chainId).deploymentFile),
     user = loadAccount(".secrets/user/base-sepolia.json"),
     manifest = readJson<{ zcash: { payer: { address: string } } }>(
       "docs/PUBLIC_WALLETS.json",
@@ -41,11 +42,11 @@ async function main() {
   if (a.intent.refundHash !== keccak256(toHex(manifest.zcash.payer.address)))
     throw Error("refund_destination");
   const client = createPublicClient({
-      chain: baseSepolia,
-      transport: http("https://sepolia.base.org"),
+      chain: chainFor(a.intent.chainId),
+      transport: http(network(a.intent.chainId).rpc),
     }),
     l = await inspectListing(
-      client,
+      client as any,
       c,
       BigInt(a.intent.listingId),
       user.address,

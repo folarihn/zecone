@@ -11,6 +11,8 @@ test("marketplace popup shows exact quote approval then the separate payment pan
     payments = 0;
   const row = {
     id,
+    chainId: 46630,
+    networkName: "Robinhood Chain Testnet",
     stage: "awaiting",
     status: "Awaiting payment",
     origin: "http://127.0.0.1:3211",
@@ -18,8 +20,8 @@ test("marketplace popup shows exact quote approval then the separate payment pan
     tokenId: "1",
     recipient: account,
     price: "100000000000000",
-    zatoshis: "1000000",
-    gasBudget: "100000000000000",
+    zatoshis: "1500000",
+    gasBudget: "200000000000000",
     expiry: Math.floor(Date.now() / 1000) + 3600,
     confirmations: 0,
     requiredConfirmations: 10,
@@ -86,6 +88,7 @@ test("marketplace popup shows exact quote approval then the separate payment pan
     popup.getByRole("heading", { name: "Review marketplace quote" }),
   ).toBeVisible();
   await expect(popup.locator(".origin-box")).toContainText(row.origin);
+  await expect(popup.getByText("Robinhood Chain Testnet · chain 46630", {exact:true})).toBeVisible();
   await expect(
     popup.getByRole("button", { name: "Approve purchase quote", exact: true }),
   ).toBeVisible();

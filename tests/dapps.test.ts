@@ -191,7 +191,7 @@ test("unapproved signature/transaction and unsupported RPC methods fail before s
   }
 });
 
-test("fixed-chain request rejects wrong networks and malformed transaction fields", async () => {
+test("selected-chain request rejects wrong networks and malformed transaction fields", async () => {
   const f = fixture();
   try {
     const channel = randomUUID();
@@ -210,14 +210,8 @@ test("fixed-chain request rejects wrong networks and malformed transaction field
       call("wallet_switchEthereumChain", [{ chainId: "0x1" }]),
       (e: any) => e instanceof RpcError && e.code === 4901,
     );
-    assert.equal(
-      (
-        (await call("wallet_switchEthereumChain", [
-          { chainId: "0x14a34" },
-        ])) as any
-      ).result,
-      null,
-    );
+    const switchRequest = await call("wallet_switchEthereumChain", [{ chainId: "0x14a34" }]) as any;
+    assert.equal(switchRequest.state, "pending"); // Phase 4A requires explicit approval even for a configured chain.
     await assert.rejects(
       call("eth_sendTransaction", [
         {
@@ -252,7 +246,7 @@ test("fixed-chain request rejects wrong networks and malformed transaction field
           ],
           f.user.address,
         ),
-      /Base Sepolia/i,
+      /selected testnet/i,
     );
     assert.throws(() =>
       typedMessage(
@@ -302,6 +296,36 @@ test("EIP-1193 read methods expose only chain id and the public EVM address", as
       "seed",
     ])
       assert.equal(serialized.includes(marker), false);
+  } finally {
+    f.close();
+  }
+});
+
+test("network switching requires approval and wallet_addEthereumChain rejects RPC substitution", async () => {
+  const f = fixture();
+  try {
+    f.d.checkNetwork = async () => {};
+    const channel = randomUUID();
+    const connect = (await f.d.request(session, {
+      id: randomUUID(), channel, origin, method: "eth_requestAccounts", params: [],
+    })) as any;
+    await f.d.approve(session, connect.id, connect.reviewHash, true);
+
+    await assert.rejects(f.d.request(session, {
+      id: randomUUID(), channel, origin, method: "wallet_addEthereumChain",
+      params: [{ chainId: "0xb626", chainName: "Robinhood Chain Testnet", rpcUrls: ["https://attacker.invalid"], blockExplorerUrls: ["https://explorer.testnet.chain.robinhood.com"], nativeCurrency: { name: "Test Ether", symbol: "ETH", decimals: 18 } }],
+    }), (error: any) => error.code === 4902);
+
+    const change = (await f.d.request(session, {
+      id: randomUUID(), channel, origin, method: "wallet_switchEthereumChain", params: [{ chainId: "0xb626" }],
+    })) as any;
+    assert.equal(change.state, "pending");
+    assert.equal(f.d.selected(origin), 84532, "selection changed before approval");
+    await f.d.approve(session, change.id, change.reviewHash, true);
+    assert.equal(f.d.selected(origin), 46630);
+    assert.deepEqual(await f.d.request(session, {
+      id: randomUUID(), channel, origin, method: "eth_chainId", params: [],
+    }), { done: true, result: "0xb626" });
   } finally {
     f.close();
   }

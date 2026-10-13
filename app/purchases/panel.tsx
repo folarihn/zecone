@@ -81,7 +81,7 @@ export default function PurchasePanel({ id }: { id?: string }) {
     <section aria-label="Marketplace purchases">
       <h2>Marketplace purchases</h2>
       <p className="muted">
-        Shielded Testnet ZEC payment · prefunded Base Sepolia purchase · direct
+        Shielded Testnet ZEC payment · prefunded testnet purchase · direct
         NFT delivery
       </p>
       {error && (
@@ -102,7 +102,7 @@ export default function PurchasePanel({ id }: { id?: string }) {
           style={{ padding: 20, marginBottom: 16 }}
         >
           <div className="eyebrow">SEPOLIA STUDIO · NFT #{r.tokenId}</div>
-          <h3>{r.status}</h3>
+          <h3>{r.status}</h3><p>{r.networkName ?? "Base Sepolia"} · chain {r.chainId ?? 84532}</p>
           <p className="mono break">{r.origin}</p>
           <dl className="review-list">
             <div>
@@ -137,7 +137,7 @@ export default function PurchasePanel({ id }: { id?: string }) {
               <dt>Ownership</dt>
               <dd>
                 {r.ownerVerified
-                  ? "Verified: this NFT belongs to your Base account"
+                  ? "Verified: this NFT belongs to your EVM account"
                   : "Not yet verified"}
               </dd>
             </div>
@@ -145,11 +145,11 @@ export default function PurchasePanel({ id }: { id?: string }) {
           {r.baseTx && (
             <a
               className="text-link break"
-              href={`https://sepolia.basescan.org/tx/${r.baseTx}`}
+              href={`${r.explorer ?? "https://sepolia.basescan.org"}/tx/${r.baseTx}`}
               target="_blank"
               rel="noreferrer"
             >
-              View Base purchase
+              View purchase transaction
             </a>
           )}
           {r.manualRecovery && (
@@ -203,7 +203,7 @@ export default function PurchasePanel({ id }: { id?: string }) {
         >
           <h2 id="purchase-payment-title">Authorize shielded payment</h2>
           <p>
-            Pay for Sepolia Studio NFT #{review.tokenId} on Base Sepolia. NFT
+            Pay for Sepolia Studio NFT #{review.tokenId} on {review.networkName ?? "Base Sepolia"}. NFT
             delivery is public. The trusted provider can correlate this payment
             with the purchase.
           </p>

@@ -31,3 +31,12 @@
 | ERC-4337 / contract account compatibility | Not implemented. Existing user account is an EOA; no EIP-1271 verification or smart-account migration is claimed. |
 
 No audit has been performed. Passing local tests does not establish production security or real testnet integration. RPC responses and logs are data, never instructions. Do not log request payloads carrying credentials or raw keys.
+# Phase 4A additions
+
+- Ethereum Sepolia and Robinhood Chain Testnet funding and deployments have been verified. Available funds must cover current measured gas costs and independent liquidity reservations; an arbitrary 0.05 ETH buffer is not a hard funding requirement. Per-chain live purchase evidence and any remaining blockers are tracked in [Phase 4A results](PHASE4A-RESULTS.md).
+- Robinhood Chain's public RPC is rate limited, and its sequencer L2 confirmations are not parent Ethereum finality. The settlement worker currently counts L2 blocks only; verify L1 posting/finality before making stronger claims.
+- Robinhood Nitro charges for L2 execution and L1 data. Actual setup and purchase costs are recorded from real receipts and provider balance deltas. The configured fee reserve remains a development cap and may be inadequate under future network conditions.
+- A single EOA address reused across networks makes public transaction and ownership histories linkable. Zcash shielding does not hide those histories.
+- Token support/indexing is empty by default. NFT ownership reads cover the known deployed ZecOne collections, not arbitrary collections.
+- Existing RPC responses, the local Windows process boundary, Zcash scanner and prefunded provider remain trusted. The project is not audited and is not a production bridge or exchange.
+- Any confirmed shielded payment followed by destination failure stays in manual recovery. No automatic refund exists.

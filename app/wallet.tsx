@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import type { Dashboard, CheckoutView } from "../services/wallet/view";
+import NetworksPanel from "./networks/panel";
 import PurchasePanel from "./purchases/panel";
 type Tab =
   | "Wallet"
@@ -554,6 +555,7 @@ export default function Wallet() {
             <p role="status">Loading wallet data…</p>
           ) : (
             <>
+              {tab === "Wallet" && session?.connected && <NetworksPanel />}
               {tab === "Wallet" && (
                 <>
                   <section className="balances" aria-label="Wallet balances">

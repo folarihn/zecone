@@ -37,10 +37,10 @@ contract TestMarketplace is ReentrancyGuard {
     );
 
     constructor() {
-        if (block.chainid != 84532) revert TestnetOnly();
+        if (block.chainid != 84532 && block.chainid != 11155111 && block.chainid != 46630) revert TestnetOnly();
     }
     modifier testnet() {
-        if (block.chainid != 84532) revert TestnetOnly();
+        if (block.chainid != 84532 && block.chainid != 11155111 && block.chainid != 46630) revert TestnetOnly();
         _;
     }
 

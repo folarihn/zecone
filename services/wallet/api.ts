@@ -1,3 +1,4 @@
+import { portfolio } from "../evm/portfolio.ts";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { ApiError, requireLocal, Sessions } from "./security.ts";
 import { uuid, type Engine } from "./engine.ts";
@@ -156,6 +157,10 @@ export function api(
       switch (`${method} ${path}`) {
         case "GET /api/session":
           data = { csrf: session.csrf, connected: !!session.connected };
+          break;
+        case "GET /api/networks":
+          if (!session.connected || !dapps) throw new ApiError(403, "Verify wallet ownership first.");
+          data = { networks: await portfolio(dapps.user) };
           break;
         case "GET /api/dashboard":
           data = engine.dashboard();

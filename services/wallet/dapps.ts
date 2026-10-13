@@ -1,3 +1,5 @@
+import { network, chainHex, parseChain, validateAddChain } from "../evm/networks.ts";
+import { adapterFor } from "../evm/adapter.ts";
 import { DatabaseSync } from "node:sqlite";
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
@@ -65,6 +67,7 @@ export class Dapps {
     this.db = new DatabaseSync(path);
     this.db
       .exec(`PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000;
+      CREATE TABLE IF NOT EXISTS origin_networks(origin TEXT PRIMARY KEY,chain_id INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS permissions(origin TEXT PRIMARY KEY,created INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS channels(id TEXT PRIMARY KEY,origin TEXT NOT NULL,session TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS requests(id TEXT PRIMARY KEY,channel TEXT NOT NULL,origin TEXT NOT NULL,session TEXT NOT NULL,method TEXT NOT NULL,params TEXT NOT NULL,fingerprint TEXT NOT NULL,review TEXT NOT NULL,review_hash TEXT NOT NULL,state TEXT NOT NULL,result TEXT,error TEXT,expires INTEGER NOT NULL,tx_hash TEXT,created INTEGER NOT NULL);`);
@@ -74,6 +77,11 @@ export class Dapps {
       )
       .run();
   }
+  selected(origin: string): number {
+    return Number((this.db.prepare("SELECT chain_id FROM origin_networks WHERE origin=?").get(origin) as any)?.chain_id ?? 84532);
+  }
+  async checkNetwork(id: number) { await adapterFor(id).health(); }
+  client(id: number) { return id === 84532 ? this.public : adapterFor(id).client; }
   row(id: string) {
     return this.db.prepare("SELECT * FROM requests WHERE id=?").get(id) as
       Row | undefined;
@@ -85,6 +93,7 @@ export class Dapps {
   }
   list() {
     return {
+      networks: this.db.prepare("SELECT origin,chain_id AS chainId FROM origin_networks").all(),
       connections: this.db
         .prepare("SELECT origin,created FROM permissions ORDER BY created DESC")
         .all(),
@@ -100,6 +109,7 @@ export class Dapps {
         txHash: r.tx_hash,
         error: r.error,
         created: r.created,
+        chainId: JSON.parse(r.review).chainId ?? 84532,
       })),
     };
   }
@@ -185,7 +195,7 @@ export class Dapps {
         throw new RpcError(4100, "Request ID replay with different payload");
       return this.status(s, id);
     }
-    const allowed = this.permitted(origin);
+    const allowed = this.permitted(origin), chainId = this.selected(origin), policy = network(chainId);
     if (method === "zecone_getPurchaseStatus") {
       if (!allowed || !this.purchases)
         throw new RpcError(4100, "Connect the marketplace first");
@@ -198,23 +208,23 @@ export class Dapps {
     }
     if (method === "eth_chainId") {
       if (p.length) throw new RpcError(-32602, "No parameters");
-      return { done: true, result: DAPP_CHAIN };
+      return { done: true, result: chainHex(chainId) };
     }
     if (method === "eth_accounts") {
       if (p.length) throw new RpcError(-32602, "No parameters");
       return { done: true, result: allowed ? [this.user] : [] };
     }
-    if (method === "wallet_switchEthereumChain") {
-      if (
-        p.length !== 1 ||
-        !p[0] ||
-        typeof p[0] !== "object" ||
-        Object.keys(p[0]).length !== 1 ||
-        (p[0] as any).chainId !== DAPP_CHAIN
-      )
-        throw new RpcError(4901, "Only Base Sepolia is supported");
+    let targetNetwork: ReturnType<typeof network> | undefined;
+    if (["wallet_switchEthereumChain", "wallet_addEthereumChain"].includes(method)) {
       if (!allowed) throw new RpcError(4100, "Connect the application first");
-      return { done: true, result: null };
+      try {
+        if (p.length !== 1) throw Error();
+        if (method === "wallet_addEthereumChain") targetNetwork = validateAddChain(p[0]);
+        else {
+          if (!p[0] || typeof p[0] !== "object" || Object.keys(p[0]).length !== 1) throw Error();
+          targetNetwork = parseChain((p[0] as any).chainId);
+        }
+      } catch { throw new RpcError(method === "wallet_switchEthereumChain" ? 4901 : 4902, "Only exact configured testnets are accepted"); }
     }
     if (method === "wallet_revokePermissions") {
       if (!allowed) throw new RpcError(4100, "Not connected");
@@ -223,6 +233,8 @@ export class Dapps {
     }
     if (
       ![
+        "wallet_switchEthereumChain",
+        "wallet_addEthereumChain",
         "eth_requestAccounts",
         "personal_sign",
         "eth_signTypedData_v4",
@@ -243,11 +255,12 @@ export class Dapps {
       )
       .get() as { n: number };
     if (active.n >= 8) throw new RpcError(-32002, "Too many pending requests");
-    let review: any = { account: this.user, chainId: 84532 };
+    let review: any = { account: this.user, chainId, networkName: policy.name };
+    if (targetNetwork) review = { ...review, targetChainId: targetNetwork.id, targetNetwork: targetNetwork.name, rpc: targetNetwork.rpc, warning: "Approve this network configuration. Switching invalidates other pending requests for this origin." };
     if (method === "zecone_payWithZec") {
       if (!this.purchases)
         throw new RpcError(4200, "Marketplace funding is unavailable");
-      review = await this.purchases.review(s, origin, id, p);
+      review = await this.purchases.review(s, origin, id, p, chainId);
     }
     if (method === "personal_sign") {
       const raw = message(p, this.user);
@@ -262,12 +275,12 @@ export class Dapps {
     if (method === "eth_signTypedData_v4")
       review = {
         ...review,
-        typedData: typedMessage(p, this.user),
+        typedData: typedMessage(p, this.user, chainId),
         warning:
           "Typed signatures can grant spending permissions or authorize external orders. Check domain, spender, amount, nonce and expiry. The external protocol controls replay protection.",
       };
     if (method === "eth_sendTransaction")
-      review = { ...review, ...transaction(p, this.user) };
+      review = { ...review, ...transaction(p, this.user, chainId) };
     const expires = Date.now() + 300000;
     this.db
       .prepare("INSERT INTO requests VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
@@ -290,7 +303,8 @@ export class Dapps {
       );
     if (method === "eth_sendTransaction") {
       try {
-        if ((await this.public.getChainId()) !== 84532)
+        const client = this.client(chainId);
+        if ((await client.getChainId()) !== chainId)
           throw Error("Wrong chain");
         const call = {
           account: this.user,
@@ -298,17 +312,17 @@ export class Dapps {
           data: review.data as Hex,
           value: BigInt(review.value),
         };
-        await this.public.call(call);
+        await client.call(call);
         const [estimated, fees, nonce] = await Promise.all([
-          this.public.estimateGas(call),
-          this.public.estimateFeesPerGas(),
-          this.public.getTransactionCount({
+          client.estimateGas(call),
+          client.estimateFeesPerGas(),
+          client.getTransactionCount({
             address: this.user,
             blockTag: "pending",
           }),
         ]);
         const gas = (estimated * 12n) / 10n + 1n;
-        if (gas * fees.maxFeePerGas > 5000000000000000n) throw Error("Fee cap");
+        if (gas > policy.maxGas || fees.maxFeePerGas > policy.maxFee || gas * fees.maxFeePerGas + policy.dataReserve > 5000000000000000n) throw Error("Fee cap");
         review = {
           ...review,
           nonce,
@@ -316,10 +330,10 @@ export class Dapps {
           estimatedGas: estimated.toString(),
           maxFeePerGas: fees.maxFeePerGas.toString(),
           maxPriorityFeePerGas: fees.maxPriorityFeePerGas.toString(),
-          executionFeeCapWei: (gas * fees.maxFeePerGas).toString(),
+          executionFeeCapWei: (gas * fees.maxFeePerGas + policy.dataReserve).toString(),
           ...describeCall(review.data),
           simulation:
-            "eth_call and gas estimation succeeded. State can change. Simulation does not guarantee safety. Base L1 data fees are additional.",
+            `eth_call and gas estimation succeeded. State can change. Fee model: ${policy.feeModel}. Simulation does not guarantee safety.`,
         };
         this.db
           .prepare(
@@ -361,13 +375,15 @@ export class Dapps {
     if (r.method !== "eth_requestAccounts" && !this.permitted(r.origin))
       throw new RpcError(4100, "Connection revoked");
     if (r.state !== "pending") return this.status(s, id);
+    const selected = JSON.parse(r.review).chainId ?? 84532;
+    if (this.selected(r.origin) !== selected) throw new RpcError(4901, "Selected network changed; request again");
     if (
       r.method === "eth_sendTransaction" &&
       this.db
         .prepare(
-          "SELECT id FROM requests WHERE method='eth_sendTransaction' AND (state IN ('signing','review') OR (tx_hash IS NOT NULL AND state='done')) AND error IS NULL LIMIT 1",
+          "SELECT id FROM requests WHERE method='eth_sendTransaction' AND (state IN ('signing','review') OR (tx_hash IS NOT NULL AND state='done')) AND error IS NULL AND COALESCE(json_extract(review,'$.chainId'),84532)=? LIMIT 1",
         )
-        .get()
+        .get(selected)
     )
       throw new RpcError(
         -32002,
@@ -387,6 +403,17 @@ export class Dapps {
           .prepare("INSERT OR IGNORE INTO permissions VALUES(?,?)")
           .run(r.origin, Date.now());
         result = [this.user];
+      } else if (["wallet_switchEthereumChain", "wallet_addEthereumChain"].includes(r.method)) {
+        const target = network(JSON.parse(r.review).targetChainId);
+        await this.checkNetwork(target.id);
+        if (r.method === "wallet_switchEthereumChain") {
+          this.db.prepare("INSERT INTO origin_networks VALUES(?,?) ON CONFLICT(origin) DO UPDATE SET chain_id=excluded.chain_id").run(r.origin, target.id);
+          for (const other of this.db.prepare("SELECT id,method FROM requests WHERE origin=? AND state='pending' AND id!=?").all(r.origin, id)) {
+            if (other.method === "zecone_payWithZec") this.purchases?.cancelDraft(String(other.id));
+          }
+          this.db.prepare("UPDATE requests SET state='rejected',error='Network changed; review a new request' WHERE origin=? AND state IN ('pending','preparing') AND id!=?").run(r.origin, id);
+        }
+        result = null;
       } else if (r.method === "zecone_payWithZec") {
         if (!this.purchases) throw Error("Marketplace unavailable");
         result = await this.purchases.approve(s, id);
@@ -416,7 +443,8 @@ export class Dapps {
           );
           if (keccak256(saved.raw) !== signed.hash)
             throw Error("Hash mismatch");
-          const hash = await this.public.sendRawTransaction({
+          if (await this.client(selected).getChainId() !== selected) throw Error("Wrong chain");
+          const hash = await this.client(selected).sendRawTransaction({
             serializedTransaction: saved.raw,
           });
           if (hash !== signed.hash) throw Error("Hash mismatch");
@@ -458,13 +486,15 @@ export class Dapps {
               .run(JSON.stringify({ purchaseId: id }), id);
         }
       }
-      if ((await this.public.getChainId()) !== 84532) return;
+
       const rows = this.db
         .prepare(
           "SELECT * FROM requests WHERE method='eth_sendTransaction' AND state IN ('done','review')",
         )
         .all() as Row[];
       for (const r of rows) {
+        const chainId = JSON.parse(r.review).chainId ?? 84532, client = this.client(chainId), policy = network(chainId);
+        if (await client.getChainId() !== chainId) continue;
         const file = resolve(".state/dapp-approvals", `${r.id}.signed.json`);
         if (!existsSync(file)) {
           if (r.state === "review" && !r.tx_hash)
@@ -480,17 +510,27 @@ export class Dapps {
         this.db
           .prepare("UPDATE requests SET tx_hash=? WHERE id=?")
           .run(saved.hash, r.id);
-        const receipt = await this.public
+        const receipt = await client
           .getTransactionReceipt({ hash: saved.hash })
           .catch(() => null);
-        if (!receipt) continue;
-        const head = await this.public.getBlockNumber();
-        if (head - receipt.blockNumber + 1n < 3n) continue;
-        if (
-          (await this.public.getBlock({ blockNumber: receipt.blockNumber }))
-            .hash !== receipt.blockHash
-        )
+        const previouslyConfirmed = r.error?.startsWith("Confirmed") ?? false;
+        if (!receipt) {
+          if (previouslyConfirmed)
+            this.db.prepare("UPDATE requests SET state='review',error='Previously confirmed receipt is now missing; possible chain reorganization. Verify canonical history manually; no replacement transaction was sent.' WHERE id=?").run(r.id);
           continue;
+        }
+        const head = await client.getBlockNumber();
+        if (head - receipt.blockNumber + 1n < BigInt(policy.confirmations)) {
+          if (previouslyConfirmed)
+            this.db.prepare("UPDATE requests SET state='review',error='Previously confirmed transaction fell below its confirmation threshold; possible chain reorganization. Inspect the canonical chain; no replacement was sent.' WHERE id=?").run(r.id);
+          continue;
+        }
+        const canonical = await client.getBlock({ blockNumber: receipt.blockNumber });
+        if (/^0x0+$/.test(receipt.blockHash) || canonical.hash !== receipt.blockHash) {
+          if (previouslyConfirmed)
+            this.db.prepare("UPDATE requests SET state='review',error='Previously confirmed transaction block is no longer canonical; possible chain reorganization. Inspect the canonical chain; no replacement was sent.' WHERE id=?").run(r.id);
+          continue;
+        }
         this.db
           .prepare(
             "UPDATE requests SET state='done',result=?,error=? WHERE id=?",
@@ -498,7 +538,7 @@ export class Dapps {
           .run(
             JSON.stringify(saved.hash),
             receipt.status === "success"
-              ? "Confirmed (3+ blocks)"
+              ? `Confirmed (${policy.confirmations}+ blocks)`
               : "Confirmed revert — gas was spent",
             r.id,
           );

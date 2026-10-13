@@ -1,0 +1,167 @@
+{
+  "verifiedAt": "2026-10-13T06:18:27.114Z",
+  "live": true,
+  "networks": {
+    "zcash": "testnet",
+    "destination": 46630
+  },
+  "contracts": {
+    "chainId": 46630,
+    "marketplace": "0x3a3f3b03349b5a9060d35c8252678f59dabf2a52",
+    "nft": "0xd74d45e0888dfd6d7df09e36808f0465bb0d0b01",
+    "executor": "0xed299fc7f232e923da52ac3012ef8a1d538dcc0f",
+    "origin": "http://127.0.0.1:4322",
+    "deploymentBlock": "134046177",
+    "seller": "0x7D26bC3A7CE602cB1cf9F8Bb4e3a8eDCb052C4b0",
+    "provider": "0xf9dE6070331A3B68233c3b2062BceB7105162Cd2",
+    "user": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+    "listingExpiry": 1791955215
+  },
+  "purchaseId": "cc62d7ee-85a3-4ae8-9892-37492d0f6741",
+  "orderId": "0xb366fc8aa2497522eac363f0a52dd5e6e75853da8d641378b5e440d01177edb7",
+  "chainId": 46630,
+  "paymentTx": "8e301d20e3e660e9259ebcf9738910cf7be1311e979925d2c54e0bbb455911a8",
+  "destinationTx": "0xd971607153447865f305fd07e0dafff217edc6f6136c03ab646554a63403499f",
+  "owner": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+  "state": "settled",
+  "nonce": 5,
+  "providerWei": "8864475980000000",
+  "broadcasts": 1,
+  "scans": 38,
+  "zcash": {
+    "txid": "8e301d20e3e660e9259ebcf9738910cf7be1311e979925d2c54e0bbb455911a8",
+    "zatoshis": "1500000",
+    "pool": 4,
+    "height": 4496573,
+    "blockHash": "000096380816e91faa06307cb4b0d92c894606a4bbba4ed5a62985d8cc2f920f",
+    "confirmations": 228,
+    "confirmationsAtAuthorization": 18,
+    "nativeFeeZatoshis": "10000",
+    "totalUserDebitZatoshis": "1510000"
+  },
+  "destination": {
+    "hash": "0xd971607153447865f305fd07e0dafff217edc6f6136c03ab646554a63403499f",
+    "block": "134061251",
+    "blockHash": "0xda4049a02793abc5305006af54b350ccd185ad8090ff304c658e32af119a7732",
+    "confirmations": "16798",
+    "requiredConfirmations": 20,
+    "gasUsed": "210877",
+    "effectiveGasPrice": "10000000",
+    "actualFeeWei": "2108770000000",
+    "sellerPayment": {
+      "id": "1",
+      "payer": "0xEd299Fc7F232E923Da52ac3012EF8a1D538dcC0f",
+      "recipient": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+      "nft": "0xD74d45e0888dFd6d7DF09E36808f0465bB0D0B01",
+      "tokenId": "1",
+      "seller": "0x7D26bC3A7CE602cB1cf9F8Bb4e3a8eDCb052C4b0",
+      "price": "100000000000000"
+    },
+    "owner": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+    "tokenId": "1"
+  },
+  "liquidity": {
+    "before": {
+      "provider": "8966584750000000",
+      "seller": "994827200000000",
+      "user": "0"
+    },
+    "after": {
+      "provider": "8864475980000000",
+      "seller": "1094827200000000",
+      "user": "0"
+    },
+    "sellerReceivedWei": "100000000000000",
+    "providerSpentWei": "102108770000000",
+    "quotedGasReserveWei": "200000000000000"
+  },
+  "replay": {
+    "broadcasts": 1,
+    "simulationRejected": true,
+    "crossChainSimulationRejected": true,
+    "duplicateTransactionSent": false
+  },
+  "setup": [
+    {
+      "step": "listing-1",
+      "hash": "0x8d861a308499c0d6f56ee535e1c729bed6bac171db982bb2f4ab9fb1f7cd2d90",
+      "block": "134046573",
+      "blockHash": "0x48d7851efa3ecc396d49926b249b1394f6fe4c83e74c3cd3b3fdcd3d760bda22",
+      "contract": null,
+      "gasUsed": "157028",
+      "effectiveGasPrice": "10000000",
+      "actualFeeWei": "1570280000000"
+    },
+    {
+      "step": "listing-2",
+      "hash": "0x0b2434e9740266175ea2193eb8f2a0312a97cf2cd109f8f4a0901c539727d61a",
+      "block": "134046654",
+      "blockHash": "0xdd22b0a1c1dec6d3476a876293e7bb32c518da940be1c5151e1e723d6faef1a4",
+      "contract": null,
+      "gasUsed": "157028",
+      "effectiveGasPrice": "10000000",
+      "actualFeeWei": "1570280000000"
+    },
+    {
+      "step": "listing-3",
+      "hash": "0x04af99b620ef30112a7e7cb2f6bac1ba115f4de1f9a51343cd6e2fa319ee25c2",
+      "block": "134046731",
+      "blockHash": "0xf1acd628856ba61a4b9eddc92c273b4b9340948e2c7de497a7069b6ae4daab23",
+      "contract": null,
+      "gasUsed": "157040",
+      "effectiveGasPrice": "10000000",
+      "actualFeeWei": "1570400000000"
+    },
+    {
+      "step": "MarketTestNFT",
+      "hash": "0x35fc65b3b1fa5264f6420f70ef280f2dd5fec49477995f345273a0fb45032cd0",
+      "block": "134046256",
+      "blockHash": "0x4e41438f942f07530be5e6eb962dcaa37ccd05d9005c131b44772d83df542b5a",
+      "contract": "0xd74d45e0888dfd6d7df09e36808f0465bb0d0b01",
+      "gasUsed": "1030824",
+      "effectiveGasPrice": "10000000",
+      "actualFeeWei": "10308240000000"
+    },
+    {
+      "step": "seller-approval",
+      "hash": "0xdf1324217ea9cbf0ef65722c4c4632bdcd90adc7f1a2fa706f6f9cb4182a3a1b",
+      "block": "134046495",
+      "blockHash": "0xbe29bc181e66d3bbfc33a7a62a0f87ae8cf4bf27de7c3107018abc6c01c81d9c",
+      "contract": null,
+      "gasUsed": "46184",
+      "effectiveGasPrice": "10000000",
+      "actualFeeWei": "461840000000"
+    },
+    {
+      "step": "seller-gas",
+      "hash": "0xf9104c749c11da2afa62e7a5ba9f12f916e62ffd14024ad5c68e3b6ca3da5444",
+      "block": "134046411",
+      "blockHash": "0xfc8d1818a84c7ab27ade859afe417f05bbde1272fd3a3745ad550f0c94f1ad4d",
+      "contract": null,
+      "gasUsed": "21000",
+      "effectiveGasPrice": "10000000",
+      "actualFeeWei": "210000000000"
+    },
+    {
+      "step": "TestMarketplace",
+      "hash": "0xf308a6f64f807c404f7fe73039b3c1b8bd39d895bdacc9da311c3e854a36675a",
+      "block": "134046177",
+      "blockHash": "0xc9cf8af762f69999974dff7234ba68bed95592334a1252c6f8768707ab6565fa",
+      "contract": "0x3a3f3b03349b5a9060d35c8252678f59dabf2a52",
+      "gasUsed": "868319",
+      "effectiveGasPrice": "10000000",
+      "actualFeeWei": "8683190000000"
+    },
+    {
+      "step": "ZecOneMultichainExecutor",
+      "hash": "0xb7e2bf91cd3dd6c13a805487bdb0922795c53b0eced83409226a21f4e1d2238c",
+      "block": "134046331",
+      "blockHash": "0x8f05878284ccbab7d1981268da86237802a858437bdc37c2c3cc4883fb681b00",
+      "contract": "0xed299fc7f232e923da52ac3012ef8a1d538dcc0f",
+      "gasUsed": "1421382",
+      "effectiveGasPrice": "10000000",
+      "actualFeeWei": "14213820000000"
+    }
+  ],
+  "limitations": "Trusted provider, simulated rate, manual refunds. Robinhood destination confirmations do not prove parent-chain finality."
+}

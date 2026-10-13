@@ -1,3 +1,4 @@
+import { network, NETWORK_IDS } from "../evm/networks.ts";
 import { randomBytes, randomUUID, createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
@@ -32,7 +33,7 @@ export class Purchases {
   lockPath = ".state/service.lock";
   legacyPath = ".state/orders.sqlite";
   available() {
-    return existsSync(".state/marketplace-confirmed.json");
+    return NETWORK_IDS.some(id => existsSync(network(id).deploymentFile));
   }
   constructor(
     readonly store = new PurchaseJournal(),
@@ -48,20 +49,23 @@ export class Purchases {
       )
       .run();
   }
-  config() {
-    if (!existsSync(".state/marketplace-confirmed.json"))
+  config(chainId = 84532) {
+    const file = network(chainId).deploymentFile;
+    if (!existsSync(file))
       throw new ApiError(503, "Marketplace has not been configured.");
-    return readJson<MarketConfig>(".state/marketplace-confirmed.json");
+    const c = readJson<MarketConfig>(file);
+    if ((c.chainId ?? 84532) !== chainId) throw Error("deployment_chain_mismatch");
+    return c;
   }
-  base() {
-    return new PurchaseBase(this.config());
+  base(chainId = 84532) {
+    return new PurchaseBase(this.config(chainId));
   }
   async native<T>(args: string[], deadline?: number): Promise<T> {
     return userWalletNative<T>(args, deadline);
   }
-  async review(s: Session, origin: string, id: string, p: unknown[]) {
+  async review(s: Session, origin: string, id: string, p: unknown[], chainId = 84532) {
     requireApproval(s, true);
-    const c = this.config();
+    const c = this.config(chainId);
     if (origin !== c.origin)
       throw new ApiError(403, "This marketplace origin is not allowlisted.");
     if (
@@ -71,7 +75,7 @@ export class Purchases {
       Array.isArray(p[0])
     )
       throw Error("invalid_purchase");
-    const b = this.base();
+    const b = this.base(chainId);
     await b.check();
     const l = await interpret(
       b.public,
@@ -91,7 +95,8 @@ export class Purchases {
       kind: "purchase",
       orderId,
       nonce: orderId,
-      chainId: 84532,
+      chainId,
+      ...(chainId === 84532 ? {} : { sourceNetwork: keccak256(toHex("zcash-testnet")), provider: b.account.address, adapter: keccak256(toHex(network(chainId).adapter)) }),
       contract: c.executor,
       marketplace: c.marketplace,
       listingId: l.listingId,
@@ -100,8 +105,8 @@ export class Purchases {
       seller: l.seller,
       recipient: this.manifest.base.user,
       price: l.price,
-      gasBudget: GAS_BUDGET.toString(),
-      zatoshis: priceZatoshis(BigInt(l.price)).toString(),
+      gasBudget: network(chainId).gasBudget.toString(),
+      zatoshis: priceZatoshis(BigInt(l.price), chainId).toString(),
       rate: RATE.toString(),
       maxSlippageBps: "0",
       expiry,
@@ -125,9 +130,10 @@ export class Purchases {
     );
     return {
       ...i,
+      networkName: network(chainId).name,
       account: i.recipient,
       estimatedGas: l.estimatedGas,
-      liquidityWei: (BigInt(i.price) + GAS_BUDGET).toString(),
+      liquidityWei: (BigInt(i.price) + BigInt(i.gasBudget)).toString(),
       refundDestination: this.manifest.zcash.payer.address,
       simulation:
         "Marketplace eth_call and gas estimation succeeded. Listing is rechecked before payment and execution.",
@@ -144,7 +150,7 @@ export class Purchases {
     if (r.stage !== "draft")
       throw new ApiError(409, "Reconcile the existing purchase.");
     const i = JSON.parse(r.intent) as UnsignedPurchase;
-    terms(i, this.config(), this.manifest.base.user, now());
+    terms(i, this.config(i.chainId), this.manifest.base.user, now());
     this.store.stage(id, "creating");
     try {
       const path = resolve(".state/purchase-approvals", `${id}.json`);
@@ -170,10 +176,10 @@ export class Purchases {
     return { purchaseId: id };
   }
   async attach(r: PurchaseRow, signed: PurchaseIntent) {
-    const b = this.base(),
+    const b = this.base(signed.chainId),
       id = await validateSignature(
         signed,
-        this.config(),
+        this.config(signed.chainId),
         this.manifest.base.user,
         now(),
       );
@@ -253,6 +259,9 @@ export class Purchases {
                             : "Awaiting payment";
     const publicView = {
       id: r.id,
+      chainId: i.chainId,
+      networkName: network(i.chainId).name,
+      explorer: network(i.chainId).explorer,
       status,
       listingId: i.listingId,
       nft: i.nft,
@@ -306,7 +315,7 @@ export class Purchases {
       this.store.totals(o.id).received > 0n
     )
       throw new ApiError(409, "This purchase cannot accept another payment.");
-    await this.base().validate(JSON.parse(o.intent));
+    await this.base(JSON.parse(o.intent).chainId).validate(JSON.parse(o.intent));
     const q = await this.native<{ feeZatoshis: string; totalZatoshis: string }>(
       [
         "quote",
@@ -348,7 +357,7 @@ export class Purchases {
       q.expires <= Date.now()
     )
       throw new ApiError(409, "Fresh exact payment approval is required.");
-    await this.base().validate(JSON.parse(o.intent));
+    await this.base(JSON.parse(o.intent).chainId).validate(JSON.parse(o.intent));
     if (
       this.store.db
         .prepare(
@@ -449,8 +458,6 @@ export class Purchases {
     this.busy = true;
     try {
       await locked(this.lockPath, async () => {
-        const b = this.base();
-        await b.check();
         const snapshot = await this.scanner.observe();
         this.store.observe(snapshot, now());
         for (const r of this.store.rows()) {
@@ -464,7 +471,7 @@ export class Purchases {
           if (!o) continue;
           if (o.tx_hash) {
             try {
-              const receipt = await b.receipt(o);
+              const receipt = await this.base(i.chainId).receipt(o);
               if (receipt.status === "success") {
                 this.store.db
                   .prepare(
@@ -488,27 +495,6 @@ export class Purchases {
             continue;
           }
         }
-        if (
-          this.store
-            .all()
-            .some((o) => o.tx_hash && !["settled", "failed"].includes(o.state))
-        )
-          return;
-        const old = new Store(this.legacyPath);
-        try {
-          if (
-            old
-              .all()
-              .some(
-                (o) =>
-                  o.tx_hash &&
-                  ["prepared", "submitted", "recovery"].includes(o.state),
-              )
-          )
-            return;
-        } finally {
-          old.close();
-        }
         const r = this.store
           .rows()
           .find(
@@ -519,12 +505,20 @@ export class Purchases {
           );
         if (!r) return;
         const o = this.store.get(r.order_id!)!;
+        const chainId = JSON.parse(o.intent).chainId as number;
+        if (this.store.all().some(x => JSON.parse(x.intent).chainId === chainId && x.tx_hash && !["settled", "failed"].includes(x.state))) return;
+        if (chainId === 84532) {
+          const old = new Store(this.legacyPath);
+          try { if (old.all().some(x => x.tx_hash && ["prepared", "submitted", "recovery"].includes(x.state))) return; }
+          finally { old.close(); }
+        }
         try {
+          const b = this.base(chainId);
           const balance = await b.public.getBalance({
             address: b.account.address,
             blockTag: "pending",
           });
-          if (balance < this.store.reserved())
+          if (balance < this.store.reserved(chainId))
             throw Error("insufficient_provider_liquidity");
           const signed = await b.prepare(o);
           this.store.prepared(o.id, signed.raw, signed.hash, now());

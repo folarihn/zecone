@@ -32,7 +32,7 @@ export class PurchaseJournal extends Store {
   constructor(path = ".state/purchases.sqlite") {
     super(path);
     this.db.exec(
-      `CREATE TABLE IF NOT EXISTS purchase_requests(id TEXT PRIMARY KEY,origin TEXT NOT NULL,session TEXT NOT NULL,intent TEXT NOT NULL,refund TEXT NOT NULL,stage TEXT NOT NULL,send_request TEXT NOT NULL UNIQUE,native_quote TEXT,quote_session TEXT,payment_tx TEXT,order_id TEXT UNIQUE,reserved TEXT NOT NULL,created INTEGER NOT NULL); CREATE UNIQUE INDEX IF NOT EXISTS one_active_listing ON purchase_requests(json_extract(intent,'$.listingId')) WHERE reserved!='0';`,
+      `CREATE TABLE IF NOT EXISTS purchase_requests(id TEXT PRIMARY KEY,origin TEXT NOT NULL,session TEXT NOT NULL,intent TEXT NOT NULL,refund TEXT NOT NULL,stage TEXT NOT NULL,send_request TEXT NOT NULL UNIQUE,native_quote TEXT,quote_session TEXT,payment_tx TEXT,order_id TEXT UNIQUE,reserved TEXT NOT NULL,created INTEGER NOT NULL); DROP INDEX IF EXISTS one_active_listing; CREATE UNIQUE INDEX IF NOT EXISTS one_active_chain_listing ON purchase_requests(COALESCE(json_extract(intent,'$.chainId'),84532),json_extract(intent,'$.marketplace'),json_extract(intent,'$.listingId')) WHERE reserved!='0';`,
     );
   }
   rows() {
@@ -45,8 +45,8 @@ export class PurchaseJournal extends Store {
       .prepare("SELECT * FROM purchase_requests WHERE id=?")
       .get(id) as PurchaseRow | undefined;
   }
-  reserved() {
-    return this.rows().reduce((sum, r) => sum + BigInt(r.reserved), 0n);
+  reserved(chainId = 84532) {
+    return this.rows().filter(r => (JSON.parse(r.intent).chainId ?? 84532) === chainId).reduce((sum, r) => sum + BigInt(r.reserved), 0n);
   }
   reserve(
     id: string,
@@ -61,7 +61,7 @@ export class PurchaseJournal extends Store {
     return this.atomic(() => {
       if (this.row(id)) throw Error("duplicate_quote");
       const value = BigInt(intent.price) + BigInt(intent.gasBudget);
-      if (this.reserved() + value > balance)
+      if (this.reserved(intent.chainId) + value > balance)
         throw Error("insufficient_provider_liquidity");
       this.db
         .prepare(

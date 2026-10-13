@@ -113,31 +113,36 @@ test.beforeEach(async ({ page }) => {
         ? { csrf: "fixture", connected: true }
         : path === "/api/dashboard"
           ? fixture
-          : path === "/api/dapps/list"
-            ? {
-                connections: [
-                  { origin: "https://fixture.example", created: 1791790421000 },
-                ],
-                requests: [],
-              }
-            : path === "/api/action-draft"
+          : path === "/api/networks"
+            ? { networks: [] }
+            : path === "/api/dapps/list"
               ? {
-                  id: "draft",
-                  digest: "digest",
-                  description: "Fixed action only.",
-                  intent: {
-                    recipient: fixture.address,
-                    contract: fixture.contract,
-                    target: fixture.contract,
-                    data: "0x1234",
-                    value: "0",
-                    maxValue: "0",
-                    maxGasBudget: "5000000000000000",
-                    zatoshis: "1000000",
-                    expiry: Math.floor(Date.now() / 1000) + 3600,
-                  },
+                  connections: [
+                    {
+                      origin: "https://fixture.example",
+                      created: 1791790421000,
+                    },
+                  ],
+                  requests: [],
                 }
-              : {};
+              : path === "/api/action-draft"
+                ? {
+                    id: "draft",
+                    digest: "digest",
+                    description: "Fixed action only.",
+                    intent: {
+                      recipient: fixture.address,
+                      contract: fixture.contract,
+                      target: fixture.contract,
+                      data: "0x1234",
+                      value: "0",
+                      maxValue: "0",
+                      maxGasBudget: "5000000000000000",
+                      zatoshis: "1000000",
+                      expiry: Math.floor(Date.now() / 1000) + 3600,
+                    },
+                  }
+                : {};
     if (path === "/api/challenge")
       body = {
         id: "fixture-challenge",
@@ -150,6 +155,19 @@ test.beforeEach(async ({ page }) => {
     });
   });
 });
+test("malformed network data shows an error without crashing the wallet", async ({
+  page,
+}) => {
+  await page.route("**/api/networks", (route) => route.fulfill({ json: {} }));
+  await page.goto("/");
+  await expect(
+    page.getByRole("heading", { name: "Wallet overview" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "EVM networks" }).getByRole("alert"),
+  ).toContainText("Invalid response from the local service");
+});
+
 test("desktop wallet is accessible and has no horizontal overflow", async ({
   page,
 }) => {

@@ -6,6 +6,9 @@
     "user": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
     "relayer": "0xf9dE6070331A3B68233c3b2062BceB7105162Cd2"
   },
+  "marketplace": {
+    "seller": "0x7D26bC3A7CE602cB1cf9F8Bb4e3a8eDCb052C4b0"
+  },
   "zcash": {
     "network": "zcash-testnet",
     "payer": {

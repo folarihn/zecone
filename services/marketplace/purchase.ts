@@ -1,3 +1,5 @@
+import { createPublicClient, createWalletClient, http, parseTransaction } from "viem";
+import { network, chainFor, chainHex } from "../evm/networks.ts";
 import {
   decodeFunctionData,
   encodeFunctionData,
@@ -72,6 +74,7 @@ export const nftAbi = parseAbi([
   "event Transfer(address indexed from,address indexed to,uint256 indexed tokenId)",
 ]);
 export type MarketConfig = {
+  chainId?: number; provider?: Address;
   marketplace: Address;
   executor: Address;
   nft: Address;
@@ -81,7 +84,8 @@ export type MarketConfig = {
 export type PurchaseIntent = Intent & {
   kind: "purchase";
   orderId: Hex;
-  chainId: 84532;
+  chainId: number;
+  sourceNetwork?: Hex; provider?: Address; adapter?: Hex;
   marketplace: Address;
   listingId: string;
   nft: Address;
@@ -96,19 +100,20 @@ export type PurchaseIntent = Intent & {
   originHash: Hex;
 };
 export type UnsignedPurchase = Omit<PurchaseIntent, "signature">;
-export const priceZatoshis = (price: bigint) =>
-  ((price + GAS_BUDGET) * 100000000n + RATE - 1n) / RATE;
+export const priceZatoshis = (price: bigint, chainId = 84532) =>
+  ((price + network(chainId).gasBudget) * 100000000n + RATE - 1n) / RATE;
 export function purchaseTyped(i: UnsignedPurchase) {
   return {
     domain: {
       name: "ZecOneMarketplace",
-      version: "1",
-      chainId: 84532,
+      version: i.chainId === 84532 ? "1" : "2",
+      chainId: i.chainId,
       verifyingContract: i.contract,
     },
-    types: quoteTypes,
+    types: i.chainId === 84532 ? quoteTypes : { PurchaseQuote: [{ name: "sourceNetwork", type: "bytes32" }, { name: "provider", type: "address" }, { name: "adapter", type: "bytes32" }, ...quoteTypes.PurchaseQuote] },
     primaryType: "PurchaseQuote" as const,
     message: {
+      ...(i.chainId === 84532 ? {} : { sourceNetwork: i.sourceNetwork!, provider: i.provider!, adapter: i.adapter! }),
       orderId: i.orderId,
       chainId: BigInt(i.chainId),
       marketplace: i.marketplace,
@@ -142,7 +147,8 @@ export function terms(
   });
   if (
     i.kind !== "purchase" ||
-    i.chainId !== 84532 ||
+    i.chainId !== (c.chainId ?? 84532) ||
+    (i.chainId !== 84532 && (i.sourceNetwork !== keccak256(toHex("zcash-testnet")) || !i.provider || getAddress(i.provider) !== getAddress(c.provider!) || i.adapter !== keccak256(toHex(network(i.chainId).adapter)))) ||
     getAddress(i.contract) !== getAddress(c.executor) ||
     getAddress(i.marketplace) !== getAddress(c.marketplace) ||
     getAddress(i.nft) !== getAddress(c.nft) ||
@@ -153,10 +159,10 @@ export function terms(
     BigInt(i.orderId) === 0n ||
     BigInt(i.price) <= 0n ||
     BigInt(i.price) > MAX_PRICE ||
-    i.gasBudget !== GAS_BUDGET.toString() ||
+    i.gasBudget !== network(i.chainId).gasBudget.toString() ||
     i.rate !== RATE.toString() ||
     i.maxSlippageBps !== "0" ||
-    i.zatoshis !== priceZatoshis(BigInt(i.price)).toString() ||
+    i.zatoshis !== priceZatoshis(BigInt(i.price), i.chainId).toString() ||
     !Number.isSafeInteger(i.expiry) ||
     i.expiry <= at ||
     i.expiry > at + 3600 ||
@@ -192,7 +198,7 @@ export async function inspectListing(
   id: bigint,
   recipient: Address,
 ) {
-  if ((await client.getChainId()) !== 84532) throw Error("wrong_chain");
+  if ((await client.getChainId()) !== (c.chainId ?? 84532)) throw Error("wrong_chain");
   const l = await client.readContract({
     address: c.marketplace,
     abi: marketAbi,
@@ -256,7 +262,7 @@ export async function interpret(
     Object.keys(tx).some(
       (k) => !["from", "to", "value", "data", "chainId"].includes(k),
     ) ||
-    tx.chainId !== "0x14a34" ||
+    tx.chainId !== chainHex((c.chainId ?? 84532)) ||
     typeof tx.from !== "string" ||
     getAddress(tx.from) !== getAddress(user) ||
     typeof tx.to !== "string" ||
@@ -302,15 +308,28 @@ export async function interpret(
 export class PurchaseBase extends Base {
   constructor(
     readonly config: MarketConfig,
-    confirmations = 3,
+    confirmations = network((config.chainId ?? 84532)).confirmations,
     rpc?: string,
     keyFile?: string,
   ) {
     super(config.executor, confirmations, rpc, keyFile);
+    if ((config.chainId ?? 84532) !== 84532) {
+      const transport = http(network((config.chainId ?? 84532)).rpc, { timeout: 30000, retryCount: 1 });
+      this.public = createPublicClient({ chain: chainFor((config.chainId ?? 84532)), transport }) as any;
+      this.wallet = createWalletClient({ chain: chainFor((config.chainId ?? 84532)), account: this.account, transport }) as any;
+    }
+  }
+  override async chain() {
+    network((this.config.chainId ?? 84532));
+    if (await this.public.getChainId() !== (this.config.chainId ?? 84532)) throw Error("wrong_chain");
+  }
+  override async broadcast(raw: Hex) {
+    if (parseTransaction(raw).chainId !== (this.config.chainId ?? 84532)) throw Error("wrong_chain");
+    return super.broadcast(raw);
   }
   override async check() {
     await this.chain();
-    const [r, m, code] = await Promise.all([
+    const [r, m, code, nftCode] = await Promise.all([
       this.public.readContract({
         address: this.contract,
         abi: executorAbi,
@@ -322,13 +341,26 @@ export class PurchaseBase extends Base {
         functionName: "marketplace",
       }),
       this.public.getBytecode({ address: this.config.marketplace }),
+      this.public.getBytecode({ address: this.config.nft }),
     ]);
     if (
       getAddress(r) !== this.account.address ||
       getAddress(m) !== getAddress(this.config.marketplace) ||
-      !code
+      !code || !nftCode ||
+      (this.config.provider !== undefined && getAddress(this.config.provider) !== this.account.address)
     )
       throw Error("executor_configuration_mismatch");
+    if ((this.config.chainId ?? 84532) !== 84532) {
+      const [chain, gasBudget, maxFee, adapter] = await Promise.all([
+        this.public.readContract({ address: this.contract, abi: multichainExecutorAbi, functionName: "CHAIN" }),
+        this.public.readContract({ address: this.contract, abi: multichainExecutorAbi, functionName: "GAS_BUDGET" }),
+        this.public.readContract({ address: this.contract, abi: multichainExecutorAbi, functionName: "MAX_FEE" }),
+        this.public.readContract({ address: this.contract, abi: multichainExecutorAbi, functionName: "ADAPTER" }),
+      ]);
+      const expected = network(this.config.chainId);
+      if (chain !== BigInt(expected.id) || gasBudget !== expected.gasBudget || maxFee !== expected.maxFee || adapter !== keccak256(toHex(expected.adapter)))
+        throw Error("executor_chain_policy_mismatch");
+    }
   }
   async validate(i: PurchaseIntent) {
     await this.check();
@@ -370,7 +402,7 @@ export class PurchaseBase extends Base {
     )
       throw Error("already_consumed_reconcile");
     const data = encodeFunctionData({
-      abi: executorAbi,
+      abi: (this.config.chainId ?? 84532) === 84532 ? executorAbi : multichainExecutorAbi,
       functionName: "execute",
       args: [purchaseTyped(i).message, i.signature],
     });
@@ -391,9 +423,9 @@ export class PurchaseBase extends Base {
     ]);
     const gas = (estimate * 12n) / 10n + 1n;
     if (
-      gas > MAX_GAS ||
-      fees.maxFeePerGas > MAX_FEE ||
-      gas * fees.maxFeePerGas + L1_RESERVE > GAS_BUDGET
+      gas > network(i.chainId).maxGas ||
+      fees.maxFeePerGas > network(i.chainId).maxFee ||
+      gas * fees.maxFeePerGas + network(i.chainId).dataReserve > network(i.chainId).gasBudget
     )
       throw Error("gas_budget_exceeded");
     const raw = await this.wallet.signTransaction({
@@ -503,3 +535,13 @@ export class PurchaseBase extends Base {
     };
   }
 }
+
+export const multichainExecutorAbi = parseAbi([
+  "error Replay()",
+  "error InvalidQuote()",
+  "function execute((bytes32 sourceNetwork,address provider,bytes32 adapter,bytes32 orderId,uint256 chainId,address marketplace,uint256 listingId,address nft,uint256 tokenId,address seller,address recipient,uint256 price,uint256 gasBudget,uint256 zatoshis,uint256 rate,uint256 maxSlippageBps,uint64 expiry,bytes32 calldataHash,bytes32 refundHash,bytes32 originHash) q,bytes signature) payable",
+  "function CHAIN() view returns(uint256)",
+  "function GAS_BUDGET() view returns(uint256)",
+  "function MAX_FEE() view returns(uint256)",
+  "function ADAPTER() view returns(bytes32)",
+]);

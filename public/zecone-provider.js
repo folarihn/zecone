@@ -19,7 +19,7 @@ export class ZecOneProvider {
         return;
       if (m.kind === "ready") {
         this.ready = true;
-        this.emit("connect", { chainId: "0x14a34" });
+        this.emit("connect", { chainId: m.chainId || "0x14a34" });
         for (const p of this.pending.values()) this.send(p);
         return;
       }
@@ -38,7 +38,7 @@ export class ZecOneProvider {
           this.popup?.close();
           this.popup = null;
           this.emit("disconnect", error);
-        } else if (m.event === "accountsChanged") this.emit(m.event, m.value);
+        } else if (["accountsChanged", "chainChanged"].includes(m.event)) this.emit(m.event, m.value);
         return;
       }
       if (m.kind !== "response") return;

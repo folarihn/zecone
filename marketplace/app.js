@@ -1,6 +1,32 @@
 import { ZecOneProvider } from "/zecone-provider.js";
 const zec = new ZecOneProvider(),
   $ = (id) => document.getElementById(id);
+const networkNames = Object.freeze({84532:"Base Sepolia",11155111:"Ethereum Sepolia",46630:"Robinhood Chain Testnet"});
+const savedChain = Number(localStorage.getItem("zecone:network"));
+let chainId = Object.hasOwn(networkNames, savedChain) ? savedChain : 84532;
+const explorer = () => ({84532:"https://sepolia.basescan.org",11155111:"https://sepolia.etherscan.io",46630:"https://explorer.testnet.chain.robinhood.com"}[chainId]);
+const chainHex = () => `0x${chainId.toString(16)}`;
+const storageKey = () => chainId === 84532 ? "zecone:purchase" : `zecone:purchase:${chainId}`;
+const updateNetworkLabel = () => { $("network").value = String(chainId); $("network-badge").textContent = `${networkNames[chainId].toUpperCase()} · TESTNET`; document.title = `${networkNames[chainId]} · Sepolia Studio`; };
+const selectChain = (next) => {
+  if (!Object.hasOwn(networkNames, next)) throw Error("Unsupported test network");
+  chainId = next;
+  localStorage.setItem("zecone:network", String(chainId));
+  purchase = localStorage.getItem(storageKey());
+  updateNetworkLabel();
+  $("transaction").hidden = true; $("status").textContent = "Choose an available listing";
+  $("detail").textContent = ""; $("error").textContent = "";
+};
+updateNetworkLabel();
+$("network").onchange = async e => {
+  if (busy) { e.target.value = String(chainId); return; }
+  const next = Number(e.target.value);
+  try {
+    if (provider && account) await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:`0x${next.toString(16)}`} ]});
+    selectChain(next);
+    await refresh();
+  } catch(e) { message(e); $("network").value = String(chainId); }
+};
 let provider,
   account,
   busy = false,
@@ -21,8 +47,8 @@ async function connect(p) {
     if (!p) throw Error("Install or enable an EIP-1193 wallet first.");
     provider = p;
     [account] = await p.request({ method: "eth_requestAccounts" });
-    if ((await p.request({ method: "eth_chainId" })) !== "0x14a34")
-      throw Error("Switch your wallet to Base Sepolia.");
+    if ((await p.request({ method: "eth_chainId" })) !== chainHex())
+      await p.request({method:"wallet_switchEthereumChain",params:[{chainId:chainHex()}]});
     $("account").textContent = `Connected: ${account}`;
     p.on?.("accountsChanged", (a) => {
       account = a[0];
@@ -30,6 +56,10 @@ async function connect(p) {
         ? `Connected: ${account}`
         : "Disconnected";
       render();
+    });
+    p.on?.("chainChanged", (value) => {
+      try { selectChain(Number(BigInt(value))); void refresh().then(() => { if (purchase && p === zec) void poll(); }); }
+      catch (e) { message(e); }
     });
     p.on?.("disconnect", () => {
       account = null;
@@ -88,7 +118,7 @@ function render() {
 }
 async function refresh() {
   try {
-    const r = await json("/api/listings");
+    const r = await json(`/api/listings?chain=${chainId}`);
     listingData = r.listings;
     render();
   } catch (e) {
@@ -98,10 +128,11 @@ async function refresh() {
 }
 async function buy(l, kind) {
   busy = true;
+  $("network").disabled = true;
   render();
   $("error").textContent = "";
   try {
-    const tx = await json(`/api/purchase?listing=${l.id}&recipient=${account}`);
+    const tx = await json(`/api/purchase?chain=${chainId}&listing=${l.id}&recipient=${account}`);
     $("status").textContent = "Review in your wallet";
     if (kind === "zec") {
       const result = await provider.request({
@@ -109,7 +140,7 @@ async function buy(l, kind) {
         params: [tx],
       });
       purchase = result.purchaseId;
-      localStorage.setItem("zecone:purchase", purchase);
+      localStorage.setItem(storageKey(), purchase);
       $("detail").textContent =
         "Quote approved. Review the Zcash fee and authorize payment in the ZecOne window. Ten confirmations are required.";
       void poll();
@@ -120,7 +151,7 @@ async function buy(l, kind) {
       });
       $("status").textContent =
         "Transaction submitted — ownership not yet verified";
-      $("transaction").href = `https://sepolia.basescan.org/tx/${hash}`;
+      $("transaction").href = `${explorer()}/tx/${hash}`;
       $("transaction").hidden = false;
       $("detail").textContent =
         "Check the transaction receipt and current NFT owner before assuming completion.";
@@ -130,6 +161,7 @@ async function buy(l, kind) {
     $("status").textContent = "Request did not complete";
   } finally {
     busy = false;
+    $("network").disabled = false;
     render();
   }
 }
@@ -143,7 +175,7 @@ async function poll() {
     });
     $("status").textContent = r.status;
     if (r.baseTx) {
-      $("transaction").href = `https://sepolia.basescan.org/tx/${r.baseTx}`;
+      $("transaction").href = `${r.explorer ?? explorer()}/tx/${r.baseTx}`;
       $("transaction").hidden = false;
     }
     if (r.ownerVerified) {

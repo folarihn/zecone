@@ -1,3 +1,4 @@
+import { network, chainFor, chainHex } from "../services/evm/networks.ts";
 // Independent, read-only dApp server. This process never loads wallet keys.
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
@@ -15,10 +16,6 @@ import {
   nftAbi,
   type MarketConfig,
 } from "../services/marketplace/purchase.ts";
-const client = createPublicClient({
-  chain: baseSepolia,
-  transport: http(process.env.BASE_SEPOLIA_RPC || "https://sepolia.base.org"),
-});
 createServer(async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -52,8 +49,11 @@ createServer(async (req, res) => {
     }
     if (!["/api/listings", "/api/purchase"].includes(u.pathname))
       return json({ error: "Not found" }, 404);
-    if ((await client.getChainId()) !== 84532) throw Error("wrong chain");
-    const c = readJson<MarketConfig>(".state/marketplace-confirmed.json");
+    const policy = network(Number(u.searchParams.get("chain") ?? 84532));
+    const client = createPublicClient({ chain: chainFor(policy.id), transport: http(policy.rpc) });
+    if ((await client.getChainId()) !== policy.id) throw Error("wrong chain");
+    const c = readJson<MarketConfig>(policy.deploymentFile);
+    if ((c.chainId ?? 84532) !== policy.id) throw Error("deployment chain mismatch");
     if (u.pathname === "/api/listings") {
       const next = await client.readContract({
           address: c.marketplace,
@@ -76,7 +76,7 @@ createServer(async (req, res) => {
         });
         listings.push({ id, ...l, owner });
       }
-      return json({ chainId: 84532, marketplace: c.marketplace, listings });
+      return json({ chainId: policy.id, marketplace: c.marketplace, listings });
     }
     const id = BigInt(u.searchParams.get("listing") || "0"),
       recipient = getAddress(u.searchParams.get("recipient") || "");
@@ -91,7 +91,7 @@ createServer(async (req, res) => {
     return json({
       from: recipient,
       to: c.marketplace,
-      chainId: "0x14a34",
+      chainId: chainHex(policy.id),
       value: toHex(l.price),
       data: encodeFunctionData({
         abi: marketAbi,
@@ -109,5 +109,5 @@ createServer(async (req, res) => {
     );
   }
 }).listen(4322, "127.0.0.1", () =>
-  console.log("Sepolia Studio: http://127.0.0.1:4322 (Base Sepolia only)"),
+  console.log("Sepolia Studio: http://127.0.0.1:4322 (configured EVM testnets)"),
 );

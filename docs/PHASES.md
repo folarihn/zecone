@@ -39,6 +39,12 @@ Step 6 passed on 2026-10-12: real shielded payment, confirmed Base Sepolia mint,
 5. Verify real user NFT ownership, seller payment, single execution and restart persistence. Results and limitations are tracked in [PHASE3-RESULTS.md](PHASE3-RESULTS.md).
 6. Stop after Phase 3. Do not begin Phase 4.
 
-## Phase 4 and later — not started
+## Phase 4A — complete; stop here
 
-Potential later work includes user-owned smart accounts and ERC-4337 paymaster sponsorship, stronger viewing-key separation, verifying nodes, isolated/hardware signing, production custody/audits, liquidity and exchange design. Arbitrary dApps, third-party Zcash wallet connections and production deployment remain out of scope. The testnet relayer action is not a production bridge or asset exchange.
+1. Preserve the Phase 3 checkpoint and NU7-compatible Rust pins. Research the exact Sepolia and Robinhood testnet parameters and record current read-only balances in [feasibility](PHASE4A-FEASIBILITY.md).
+2. Add a strict testnet registry, EVM RPC adapters, real per-chain native balance views, explicit origin-scoped network switching, and a chain-bound fixed-price NFT purchase executor.
+3. Run local security and regression tests without sending testnet funds.
+4. Funding was verified and the user explicitly authorized live tests on both networks. Real shielded payments authorized confirmed purchases on Ethereum Sepolia and Robinhood Chain Testnet on 2026-10-13. Seller payments, user NFT ownership, actual costs, replay rejection and restart persistence passed independent verification. Exact receipts and remaining limitations are in [Phase 4A results](PHASE4A-RESULTS.md).
+5. Stop after Phase 4A. Do not begin Phase 4B automatically.
+
+Phase 4A does not include Solana, token swaps, mainnet, a production bridge or ERC-4337 implementation. The ZEC settlement remains a trusted prefunded testnet prototype.

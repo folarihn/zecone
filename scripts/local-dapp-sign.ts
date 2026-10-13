@@ -1,3 +1,4 @@
+import { network, chainFor, chainHex } from "../services/evm/networks.ts";
 import { resolve, relative, isAbsolute } from "node:path";
 import { existsSync } from "node:fs";
 import {
@@ -41,7 +42,8 @@ async function main() {
     throw Error("Invalid approval");
   const account = loadAccount(".secrets/user/base-sepolia.json"),
     r = a.review;
-  if (getAddress(r.account) !== account.address || r.chainId !== 84532)
+  const policy = network(r.chainId);
+  if (getAddress(r.account) !== account.address)
     throw Error("Invalid signer");
   const output = path.replace(/\.json$/, ".signed.json");
   if (existsSync(output)) {
@@ -63,7 +65,7 @@ async function main() {
   else if (a.method === "eth_signTypedData_v4") {
     const t = typedMessage(
       [account.address, JSON.stringify(r.typedData)],
-      account.address,
+      account.address, r.chainId,
     );
     hashTypedData(t);
     result = { signature: await account.signTypedData(t) };
@@ -75,20 +77,20 @@ async function main() {
           to: r.to,
           data: r.data,
           value: `0x${BigInt(r.value).toString(16)}`,
-          chainId: "0x14a34",
+          chainId: chainHex(r.chainId),
         },
       ],
-      account.address,
+      account.address, r.chainId,
     );
     const client = createPublicClient({
-      chain: baseSepolia,
-      transport: http("https://sepolia.base.org", {
+      chain: chainFor(r.chainId),
+      transport: http(policy.rpc, {
         timeout: 20000,
         retryCount: 1,
       }),
     });
     if (
-      (await client.getChainId()) !== 84532 ||
+      (await client.getChainId()) !== r.chainId ||
       (await client.getTransactionCount({
         address: account.address,
         blockTag: "pending",
@@ -104,7 +106,7 @@ async function main() {
       gas <= 0n ||
       maxPriorityFeePerGas < 0n ||
       maxPriorityFeePerGas > maxFeePerGas ||
-      gas * maxFeePerGas > 5000000000000000n
+      gas > policy.maxGas || maxFeePerGas > policy.maxFee || gas * maxFeePerGas + policy.dataReserve > 5000000000000000n
     )
       throw Error("Invalid budget");
     const call = {
@@ -117,7 +119,7 @@ async function main() {
     if ((await client.estimateGas(call)) > gas) throw Error("Gas changed");
     if (a.expires <= Date.now()) throw Error("Expired");
     const raw = await account.signTransaction({
-      chainId: 84532,
+      chainId: r.chainId,
       type: "eip1559",
       to: call.to,
       data: call.data,

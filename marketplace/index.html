@@ -9,13 +9,14 @@
   <body>
     <header>
       <a href="/" class="brand">S<span>◌</span> / SEPOLIA STUDIO</a
-      ><span class="badge">BASE SEPOLIA · TESTNET</span>
+      ><span id="network-badge" class="badge">BASE SEPOLIA · TESTNET</span>
       <div class="connect">
         <button id="connect">Connect ZecOne</button
         ><button id="standard">Connect other wallet</button>
       </div>
     </header>
     <main>
+<label for="network">Test network</label> <select id="network"><option value="84532">Base Sepolia</option><option value="11155111">Ethereum Sepolia</option><option value="46630">Robinhood Chain Testnet</option></select>
       <section class="intro">
         <div>
           <p class="eyebrow">INDEPENDENT NFT MARKETPLACE</p>

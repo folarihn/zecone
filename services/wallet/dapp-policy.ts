@@ -75,7 +75,7 @@ export function quantity(v: unknown): bigint {
     throw new RpcError(-32602, "Invalid hex quantity");
   return BigInt(v);
 }
-export function transaction(p: unknown[], user: Address) {
+export function transaction(p: unknown[], user: Address, chainId = 84532) {
   if (
     p.length !== 1 ||
     !p[0] ||
@@ -95,8 +95,8 @@ export function transaction(p: unknown[], user: Address) {
     );
   if (address(t.from) !== user)
     throw new RpcError(4100, "Sender must be the connected account");
-  if (t.chainId !== undefined && quantity(t.chainId) !== 84532n)
-    throw new RpcError(4901, "Base Sepolia only");
+  if (t.chainId !== undefined && quantity(t.chainId) !== BigInt(chainId))
+    throw new RpcError(4901, "Request does not match the selected testnet");
   const value = t.value === undefined ? 0n : quantity(t.value);
   if (value > 1000000000000000n)
     throw new RpcError(-32602, "Phase 2 value limit is 0.001 test ETH");
@@ -111,7 +111,7 @@ export function message(p: unknown[], user: Address) {
     throw new RpcError(4100, "Message account mismatch");
   return hex(p[0], 8194);
 }
-export function typedMessage(p: unknown[], user: Address) {
+export function typedMessage(p: unknown[], user: Address, chainId = 84532) {
   if (
     p.length !== 2 ||
     address(p[0]) !== user ||
@@ -125,7 +125,7 @@ export function typedMessage(p: unknown[], user: Address) {
     if (
       !t ||
       typeof t !== "object" ||
-      BigInt(t.domain?.chainId) !== 84532n ||
+      BigInt(t.domain?.chainId) !== BigInt(chainId) ||
       !t.primaryType ||
       t.primaryType === "EIP712Domain" ||
       !t.types ||
@@ -137,7 +137,7 @@ export function typedMessage(p: unknown[], user: Address) {
   } catch {
     throw new RpcError(
       -32602,
-      "Typed data needs a valid Base Sepolia domain and verifying contract",
+      "Typed data needs a valid selected-testnet domain and verifying contract",
     );
   }
   return t;

@@ -23,6 +23,7 @@ export default function Connection() {
   const csrf = useRef(""),
     bound = useRef(""),
     channel = useRef(""),
+    selectedChain = useRef("0x14a34"),
     pending = useRef(new Map<string, Review>());
   const send = (value: Record<string, unknown>) => {
     if (bound.current)
@@ -103,7 +104,12 @@ export default function Connection() {
       bound.current = e.origin;
       setSite(e.origin);
       if (m.kind === "hello") {
-        if (csrf.current) send({ kind: "ready" });
+        if (csrf.current) {
+          const list = await api("dapps/list");
+          const id = list.networks?.find((n: any) => n.origin === bound.current)?.chainId ?? 84532;
+          selectedChain.current = `0x${Number(id).toString(16)}`;
+          send({ kind: "ready", chainId: selectedChain.current });
+        }
         return;
       }
       if (
@@ -156,6 +162,11 @@ export default function Connection() {
         if (previous?.length && !accounts.length)
           send({ kind: "event", event: "accountsChanged", value: [] });
         previous = accounts;
+        const chain = `0x${Number(list.networks?.find((n: any) => n.origin === bound.current)?.chainId ?? 84532).toString(16)}`;
+        if (chain !== selectedChain.current) {
+          selectedChain.current = chain;
+          send({ kind: "event", event: "chainChanged", value: chain });
+        }
       } catch (e: any) {
         setError(e.message);
         if (e.status === 401 || e.status === 403) {
@@ -209,7 +220,7 @@ export default function Connection() {
                 ? "Review signature"
                 : "Application connection"}
       </h1>
-      <p className="muted">Base Sepolia · testnet only</p>
+      <p className="muted">{String(r.networkName ?? "EVM testnets")} · testnet only</p>
       <div className="origin-box">
         <small>REQUESTING WEBSITE — CHECK THE ENTIRE ORIGIN</small>
         <strong>{current?.origin || site || "Waiting for application"}</strong>
@@ -231,7 +242,7 @@ export default function Connection() {
               : current.method === "eth_requestAccounts"
                 ? "Share your public EVM address with this exact website? Your Zcash balance and history remain private to the local wallet."
                 : current.method === "eth_sendTransaction"
-                  ? "Review the exact public Base Sepolia transaction. A successful simulation is not a safety guarantee."
+                  ? "Review the exact public transaction on the selected testnet. A successful simulation is not a safety guarantee."
                   : "The website is asking your local user wallet to sign. Public EVM activity can be linked to this address."}
           </p>
           <p>
@@ -240,7 +251,7 @@ export default function Connection() {
           <dl className="review-list">
             <div>
               <dt>Network</dt>
-              <dd>Base Sepolia · chain 84532</dd>
+              <dd>{String(r.networkName ?? "EVM testnet")} · chain {String(r.chainId ?? "unavailable")}</dd>
             </div>
             <div>
               <dt>User account</dt>
@@ -248,6 +259,7 @@ export default function Connection() {
                 {String(r.account ?? "Not shared")}
               </dd>
             </div>
+            {["wallet_switchEthereumChain", "wallet_addEthereumChain"].includes(current.method ?? "") && <><div><dt>Requested network</dt><dd>{String(r.targetNetwork)} · {String(r.targetChainId)}</dd></div><div><dt>Trusted RPC</dt><dd className="break">{String(r.rpc)}</dd></div><div><dt>Effect</dt><dd>{String(r.warning)}</dd></div></>}
             {current.method === "zecone_payWithZec" ? (
               <>
                 {[
@@ -293,8 +305,7 @@ export default function Connection() {
                 <div>
                   <dt>Maximum execution fee</dt>
                   <dd>
-                    {String(r.executionFeeCapWei ?? "—")} wei · Base L1 data
-                    fees are additional
+                    {String(r.executionFeeCapWei ?? "—")} wei · includes the configured fee reserve
                   </dd>
                 </div>
                 <div>

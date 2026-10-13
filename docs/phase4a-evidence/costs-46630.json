@@ -1,0 +1,28 @@
+{
+  "at": "2026-10-13T05:19:13.058Z",
+  "chainId": 46630,
+  "balanceWei": "10000000000000000",
+  "maxFeePerGas": "12000000",
+  "maxPriorityFeePerGas": "0",
+  "estimates": [
+    {
+      "step": "TestMarketplace",
+      "gas": "876378",
+      "gasLimit": "1051654"
+    },
+    {
+      "step": "MarketTestNFT",
+      "gas": "1040172",
+      "gasLimit": "1248207"
+    },
+    {
+      "step": "ZecOneMultichainExecutor",
+      "gas": "1433830",
+      "gasLimit": "1720597"
+    }
+  ],
+  "deploymentCeilingWei": "48245496000000",
+  "requiredWithReservesWei": "1349445496000000",
+  "sufficient": true,
+  "method": "RPC eth_estimateGas; executor constructor dependency uses explicit code state override; live follow-up calls are estimated separately before signing"
+}
