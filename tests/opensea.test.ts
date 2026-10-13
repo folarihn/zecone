@@ -434,7 +434,7 @@ test("Extension EIP-6963 discovery is frozen and restricted to exact top-level O
   const m = JSON.parse(readFileSync("extension/manifest.json", "utf8"));
   assert.equal(m.manifest_version, 3);
   assert.equal(m.permissions, undefined);
-  assert.equal(m.background, undefined);
+  assert.deepEqual(m.background, { service_worker: "background.js", type: "module" });
   assert.equal(m.externally_connectable, undefined);
 });
 test("Extension rejects unauthorized signing and private wallet RPC without opening a signer", async () => {

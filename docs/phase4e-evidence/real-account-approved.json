@@ -1,0 +1,80 @@
+{
+  "connections": [
+    {
+      "id": "138470898:4069C64B3105A0E3F757E92625C7B9D6",
+      "origin": "https://opensea.io",
+      "account": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+      "chainId": "0x14a34",
+      "pending": 0
+    }
+  ],
+  "logs": [
+    {
+      "time": "2026-10-13T11:26:17.367Z",
+      "origin": "https://opensea.io",
+      "method": "eth_accounts",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:27:00.278Z",
+      "origin": "https://opensea.io",
+      "method": "wallet_requestPermissions",
+      "outcome": "blocked",
+      "code": 4200
+    },
+    {
+      "time": "2026-10-13T11:27:00.279Z",
+      "origin": "https://opensea.io",
+      "method": "eth_requestAccounts",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:27:00.783Z",
+      "origin": "https://opensea.io",
+      "method": "eth_accounts",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:27:53.728Z",
+      "origin": "https://opensea.io",
+      "method": "eth_requestAccounts",
+      "outcome": "resolved"
+    },
+    {
+      "time": "2026-10-13T11:27:53.736Z",
+      "origin": "https://opensea.io",
+      "method": "eth_chainId",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:27:53.736Z",
+      "origin": "https://opensea.io",
+      "method": "eth_chainId",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:27:53.745Z",
+      "origin": "https://opensea.io",
+      "method": "eth_chainId",
+      "outcome": "resolved"
+    },
+    {
+      "time": "2026-10-13T11:27:53.749Z",
+      "origin": "https://opensea.io",
+      "method": "eth_chainId",
+      "outcome": "resolved"
+    },
+    {
+      "time": "2026-10-13T11:27:53.787Z",
+      "origin": "https://opensea.io",
+      "method": "eth_accounts",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:27:53.821Z",
+      "origin": "https://opensea.io",
+      "method": "eth_accounts",
+      "outcome": "resolved"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "url": "https://opensea.io/settings/wallet-linking",
+  "text": "Discover\nCollections\nTokens\nPerpetuals\nBeta\nSwap\nDrops\nActivity\nRewards\nTools\nBeta\nStudio\nProfile\nResources\nSettings\nSupport\n/\nSign in\nThe best place to discover, own, and trade onchain\nSign in\nPaused\nAggregating\nNetworks\nPlatform Terms\nWallet & Onramp Terms\nPrivacy Policy\nETH price. Switch native currency\n$2,505.63\nSupport\nCollector\nPro\nCrypto\nUSD\nConnect with OpenSea\nZecOne Testnet\nInstalled\nRobinhood Wallet\nMore Wallet Options\nor continue with email\nEmail\nContinue with Google\nContinue with Apple\nBy connecting your wallet and using OpenSea, you agree to our Terms of Service & Privacy Policy."
+}

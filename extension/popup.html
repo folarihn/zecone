@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ZecOne Testnet</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <span class="mark">Z</span>
+      <div>
+        <h1>ZecOne</h1>
+        <p>Local wallet · Testnets only</p>
+      </div>
+    </header>
+    <main>
+      <h2>Website connections</h2>
+      <div id="connections">Checking extension…</div>
+      <p id="error" role="alert"></p>
+      <a href="http://127.0.0.1:3210" target="_blank" rel="noopener noreferrer"
+        >Open wallet · manage saved permissions</a
+      >
+      <p class="note">
+        Approve or reject requests in the local ZecOne approval window. Closing
+        this panel does not approve anything. Disconnect below ends the
+        transport; revoke saved access in the wallet’s Apps tab.
+      </p>
+      <details>
+        <summary>Recent request metadata</summary>
+        <pre id="logs"></pre>
+      </details>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

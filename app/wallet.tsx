@@ -1132,9 +1132,9 @@ export default function Wallet() {
                     </button>
                   </div>
                   <p>
-                    Compatible dApps must include the public EIP-1193 connector
-                    and open a ZecOne approval popup. This local wallet does not
-                    inject into unrelated sites.
+                    Cooperating dApps can use the public EIP-1193 connector.
+                    The optional ZecOne extension also discovers this wallet on
+                    OpenSea. Every connection uses a local approval window.
                   </p>
                   <div className="activity-list">
                     {(apps?.connections ?? []).map((app) => (

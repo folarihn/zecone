@@ -18,6 +18,7 @@
     "wallet:open": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/launch-wallet.ps1",
     "typecheck:web": "tsc -p tsconfig.web.json --noEmit",
     "test:ui": "playwright test",
+    "test:extension": "playwright test -c playwright.extension.config.ts",
     "dapp:fixture": "node test-dapp/server.mjs",
     "phase2:deploy-action": "tsx scripts/actions.ts deploy --allow-testnet-broadcast",
     "phase2:live-dapp": "tsx scripts/live-phase2-dapp.ts --allow-testnet-transaction",

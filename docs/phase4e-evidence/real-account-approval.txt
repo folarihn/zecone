@@ -1,0 +1,4 @@
+{
+  "url": "http://127.0.0.1:3210/connect",
+  "text": "ZECONE · LOCAL APPROVAL\nConnect application\n\nBase Sepolia · testnet only\n\nREQUESTING WEBSITE — CHECK THE ENTIRE ORIGIN\nhttps://opensea.io\n\nShare your public EVM address with this exact website? Your Zcash balance and history remain private to the local wallet.\n\neth_requestAccounts · pending\n\nNetwork\nBase Sepolia · chain 84532\nUser account\n0x1865Dd77bFcb632571d3c93144D5634F0D93c714\nInspect exact RPC payload\nReject request\nApprove request\n\nNever approve a request you did not initiate. A successful simulation is not a safety guarantee. Closing this window disconnects the transport; revoke saved permissions in Apps."
+}

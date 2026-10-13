@@ -216,6 +216,8 @@ export default function Connection() {
             ? "Connect application"
             : current?.method === "eth_sendTransaction"
               ? "Review transaction"
+              : ["wallet_switchEthereumChain", "wallet_addEthereumChain"].includes(current?.method ?? "")
+                ? "Review network change"
               : current
                 ? "Review signature"
                 : "Application connection"}
@@ -318,10 +320,16 @@ export default function Connection() {
                 </div>
               </>
             ) : current.method === "personal_sign" ? (
-              <div>
-                <dt>Message</dt>
-                <dd className="break">{String(r.text ?? r.raw ?? "")}</dd>
-              </div>
+              <>
+                <div>
+                  <dt>Message</dt>
+                  <dd><pre className="review-data">{String(r.text ?? r.raw ?? "")}</pre></dd>
+                </div>
+                <div>
+                  <dt>Signature risk</dt>
+                  <dd>{String(r.warning ?? "A message signature may authorize external access. Read every field.")}</dd>
+                </div>
+              </>
             ) : current.method === "eth_signTypedData_v4" ? (
               <>
                 <div>
@@ -334,6 +342,10 @@ export default function Connection() {
                 <div>
                   <dt>Primary type</dt>
                   <dd>{String(typed.primaryType ?? "Unknown")}</dd>
+                </div>
+                <div>
+                  <dt>Verifying contract</dt>
+                  <dd className="mono break">{String(typed.domain?.verifyingContract ?? "Unavailable")}</dd>
                 </div>
                 <div>
                   <dt>Typed data to sign</dt>

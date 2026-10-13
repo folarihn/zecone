@@ -1,0 +1,4 @@
+{
+  "url": "chrome-extension://omcdjhkabbkhjbljiammbblaeehcmkaj/popup.html",
+  "text": "Z\nZecOne\n\nLocal wallet · Testnets only\n\nWebsite connections\n\nhttps://opensea.io\n\nAccount access not approved\n\nBase Sepolia\n\n0 pending approval request(s)\n\nDisconnect transport\n\nOpen wallet · manage saved permissions\n\nApprove or reject requests in the local ZecOne approval window. Closing this panel does not approve anything. Disconnect below ends the transport; revoke saved access in the wallet’s Apps tab.\n\nRecent request metadata"
+}

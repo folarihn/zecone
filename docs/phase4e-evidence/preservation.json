@@ -1,0 +1,937 @@
+{
+  "checkpoint": "324a677f954bc56b1efff29f1cf6ff10d8df95f3",
+  "files": [
+    {
+      "path": "Cargo.lock",
+      "sha256": "1219a45189c5b3342a70b73d849c4814d41c129545cc1d18ffc046348d0e633a"
+    },
+    {
+      "path": "Cargo.toml",
+      "sha256": "e4b718c2d761ab4de1953df6ed78e1b45f931ca6ae49fa03a49e23011a2850b5"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "sha256": "78ec6ccc648d285e7190f107a2c356ccc7fefcf36c8f61df981509cf6dae53c6"
+    },
+    {
+      "path": "docs/FEASIBILITY.md",
+      "sha256": "4221a4b71e658509ee98d88452a7084454ccf571ab38aad129bf904cc156dcf9"
+    },
+    {
+      "path": "docs/FUNDING.md",
+      "sha256": "2a2a963fd3aa15201b14670bd0c0e501a26591796e9018b40cde376e0d576d70"
+    },
+    {
+      "path": "docs/PHASE1-RESULTS.md",
+      "sha256": "6a8058b49a2feedb98f74e92cf3b5da1be30c4f5842011108a734aa84ca90e8d"
+    },
+    {
+      "path": "docs/PHASE1-RUNBOOK.md",
+      "sha256": "d2eccb3229a027958aa288bbe284ec047633aceb173ac67cd8298591796a5619"
+    },
+    {
+      "path": "docs/PHASE1-SECURITY.md",
+      "sha256": "9dcb51f8da7fc2a958adb2b31211e66964c3099cf4ce094b59da0e23fcaaaa35"
+    },
+    {
+      "path": "docs/PHASE2-FEASIBILITY.md",
+      "sha256": "b8460cb528ce1c4d0cddd2d4c37895530c3dafc4568447568bab1fae8678fd04"
+    },
+    {
+      "path": "docs/PHASE2-LIMITATIONS.md",
+      "sha256": "82f250ef69c7bdbe1bdd511ed2a32ca21a6bf78d14628762493b6790600194e6"
+    },
+    {
+      "path": "docs/PHASE2-RESULTS.md",
+      "sha256": "79ab7f1904e5ec1dc990059375190938c2685d825b9c8277d33afa5546f8dc1d"
+    },
+    {
+      "path": "docs/PHASE2-RUNBOOK.md",
+      "sha256": "7a279666d6f53ec4cb9e9687bc76aff82c340e5d3d75c6899114488592490b14"
+    },
+    {
+      "path": "docs/PHASE2-SECURITY.md",
+      "sha256": "efbabaaca0ff3b08a0d931626794d7f7b6e4a0055222ac29377a60f99426b92e"
+    },
+    {
+      "path": "docs/PHASE3-FEASIBILITY.md",
+      "sha256": "601cf51d08dd658a8574fed23ce5e1989d53be6c2f17794f31adf8d2e4ae80b2"
+    },
+    {
+      "path": "docs/PHASE3-LIMITATIONS.md",
+      "sha256": "c0041a278f7c9f83de8696e3bba113a976df59f9adf5ec84fa337d04809c5b8c"
+    },
+    {
+      "path": "docs/PHASE3-RESULTS.md",
+      "sha256": "e5bc825aaae0f2886f8221821ac94aa4c63649ba97fd07770f62cd5061950670"
+    },
+    {
+      "path": "docs/PHASE3-RUNBOOK.md",
+      "sha256": "d5e705c674233ea05e22881014161f7218f3d26398697de1a49cd01e5e8b5054"
+    },
+    {
+      "path": "docs/PHASE3-SECURITY.md",
+      "sha256": "c57bf67167968b062d5f3bdf9fc29b49e147e7fa6351dc4a5cf8d05d19192446"
+    },
+    {
+      "path": "docs/PHASE4A-FEASIBILITY.md",
+      "sha256": "04a574bf84af4e5cace46ad28b8c781dd3b842af4bf1edee9430e9dd31556bf7"
+    },
+    {
+      "path": "docs/PHASE4A-LIMITATIONS.md",
+      "sha256": "64621f4aeaf2e8b30eaa9d443bf75ac1a815dcb2c037fb6391ecd6942283a199"
+    },
+    {
+      "path": "docs/PHASE4A-RESULTS.md",
+      "sha256": "71d00e4a6ff71a1385df2f808653693149015670ac394439269b4e91fbde6e60"
+    },
+    {
+      "path": "docs/PHASE4A-RUNBOOK.md",
+      "sha256": "e87fd122476586ae0a6026f64a52da73e5accbaf952efc22b937b63781da5345"
+    },
+    {
+      "path": "docs/PHASE4A-SECURITY.md",
+      "sha256": "18d63e9b479ff465a10b8c0da4049347cf6160a5d813e823d103290f43b1c0ff"
+    },
+    {
+      "path": "docs/PHASE4B-FEASIBILITY.md",
+      "sha256": "5c0121460eb6ad9420d75ae2349d95b9316567b80cc7297a5e5821ec465147f4"
+    },
+    {
+      "path": "docs/PHASE4B-LIMITATIONS.md",
+      "sha256": "809c84a475670f22f361a9727efae4a63b25b3b243d87f7f9873dc77550feb08"
+    },
+    {
+      "path": "docs/PHASE4B-RESULTS.md",
+      "sha256": "57348a78086db0518263d1dd4353a8b3413195b7ffd9e394d037fa4300dac661"
+    },
+    {
+      "path": "docs/PHASE4B-RUNBOOK.md",
+      "sha256": "27ee0f32fa3b3154bd5cbf67769f1453b05b51f9bf3b8d446a3a88ac92c84a6f"
+    },
+    {
+      "path": "docs/PHASE4B-SECURITY.md",
+      "sha256": "ea3a698592cde386310d28a264832c47a3749573ab531c54cd1a1a9445d75b46"
+    },
+    {
+      "path": "docs/PHASE4C-FEASIBILITY.md",
+      "sha256": "b5ffbfcd896e076b1adfa2de48cac891e12bed1d394ea97899c364b56176a955"
+    },
+    {
+      "path": "docs/PHASE4C-LIMITATIONS.md",
+      "sha256": "18e63f032e71295425f27caed4f5a0af5a304d41783b2389fc6e33937c02e6c2"
+    },
+    {
+      "path": "docs/PHASE4C-RESULTS.md",
+      "sha256": "01fbbc3a7ad1d8c0d9db0c139a5b46fd5a57e0b46b83b280784fe65cff77ae1d"
+    },
+    {
+      "path": "docs/PHASE4C-RUNBOOK.md",
+      "sha256": "f9cd556bbe187e09cbdd5d716fed77a7ab9299ecc4ea527b054a346c7a4c75ce"
+    },
+    {
+      "path": "docs/PHASE4C-SECURITY.md",
+      "sha256": "f190c24906468db5481ca45c6074a084a6e42e1d9c04701221f46267b0e1ac04"
+    },
+    {
+      "path": "docs/PHASE4D-FEASIBILITY.md",
+      "sha256": "3681246a09bec90465b0ef868cbdfa1375ddf762fdc711f9dade78e2a5559e6b"
+    },
+    {
+      "path": "docs/PHASE4D-LIMITATIONS.md",
+      "sha256": "ceeba48627a60a0263b9f904cd3648f49eb9830382b3c03004e03d30de0d46f6"
+    },
+    {
+      "path": "docs/PHASE4D-OPENSEA-COMPATIBILITY.md",
+      "sha256": "ec981604d16f41c16e2cacb984d4bb79ebb002c2af52e726766faac6542b6a59"
+    },
+    {
+      "path": "docs/PHASE4D-RESULTS.md",
+      "sha256": "6589bb0046c623107822cab78b7dbe56e74b69b9cb83965378ceead828f68339"
+    },
+    {
+      "path": "docs/PHASE4D-RUNBOOK.md",
+      "sha256": "e01a82fdabae9b4f546525d96f9f401a32b3dec0e2fd4729b385553274e5b7ae"
+    },
+    {
+      "path": "docs/PHASE4D-SECURITY.md",
+      "sha256": "01458c36b1dd77c7ad4c73d0a971ebe3c4d9f0266c27f8029b34128dd3654812"
+    },
+    {
+      "path": "docs/PHASES.md",
+      "sha256": "886b5088d8718f96fc76f5d876601cafd77eb39a470dfd28ccd798de7ac27fbf"
+    },
+    {
+      "path": "docs/PUBLIC_WALLETS.json",
+      "sha256": "458856539a611d11260a16a113609d6ebb8da5287009f6f2ae3e2258911f7781"
+    },
+    {
+      "path": "docs/RESULTS.md",
+      "sha256": "1182cab05610ae20bdf92a5c2c84f5cfa44aa1e15b83b2b65e172f62be50d0ca"
+    },
+    {
+      "path": "docs/RISKS.md",
+      "sha256": "586869bef6707c53ed5c2de40aec833ded1333d2260f6744dc09137f89ce0ce0"
+    },
+    {
+      "path": "docs/RUNBOOK.md",
+      "sha256": "a40416c9927f7e1cca04a838bcfd7c7a32f9c489250b2aa12a5e2c279c7aa3cd"
+    },
+    {
+      "path": "docs/evidence/allocation-first.json",
+      "sha256": "cdf6678f5b027847c75d40571eb323eb27c3f98483d561646cdd82450b441f52"
+    },
+    {
+      "path": "docs/evidence/allocation-retry.json",
+      "sha256": "cdf6678f5b027847c75d40571eb323eb27c3f98483d561646cdd82450b441f52"
+    },
+    {
+      "path": "docs/evidence/contract-tests.txt",
+      "sha256": "948edb95964ec3d7de8a7a83b866128f583ba87c179ac72bc9f353fc9c8718aa"
+    },
+    {
+      "path": "docs/evidence/expired-payment.json",
+      "sha256": "8754743d1d881cb5b0e20486f429879c7aa1f791ac81e33ad6709e0c97a59331"
+    },
+    {
+      "path": "docs/evidence/live-idempotency.json",
+      "sha256": "771a0726b91f24ee395dd587ae4aa36ce66723150850e19958d0bbe3172963cf"
+    },
+    {
+      "path": "docs/evidence/live-recovery.md",
+      "sha256": "fb642e2dee3761a62f7284e0f78c2d673bd1613b972956226a497b9bbc6af56f"
+    },
+    {
+      "path": "docs/evidence/live-test.json",
+      "sha256": "dc59ea63da1453c026c9c379a32191cfcdf0a0a4d7c6ac79159aa5185662d18d"
+    },
+    {
+      "path": "docs/evidence/network.json",
+      "sha256": "bc437e4dcaad11be76d9da2dcb0374da5ce1e5c2ab2532b965e2bea721d3c511"
+    },
+    {
+      "path": "docs/evidence/rust-format.txt",
+      "sha256": "78011859c767c7668c3ed530f8b03f0057f3bb161ef18cefeeed62e7825a67d6"
+    },
+    {
+      "path": "docs/evidence/rust-tests.txt",
+      "sha256": "55308b0a8bfa1b5b50ea63bf8487a7bcfdbc50371b95db397798d9333e76234e"
+    },
+    {
+      "path": "docs/evidence/typescript-tests.txt",
+      "sha256": "6fba2bc877fc512e90dc69bbb255f12c62dfdb3c01170c2e9363a5da52764d13"
+    },
+    {
+      "path": "docs/evidence/typescript.txt",
+      "sha256": "e5046545a3a9fcc0cf6950c9402c78a2b227f07a6a658d2a0c1fbc5f4a194da0"
+    },
+    {
+      "path": "docs/evidence/zcash-send-metadata.json",
+      "sha256": "61542568fb84246ec57d6572f809836fd307c0dfe9b08384d4652c4e173bd094"
+    },
+    {
+      "path": "docs/phase1-evidence/approved-payment-review.json",
+      "sha256": "67e454c3e378b4deee1663a361f0ad60eb203e214704713260ff7a57c032df35"
+    },
+    {
+      "path": "docs/phase1-evidence/build.txt",
+      "sha256": "9098ae6c9c9915631e5a53996f0102bfd21339f0ddbf8eb662d8b6c02763968d"
+    },
+    {
+      "path": "docs/phase1-evidence/checkout-completed.png",
+      "sha256": "e82b1badf6e7739799de848573ef306e37927a05e013fafcf75e91e2886060bd"
+    },
+    {
+      "path": "docs/phase1-evidence/checkout-progress.png",
+      "sha256": "71d16c72e66e8e5c04b5873dd4f2ac81197b7e5a8f08059d06b8372dfefd31a1"
+    },
+    {
+      "path": "docs/phase1-evidence/contract-tests.txt",
+      "sha256": "088905edcfd5d6061e7f1188bc7c44072bb0fc816f664d3068b83f79df503ae7"
+    },
+    {
+      "path": "docs/phase1-evidence/live-ui.json",
+      "sha256": "277e4669ea39ba83d2ebade560a66d0568a6b2f357025afbdf37393038a5ed99"
+    },
+    {
+      "path": "docs/phase1-evidence/live-verification.json",
+      "sha256": "dba0410c4d1461a3a78d19fe145c3d104d318b29c6822ffbb7eb2f6fd72a095a"
+    },
+    {
+      "path": "docs/phase1-evidence/order-approval.png",
+      "sha256": "533c9d8255cedaf4adeed1f60567c094cf1955218e07c4390a00d641c4ec936d"
+    },
+    {
+      "path": "docs/phase1-evidence/ownership-approval.png",
+      "sha256": "5b08ab4457fe0b1319562d60f9f6f3182bf14f98536f99e644ef7edbb1bedae0"
+    },
+    {
+      "path": "docs/phase1-evidence/payment-approval.png",
+      "sha256": "d2b2907e05a9a55f672e46943502acff928acdc6f27fa89eef66296f3f693d41"
+    },
+    {
+      "path": "docs/phase1-evidence/preservation-and-boundary.json",
+      "sha256": "3cfce4fe20dcd93bd2da5a2aae2ae9c3607a2b6d613da4b532a0efa72d6d064d"
+    },
+    {
+      "path": "docs/phase1-evidence/rust-format.txt",
+      "sha256": "232bcb69d044cd0aabf1762e5408e9e79ddf9567953f89dd8f911a0999456a07"
+    },
+    {
+      "path": "docs/phase1-evidence/rust-tests.txt",
+      "sha256": "eab69bc636d6b9b3b6833abe62a59148e99addb5c7f44391eb8dae66ec3d6592"
+    },
+    {
+      "path": "docs/phase1-evidence/typescript-tests.txt",
+      "sha256": "d23e1fd699962ee022171c607aacae7d1f0460aa874c2c74fa4986885e337354"
+    },
+    {
+      "path": "docs/phase1-evidence/typescript-web.txt",
+      "sha256": "9f04d1659f6ceb94e0fff7bc12f602769edc1648d276b76703742abde0393a49"
+    },
+    {
+      "path": "docs/phase1-evidence/typescript.txt",
+      "sha256": "dac125c794db702133345f3a0d33f3193f975fddc564ca4f1498b0d4132ed500"
+    },
+    {
+      "path": "docs/phase1-evidence/ui-tests.txt",
+      "sha256": "a37b1aa66e6c28f775230a9fa9e091de27cda6572bcc48c5fc962d258fdf829e"
+    },
+    {
+      "path": "docs/phase1-evidence/wallet-desktop.png",
+      "sha256": "c11be285de80997fe2aa01e2eca3bdccbb05d8150e0e616b9a39fd130670f25e"
+    },
+    {
+      "path": "docs/phase1-evidence/wallet-mobile.png",
+      "sha256": "5c3a615f419ad9985bf73097482910cdecb68cc54f797548bf38693e1f64eef0"
+    },
+    {
+      "path": "docs/phase2-evidence/action-intent-review.png",
+      "sha256": "5d98b1b9a2def98733842e25135db7871419223370aeef3b37dce29d88f90646"
+    },
+    {
+      "path": "docs/phase2-evidence/action-payment-review.png",
+      "sha256": "bfa05dd7605983155e9ff16d40ef2d459adffdd3e387d69052c20dbe0987fdba"
+    },
+    {
+      "path": "docs/phase2-evidence/live-dapp.json",
+      "sha256": "9e0ae8680b55590bd3b480d4d945ea8c83a17610ff773b516969ad89fc6cf00e"
+    },
+    {
+      "path": "docs/phase2-evidence/sponsor-final.json",
+      "sha256": "6c3d8026b9ca8b10cb3dbe2de24b2a700c611d29a63825280207183bb32bb623"
+    },
+    {
+      "path": "docs/phase2-evidence/sponsor-start.json",
+      "sha256": "a6b60b5fe429c35ff24fecf1b965d73810ea6e162f15594d784f481890eaffc1"
+    },
+    {
+      "path": "docs/phase2-evidence/transaction-review.txt",
+      "sha256": "0ef4c06a9eeb9c2886f853307e5ab2e0c8512fa7142aa5762009ca70970ee01f"
+    },
+    {
+      "path": "docs/phase3-evidence/browser-start.json",
+      "sha256": "1d91975aa7284ac279313030612264456aeac3659b68b2818418cfa104f1337c"
+    },
+    {
+      "path": "docs/phase3-evidence/browser-tests.txt",
+      "sha256": "48eebd79c3bb0dd901045c532635ffda7817fddce74da95688cd1b3004f5bff1"
+    },
+    {
+      "path": "docs/phase3-evidence/build.txt",
+      "sha256": "9d2bee563774de7497fb2a7d5af13e7550d0f30d4c7c19d80e66a1c1c8c86881"
+    },
+    {
+      "path": "docs/phase3-evidence/contract-tests.txt",
+      "sha256": "a91663db74355658c8a788b900a5743da5ced6c513b43e89c388b56d24f5432f"
+    },
+    {
+      "path": "docs/phase3-evidence/live-verification.json",
+      "sha256": "2dd5dfdbacc79a7aade1a0f242221c4314d789e01609663320ea55bb1c826149"
+    },
+    {
+      "path": "docs/phase3-evidence/marketplace-before.png",
+      "sha256": "3b218b56f3413e45c17f573a4953adb43a22d31ff7166f653e3eeeba875899ef"
+    },
+    {
+      "path": "docs/phase3-evidence/marketplace-completed.png",
+      "sha256": "89f94b1d9c9bb28ab742cab9a52ac71e71fb33ebdfceb8d8006498fedaabad6e"
+    },
+    {
+      "path": "docs/phase3-evidence/marketplace-pending.png",
+      "sha256": "2388c6e8bf6fdb695ea6f9b306a1ec5e25cd4c2beb2c736e2d3929abc2a69cb7"
+    },
+    {
+      "path": "docs/phase3-evidence/marketplace-restarted.png",
+      "sha256": "89f94b1d9c9bb28ab742cab9a52ac71e71fb33ebdfceb8d8006498fedaabad6e"
+    },
+    {
+      "path": "docs/phase3-evidence/node-tests.txt",
+      "sha256": "8cd0ad1704edef031d0640f26a1ff5778236aaa65d59256394b650fca61b3cd4"
+    },
+    {
+      "path": "docs/phase3-evidence/origin-approval.png",
+      "sha256": "62c14e6ead62d27465cd51f3ff3617ece74fd0bcef819b51b6194e8ce82cd1c2"
+    },
+    {
+      "path": "docs/phase3-evidence/payment-approval.png",
+      "sha256": "4594000c56842ccb3ba15890d9df77af97f22d0e557ac85ae5cdddd3e6a33e54"
+    },
+    {
+      "path": "docs/phase3-evidence/preflight.json",
+      "sha256": "8e737bbbfd266e90bcd42f6139e1590fff611c436d6a000516023d1b39495fc1"
+    },
+    {
+      "path": "docs/phase3-evidence/quote-approval.png",
+      "sha256": "92d198c19ccf95ce10d6881d1a6fb62d8e4badcc44754032d9a0e23d0b22dc0b"
+    },
+    {
+      "path": "docs/phase3-evidence/restart-verification.json",
+      "sha256": "2fcedf6b65f7676ee2727ca4957d7de4235eda5e1619ffe0eae0d97cd2f72d7f"
+    },
+    {
+      "path": "docs/phase3-evidence/rust-tests.txt",
+      "sha256": "effe441df7888c65cce64984a7b09b20dc4bf31c2af2d88f14e08225c1cc4e1d"
+    },
+    {
+      "path": "docs/phase3-evidence/wallet-completed-mobile.png",
+      "sha256": "5e5a0dfbcfd6e9c6159a63fffe8ae9dc373b3b46c9299d6b7c18180a609f202a"
+    },
+    {
+      "path": "docs/phase3-evidence/wallet-completed.png",
+      "sha256": "95095b884194e940cbccacb7e49eaf10a731006f352eab6d6625d4ca5dc63373"
+    },
+    {
+      "path": "docs/phase3-evidence/wallet-pending-mobile.png",
+      "sha256": "abbbb735f7011e122176ec594ae23936fdf3a5ab861476657ccbd6be8fa0fa08"
+    },
+    {
+      "path": "docs/phase3-evidence/wallet-pending.png",
+      "sha256": "38b1860b28002cd80842b03d9aff965cc64415964abe992bddce55afb21852fd"
+    },
+    {
+      "path": "docs/phase3-evidence/wallet-restarted-mobile.png",
+      "sha256": "29617e7ec95b55ba2326486a6a6860b1607d71da0c493c4893bcc8d86ef9f6ca"
+    },
+    {
+      "path": "docs/phase3-evidence/wallet-restarted.png",
+      "sha256": "e3b1f1cffc77ad09a36b9fd67c2d0f1557c4eb0416f95a5051da80ed3984e8c3"
+    },
+    {
+      "path": "docs/phase4a-evidence/11155111/browser-start.json",
+      "sha256": "be14458170917e492b2e76592d16cc6fa353a23efd44dbdb744c21c64e8d865d"
+    },
+    {
+      "path": "docs/phase4a-evidence/11155111/connection-1.png",
+      "sha256": "708a68f0198f51c90dfb07379cfe46122bcf21a418d8a423aef180d47c63374f"
+    },
+    {
+      "path": "docs/phase4a-evidence/11155111/deployment.json",
+      "sha256": "cfc2c48613f80532967f121d0a8b6d967a3cccef1aca0157cb2295a2321ae4c7"
+    },
+    {
+      "path": "docs/phase4a-evidence/11155111/live-verification.json",
+      "sha256": "1d78b5486265abdfa5cf0e55d814f7e83e2cfc365cedfabbd86ac87151ff8579"
+    },
+    {
+      "path": "docs/phase4a-evidence/11155111/marketplace-before.png",
+      "sha256": "3822567f4bafa6d11b8df6ea52535b21eeb4ade38174781f3be8f16bc9c36733"
+    },
+    {
+      "path": "docs/phase4a-evidence/11155111/payment-approval.png",
+      "sha256": "d636355cfa4cf845bfb2733c68b088f86b05e6050e841f520ea6eb5850545161"
+    },
+    {
+      "path": "docs/phase4a-evidence/11155111/prepayment-gas.json",
+      "sha256": "15ea0885dacab00e001c3898d6c45418de4af2b27488bf6c9eea417691d2d4aa"
+    },
+    {
+      "path": "docs/phase4a-evidence/11155111/quote-approval.png",
+      "sha256": "31e7bd1bc7b39c41364a4000a904a77d3d424539babaf6be740ec1cd5f412b6f"
+    },
+    {
+      "path": "docs/phase4a-evidence/11155111/restart-verification.json",
+      "sha256": "47f1512af8872e1022f03e7417777afaad00c722e9264aa512be0966ea9e3284"
+    },
+    {
+      "path": "docs/phase4a-evidence/11155111/wallet-completed.png",
+      "sha256": "8b8e1649373aaa3060086ef32b2809fd29f283c883f99427b9faeb7bf1eaeaed"
+    },
+    {
+      "path": "docs/phase4a-evidence/11155111/wallet-pending.png",
+      "sha256": "88d22b3abc671f9700f71d154d8f0d1dae1448245b28d8cfdde48b5be35fa77c"
+    },
+    {
+      "path": "docs/phase4a-evidence/11155111/wallet-restarted.png",
+      "sha256": "9bb36908111c9c72fd7b403b2b3f37a8ef92323523b1eb6659fb3eee963e68e1"
+    },
+    {
+      "path": "docs/phase4a-evidence/46630/browser-start.json",
+      "sha256": "f807784d4a9391811a8afccb0b49dc9ce58231c573f51f2fa5eef76450cadeb6"
+    },
+    {
+      "path": "docs/phase4a-evidence/46630/connection-1.png",
+      "sha256": "76a39c87a8da5aba36044ee15d3acfe3b540cc673dcbb2536d9cdeada20d5589"
+    },
+    {
+      "path": "docs/phase4a-evidence/46630/deployment.json",
+      "sha256": "2e7b7409491ed6def30c59b3e8bf7ae1e80fb4ab40e2aa628ee21994e6af3856"
+    },
+    {
+      "path": "docs/phase4a-evidence/46630/live-verification.json",
+      "sha256": "8d0824e31934d3ca0536a4394890b9a86b7cf48f3c0930f1c2b1cad1f2aeec2b"
+    },
+    {
+      "path": "docs/phase4a-evidence/46630/marketplace-before.png",
+      "sha256": "dd2c2a34936d8c2395cafaf3404aa81df35925a83866c1ec279dfa123eb91fdc"
+    },
+    {
+      "path": "docs/phase4a-evidence/46630/payment-approval.png",
+      "sha256": "04547183c849e02c115ec9616534377c3108b8f9870682dea03ee995088c733e"
+    },
+    {
+      "path": "docs/phase4a-evidence/46630/prepayment-gas.json",
+      "sha256": "78fef9b3441f4930e1cbe14fa450404b1a02c24ba11cbafd0170009bc41e7757"
+    },
+    {
+      "path": "docs/phase4a-evidence/46630/quote-approval.png",
+      "sha256": "6cbfc7a7f3597bd89d0e6125d31d2c133e23ef2de9f8c08091e012b16080943d"
+    },
+    {
+      "path": "docs/phase4a-evidence/46630/restart-verification.json",
+      "sha256": "75329b22d6aff5529b8c4a2ba31662d7e25524c3c1f906d720330bc4568a5d34"
+    },
+    {
+      "path": "docs/phase4a-evidence/46630/wallet-completed.png",
+      "sha256": "7a8b0b34d9fb3111003deb3083aefcfbe887251528fb2a5cac77e213da82a5d8"
+    },
+    {
+      "path": "docs/phase4a-evidence/46630/wallet-pending.png",
+      "sha256": "cc4a5d756c5bbc757c5d1be78d01d31b4b739a348ffc08397d41b7df880a164a"
+    },
+    {
+      "path": "docs/phase4a-evidence/46630/wallet-restarted.png",
+      "sha256": "10b7b5f924b6d97b8009d7fc31ec361786edc432ec1750ea21e815521de1aa03"
+    },
+    {
+      "path": "docs/phase4a-evidence/baseline-browser.txt",
+      "sha256": "b4bfe579674bbddeb458a945476b1b75b4a1c0c69e814393a7873ca3a7ec067a"
+    },
+    {
+      "path": "docs/phase4a-evidence/baseline-contracts.txt",
+      "sha256": "179c2b79e98639d18f1f295591e235f527df6b58fe776b40ab4f9ee9cf93ffdc"
+    },
+    {
+      "path": "docs/phase4a-evidence/baseline-node.txt",
+      "sha256": "5d64adcce37efeab2dd8379989f416d00dc4583c4106a0c730265f57c3076728"
+    },
+    {
+      "path": "docs/phase4a-evidence/baseline-rust.txt",
+      "sha256": "4ce7bae891bdf92e79fe31b5c1a2ee24baa11d3b4cd5b8a0009dc8fd3e38bf13"
+    },
+    {
+      "path": "docs/phase4a-evidence/browser-tests.txt",
+      "sha256": "c7e89967614f4fd94451757fffe49c8223e1afefff864b25f7b0e7870cb7e686"
+    },
+    {
+      "path": "docs/phase4a-evidence/contract-tests.txt",
+      "sha256": "c7691df41d22ee5920701f8cc6e6a5f0c93f664cf95a9a4d1b897e7b345987de"
+    },
+    {
+      "path": "docs/phase4a-evidence/costs-11155111.json",
+      "sha256": "467785801ced728e268f996c4641c92a22fcb4159a060fd85941b4fe6afa6039"
+    },
+    {
+      "path": "docs/phase4a-evidence/costs-46630.json",
+      "sha256": "9bcdf62f703b0908e821c7c252f9981d2b54495d7255da9b3a1bac57bc4e013c"
+    },
+    {
+      "path": "docs/phase4a-evidence/network-preflight.json",
+      "sha256": "699de0e2515a03d32d9b2d5b5b951bf7d8d7fe1796ca29a9bec5109817a2e661"
+    },
+    {
+      "path": "docs/phase4a-evidence/node-tests.txt",
+      "sha256": "f80d013dc58269e10ae506a6826a61d6a52320ed768986bddd6cba8a85fbe566"
+    },
+    {
+      "path": "docs/phase4a-evidence/restart-process.json",
+      "sha256": "604c7a5165cf86957086b991d350d8a1fc020848ec2745194bb17bbebb367509"
+    },
+    {
+      "path": "docs/phase4a-evidence/resumed-processes.json",
+      "sha256": "ff9b897eef3692fabf8d4fee792fa15a0f9bd1676ba020b5229cc67a01cfeb14"
+    },
+    {
+      "path": "docs/phase4a-evidence/rust-tests.txt",
+      "sha256": "5c4f50e1842f25cdaa480ad2006f01cffba88622cf984e9fc9037a73b2959689"
+    },
+    {
+      "path": "docs/phase4a-evidence/typecheck-web.txt",
+      "sha256": "d3aa495fc146ce70b8678e51a7c91e1357e10107e9cab223f63e9a0d5cae02db"
+    },
+    {
+      "path": "docs/phase4a-evidence/typecheck.txt",
+      "sha256": "e5046545a3a9fcc0cf6950c9402c78a2b227f07a6a658d2a0c1fbc5f4a194da0"
+    },
+    {
+      "path": "docs/phase4a-evidence/wallet-build.txt",
+      "sha256": "e60ab64bcff4627208e1db6ad9f7092347a7c82ef051f8f7c080aa7aa687fb38"
+    },
+    {
+      "path": "docs/phase4a-evidence/zcash-preflight.json",
+      "sha256": "fde613ce81176981a138cd3d0190d0f68497081dd535ffaab4bbfc95908a4818"
+    },
+    {
+      "path": "docs/phase4b-evidence/balances.json",
+      "sha256": "a4ce3983d77247a15048e5da7398745f133c5a548623651a20ea0e9f982b9820"
+    },
+    {
+      "path": "docs/phase4b-evidence/base/deployment.json",
+      "sha256": "fa8a5e0385f53a6083908adf193fa5ed2cfdc30d50749729f05608332adc9bcc"
+    },
+    {
+      "path": "docs/phase4b-evidence/base/live-verification.json",
+      "sha256": "bdc0f325308188cbc182ae8af0c228cab9ad9037d75d1d074f6964f2872c9be1"
+    },
+    {
+      "path": "docs/phase4b-evidence/base/payment-approval.png",
+      "sha256": "719ff603d3b9797716cebe50f34302b1105552f182fca18bcca9bd3b24d668f7"
+    },
+    {
+      "path": "docs/phase4b-evidence/base/payment-review.png",
+      "sha256": "719ff603d3b9797716cebe50f34302b1105552f182fca18bcca9bd3b24d668f7"
+    },
+    {
+      "path": "docs/phase4b-evidence/base/quote-review.png",
+      "sha256": "14c22a03d3999eef22a3603570ec933a09b7c04d5677413f615cd1ec9e053a89"
+    },
+    {
+      "path": "docs/phase4b-evidence/base/restart-processes.json",
+      "sha256": "b6c76be8ec3c07b7ddbed42ca2fba233b13a90190c4ffd8757c168ea8ae58f51"
+    },
+    {
+      "path": "docs/phase4b-evidence/base/restart-verification.json",
+      "sha256": "76c9634fdb49a91109e596d864b57d42d803c049da69c32ff048a179ccf393a0"
+    },
+    {
+      "path": "docs/phase4b-evidence/base/wallet-completed.png",
+      "sha256": "cb7bc38fde6eabc7b1356b07053e385cd96eb84dc2f3f4ca77ef0f3fff1493af"
+    },
+    {
+      "path": "docs/phase4b-evidence/base/wallet-current.png",
+      "sha256": "f6c2f4de29dc89e3babc0758568e5fcd9f1dee5e0554dfd3981d619b0b5aa199"
+    },
+    {
+      "path": "docs/phase4b-evidence/baseline-browser.txt",
+      "sha256": "63f4117b777b2e0d042a584b15815bc5867f7f0406eb10a8e17e3a4b80fc28b5"
+    },
+    {
+      "path": "docs/phase4b-evidence/baseline-contracts.txt",
+      "sha256": "d99a6f9b18cc1912f0d4372d2a41d6b986be582d198095503d234a14477f2a75"
+    },
+    {
+      "path": "docs/phase4b-evidence/baseline-node.txt",
+      "sha256": "ee7191e8196674c4ff81f20d5d340fb62f6dda8c5aa4284623426c0e5502d572"
+    },
+    {
+      "path": "docs/phase4b-evidence/baseline-rust.txt",
+      "sha256": "0992fb4a689a0ae64877b7142197f6e489c1daa04634a446647548ea0d9af8a8"
+    },
+    {
+      "path": "docs/phase4b-evidence/baseline-types.txt",
+      "sha256": "9aa03da66125e47a0202849fb0d3ed1e20387ed8d003a39fb611cb88e30f34b5"
+    },
+    {
+      "path": "docs/phase4b-evidence/browser-tests.txt",
+      "sha256": "9e267771de196a6172178385f33f27ffc28b0677437534e16d34127b1ce2b085"
+    },
+    {
+      "path": "docs/phase4b-evidence/contract-build.txt",
+      "sha256": "64eed7cae85f160bdf1fa0f1b8b068dc0fc2d4f50e0d3db7981d090dc9484ec7"
+    },
+    {
+      "path": "docs/phase4b-evidence/contract-tests.txt",
+      "sha256": "885ca530e0bfd4bd59958f3048ff296482bd8c03a6ed4a6d3deab02d49c88e05"
+    },
+    {
+      "path": "docs/phase4b-evidence/deployment-artifact-hashes.json",
+      "sha256": "c41ddef1e55517ed9ce865f191227a6de0f5526ddf2a63d3f36ef78bc4b5bd2a"
+    },
+    {
+      "path": "docs/phase4b-evidence/node-tests.txt",
+      "sha256": "cd3e53256c6a0fb8dc6035a48e5fe5a7b6dc406c2ba4010990785a3efd0e4a56"
+    },
+    {
+      "path": "docs/phase4b-evidence/preservation-verified.json",
+      "sha256": "a3ae71abfe7246263174b5a278586b8f4c5d7d02b2c317280391464a4f9a9518"
+    },
+    {
+      "path": "docs/phase4b-evidence/preservation.json",
+      "sha256": "ab72fc2bb9128be490555b642ae7872e0863255cc9ca23b91d42fc23e4b66145"
+    },
+    {
+      "path": "docs/phase4b-evidence/regression-node.txt",
+      "sha256": "787c2cb485db4cca3ca8f7e3b8e2f892154193377443fb2cb08d5c82c5ca2f2d"
+    },
+    {
+      "path": "docs/phase4b-evidence/setup-live.txt",
+      "sha256": "f87084372b0ea2728ad63f09cfc48b138666d030122b8b9c9c2803bfbcf44117"
+    },
+    {
+      "path": "docs/phase4b-evidence/setup-resume-2.txt",
+      "sha256": "7cd62edd78e63cbee8764ad9d45805fab0acd93a7c436c3c3fc5f09169267ccc"
+    },
+    {
+      "path": "docs/phase4b-evidence/setup-resume-3.txt",
+      "sha256": "ceca96b49918a4ed43d18038567b1dc9eb910a7b953bf789f97894947cac0792"
+    },
+    {
+      "path": "docs/phase4b-evidence/setup-resume.txt",
+      "sha256": "50684962bf8f730aaded85259792d8bd3f03aadc77a891bea575fa4b6effbf44"
+    },
+    {
+      "path": "docs/phase4b-evidence/swap-tests.txt",
+      "sha256": "992556337284fdf56f10ba565c7eb192821da35492a1223a0cbf343dd7d9055b"
+    },
+    {
+      "path": "docs/phase4b-evidence/typecheck-web.txt",
+      "sha256": "6b8c2dc25346f5770d61f08e945372a3796e9daf08d2730b702474a3707d04e3"
+    },
+    {
+      "path": "docs/phase4b-evidence/typecheck.txt",
+      "sha256": "a6fb6f0f150829735ed98088117c00f3b37ba61785afb68d5da12bed598c4224"
+    },
+    {
+      "path": "docs/phase4b-evidence/wallet-build.txt",
+      "sha256": "a946ed82d7ce85a03650a9dcd7c799b16ccdbbf551b4dd8bef9d2d702f35a2e7"
+    },
+    {
+      "path": "docs/phase4b-evidence/zcash-balance.json",
+      "sha256": "43ed76c08da8f422e6dbcf0ffc2a0d3e7bf6f76eb6a5cda8d62fb0013cedf059"
+    },
+    {
+      "path": "docs/phase4c-evidence/base/deployment.json",
+      "sha256": "1fb8cd0d4a01d7af5cb90f04e02fce1f234ce76ee2c0e23877693d6ffb12e64a"
+    },
+    {
+      "path": "docs/phase4c-evidence/base/live-verification.json",
+      "sha256": "1a7bae38c54b43c11c82c4f4ce7ee3051ed3a8be3def245ab2fe7f9388b17650"
+    },
+    {
+      "path": "docs/phase4c-evidence/base/payment-approval.png",
+      "sha256": "5ee84a90427c6b5b9ab14472649372ff8e9b906b76076eb1207339357a5f0e19"
+    },
+    {
+      "path": "docs/phase4c-evidence/base/payment-review.png",
+      "sha256": "5ee84a90427c6b5b9ab14472649372ff8e9b906b76076eb1207339357a5f0e19"
+    },
+    {
+      "path": "docs/phase4c-evidence/base/quote-review.png",
+      "sha256": "6b2257d646a2c5a1569bbd9986836b3e658e9a6488929bd168a55e73070c862b"
+    },
+    {
+      "path": "docs/phase4c-evidence/base/restart-verification.json",
+      "sha256": "67d805faf94ddeb8f59e12969f5874de740fea763ebd849272e5b230e742f4ca"
+    },
+    {
+      "path": "docs/phase4c-evidence/base/wallet-completed-mobile.png",
+      "sha256": "b9065aa52d4cc80daad749789e637cb6091312ef88648d6f3e42982dedd0e58b"
+    },
+    {
+      "path": "docs/phase4c-evidence/base/wallet-completed.png",
+      "sha256": "cd30593a9283530c6b0ee7db47896c0ed9f671c5f8476c7fdb537c98c535a22f"
+    },
+    {
+      "path": "docs/phase4c-evidence/baseline-browser.txt",
+      "sha256": "295ad4f7372379b5fa67f5eca85e38db15948a55251eead7e733e81000b00a03"
+    },
+    {
+      "path": "docs/phase4c-evidence/baseline-contracts.txt",
+      "sha256": "c6ce55a7476328333158924c7924a7af45fb5286a41f10d25bb91f58d647f440"
+    },
+    {
+      "path": "docs/phase4c-evidence/baseline-node.txt",
+      "sha256": "ac5f301da4dc920bdb5761cd45832f89e8d46bc3a008b2c56630b5d191f0d9ce"
+    },
+    {
+      "path": "docs/phase4c-evidence/baseline-rust.txt",
+      "sha256": "8e719eadcaa361ed0bc3aceacf65c34c98564a89b32c837a74084dddaae5bc8d"
+    },
+    {
+      "path": "docs/phase4c-evidence/baseline-types.txt",
+      "sha256": "29ff021345c35eff5a94ad4a96875fa14e733177d1f2ccc6e93a94f91655fc05"
+    },
+    {
+      "path": "docs/phase4c-evidence/browser-tests.txt",
+      "sha256": "fbc2fa271608ade26cb6f95f37c132f3c11d6dbaa0bc8b4f12b55764fb6f5752"
+    },
+    {
+      "path": "docs/phase4c-evidence/contract-build.txt",
+      "sha256": "c4a63accfc3296c2548d5ddcb4c7f0f5495c7d829b87f1a3c6684151523dc979"
+    },
+    {
+      "path": "docs/phase4c-evidence/contract-tests.txt",
+      "sha256": "1f5572ed18bcbc8e509e7cd77699b933dd2025e02d9ac244a0f2244e4c4a541d"
+    },
+    {
+      "path": "docs/phase4c-evidence/deployment-artifact-hashes.json",
+      "sha256": "f28b10522e655a04ed3d94cf6a2fa7605d7963caab932305e417f2dd23710c69"
+    },
+    {
+      "path": "docs/phase4c-evidence/live-attempt-notes.json",
+      "sha256": "2fcac17c41ab03a28f88d8ae9e8fc64a7e9e1be05847b2dcc24e4d3b7d26941c"
+    },
+    {
+      "path": "docs/phase4c-evidence/live-progress.jsonl",
+      "sha256": "95db5ed7fad15a3dbcad3836f6a727b97bf74e7c02a19d3250ea6faf512e6bf9"
+    },
+    {
+      "path": "docs/phase4c-evidence/node-tests.txt",
+      "sha256": "827d8c811c7f905b6abc3c6ed4e0397f01f06f0b9286016295966be5194c47c6"
+    },
+    {
+      "path": "docs/phase4c-evidence/opensea-access.json",
+      "sha256": "b80f2c86d58d7766878fb2df5fc6be4233bfa133210fb1856c1466185578be4f"
+    },
+    {
+      "path": "docs/phase4c-evidence/preservation-verified.json",
+      "sha256": "26d710348e5081c3a4bae6743fc439885435bf4e2775d2094eafa06732de49d0"
+    },
+    {
+      "path": "docs/phase4c-evidence/preservation.json",
+      "sha256": "aabbe785bc82a0d7bcb103bb8318dcc3f82541ac395887d8879233f2425a807e"
+    },
+    {
+      "path": "docs/phase4c-evidence/seaport-preflight.json",
+      "sha256": "3c150b2b1c1b80b9298552a989ffa63607be097a26134e86350c7c183e1f8878"
+    },
+    {
+      "path": "docs/phase4c-evidence/seaport-tests.txt",
+      "sha256": "74cd09be9aaa556d28f16eeb2a052ba903f41e393060a0f6acfd679633c2f614"
+    },
+    {
+      "path": "docs/phase4c-evidence/setup-live.txt",
+      "sha256": "307005f28734a6a5d22ae12518b3bf49e79284992af357406a807784bb9cd726"
+    },
+    {
+      "path": "docs/phase4c-evidence/typecheck-web.txt",
+      "sha256": "6b8c2dc25346f5770d61f08e945372a3796e9daf08d2730b702474a3707d04e3"
+    },
+    {
+      "path": "docs/phase4c-evidence/typecheck.txt",
+      "sha256": "a6fb6f0f150829735ed98088117c00f3b37ba61785afb68d5da12bed598c4224"
+    },
+    {
+      "path": "docs/phase4c-evidence/verification-final.txt",
+      "sha256": "7650b62c546c5aaba5d29f8db612c8040a6cc04ac7b4afb3d2745418b71182f3"
+    },
+    {
+      "path": "docs/phase4c-evidence/wallet-build.txt",
+      "sha256": "f637f2c193c8077ec9faf338369715821febf55ea3f05bf925c700770df69a25"
+    },
+    {
+      "path": "docs/phase4c-evidence/zcash-balance.json",
+      "sha256": "1114e5a8a406b2da5454d70a452783b4c70b7c224acbe48d7046193cd4902745"
+    },
+    {
+      "path": "docs/phase4d-evidence/api-catalog.json",
+      "sha256": "3f29f65803188816dbf229630e69ecfccfe9f3b45455fd7e55fa9d85c2716e7c"
+    },
+    {
+      "path": "docs/phase4d-evidence/api-key-status.json",
+      "sha256": "827b1b123c86be024d033337a6bafcb1627431e8152f3a26c13ac009ae36bbaf"
+    },
+    {
+      "path": "docs/phase4d-evidence/baseline-browser.txt",
+      "sha256": "f8f6b6893f61089471347a3489a224e3db49c74d58f17aabfba5365057ec7081"
+    },
+    {
+      "path": "docs/phase4d-evidence/baseline-contracts.txt",
+      "sha256": "21ed097ff81aec0e298a1691d002f798a5344fdcb8965584e434ad5cc252619c"
+    },
+    {
+      "path": "docs/phase4d-evidence/baseline-node.txt",
+      "sha256": "d5e5ed207ab1f89a0cc7b0c8304cc7311ca3f2659857c126f8e91f47e4ab6f51"
+    },
+    {
+      "path": "docs/phase4d-evidence/baseline-rust.txt",
+      "sha256": "5bb2ab7bce14a36a73ff684a73d5cb4df2f83ee9416555d8d376eed8558d9896"
+    },
+    {
+      "path": "docs/phase4d-evidence/baseline-types.txt",
+      "sha256": "9aa03da66125e47a0202849fb0d3ed1e20387ed8d003a39fb611cb88e30f34b5"
+    },
+    {
+      "path": "docs/phase4d-evidence/browser-tests.txt",
+      "sha256": "933237fcf90a1b919c63e08eb9075cf69c8a6b8983ae36f05342c03cc7b4228b"
+    },
+    {
+      "path": "docs/phase4d-evidence/credential-check.json",
+      "sha256": "beb5f7f97d26175b585ad3be781f10c50e2dc4ba342c0b7905309e18089d2ac0"
+    },
+    {
+      "path": "docs/phase4d-evidence/inspection-failure.json",
+      "sha256": "96917e993d6fae31cbe71ec018c2c1771480e6f424a060c3d547b20c815c5def"
+    },
+    {
+      "path": "docs/phase4d-evidence/live-preview-summary.png",
+      "sha256": "a82c3d57bf2b1565900dfae29cb79d5b10e3cec19ed92e74c0b36adf9a48438d"
+    },
+    {
+      "path": "docs/phase4d-evidence/live-preview.json",
+      "sha256": "d13b73a83c3787793658b0bd2f01d0645b51931e214d495c14b359cbe43ef948"
+    },
+    {
+      "path": "docs/phase4d-evidence/live-wallet-preview.png",
+      "sha256": "7dcee3e2f66365d579f2274ee2182bc944e1603871b7818cc5ac9b189e9f1515"
+    },
+    {
+      "path": "docs/phase4d-evidence/live-wallet-preview.txt",
+      "sha256": "e290e3879aed5acfce56b33ff545a8d98973df73b810622e7200a81b2e741ef2"
+    },
+    {
+      "path": "docs/phase4d-evidence/lock-recovery.json",
+      "sha256": "0112049bb052047f7ef1e09685dcfe6677a9d8eb9ef285bf12a59af232eff803"
+    },
+    {
+      "path": "docs/phase4d-evidence/native-journal-check.json",
+      "sha256": "742a6639db58ffa0a5463c5fb1f30787813b5c9e03561faadf2f2ebf29c29944"
+    },
+    {
+      "path": "docs/phase4d-evidence/node-tests.txt",
+      "sha256": "a43a0115f58c57e16988a7e24d62ce914ac9947fb82da0bcd61c2fe958dd1009"
+    },
+    {
+      "path": "docs/phase4d-evidence/opensea-connect-picker.png",
+      "sha256": "288aab3bacf8446cffc4d6c2f17d0548ce121ba6de5cbcf680f2f9923dcc5538"
+    },
+    {
+      "path": "docs/phase4d-evidence/opensea-wallet-options.png",
+      "sha256": "1ab1b0f39a38df44f1f949031ab68e2a7fcfff9a283ccd853d3785968d67144c"
+    },
+    {
+      "path": "docs/phase4d-evidence/preservation-verified.json",
+      "sha256": "d4a7d3567b0aa1fdfec1d97d479f0dad8d6cef3671675b2753877be7186d5e3d"
+    },
+    {
+      "path": "docs/phase4d-evidence/preservation.json",
+      "sha256": "af5e636c4401e413396fcf6e3e584652410fa01b7439d888bda224e26a7d6967"
+    },
+    {
+      "path": "docs/phase4d-evidence/protocol-identity.json",
+      "sha256": "2753ca81f460a25f2e16258adb829690320d09af0781c906e331b0e0e381874b"
+    },
+    {
+      "path": "docs/phase4d-evidence/typecheck-web.txt",
+      "sha256": "6b8c2dc25346f5770d61f08e945372a3796e9daf08d2730b702474a3707d04e3"
+    },
+    {
+      "path": "docs/phase4d-evidence/typecheck.txt",
+      "sha256": "a6fb6f0f150829735ed98088117c00f3b37ba61785afb68d5da12bed598c4224"
+    },
+    {
+      "path": "docs/phase4d-evidence/wallet-build.txt",
+      "sha256": "af8301c5717c7ef3567724885af0f727b85bb6d135d6d3eddbde5b48eb2e4703"
+    }
+  ]
+}

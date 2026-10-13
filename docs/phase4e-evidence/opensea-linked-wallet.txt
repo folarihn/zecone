@@ -1,0 +1,4 @@
+{
+  "url": "https://opensea.io/settings/wallet-linking",
+  "text": "Discover\nCollections\nTokens\nPerpetuals\nBeta\nSwap\nDrops\nActivity\nRewards\nTools\nBeta\nStudio\nProfile\nResources\nSettings\nSupport\n/\n$0.00\nSettings\nProfile\nWallets\nAgents\nNotifications\nCustomize\nDeveloper\nVerification\nSecurity\nWallets\nYou can link multiple wallets under a single profile in OpenSea. Public wallets can be seen by other users, while private ones remain hidden. You can unlink at any time. Maximum 15 wallets.\nzecone-test-c714\n1 WALLET\nYour Wallets\nImport Wallet\nAdd Wallet\n0x1865...c714\nPaused\nAggregating\nNetworks\nPlatform Terms\nWallet & Onramp Terms\nPrivacy Policy\nETH price. Switch native currency\n$2,504.02\nSupport\nCollector\nPro\nCrypto\nUSD"
+}
