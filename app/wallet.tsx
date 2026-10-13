@@ -24,12 +24,14 @@ import type { Dashboard, CheckoutView } from "../services/wallet/view";
 import NetworksPanel from "./networks/panel";
 import PurchasePanel from "./purchases/panel";
 import SwapPanel from "./swaps/panel";
+import SeaportPanel from "./seaport/panel";
 type Tab =
   | "Wallet"
   | "Checkout"
   | "Sponsor"
   | "Apps"
   | "Purchases"
+  | "Seaport"
   | "Tokens"
   | "Activity"
   | "Privacy";
@@ -55,6 +57,7 @@ const icons = {
   Apps: Globe,
   Purchases: Grid2X2,
   Tokens: ArrowRight,
+  Seaport: Layers,
 };
 function Seal({ small = false }: { small?: boolean }) {
   return (
@@ -392,6 +395,7 @@ export default function Wallet() {
               "Apps",
               "Purchases",
               "Tokens",
+              "Seaport",
               "Activity",
               "Privacy",
             ] as Tab[]
@@ -481,7 +485,7 @@ export default function Wallet() {
                           ? "PRIVATE PAYMENT, PUBLIC NFT OWNERSHIP"
                           : tab === "Tokens"
                             ? "PRIVATE PAYMENT, PUBLIC TOKEN OWNERSHIP"
-                          : tab === "Activity"
+                          : tab === "Seaport" ? "PRIVATE PAYMENT, DIRECT SEAPORT DELIVERY" : tab === "Activity"
                             ? "A CLEAR RECORD"
                             : "UNDERSTAND YOUR WALLET"}
               </p>
@@ -498,6 +502,8 @@ export default function Wallet() {
                           ? "Your marketplace purchases"
                           : tab === "Tokens"
                             ? "Your token purchases"
+                          : tab === "Seaport"
+                            ? "Your Seaport purchases"
                           : tab === "Activity"
                             ? "Recent activity"
                             : "Privacy, in plain language"}
@@ -515,6 +521,8 @@ export default function Wallet() {
                           ? "Track shielded payments, NFT delivery and recovery."
                           : tab === "Tokens"
                             ? "Review an AMM quote and fund a bounded swap with test ZEC."
+                          : tab === "Seaport"
+                            ? "Review a genuine Seaport listing and fund its exact fulfillment with test ZEC."
                           : tab === "Activity"
                             ? "Transactions tracked by your local ZecOne wallet."
                             : "Know what stays private, and what becomes public."}
@@ -1194,6 +1202,7 @@ export default function Wallet() {
               )}
               {tab === "Purchases" && <PurchasePanel />}
               {tab === "Tokens" && <SwapPanel />}
+              {tab === "Seaport" && <SeaportPanel />}
               {tab === "Activity" && (
                 <>
                   <div className="activity-intro">

@@ -6,6 +6,7 @@ import type { Dapps } from "./dapps.ts";
 import { RpcError, originOf } from "./dapp-policy.ts";
 import type { Purchases } from "../marketplace/service.ts";
 import type { Swaps } from "../swaps/service.ts";
+import type { SeaportPurchases } from "../seaport/service.ts";
 type Backend = Pick<
   Engine,
   | "dashboard"
@@ -23,6 +24,7 @@ export function api(
   dapps?: Dapps,
   purchases?: Purchases,
   swaps?: Swaps,
+  seaport?: SeaportPurchases,
 ) {
   const attempts = new Map<string, { at: number; count: number }>();
   return async (req: IncomingMessage, res: ServerResponse) => {
@@ -98,6 +100,20 @@ export function api(
           throw new ApiError(429, "Too many requests. Please wait a minute.");
       }
       let data: unknown;
+      if(path?.startsWith("/api/seaport/")&&seaport){
+        if(!session.connected)throw new ApiError(403,"Verify wallet ownership first.");
+        switch(`${method} ${path}`){
+          case "GET /api/seaport/catalog": data=await seaport.catalog();break;
+          case "GET /api/seaport/list": data={purchases:seaport.list()};break;
+          case "POST /api/seaport/quote": data=await seaport.quote(session,body);break;
+          case "POST /api/seaport/approve": if(body.approved!==true)throw new ApiError(400,"Exact Seaport approval required.");data=await seaport.approve(session,uuid(body.id));break;
+          case "POST /api/seaport/cancel": {const r=seaport.row(uuid(body.id));if(r.session!==session.id)throw new ApiError(403,"Session mismatch");seaport.cancelDraft(r.id);data={cancelled:true};break;}
+          case "POST /api/seaport/fee": data=await seaport.fee(session,uuid(body.id));break;
+          case "POST /api/seaport/pay": data=await seaport.pay(session,uuid(body.id),uuid(body.quoteId),body.approved);break;
+          case "POST /api/seaport/recheck": data=await seaport.reconcile(session,uuid(body.id));break;
+          default:throw new ApiError(404,"Seaport operation unavailable.");
+        }send(200,data);return;
+      }
       if (path?.startsWith("/api/swaps/") && swaps) {
         if (!session.connected) throw new ApiError(403,"Verify wallet ownership first.");
         switch (`${method} ${path}`) {

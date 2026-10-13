@@ -1,0 +1,9 @@
+(node:26816) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"step":"collection","hash":"0x37a961e6bc071303dea40f633383b2c86b9ec7b61f5afba3344507f901e61e4c","estimatedMaximumFeeWei":"48737281000000","valueWei":"0"}
+{"step":"collection","confirmed":true,"hash":"0x37a961e6bc071303dea40f633383b2c86b9ec7b61f5afba3344507f901e61e4c"}
+{"step":"executor","hash":"0x7bbeea7e9e63643ac90860129ec130f39e0c19e996eb6ecb7a31b47655e8038b","estimatedMaximumFeeWei":"61272517000000","valueWei":"0"}
+{"step":"executor","confirmed":true,"hash":"0x7bbeea7e9e63643ac90860129ec130f39e0c19e996eb6ecb7a31b47655e8038b"}
+{"step":"seller-approval","hash":"0xf475c0aacf70ea923945041d3b0c7c480c250269c0ff18be1459b5543f2734cc","estimatedMaximumFeeWei":"40411313000000","valueWei":"0"}
+{"step":"seller-approval","confirmed":true,"hash":"0xf475c0aacf70ea923945041d3b0c7c480c250269c0ff18be1459b5543f2734cc"}
+{"setupVerified":true,"protocol":"0x0000000000000068F116a894984e2DB1123eB395","collection":"0xf7b5482a479c68b9d652cf8005234f82d27b2c3f","executor":"0xe669643e85e15edd84f61c0c8fafface5ec6fe16","orderHash":"0x35e3c4fccc83842c2b29898c2ce3149163ac6ca63f114f35dfa9e1793701bd3a","totalConsideration":"102500000000000","fee":"2500000000000"}

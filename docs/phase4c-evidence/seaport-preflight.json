@@ -1,0 +1,20 @@
+{
+  "at": "2026-10-13T07:44:40.348Z",
+  "chain": 84532,
+  "block": "48054595",
+  "blockHash": "0xc692ef34420acd979a4c2c30929a25438ccf2caca6335e4ea2480172f2594413",
+  "address": "0x0000000000000068F116a894984e2DB1123eB395",
+  "codeHash": "0x7912af42062ec0080cde88360c1429d58984ae16eb3f17af505b815bf6ffc745",
+  "codeBytes": 23981,
+  "information": [
+    "1.6",
+    "0x4778aa25cd18fc3b8e9d053bb369734ae2ce8511b24dd9b00010466bdb496b45",
+    "0x00000000F9490004C11Cef243f5400493c00Ad63"
+  ],
+  "expectedDomain": "0x4778aa25cd18fc3b8e9d053bb369734ae2ce8511b24dd9b00010466bdb496b45",
+  "provider": "0xf9dE6070331A3B68233c3b2062BceB7105162Cd2",
+  "user": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+  "providerBalance": "93680716433875059",
+  "userBalance": "9999873999999741",
+  "apiKeyConfigured": false
+}

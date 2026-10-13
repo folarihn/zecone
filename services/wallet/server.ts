@@ -8,6 +8,7 @@ import { api } from "./api.ts";
 import { Dapps } from "./dapps.ts";
 import { Purchases } from "../marketplace/service.ts";
 import { Swaps } from "../swaps/service.ts";
+import { SeaportPurchases } from "../seaport/service.ts";
 const dev = process.argv.includes("--dev");
 process.env.NEXT_TELEMETRY_DISABLED = "1";
 // Next's CommonJS runtime is callable; its NodeNext declaration wraps the default.
@@ -18,8 +19,9 @@ const engine = new Engine(),
   sessions = new Sessions(engine.app.db),
   purchases = new Purchases(),
   swaps = new Swaps(),
+  seaport = new SeaportPurchases(),
   dapps = new Dapps(engine.address, ".state/dapps.sqlite", purchases),
-  handler = api(sessions, engine, dapps, purchases, swaps),
+  handler = api(sessions, engine, dapps, purchases, swaps, seaport),
   nextHandler = app.getRequestHandler();
 const server = createServer(async (req, res) => {
   try {
@@ -79,6 +81,8 @@ server.listen(3210, "127.0.0.1", () => {
   setInterval(() => void purchases.tick(), 20000).unref();
   void swaps.tick();
   setInterval(() => void swaps.tick(), 25000).unref();
+  void seaport.tick();
+  setInterval(() => void seaport.tick(), 30000).unref();
 });
 server.on("error", () => {
   console.error(

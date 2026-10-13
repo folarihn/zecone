@@ -1,0 +1,100 @@
+{
+  "at": "2026-10-13T08:15:59.313Z",
+  "live": true,
+  "config": {
+    "chainId": 84532,
+    "protocol": "0x0000000000000068F116a894984e2DB1123eB395",
+    "protocolVersion": "1.6",
+    "executor": "0xe669643e85e15edd84f61c0c8fafface5ec6fe16",
+    "nft": "0xf7b5482a479c68b9d652cf8005234f82d27b2c3f",
+    "seller": "0x7D26bC3A7CE602cB1cf9F8Bb4e3a8eDCb052C4b0",
+    "feeRecipient": "0xf9dE6070331A3B68233c3b2062BceB7105162Cd2",
+    "provider": "0xf9dE6070331A3B68233c3b2062BceB7105162Cd2",
+    "user": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+    "codeHashes": {
+      "0x0000000000000068F116a894984e2DB1123eB395": "0x7912af42062ec0080cde88360c1429d58984ae16eb3f17af505b815bf6ffc745",
+      "0xf7b5482a479c68b9d652cf8005234f82d27b2c3f": "0x505a9530c46275e863ebea39ead10bbce20fa082d7a0ea4b93df9c1ec9e05776",
+      "0xe669643e85e15edd84f61c0c8fafface5ec6fe16": "0xe24351b94599be4396b5ff4e849e6744df5518da59fbb1ffbce69de1e3f3f4a7"
+    }
+  },
+  "receipts": [
+    {
+      "step": "collection",
+      "hash": "0x37a961e6bc071303dea40f633383b2c86b9ec7b61f5afba3344507f901e61e4c",
+      "block": "48055515",
+      "blockHash": "0x6b3fc59d1d6a820265e23db5afdf33f1bf40453077abd5e414f2bdb0056e9feb",
+      "contract": "0xf7b5482a479c68b9d652cf8005234f82d27b2c3f",
+      "gasUsed": "1030804",
+      "effectiveGasPrice": "6000000",
+      "l1Fee": "2892"
+    },
+    {
+      "step": "executor",
+      "hash": "0x7bbeea7e9e63643ac90860129ec130f39e0c19e996eb6ecb7a31b47655e8038b",
+      "block": "48055521",
+      "blockHash": "0x7ecd910a79e22dbd7d6463afee47a3d5fd70da914bb1d58a5ebf06df04091829",
+      "contract": "0xe669643e85e15edd84f61c0c8fafface5ec6fe16",
+      "gasUsed": "2511343",
+      "effectiveGasPrice": "6000000",
+      "l1Fee": "6316"
+    },
+    {
+      "step": "seller-approval",
+      "hash": "0xf475c0aacf70ea923945041d3b0c7c480c250269c0ff18be1459b5543f2734cc",
+      "block": "48055528",
+      "blockHash": "0x6ad424a3baa45ff0429444c329de321d5a3a9d4af337d97b95d9439b0bd4a48a",
+      "contract": null,
+      "gasUsed": "48578",
+      "effectiveGasPrice": "6000000",
+      "l1Fee": "94"
+    }
+  ],
+  "listing": {
+    "source": "controlled-seaport",
+    "orderHash": "0x35e3c4fccc83842c2b29898c2ce3149163ac6ca63f114f35dfa9e1793701bd3a",
+    "parameters": {
+      "offerer": "0x7D26bC3A7CE602cB1cf9F8Bb4e3a8eDCb052C4b0",
+      "zone": "0x0000000000000000000000000000000000000000",
+      "offer": [
+        {
+          "itemType": 2,
+          "token": "0xf7b5482a479c68b9d652cf8005234f82d27b2c3f",
+          "identifierOrCriteria": "1",
+          "startAmount": "1",
+          "endAmount": "1"
+        }
+      ],
+      "consideration": [
+        {
+          "itemType": 0,
+          "token": "0x0000000000000000000000000000000000000000",
+          "identifierOrCriteria": "0",
+          "startAmount": "100000000000000",
+          "endAmount": "100000000000000",
+          "recipient": "0x7D26bC3A7CE602cB1cf9F8Bb4e3a8eDCb052C4b0"
+        },
+        {
+          "itemType": 0,
+          "token": "0x0000000000000000000000000000000000000000",
+          "identifierOrCriteria": "0",
+          "startAmount": "2500000000000",
+          "endAmount": "2500000000000",
+          "recipient": "0xf9dE6070331A3B68233c3b2062BceB7105162Cd2"
+        }
+      ],
+      "orderType": 0,
+      "startTime": "1791879294",
+      "endTime": "1791965754",
+      "zoneHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "salt": "13002108885343311990930079452527900787985608616198201458776948882020752064620",
+      "conduitKey": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "counter": "0"
+    },
+    "signatureVerified": true
+  },
+  "providerBefore": "93680716433875059",
+  "providerAfter": "93659463551865851",
+  "sellerBefore": "1096897609158483",
+  "sellerAfter": "1096606141158389",
+  "estimatedFulfillmentFee": "42867928000000"
+}

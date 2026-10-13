@@ -185,6 +185,17 @@ test("token swap requires exact intent approval and a separate native payment ap
  await page.getByRole("button",{name:"Send shielded payment",exact:true}).click();await expect(page.getByRole("dialog")).not.toBeVisible();expect(payments).toBe(1);await expect(page.getByRole("heading",{name:"Confirming",exact:true})).toBeVisible();
 });
 
+test("Seaport purchase labels controlled origin and separates intent from shielded payment approval",async({page})=>{
+ let quotes=0,approvals=0,payments=0,stage="draft";
+ const row={id:"synthetic-seaport",nft:fixture.contract,tokenId:"1",recipient:fixture.address,seller:fixture.contract,protocol:fixture.contract,protocolVersion:"1.6",orderHash:"0x"+"ab".repeat(32),sellerAmount:"100000000000000",feeAmount:"2500000000000",feeRecipient:fixture.contract,price:"102500000000000",estimatedFee:"2000000000000",gasBudget:"100000000000000",zatoshis:"1012500",expiry:Math.floor(Date.now()/1000)+3600,confirmations:0,trust:"Synthetic fixture; simulated rate and manual recovery.",fee:{id:"fee",feeZatoshis:"10000",totalZatoshis:"1022500"}};
+ await page.route("**/api/seaport/**",async route=>{const p=new URL(route.request().url()).pathname;if(p.endsWith("/quote"))quotes++;if(p.endsWith("/approve")){approvals++;stage="awaiting";}if(p.endsWith("/pay")){payments++;stage="sent";}const view={...row,stage,status:stage==="draft"?"Awaiting quote approval":stage==="sent"?"Confirming":"Awaiting payment"};await route.fulfill({json:p.endsWith("/catalog")?{available:true,apiStatus:"Controlled Seaport test listing",listings:[{...row,available:true,chainId:84532}]}:p.endsWith("/list")?{purchases:quotes?[view]:[]}:view});});
+ await page.goto("/");await page.getByRole("button",{name:"Seaport",exact:true}).click();await expect(page.getByRole("heading",{name:"Your Seaport purchases",exact:true})).toBeVisible();await expect(page.getByRole("region",{name:"Seaport purchases"})).toContainText("not OpenSea API listings");expect(approvals).toBe(0);expect(payments).toBe(0);
+ await page.getByRole("button",{name:"Review Seaport purchase",exact:true}).click();await expect(page.getByRole("dialog")).toContainText("0.0000025 ETH");await expect(page.getByRole("dialog")).toContainText("chain 84532");expect(payments).toBe(0);
+ await page.getByRole("button",{name:"Approve exact Seaport intent",exact:true}).click();await expect(page.getByRole("dialog")).not.toBeVisible();expect(approvals).toBe(1);expect(payments).toBe(0);
+ await page.getByRole("button",{name:"Review shielded Seaport payment",exact:true}).click();await expect(page.getByRole("dialog")).toContainText("0.010225 TAZ");expect(payments).toBe(0);
+ await page.getByRole("button",{name:"Send shielded Seaport payment",exact:true}).click();await expect(page.getByRole("heading",{name:"Confirming",exact:true})).toBeVisible();expect(payments).toBe(1);
+});
+
 test("desktop wallet is accessible and has no horizontal overflow", async ({
   page,
 }) => {
@@ -211,6 +222,15 @@ test("mobile navigation, checkout review and focus-trapped approval are accessib
   await expect(
     page.getByRole("heading", { name: "Wallet overview" }),
   ).toBeVisible();
+  const nav = await page.getByRole("navigation").boundingBox();
+  expect(nav).not.toBeNull();
+  for (const button of await page.getByRole("navigation").getByRole("button").all()) {
+    const box = await button.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.y).toBeGreaterThanOrEqual(nav!.y);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(nav!.y + nav!.height);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(844);
+  }
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

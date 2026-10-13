@@ -40,3 +40,11 @@ No audit has been performed. Passing local tests does not establish production s
 - Token support/indexing is empty by default. NFT ownership reads cover the known deployed ZecOne collections, not arbitrary collections.
 - Existing RPC responses, the local Windows process boundary, Zcash scanner and prefunded provider remain trusted. The project is not audited and is not a production bridge or exchange.
 - Any confirmed shielded payment followed by destination failure stays in manual recovery. No automatic refund exists.
+
+## Phase 4C additions
+
+- Seaport listings remain mutable in availability: cancellation, seller transfers, counter increments, approval revocation and competing fills can occur while Zcash confirms. Revalidation and atomic recipient/payment checks reject changed listings; paid failures remain recovery liabilities.
+- Genuine Seaport protocol support is distinct from OpenSea API listing access and website wallet discovery. The demo uses a controlled seller-signed listing. No OpenSea partnership, API listing or website connection is claimed.
+- Public RPC failures can interrupt quote attachment and receipt verification. Preserve signed intents, native request UUIDs and transaction hashes; reconcile the original attempt instead of replacing it. Generic HTTP errors may not reveal an exact root cause.
+- The narrow wrapper requires fixed collection/seller/fee policies, direct approvals and EOAs for consideration recipients. Broader Seaport order types are explicitly rejected. New `SEAPORT_PURCHASE` signatures use an independent replay domain and remain user-recipient-bound.
+- See [Phase 4C security](PHASE4C-SECURITY.md) and [limitations](PHASE4C-LIMITATIONS.md) for the trusted provider/scanner/RPC assumptions, simulated pricing, local key boundary and manual-only recovery.

@@ -1434,7 +1434,7 @@ dialog .full {
 @media (max-width: 580px) {
   .sidebar {
     width: 100%;
-    height: 69px;
+    height: 124px;
     inset: auto 0 0;
     padding: 0;
     background: #f8faf5;
@@ -1448,7 +1448,7 @@ dialog .full {
   .sidebar nav {
     margin: 0;
     display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0;
     height: 100%;
     padding: 5px 8px;
@@ -1471,7 +1471,7 @@ dialog .full {
   }
   .workspace {
     margin-left: 0;
-    padding-bottom: 69px;
+    padding-bottom: 124px;
   }
   .topbar {
     height: 64px;

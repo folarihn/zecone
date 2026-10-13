@@ -1,0 +1,91 @@
+Compiling 1 files with Solc 0.8.28
+Solc 0.8.28 finished in 734.51ms
+Compiler run successful!
+2026-10-13T07:58:41.492594Z  WARN evm::traces: failed to flush signature cache err=failed to create file "C:\\Users\\Folarihn Top-Boi\\.foundry\\cache\\signatures": Access is denied. (os error 5)
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+   ╭▸ contracts\ZecOneMultichainExecutor.sol:80:20
+   │
+80 │                 || q.expiry <= block.timestamp || q.recipient == address(0) || q.recipient == relayer
+   │                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+   ╭▸ contracts\ZecOnePurchaseExecutor.sol:70:20
+   │
+70 │                 || q.expiry <= block.timestamp || q.recipient == address(0) || q.recipient == relayer
+   │                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#block-timestamp
+
+warning[erc20-unchecked-transfer]: ERC20 'transfer' and 'transferFrom' calls should check the return value
+   ╭▸ contracts\test\SwapExecutor.t.sol:96:9
+   │
+96 │         token.transfer(mode == 3 ? address(0xBAD) : recipient, amount);
+   │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#erc20-unchecked-transfer
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ contracts\ZecOneSwapExecutor.sol:109:20
+    │
+109 │                 || i.expiry <= block.timestamp || i.refundHash == 0
+    │                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+   ╭▸ contracts\ZecOneActions.sol:26:187
+   │
+26 │ …ue!=0||i.maxGasBudget!=GAS_BUDGET||i.zatoshis!=PRICE||i.expiry<=block.timestamp||keccak256(i.data)!=keccak256(abi.encodeCall(this.rec…
+   │                                                        ━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+   ╭▸ contracts\TestMarketplace.sol:53:26
+   │
+53 │         if (!l.active || l.expiry <= block.timestamp) return false;
+   │                          ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+   ╭▸ contracts\TestMarketplace.sol:67:20
+   │
+67 │                 || expiry <= block.timestamp
+   │                    ━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+   ╭▸ contracts\ZecOneSeaportExecutor.sol:43:423
+   │
+43 │ …r || i.orderId==0 || i.nonce==0 || i.refundHash==0 || i.expiry<=block.timestamp || i.maxNative==0 || i.maxNative>0.0002 ether || msg.…
+   │                                                        ━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+   ╭▸ contracts\ZecOneSeaportExecutor.sol:60:328
+   │
+60 │ …r!=1 || a.denominator!=1 || a.extraData.length!=0 || p.startTime>block.timestamp || p.endTime<=i.expiry || counter!=SeaportInterface(…
+   │                                                       ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+   ╭▸ contracts\ZecOneNFT.sol:29:106
+   │
+29 │ …ecipient == relayer || intent.zatoshis != PRICE || block.timestamp > intent.expiry) revert InvalidIntent();
+   │                                                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#block-timestamp
+
+warning[erc20-unchecked-transfer]: ERC20 'transfer' and 'transferFrom' calls should check the return value
+    ╭▸ contracts\test\SwapExecutor.t.sol:115:9
+    │
+115 │         t.transfer(address(r), 1000 ether);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#erc20-unchecked-transfer

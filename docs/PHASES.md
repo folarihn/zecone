@@ -58,3 +58,12 @@ Phase 4A does not include Solana, token swaps, mainnet, a production bridge or E
 5. Pass 138 local tests, both typechecks and the production build. Verify a real shielded payment at 13 confirmations followed by an actual AMM swap delivering 19.550169617820656117 ZTEST to the user's EOA.
 6. Verify reserves, actual provider expenditure, replay rejection, one broadcast and service restart without duplicate execution. See [Phase 4B results](PHASE4B-RESULTS.md).
 7. Stop after Phase 4B. Optional Ethereum/Robinhood swaps remain unverified and disabled; prior NFT support is preserved. No Phase 4C, OpenSea/Seaport, Solana or mainnet work begins automatically.
+
+## Phase 4C — complete; stop here
+
+1. Preserve Phase 4B checkpoint `9f79d86`, prior evidence and pinned NU7 Rust dependencies. Run the complete 138-test baseline and verify the official Base Sepolia Seaport 1.6 deployment.
+2. Add a narrow recipient-directed Seaport adapter/wrapper, independent user intent domain, read-only API validation and shared durable payment/liquidity accounting.
+3. Add a clearly labeled controlled Seaport wallet flow with separate intent/payment approval. API testnet listing access and direct OpenSea website connectivity remain unproven and are not claimed.
+4. Pass 168 tests, both typechecks and the production build. A real 0.010125 TAZ shielded payment, plus native fee, authorized one genuine Seaport fulfillment after 13 confirmations.
+5. Independently verify seller proceeds, direct NFT ownership, actual gas, replay rejection, one broadcast and unchanged settlement after service restart. See [Phase 4C results](PHASE4C-RESULTS.md).
+6. Stop after Phase 4C. No Phase 4D/5, mainnet, production pricing/liquidity, arbitrary marketplace execution or automatic refunds.
