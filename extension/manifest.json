@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "ZecOne Testnet Connector",
+  "version": "0.1.0",
+  "description": "OpenSea-only EIP-6963 discovery for the locally approved ZecOne testnet wallet. No keys in this extension.",
+  "minimum_chrome_version": "111",
+  "content_scripts": [
+    {
+      "matches": ["https://opensea.io/*", "https://www.opensea.io/*"],
+      "js": ["provider.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": false
+    }
+  ]
+}

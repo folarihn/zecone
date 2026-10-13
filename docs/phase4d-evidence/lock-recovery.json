@@ -1,0 +1,8 @@
+{
+  "priorPid": 9984,
+  "expiredUnminedJournals": 1,
+  "action": "Archived exact stale process lock; no send journal changed; read-only sync may resume",
+  "at": "2026-10-13T10:55:07.1519936Z",
+  "minedJournals": 8,
+  "ownerAlive": false
+}

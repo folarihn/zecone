@@ -1,0 +1,29 @@
+{
+  "at": "2026-10-13T10:57:44.635Z",
+  "priorFiles": 199,
+  "changedPriorFiles": [],
+  "snapshots": [
+    {
+      "database": ".state/orders.sqlite",
+      "unchanged": true,
+      "orders": 3,
+      "broadcasts": [
+        {
+          "event": "broadcast_attempt",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "database": ".state/purchases.sqlite",
+      "unchanged": true,
+      "orders": 5,
+      "broadcasts": [
+        {
+          "event": "broadcast_attempt",
+          "count": 5
+        }
+      ]
+    }
+  ]
+}

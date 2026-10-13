@@ -329,3 +329,21 @@ test("apps page names exact origins and lets the user revoke a connection", asyn
   await page.getByRole("button", { name: "Disconnect" }).click();
   expect(posts).toContain("/api/dapps/revoke");
 });
+
+test("OpenSea preview is non-executing, recipient-bound and expires visibly", async ({ page }) => {
+  const posts:string[]=[];
+  page.on("request",r=>{if(r.method()==="POST")posts.push(new URL(r.url()).pathname);});
+  const hash="0x"+"c".repeat(64), row={orderHash:hash,tokenId:"42",priceWei:"1000000000000000",currency:"ETH",status:"ACTIVE"};
+  await page.route("**/api/seaport/**",r=>r.fulfill({json:new URL(r.request().url()).pathname.endsWith("list")?{purchases:[]}:{listings:[],available:false}}));
+  await page.route("**/api/opensea/**",r=>r.fulfill({json:new URL(r.request().url()).pathname.endsWith("listings")?{listings:[row]}:{...row,name:"Synthetic NFT #42",collection:"fixture-collection",source:"SYNTHETIC browser fixture",network:"Ethereum mainnet — inspection only",seller:fixture.contract,recipient:fixture.address,nft:fixture.contract,sellerWei:"990000000000000",feesWei:"10000000000000",gasBudgetWei:"100000000000000",requiredLiquidityWei:"1100000000000000",simulatedZatoshis:"5500000",expiry:Math.floor(Date.now()/1000)+3,block:"12345",bindingHash:hash,sellerAuthorization:"Synthetic fixture",consideration:[],executable:false,simulation:"Fixture simulation only",executionBlocker:"Mainnet settlement is disabled.",trust:"Manual recovery only.",privacy:"Public EVM account visible.",openSeaUrl:"https://opensea.io/"}}));
+  await page.goto("/");await page.getByRole("button",{name:"Seaport",exact:true}).click();
+  const panel=page.getByRole("region",{name:"OpenSea inspection",exact:true});
+  await panel.getByRole("button",{name:"Discover official listings"}).click();
+  await panel.getByRole("button",{name:"Validate & preview #42"}).click();
+  const preview=page.getByRole("article",{name:"Non-executing checkout preview"});
+  await expect(preview).toContainText(fixture.address);await expect(preview).toContainText("0.0011 ETH");
+  expect(await preview.getByRole("button").count()).toBe(0);
+  await expect(preview.getByRole("status")).toContainText("Preview expired",{timeout:10000});
+  expect(posts).toEqual(["/api/opensea/listings","/api/opensea/preview"]);
+  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});

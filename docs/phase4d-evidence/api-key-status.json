@@ -1,0 +1,9 @@
+{
+  "status": "created",
+  "expires_at": "2026-10-20T10:27:38.767069775Z",
+  "rate_limits": {
+    "read": "600/h",
+    "write": "30/h",
+    "fulfillment": "5/m"
+  }
+}

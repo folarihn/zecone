@@ -7,6 +7,8 @@ import { RpcError, originOf } from "./dapp-policy.ts";
 import type { Purchases } from "../marketplace/service.ts";
 import type { Swaps } from "../swaps/service.ts";
 import type { SeaportPurchases } from "../seaport/service.ts";
+import type { OpenSeaPreviews } from "../opensea/service.ts";
+import { DiscoveryError } from "../opensea/api.ts";
 type Backend = Pick<
   Engine,
   | "dashboard"
@@ -25,6 +27,7 @@ export function api(
   purchases?: Purchases,
   swaps?: Swaps,
   seaport?: SeaportPurchases,
+  opensea?: OpenSeaPreviews,
 ) {
   const attempts = new Map<string, { at: number; count: number }>();
   return async (req: IncomingMessage, res: ServerResponse) => {
@@ -100,6 +103,18 @@ export function api(
           throw new ApiError(429, "Too many requests. Please wait a minute.");
       }
       let data: unknown;
+      if (path?.startsWith("/api/opensea/") && opensea) {
+        if (!session.connected) throw new ApiError(403, "Verify wallet ownership first.");
+        try {
+          if (method === "POST" && path === "/api/opensea/listings") data = await opensea.catalog(body.collection);
+          else if (method === "POST" && path === "/api/opensea/preview") data = await opensea.preview(body.collection, body.orderHash);
+          else throw new ApiError(404, "Read-only OpenSea operation unavailable.");
+        } catch (e) {
+          if (e instanceof DiscoveryError) throw new ApiError(422, e.message);
+          throw e;
+        }
+        send(200, data); return;
+      }
       if(path?.startsWith("/api/seaport/")&&seaport){
         if(!session.connected)throw new ApiError(403,"Verify wallet ownership first.");
         switch(`${method} ${path}`){

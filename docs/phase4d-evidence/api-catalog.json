@@ -1,0 +1,118 @@
+{
+  "observedAt": "2026-10-13T10:51:43.999Z",
+  "collection": "pudgypenguins",
+  "source": "Official OpenSea API",
+  "network": "Ethereum mainnet — read-only",
+  "listings": [
+    {
+      "orderHash": "0x1c01aa564f5d306efd35ca896ad9924c12f470af3c015f459ace8637961036a0",
+      "chainId": 1,
+      "nft": "0xBd3531dA5CF5857e7CfAA92426877b022e612cf8",
+      "tokenId": "3357",
+      "priceWei": "2299990000000000000",
+      "currency": "ETH",
+      "status": "ACTIVE",
+      "seller": "0x09E50bDD56664565F3528B25B3d79A79683dE931",
+      "validated": false
+    },
+    {
+      "orderHash": "0xe7fd5f814abf5e1d70905fb4ef0f27de458524bdf753cdc6701f396f6ad8de7c",
+      "chainId": 1,
+      "nft": "0xBd3531dA5CF5857e7CfAA92426877b022e612cf8",
+      "tokenId": "3374",
+      "priceWei": "2339000000000000000",
+      "currency": "ETH",
+      "status": "ACTIVE",
+      "seller": "0x6f15F9D78325A25a3ED808C48B43A3AF08B828dD",
+      "validated": false
+    },
+    {
+      "orderHash": "0xca8441832b2eb6132ef0a4fcbc84011bb1ce6da6654413a4b9d239c8b12123c7",
+      "chainId": 1,
+      "nft": "0xBd3531dA5CF5857e7CfAA92426877b022e612cf8",
+      "tokenId": "7460",
+      "priceWei": "2384000000000000000",
+      "currency": "ETH",
+      "status": "ACTIVE",
+      "seller": "0x02b5F98A2cD98dA04b77CF5A507021A9988B5EB3",
+      "validated": false
+    },
+    {
+      "orderHash": "0xc9a19777a088627779b41cadef0c661d43f5ebac55acb0f70170c14836b37498",
+      "chainId": 1,
+      "nft": "0xBd3531dA5CF5857e7CfAA92426877b022e612cf8",
+      "tokenId": "4004",
+      "priceWei": "2390000000000000000",
+      "currency": "ETH",
+      "status": "ACTIVE",
+      "seller": "0xa64b6286437138F715F6057F0464815031D96FcF",
+      "validated": false
+    },
+    {
+      "orderHash": "0xccab0d63a45dec76cc8e27d9c078be52173ab9400e6297f639086a817387d81e",
+      "chainId": 1,
+      "nft": "0xBd3531dA5CF5857e7CfAA92426877b022e612cf8",
+      "tokenId": "7460",
+      "priceWei": "2400000000000000000",
+      "currency": "ETH",
+      "status": "ACTIVE",
+      "seller": "0x02b5F98A2cD98dA04b77CF5A507021A9988B5EB3",
+      "validated": false
+    },
+    {
+      "orderHash": "0xe4ab02c01f4cde98ce528557764608cfa6151ee0c045060ca7867607214c7ef2",
+      "chainId": 1,
+      "nft": "0xBd3531dA5CF5857e7CfAA92426877b022e612cf8",
+      "tokenId": "5697",
+      "priceWei": "2589999990000000000",
+      "currency": "ETH",
+      "status": "ACTIVE",
+      "seller": "0x8bd097DF5aE353AdC890Ff704D360D8916220cee",
+      "validated": false
+    },
+    {
+      "orderHash": "0x5187e35e0e7535735d0e53ece0c3b7248d928feb41c1c6521cc5395606efdf5f",
+      "chainId": 1,
+      "nft": "0xBd3531dA5CF5857e7CfAA92426877b022e612cf8",
+      "tokenId": "5172",
+      "priceWei": "2709955000000000000",
+      "currency": "ETH",
+      "status": "ACTIVE",
+      "seller": "0x621C70De47c35BE4622c891555a6016cDe2E1a61",
+      "validated": false
+    },
+    {
+      "orderHash": "0x7fb7a08516f2b7d29172184d8d46596ba766aafd929d7e3479d59672876e29b0",
+      "chainId": 1,
+      "nft": "0xBd3531dA5CF5857e7CfAA92426877b022e612cf8",
+      "tokenId": "3073",
+      "priceWei": "2727200000000000000",
+      "currency": "ETH",
+      "status": "ACTIVE",
+      "seller": "0x2F351f3834aC78e9745753B32088d5B28091C8f2",
+      "validated": false
+    },
+    {
+      "orderHash": "0x21aa460c904922f5f709c2546d6d98cb5f0181bbf0e87ebc140071c7baf063d7",
+      "chainId": 1,
+      "nft": "0xBd3531dA5CF5857e7CfAA92426877b022e612cf8",
+      "tokenId": "1604",
+      "priceWei": "2750000000000000000",
+      "currency": "ETH",
+      "status": "ACTIVE",
+      "seller": "0xCA014D87081e6397f80cfF355f50a1D2fEc089EF",
+      "validated": false
+    },
+    {
+      "orderHash": "0x0a5631345afbfe7b30272296ae9046b4bd81d75fd90fdca7f21b830f57e17ea5",
+      "chainId": 1,
+      "nft": "0xBd3531dA5CF5857e7CfAA92426877b022e612cf8",
+      "tokenId": "3073",
+      "priceWei": "2777700000000000000",
+      "currency": "ETH",
+      "status": "ACTIVE",
+      "seller": "0x2F351f3834aC78e9745753B32088d5B28091C8f2",
+      "validated": false
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import OpenSeaPanel from "../opensea/panel";
 const units = (v: string, d = 18) => {
   const n = BigInt(v),
     b = 10n ** BigInt(d);
@@ -70,6 +71,7 @@ export default function SeaportPanel() {
   }
   return (
     <section className="swap-panel" aria-label="Seaport purchases">
+      <OpenSeaPanel />
       <h2>Seaport test listings</h2>
       <p className="notice">
         Controlled seller-signed listings on Seaport 1.6 · Base Sepolia. These
