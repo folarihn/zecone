@@ -1,0 +1,21 @@
+
+> test:ui
+> playwright test
+
+[WebServer] (node:16236) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 8 tests using 1 worker
+
+(node:9252) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 1 tests\ui\purchase-popup.spec.ts:3:1 › marketplace popup shows exact quote approval then the separate payment panel (917ms)
+  ok 2 tests\ui\wallet.spec.ts:45:1 › marketplace payment needs a separate native-fee approval and preserves recovery details (648ms)
+  ok 3 tests\ui\wallet.spec.ts:158:1 › malformed network data shows an error without crashing the wallet (429ms)
+  ok 4 tests\ui\wallet.spec.ts:171:1 › desktop wallet is accessible and has no horizontal overflow (1.1s)
+  ok 5 tests\ui\wallet.spec.ts:189:1 › mobile navigation, checkout review and focus-trapped approval are accessible (1.1s)
+  ok 6 tests\ui\wallet.spec.ts:229:1 › no signing happens merely by visiting checkout or opening an approval (649ms)
+  ok 7 tests\ui\wallet.spec.ts:250:1 › sponsor screen displays fixed terms before its explicit approval (528ms)
+  ok 8 tests\ui\wallet.spec.ts:276:1 › apps page names exact origins and lets the user revoke a connection (524ms)
+
+  8 passed (9.1s)

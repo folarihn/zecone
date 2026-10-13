@@ -1,6 +1,6 @@
 import { Store, type Order } from './store.ts';
 import type { Hex } from 'viem';
-export type Result = { status:'pending' } | { status:'reverted' } | { status:'success'; hash:Hex; block:string; recipient:string; tokenId?:string; actionId?:string };
+export type Result = { status:'pending' } | { status:'reverted' } | { status:'success'; hash:Hex; block:string; recipient:string; tokenId?:string; actionId?:string; token?:string; amountOut?:string; balanceBefore?:string; balanceAfter?:string };
 export interface Executor {
   prepare(order: Order): Promise<{raw:Hex;hash:Hex}>;
   broadcast(raw: Hex): Promise<Hex>;

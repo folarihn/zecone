@@ -37,7 +37,7 @@ export class PurchaseJournal extends Store {
   }
   rows() {
     return this.db
-      .prepare("SELECT * FROM purchase_requests ORDER BY created DESC")
+      .prepare("SELECT * FROM purchase_requests WHERE json_extract(intent,'$.kind')='purchase' ORDER BY created DESC")
       .all() as PurchaseRow[];
   }
   row(id: string) {
@@ -46,13 +46,14 @@ export class PurchaseJournal extends Store {
       .get(id) as PurchaseRow | undefined;
   }
   reserved(chainId = 84532) {
-    return this.rows().filter(r => (JSON.parse(r.intent).chainId ?? 84532) === chainId).reduce((sum, r) => sum + BigInt(r.reserved), 0n);
+    const rows = this.db.prepare("SELECT reserved FROM purchase_requests WHERE COALESCE(json_extract(intent,'$.chainId'),84532)=?").all(chainId) as {reserved:string}[];
+    return rows.reduce((sum,r)=>sum+BigInt(r.reserved),0n);
   }
-  reserve(
+  reserve<T extends Pick<UnsignedPurchase, "chainId" | "price" | "gasBudget">>(
     id: string,
     origin: string,
     session: string,
-    intent: UnsignedPurchase,
+    intent: T,
     refund: string,
     request: string,
     balance: bigint,

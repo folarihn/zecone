@@ -23,12 +23,14 @@ import {
 import type { Dashboard, CheckoutView } from "../services/wallet/view";
 import NetworksPanel from "./networks/panel";
 import PurchasePanel from "./purchases/panel";
+import SwapPanel from "./swaps/panel";
 type Tab =
   | "Wallet"
   | "Checkout"
   | "Sponsor"
   | "Apps"
   | "Purchases"
+  | "Tokens"
   | "Activity"
   | "Privacy";
 const short = (v: string, n = 6) => `${v.slice(0, n)}…${v.slice(-4)}`;
@@ -52,6 +54,7 @@ const icons = {
   Sponsor: KeyRound,
   Apps: Globe,
   Purchases: Grid2X2,
+  Tokens: ArrowRight,
 };
 function Seal({ small = false }: { small?: boolean }) {
   return (
@@ -388,6 +391,7 @@ export default function Wallet() {
               "Sponsor",
               "Apps",
               "Purchases",
+              "Tokens",
               "Activity",
               "Privacy",
             ] as Tab[]
@@ -475,6 +479,8 @@ export default function Wallet() {
                         ? "ORIGIN-BOUND EVM PERMISSIONS"
                         : tab === "Purchases"
                           ? "PRIVATE PAYMENT, PUBLIC NFT OWNERSHIP"
+                          : tab === "Tokens"
+                            ? "PRIVATE PAYMENT, PUBLIC TOKEN OWNERSHIP"
                           : tab === "Activity"
                             ? "A CLEAR RECORD"
                             : "UNDERSTAND YOUR WALLET"}
@@ -490,6 +496,8 @@ export default function Wallet() {
                         ? "Connected applications"
                         : tab === "Purchases"
                           ? "Your marketplace purchases"
+                          : tab === "Tokens"
+                            ? "Your token purchases"
                           : tab === "Activity"
                             ? "Recent activity"
                             : "Privacy, in plain language"}
@@ -505,6 +513,8 @@ export default function Wallet() {
                         ? "Each website gets access only after you approve its exact origin."
                         : tab === "Purchases"
                           ? "Track shielded payments, NFT delivery and recovery."
+                          : tab === "Tokens"
+                            ? "Review an AMM quote and fund a bounded swap with test ZEC."
                           : tab === "Activity"
                             ? "Transactions tracked by your local ZecOne wallet."
                             : "Know what stays private, and what becomes public."}
@@ -1183,6 +1193,7 @@ export default function Wallet() {
                 </section>
               )}
               {tab === "Purchases" && <PurchasePanel />}
+              {tab === "Tokens" && <SwapPanel />}
               {tab === "Activity" && (
                 <>
                   <div className="activity-intro">

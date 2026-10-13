@@ -5,6 +5,7 @@ import { uuid, type Engine } from "./engine.ts";
 import type { Dapps } from "./dapps.ts";
 import { RpcError, originOf } from "./dapp-policy.ts";
 import type { Purchases } from "../marketplace/service.ts";
+import type { Swaps } from "../swaps/service.ts";
 type Backend = Pick<
   Engine,
   | "dashboard"
@@ -21,6 +22,7 @@ export function api(
   engine: Backend,
   dapps?: Dapps,
   purchases?: Purchases,
+  swaps?: Swaps,
 ) {
   const attempts = new Map<string, { at: number; count: number }>();
   return async (req: IncomingMessage, res: ServerResponse) => {
@@ -96,6 +98,21 @@ export function api(
           throw new ApiError(429, "Too many requests. Please wait a minute.");
       }
       let data: unknown;
+      if (path?.startsWith("/api/swaps/") && swaps) {
+        if (!session.connected) throw new ApiError(403,"Verify wallet ownership first.");
+        switch (`${method} ${path}`) {
+          case "GET /api/swaps/assets": data=await swaps.assets(); break;
+          case "GET /api/swaps/list": data={swaps:swaps.list()}; break;
+          case "POST /api/swaps/quote": data=await swaps.quote(session,body); break;
+          case "POST /api/swaps/approve": if(body.approved!==true)throw new ApiError(400,"Exact swap approval required."); data=await swaps.approve(session,uuid(body.id)); break;
+          case "POST /api/swaps/cancel": {const r=swaps.row(uuid(body.id));if(r.session!==session.id)throw new ApiError(403,"Session mismatch");swaps.cancelDraft(r.id);data={cancelled:true};break;}
+          case "POST /api/swaps/fee": data=await swaps.fee(session,uuid(body.id));break;
+          case "POST /api/swaps/pay": data=await swaps.pay(session,uuid(body.id),uuid(body.quoteId),body.approved);break;
+          case "POST /api/swaps/recheck": data=await swaps.reconcile(session,uuid(body.id));break;
+          default: throw new ApiError(404,"Swap operation unavailable.");
+        }
+        send(200,data);return;
+      }
       if (path?.startsWith("/api/purchases/") && purchases) {
         if (!session.connected)
           throw new ApiError(403, "Verify wallet ownership first.");

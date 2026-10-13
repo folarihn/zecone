@@ -1,0 +1,12 @@
+(node:6112) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"step":"UniswapV2Factory","confirmed":true,"hash":"0xb9e11637e8a36bb57647ec523c446c007ddab175e4bc6e01eb69fbea57c39aeb"}
+{"step":"UniswapV2Router02","hash":"0x17c2f0495b796abfddf640c46c6c76a84ecc866689c3d69e20ed5b8b582caea8","estimatedMaximumFeeWei":"80291916000000","valueWei":"0"}
+{"step":"UniswapV2Router02","confirmed":true,"hash":"0x17c2f0495b796abfddf640c46c6c76a84ecc866689c3d69e20ed5b8b582caea8"}
+{"step":"token-approval","hash":"0x0aed96b88c46aea84d3f09544ca974cc081c0347bbcd172d49c778fbb908a444","estimatedMaximumFeeWei":"40392798000000","valueWei":"0"}
+{"step":"token-approval","confirmed":true,"hash":"0x0aed96b88c46aea84d3f09544ca974cc081c0347bbcd172d49c778fbb908a444"}
+{"step":"seed-liquidity","hash":"0xf77405923e2051c0c7946b5cbf5240b856b2c12e488f990cfbbc17904e90260e","estimatedMaximumFeeWei":"63403485000000","valueWei":"5000000000000000"}
+{"step":"seed-liquidity","confirmed":true,"hash":"0xf77405923e2051c0c7946b5cbf5240b856b2c12e488f990cfbbc17904e90260e"}
+{"step":"ZecOneSwapExecutor","hash":"0xc88c87d9448d5701e79bac246b1a58b216eb74a62c6178f5211dd696d4c21c85","estimatedMaximumFeeWei":"54799953000000","valueWei":"0"}
+{"step":"ZecOneSwapExecutor","confirmed":true,"hash":"0xc88c87d9448d5701e79bac246b1a58b216eb74a62c6178f5211dd696d4c21c85"}
+Verified Base Sepolia AMM setup complete. No user Zcash payment sent.

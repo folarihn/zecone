@@ -1,0 +1,16 @@
+(node:4260) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ concurrent NFT and swap quote reservations cannot double-book one provider balance (337.5257ms)
+✔ a confirmed swap cannot allocate a nonce while an NFT transaction is unresolved (28.0647ms)
+✔ V2 output uses fee-adjusted constant product and worsens with size (0.506ms)
+✔ NFT and swap reservations compete atomically across connections and keep separate views (25.1854ms)
+✔ swap APIs reject unconnected and unapproved sessions before touching the signer or native wallet (21.29ms)
+✔ local AMM: official V2 artifacts, signed swap, reserve movement, receipt, restart, replay, slippage and failure recovery (840.9001ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4014.2866

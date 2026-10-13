@@ -168,6 +168,23 @@ test("malformed network data shows an error without crashing the wallet", async 
   ).toContainText("Invalid response from the local service");
 });
 
+test("token swap requires exact intent approval and a separate native payment approval",async({page})=>{
+ let quotes=0,approvals=0,payments=0;let stage="draft";
+ const row={id:"synthetic-swap",recipient:fixture.address,token:fixture.contract,router:fixture.contract,route:[fixture.address,fixture.contract],amountIn:"100000000000000",expectedOut:"19000000000000000000",minOut:"18810000000000000000",slippageBps:100,referenceBlock:"1234",expiry:Math.floor(Date.now()/1000)+3600,zatoshis:"1000000",gasBudget:"100000000000000",impactBps:230,estimatedFee:"1000000000000",confirmations:0,trust:"Synthetic fixture. Simulated rate; manual recovery only.",fee:{id:"fee",feeZatoshis:"10000",totalZatoshis:"1010000"}};
+ await page.route("**/api/swaps/**",async route=>{const path=new URL(route.request().url()).pathname;
+  if(path.endsWith("/quote"))quotes++;
+  if(path.endsWith("/approve")){approvals++;stage="awaiting";}
+  if(path.endsWith("/pay")){payments++;stage="sent";}
+  const view={...row,stage,status:stage==="draft"?"Awaiting quote approval":stage==="sent"?"Confirming":"Awaiting payment"};
+  await route.fulfill({json:path.endsWith("/assets")?{available:true,tokens:[{address:fixture.contract,balance:"0"}]}:path.endsWith("/list")?{swaps:quotes?[view]:[]}:view});
+ });
+ await page.goto("/");await page.getByRole("button",{name:"Tokens",exact:true}).click();await expect(page.getByRole("heading",{name:"Your token purchases"})).toBeVisible();expect(approvals).toBe(0);expect(payments).toBe(0);
+ await page.getByRole("button",{name:"Get AMM quote"}).click();await expect(page.getByRole("dialog")).toContainText("18.81 ZTEST");await expect(page.getByRole("dialog")).toContainText("100 bps");await expect(page.getByRole("dialog")).toContainText("230 bps");expect(payments).toBe(0);
+ await page.getByRole("button",{name:"Approve exact swap intent",exact:true}).click();await expect(page.getByRole("dialog")).not.toBeVisible();expect(approvals).toBe(1);expect(payments).toBe(0);
+ await page.getByRole("button",{name:"Review shielded payment"}).click();await expect(page.getByRole("dialog")).toContainText("0.0101 TAZ");expect(payments).toBe(0);
+ await page.getByRole("button",{name:"Send shielded payment",exact:true}).click();await expect(page.getByRole("dialog")).not.toBeVisible();expect(payments).toBe(1);await expect(page.getByRole("heading",{name:"Confirming",exact:true})).toBeVisible();
+});
+
 test("desktop wallet is accessible and has no horizontal overflow", async ({
   page,
 }) => {

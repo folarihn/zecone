@@ -1,0 +1,5 @@
+(node:8416) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"step":"SwapTestToken","confirmed":true,"hash":"0xdaee75929b1d64e84ba8a930d961eecb230c5b8229d759df4a9c3eb1ac671d5d"}
+{"step":"UniswapV2Factory","hash":"0xb9e11637e8a36bb57647ec523c446c007ddab175e4bc6e01eb69fbea57c39aeb","estimatedMaximumFeeWei":"65845939000000","valueWei":"0"}
+Swap setup stopped at UniswapV2Factory:confirm (BlockNotFoundError). No success assumed; inspect persisted hashes and balances. Never delete the setup journal.

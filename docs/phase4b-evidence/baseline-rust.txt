@@ -1,0 +1,13 @@
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\zecone_zcash-3nn6demx4lu7g\s-hn4xqss2n7-1pmlt2e-working`
+
+warning: `zecone-zcash` (bin "zecone-zcash" test) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 12.01s
+     Running unittests src\main.rs (target\debug\deps\zecone_zcash-d2793140936f1c12.exe)
+
+running 4 tests
+test tests::fee_increase_cannot_exceed_approved_ceiling ... ok
+test tests::consensus_preflight_rejects_old_or_unknown_branch ... ok
+test tests::seed_is_exclusive_and_address_is_testnet_shielded ... ok
+test tests::wallet_schema_matches_observation_query ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.93s

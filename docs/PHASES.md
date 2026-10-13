@@ -48,3 +48,13 @@ Step 6 passed on 2026-10-12: real shielded payment, confirmed Base Sepolia mint,
 5. Stop after Phase 4A. Do not begin Phase 4B automatically.
 
 Phase 4A does not include Solana, token swaps, mainnet, a production bridge or ERC-4337 implementation. The ZEC settlement remains a trusted prefunded testnet prototype.
+
+## Phase 4B — complete; stop here
+
+1. Checkpoint Phase 4A at `627f0a0`, preserve prior evidence and NU7 Rust pins, record current balances and pass the 120-test baseline.
+2. Add typed execution adapters and shared NFT/swap liquidity accounting without mutating historical signatures.
+3. Deploy official V2 factory/router/WETH artifacts, a fixed-supply test token, funded pool and bounded signature-verifying executor on Base Sepolia.
+4. Add reserve-based quotes, token checks, separate intent/payment approval, actual token balances and durable recovery views.
+5. Pass 138 local tests, both typechecks and the production build. Verify a real shielded payment at 13 confirmations followed by an actual AMM swap delivering 19.550169617820656117 ZTEST to the user's EOA.
+6. Verify reserves, actual provider expenditure, replay rejection, one broadcast and service restart without duplicate execution. See [Phase 4B results](PHASE4B-RESULTS.md).
+7. Stop after Phase 4B. Optional Ethereum/Robinhood swaps remain unverified and disabled; prior NFT support is preserved. No Phase 4C, OpenSea/Seaport, Solana or mainnet work begins automatically.

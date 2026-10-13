@@ -24,6 +24,13 @@ import { locked, readJson, exclusiveJson } from "../execution/io.ts";
 import { requireApproval, uuid } from "../wallet/engine.ts";
 import { ApiError, type Session } from "../wallet/security.ts";
 import { userWalletNative } from "../wallet/native.ts";
+import type { Base } from "../execution/base.ts";
+import type { Executor } from "../execution/worker.ts";
+import { classifyIntent, type SignedExecutionIntent, type UnsignedExecutionIntent } from "../execution/model.ts";
+export interface PurchaseBackend extends Executor {
+  public: Base["public"]; account: Base["account"];
+  check(): Promise<void>; validate(intent: SignedExecutionIntent): Promise<Hex>;
+}
 const exec = promisify(execFile),
   now = () => Math.floor(Date.now() / 1000),
   hash = (v: unknown) =>
@@ -32,6 +39,11 @@ export class Purchases {
   busy = false;
   lockPath = ".state/service.lock";
   legacyPath = ".state/orders.sqlite";
+  approvalDir = ".state/purchase-approvals";
+  signerScript = "scripts/local-purchase-sign.ts";
+  receiptUncertainReason = "nft_ownership_or_receipt_uncertain";
+  validateTerms(i: UnsignedExecutionIntent) { if(i.kind!=="purchase")throw Error("wrong_execution_adapter");return terms(i, this.config(i.chainId), this.manifest.base.user, now()); }
+  validateSigned(i: SignedExecutionIntent) { const view=classifyIntent(i);if(view.action!=="NFT_PURCHASE")throw Error("wrong_execution_adapter");return validateSignature(view.signed, this.config(i.chainId), this.manifest.base.user, now()); }
   available() {
     return NETWORK_IDS.some(id => existsSync(network(id).deploymentFile));
   }
@@ -57,7 +69,7 @@ export class Purchases {
     if ((c.chainId ?? 84532) !== chainId) throw Error("deployment_chain_mismatch");
     return c;
   }
-  base(chainId = 84532) {
+  base(chainId = 84532): PurchaseBackend {
     return new PurchaseBase(this.config(chainId));
   }
   async native<T>(args: string[], deadline?: number): Promise<T> {
@@ -115,7 +127,7 @@ export class Purchases {
       originHash: keccak256(toHex(origin)),
     };
     terms(i, c, this.manifest.base.user, now());
-    this.store.reserve(
+    await this.withLock(async () => this.store.reserve(
       id,
       origin,
       s.id,
@@ -127,7 +139,7 @@ export class Purchases {
         blockTag: "pending",
       }),
       now(),
-    );
+    ));
     return {
       ...i,
       networkName: network(chainId).name,
@@ -149,11 +161,11 @@ export class Purchases {
     if (r.order_id) return { purchaseId: id };
     if (r.stage !== "draft")
       throw new ApiError(409, "Reconcile the existing purchase.");
-    const i = JSON.parse(r.intent) as UnsignedPurchase;
-    terms(i, this.config(i.chainId), this.manifest.base.user, now());
+    const i = JSON.parse(r.intent) as UnsignedExecutionIntent;
+    this.validateTerms(i);
     this.store.stage(id, "creating");
     try {
-      const path = resolve(".state/purchase-approvals", `${id}.json`);
+      const path = resolve(this.approvalDir, `${id}.json`);
       exclusiveJson(path, {
         approved: true,
         expires: Math.min(s.expires, Date.now() + 300000),
@@ -161,10 +173,10 @@ export class Purchases {
       });
       const { stdout } = await exec(
         process.execPath,
-        ["--import", "tsx", "scripts/local-purchase-sign.ts", path],
+        ["--import", "tsx", this.signerScript, path],
         { windowsHide: true, timeout: 90000, maxBuffer: 100000 },
       );
-      const signed = readJson<PurchaseIntent>(JSON.parse(stdout).intentFile);
+      const signed = readJson<SignedExecutionIntent>(JSON.parse(stdout).intentFile);
       await this.attach(r, signed);
     } catch {
       this.store.stage(id, "review");
@@ -175,14 +187,12 @@ export class Purchases {
     }
     return { purchaseId: id };
   }
-  async attach(r: PurchaseRow, signed: PurchaseIntent) {
+  async attach(r: PurchaseRow, signed: SignedExecutionIntent) {
+    classifyIntent(signed);
+    const { signature: approvalSignature, ...unsigned } = signed;
+    if (JSON.stringify(unsigned) !== r.intent) throw Error("signed_reservation_mismatch");
     const b = this.base(signed.chainId),
-      id = await validateSignature(
-        signed,
-        this.config(signed.chainId),
-        this.manifest.base.user,
-        now(),
-      );
+      id = await this.validateSigned(signed);
     await b.validate(signed);
     await this.withLock(async () => {
       const dest = await this.scanner.allocate(id);
@@ -206,7 +216,7 @@ export class Purchases {
       this.store.release(id);
     }
   }
-  view(r: PurchaseRow, external = false) {
+  view(r: PurchaseRow, external = false): any {
     const i = JSON.parse(r.intent) as UnsignedPurchase,
       o = r.order_id ? this.store.get(r.order_id) : undefined,
       tot = o ? this.store.totals(o.id) : { received: 0n, confirmed: 0n };
@@ -401,7 +411,7 @@ export class Purchases {
     requireApproval(s, true);
     const r = this.row(id);
     if (r.stage === "review" && !r.order_id) {
-      const path = resolve(".state/purchase-approvals", `${id}.signed.json`);
+      const path = resolve(this.approvalDir, `${id}.signed.json`);
       if (existsSync(path)) await this.attach(r, readJson(path));
     } else if (
       r.stage === "review" &&
@@ -490,7 +500,7 @@ export class Purchases {
                 this.recover(o.id, "broadcast_confirmation_unknown");
               }
             } catch {
-              this.recover(o.id, "nft_ownership_or_receipt_uncertain");
+              this.recover(o.id, this.receiptUncertainReason);
             }
             continue;
           }
@@ -546,6 +556,7 @@ export class Purchases {
             "insufficient_provider_liquidity",
             "gas_budget_exceeded",
             "already_consumed_reconcile",
+            "slippage_exceeded", "excessive_price_impact", "quote_reference_reorganization", "pool_reserves_or_token_behavior", "contract_code_mismatch",
           ];
           this.recover(
             o.id,

@@ -1889,3 +1889,56 @@ dialog .full {
   border: 1px solid #dbe5dd;
   border-radius: 12px;
 }
+
+.swap-panel {
+  display: grid;
+  gap: 16px;
+  overflow-wrap: anywhere;
+}
+.swap-panel > label {
+  display: grid;
+  gap: 8px;
+  max-width: 520px;
+  font-weight: 600;
+}
+.swap-panel input,
+.swap-panel select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+}
+.swap-panel > button,
+.swap-panel .purchase-card button {
+  justify-self: start;
+  min-height: 44px;
+  border: 1px solid #b3c5b7;
+  border-radius: 8px;
+  padding: 10px 16px;
+}
+.swap-panel > button.primary {
+  background: var(--green);
+  color: #fff;
+}
+.swap-panel .purchase-list {
+  display: grid;
+  gap: 16px;
+}
+.swap-panel .purchase-card {
+  display: grid;
+  gap: 12px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+.swap-panel .purchase-card a {
+  color: var(--green);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
