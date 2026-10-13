@@ -1,0 +1,17 @@
+
+> test:ui
+> playwright test
+
+[WebServer] (node:30140) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] ⨯ Failed to start server
+[WebServer] Error: listen EADDRINUSE: address already in use 127.0.0.1:3211
+[WebServer]     at ignore-listed frames {
+[WebServer]   code: 'EADDRINUSE',
+[WebServer]   errno: -4091,
+[WebServer]   syscall: 'listen',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 3211
+[WebServer] }
+Error: Process from config.webServer was not able to start. Exit code: 1
+

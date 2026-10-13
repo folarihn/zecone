@@ -291,6 +291,7 @@ export class Purchases {
           stage: r.stage,
           origin: r.origin,
           price: i.price,
+          seller: i.seller,
           zatoshis: i.zatoshis,
           gasBudget: i.gasBudget,
           expiry: i.expiry,

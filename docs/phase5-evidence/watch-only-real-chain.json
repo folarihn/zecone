@@ -1,0 +1,39 @@
+{
+  "at": "2026-10-13T16:19:40.552Z",
+  "network": "zcash-testnet",
+  "source": "https://testnet.zec.rocks:443",
+  "realChainRead": true,
+  "synthetic": false,
+  "receivingAddress": "utest14kn6vrrhh532qz2za3a6tgmy0868zvm0p04r4eg4dvge7f6ytrpaljag0ar2wsphssau6wsm6nanjd0265jdy3fxv9pny99vuuj6hw9q",
+  "signerLocalDiversifiedAddress": "utest1x2yq54wnx02nzt9czqr25ydf6svkphmc4qy2mz7cz5a6qjejufjq57mpd8r39ft786eq6s8z8tuqxpnhqwm8pew8kagpxz70ugg2c2tt",
+  "viewingKeyFingerprint": "e08fd3747333b0d086da9e282c7037df5f1b41171c155341b58750cff1b656da",
+  "birthday": 4498339,
+  "backend": {
+    "tip": 4498450,
+    "scanned": 4498450,
+    "blockHash": "0000180721b443cc645b43354eaff7b553803c6bbd3de754ae4ed4db52949d9a",
+    "ironwoodAnchor": "2e095285abc8cc1add5067223504e2571d02498d66f6c3c9cb5848a601c92d16",
+    "anchorHeight": 4498439,
+    "observedAt": 1791908376,
+    "detectedPayments": 0,
+    "confirmedPayments": 0,
+    "unspentIronwoodInputs": 0
+  },
+  "independentSigner": {
+    "tip": 4498450,
+    "scanned": 4498450,
+    "blockHash": "0000180721b443cc645b43354eaff7b553803c6bbd3de754ae4ed4db52949d9a",
+    "ironwoodAnchor": "2e095285abc8cc1add5067223504e2571d02498d66f6c3c9cb5848a601c92d16",
+    "anchorHeight": 4498437,
+    "observedAt": 1791908380,
+    "detectedPayments": 0,
+    "confirmedPayments": 0,
+    "unspentIronwoodInputs": 0
+  },
+  "independentDatabases": true,
+  "independentInfrastructureProviders": false,
+  "trust": "Both local scanners independently fetch and decrypt the same public lightwalletd feed. No consensus-node or separate-device validation has been claimed.",
+  "liveRefundsEnabled": false,
+  "transactionSigned": false,
+  "broadcast": false
+}

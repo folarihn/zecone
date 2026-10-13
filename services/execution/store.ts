@@ -18,6 +18,7 @@ export class Store {
       CREATE TABLE IF NOT EXISTS orders(id TEXT PRIMARY KEY, nonce TEXT NOT NULL UNIQUE, account TEXT NOT NULL UNIQUE, address TEXT NOT NULL UNIQUE, intent TEXT NOT NULL, state TEXT NOT NULL, created INTEGER NOT NULL, observed_at INTEGER NOT NULL DEFAULT 0, raw TEXT, tx_hash TEXT);
       CREATE TABLE IF NOT EXISTS payments(key TEXT PRIMARY KEY, order_id TEXT NOT NULL REFERENCES orders(id), zatoshis TEXT NOT NULL, height INTEGER NOT NULL, block_hash TEXT NOT NULL, active INTEGER NOT NULL, confirmed INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS audit(seq INTEGER PRIMARY KEY, at INTEGER NOT NULL, order_id TEXT NOT NULL, event TEXT NOT NULL, detail TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS execution_construction_claims(order_id TEXT PRIMARY KEY REFERENCES orders(id),active INTEGER NOT NULL,attempt INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS recoveries(id INTEGER PRIMARY KEY, order_id TEXT NOT NULL REFERENCES orders(id), reason TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'review_required', detail TEXT NOT NULL, UNIQUE(order_id,reason));`);
   }
   atomic<T>(fn: () => T): T { this.db.exec('BEGIN IMMEDIATE'); try { const v = fn(); this.db.exec('COMMIT'); return v; } catch (e) { this.db.exec('ROLLBACK'); throw e; } }
@@ -89,7 +90,23 @@ export class Store {
   }
   eligible(o: Order, now: number) {
     const intent = JSON.parse(o.intent) as Intent;
+    // Phase 5 authorization is an irreversible execution veto, including after
+    // restart or a caller attempting the legacy confirmed-revert retry path.
+    if (this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='settlement_execution_veto'").get() &&
+        this.db.prepare('SELECT order_id FROM settlement_execution_veto WHERE order_id=?').get(o.id)) return false;
     return o.state === 'verified' && now < intent.expiry && o.observed_at <= now+5 && now-o.observed_at <= 120 && this.totals(o.id).confirmed >= BigInt(intent.zatoshis);
+  }
+  claimPreparation(id: string, now: number) {
+    return this.atomic(() => {
+      const o = this.get(id);
+      if (!o || o.tx_hash || !this.eligible(o,now)) return false;
+      // Persist BEFORE calling any async constructor/signer. A missing raw tx
+      // after a crash is not evidence that no executable signature was produced.
+      const claim = this.db.prepare('INSERT INTO execution_construction_claims VALUES(?,1,1) ON CONFLICT(order_id) DO UPDATE SET active=1,attempt=attempt+1 WHERE active=0').run(id);
+      if (claim.changes !== 1) return false;
+      this.event(id,'execution_construction_claimed',{},now);
+      return true;
+    });
   }
   prepared(id: string, raw: Hex, hash: Hex, now: number) {
     this.atomic(() => {
@@ -103,8 +120,11 @@ export class Store {
   failed(id: string, now: number) { this.atomic(() => { this.transition(id,'failed',now); this.recover(id,'base_transaction_reverted',{hash:this.get(id)!.tx_hash},now); }); }
   retry(id: string, now: number) {
     this.atomic(() => {
-      const o = this.get(id); if (!o || o.state !== 'failed' || !this.eligible({...o,state:'verified'},now)) throw Error('only a confirmed revert with fresh sufficient payment may retry');
+      const o = this.get(id); if (!o || !o.raw || !o.tx_hash || o.state !== 'failed' || !this.eligible({...o,state:'verified'},now)) throw Error('only a confirmed revert with fresh sufficient payment may retry');
       this.event(id,'retry_after_confirmed_revert',{previousHash:o.tx_hash},now);
+      // Only the existing explicit confirmed-revert path permits another attempt.
+      // Keep the claim row forever so refund policy cannot infer never-constructed.
+      this.db.prepare('UPDATE execution_construction_claims SET active=0 WHERE order_id=?').run(id);
       this.db.prepare('UPDATE orders SET raw=NULL,tx_hash=NULL WHERE id=?').run(id);
       this.transition(id,'verified',now);
     });

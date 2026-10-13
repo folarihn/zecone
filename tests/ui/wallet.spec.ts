@@ -180,6 +180,10 @@ test("token swap requires exact intent approval and a separate native payment ap
  });
  await page.goto("/");await page.getByRole("button",{name:"Tokens",exact:true}).click();await expect(page.getByRole("heading",{name:"Your token purchases"})).toBeVisible();expect(approvals).toBe(0);expect(payments).toBe(0);
  await page.getByRole("button",{name:"Get AMM quote"}).click();await expect(page.getByRole("dialog")).toContainText("18.81 ZTEST");await expect(page.getByRole("dialog")).toContainText("100 bps");await expect(page.getByRole("dialog")).toContainText("230 bps");expect(payments).toBe(0);
+ const sharedTerms=page.getByRole("dialog").getByRole("region",{name:"Unified checkout terms"});
+ await expect(sharedTerms).toContainText(fixture.address);
+ await expect(sharedTerms).toContainText("Ten Zcash confirmations");
+ await expect(sharedTerms).toContainText("no automatic or confirmed refund is promised");
  await page.getByRole("button",{name:"Approve exact swap intent",exact:true}).click();await expect(page.getByRole("dialog")).not.toBeVisible();expect(approvals).toBe(1);expect(payments).toBe(0);
  await page.getByRole("button",{name:"Review shielded payment"}).click();await expect(page.getByRole("dialog")).toContainText("0.0101 TAZ");expect(payments).toBe(0);
  await page.getByRole("button",{name:"Send shielded payment",exact:true}).click();await expect(page.getByRole("dialog")).not.toBeVisible();expect(payments).toBe(1);await expect(page.getByRole("heading",{name:"Confirming",exact:true})).toBeVisible();
@@ -191,6 +195,7 @@ test("Seaport purchase labels controlled origin and separates intent from shield
  await page.route("**/api/seaport/**",async route=>{const p=new URL(route.request().url()).pathname;if(p.endsWith("/quote"))quotes++;if(p.endsWith("/approve")){approvals++;stage="awaiting";}if(p.endsWith("/pay")){payments++;stage="sent";}const view={...row,stage,status:stage==="draft"?"Awaiting quote approval":stage==="sent"?"Confirming":"Awaiting payment"};await route.fulfill({json:p.endsWith("/catalog")?{available:true,apiStatus:"Controlled Seaport test listing",listings:[{...row,available:true,chainId:84532}]}:p.endsWith("/list")?{purchases:quotes?[view]:[]}:view});});
  await page.goto("/");await page.getByRole("button",{name:"Seaport",exact:true}).click();await expect(page.getByRole("heading",{name:"Your Seaport purchases",exact:true})).toBeVisible();await expect(page.getByRole("region",{name:"Seaport purchases"})).toContainText("not OpenSea API listings");expect(approvals).toBe(0);expect(payments).toBe(0);
  await page.getByRole("button",{name:"Review Seaport purchase",exact:true}).click();await expect(page.getByRole("dialog")).toContainText("0.0000025 ETH");await expect(page.getByRole("dialog")).toContainText("chain 84532");expect(payments).toBe(0);
+ await expect(page.getByRole("dialog").getByRole("region",{name:"Unified checkout terms"})).toContainText(fixture.address);
  await page.getByRole("button",{name:"Approve exact Seaport intent",exact:true}).click();await expect(page.getByRole("dialog")).not.toBeVisible();expect(approvals).toBe(1);expect(payments).toBe(0);
  await page.getByRole("button",{name:"Review shielded Seaport payment",exact:true}).click();await expect(page.getByRole("dialog")).toContainText("0.010225 TAZ");expect(payments).toBe(0);
  await page.getByRole("button",{name:"Send shielded Seaport payment",exact:true}).click();await expect(page.getByRole("heading",{name:"Confirming",exact:true})).toBeVisible();expect(payments).toBe(1);

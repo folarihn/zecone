@@ -9,6 +9,7 @@ import type { Swaps } from "../swaps/service.ts";
 import type { SeaportPurchases } from "../seaport/service.ts";
 import type { OpenSeaPreviews } from "../opensea/service.ts";
 import { DiscoveryError } from "../opensea/api.ts";
+import { marketReferences } from "../pricing/service.ts";
 type Backend = Pick<
   Engine,
   | "dashboard"
@@ -103,11 +104,18 @@ export function api(
           throw new ApiError(429, "Too many requests. Please wait a minute.");
       }
       let data: unknown;
+      if (method === "GET" && path === "/api/reference-prices") {
+        if (!session.connected) throw new ApiError(403, "Verify wallet ownership first.");
+        try { send(200, {referenceOnly:true, changesApprovedPayment:false, ...await marketReferences()}); }
+        catch { send(503, {error:"Market references unavailable or stale. No payment terms changed."}); }
+        return;
+      }
       if (path?.startsWith("/api/opensea/") && opensea) {
         if (!session.connected) throw new ApiError(403, "Verify wallet ownership first.");
         try {
           if (method === "POST" && path === "/api/opensea/listings") data = await opensea.catalog(body.collection);
           else if (method === "POST" && path === "/api/opensea/preview") data = await opensea.preview(body.collection, body.orderHash);
+          else if (method === "POST" && path === "/api/opensea/import") data = await opensea.importListing(body.url);
           else throw new ApiError(404, "Read-only OpenSea operation unavailable.");
         } catch (e) {
           if (e instanceof DiscoveryError) throw new ApiError(422, e.message);

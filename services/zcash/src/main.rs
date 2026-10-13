@@ -50,6 +50,11 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+    /// Decode a shielded testnet address offline, without opening a wallet or seed.
+    ValidateAddress {
+        #[arg(long)]
+        address: String,
+    },
     Init,
     /// Idempotent, dedicated shielded account for a payment request.
     Allocate {
@@ -130,6 +135,18 @@ fn seed(path: &Path) -> Result<SecretVec<u8>> {
     let bytes = fs::read(path.join("seed.bin"))?;
     ensure!(bytes.len() == 32, "invalid seed length");
     Ok(SecretVec::new(bytes))
+}
+fn validate_shielded_destination(recipient: &str) -> Result<()> {
+    ensure!(recipient.len() <= 512, "address too long");
+    match Address::decode(&NET, recipient).context("invalid testnet recipient")? {
+        Address::Sapling(_) => Ok(()),
+        Address::Unified(ua)
+            if ua.transparent().is_none() && (ua.orchard().is_some() || ua.sapling().is_some()) =>
+        {
+            Ok(())
+        }
+        _ => bail!("shielded-only recipient required"),
+    }
 }
 async fn connect(url: &str) -> Result<CompactTxStreamerClient<Channel>> {
     ensure!(url.starts_with("https://"), "TLS is required");
@@ -339,12 +356,7 @@ async fn send(
         !started_file.exists(),
         "previous construction has an uncertain outcome; reconcile the wallet transaction history before retrying"
     );
-    let addr = Address::decode(&NET, recipient).context("invalid testnet recipient")?;
-    match &addr {
-        Address::Sapling(_) => (),
-        Address::Unified(ua) if ua.transparent().is_none() => (),
-        _ => bail!("shielded-only recipient required"),
-    }
+    validate_shielded_destination(recipient)?;
     ensure!(value > 0, "amount must be positive");
     sync(wallet, client).await?;
     let id = wallet
@@ -485,6 +497,14 @@ async fn run() -> Result<()> {
         .install_default()
         .map_err(|_| anyhow!("TLS provider initialization failed"))?;
     let args = Cli::parse();
+    if let Command::ValidateAddress { address } = &args.command {
+        validate_shielded_destination(address)?;
+        println!(
+            "{}",
+            json!({"network":"zcash-testnet","shielded":true,"valid":true})
+        );
+        return Ok(());
+    }
     let _lock = lock_wallet(&args.wallet)?;
     if matches!(args.command, Command::Init) {
         fs::create_dir_all(&args.wallet)?;
@@ -753,5 +773,9 @@ mod tests {
         assert!(ua.encode(&NET).starts_with("utest"));
         assert!(ua.transparent().is_none());
         assert!(Address::decode(&Network::MainNetwork, &ua.encode(&NET)).is_none());
+        assert!(validate_shielded_destination(&ua.encode(&NET)).is_ok());
+        assert!(validate_shielded_destination(&ua.encode(&Network::MainNetwork)).is_err());
+        assert!(validate_shielded_destination("utest1invalidchecksum").is_err());
+        assert!(validate_shielded_destination(&"x".repeat(513)).is_err());
     }
 }

@@ -1,0 +1,5 @@
+   Compiling zecone-zcash v0.1.0 (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\zcash)
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\zecone_zcash-2ij1ixx10ranj\s-hn68lpmeyz-0qfzqkt-working`
+
+warning: `zecone-zcash` (bin "zecone-zcash") generated 1 warning
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 26.15s

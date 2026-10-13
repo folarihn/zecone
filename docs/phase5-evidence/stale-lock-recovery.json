@@ -1,0 +1,8 @@
+{
+  "lockOwner": 26128,
+  "ownerAbsent": true,
+  "nativeProcessAbsent": true,
+  "historicalOrdersUnchanged": true,
+  "action": "Stopped verified wallet process; archived stale service lock; native send markers untouched",
+  "at": "2026-10-13T15:05:43.3593641Z"
+}

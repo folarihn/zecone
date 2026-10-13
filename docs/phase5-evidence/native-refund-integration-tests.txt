@@ -1,0 +1,14 @@
+(node:16120) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ independent approval integrates with native verification/signing and exact replay recovery (3252.8066ms)
+✔ native signer rejects locked keys and an interrupted durable signing claim (2799.5711ms)
+✔ native signing still requires independent authorization and input evidence (2149.5485ms)
+✔ failure after real native signing before journal persistence never permits replacement (4002.0553ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13919.0073

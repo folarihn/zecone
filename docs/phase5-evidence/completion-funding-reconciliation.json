@@ -1,0 +1,22 @@
+{
+  "at": "2026-10-13T17:17:29.985Z",
+  "network": "zcash-testnet",
+  "requestId": "bcb86911-fb11-44e5-9f76-cbfaa713091f",
+  "requestedZatoshis": "200000",
+  "feeCapZatoshis": "10000",
+  "savedTransactionReferencePresent": false,
+  "constructionMarkerPresent": true,
+  "sourceProcessLockPresent": true,
+  "matchingSourceTransactions": 0,
+  "payerScan": {
+    "tip": 4498578,
+    "scanned": 4498578,
+    "blockHash": "00000bb25294f68ca9f94f00089533f6bf4bb3c28b7180b6431c86fb02282cfb",
+    "receipts": []
+  },
+  "outcome": "construction_interrupted_requires_manual_reconciliation",
+  "retryAttempted": false,
+  "markersChanged": false,
+  "refundSigned": false,
+  "refundBroadcast": false
+}

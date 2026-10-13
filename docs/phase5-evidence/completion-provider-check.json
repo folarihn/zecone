@@ -1,0 +1,33 @@
+{
+  "at": "2026-10-13T16:34:13.986Z",
+  "height": 4498450,
+  "readOnly": true,
+  "outcomes": [
+    {
+      "operator": "zec.rocks",
+      "url": "https://testnet.zec.rocks:443",
+      "status": "verified",
+      "evidence": {
+        "blockHash": "0000180721b443cc645b43354eaff7b553803c6bbd3de754ae4ed4db52949d9a",
+        "branch": "77190ad9",
+        "chainName": "test",
+        "height": 4498450,
+        "ironwoodAnchor": "16c3af986791b9c9dda5c6746a337600d52f52fb8e64a2f0b3beed1ad9f74d10",
+        "network": "zcash-testnet",
+        "observedAt": 1791909233,
+        "readOnly": true,
+        "source": "https://testnet.zec.rocks:443",
+        "tip": 4498486
+      }
+    },
+    {
+      "operator": "Electric Coin Company",
+      "url": "https://lightwalletd.testnet.electriccoin.co:9067",
+      "status": "unavailable_or_rejected"
+    }
+  ],
+  "independentProviderAgreement": false,
+  "fullConsensusValidation": false,
+  "relevantPaymentInclusion": "not-tested-unfunded-wallet",
+  "liveRefundsEnabled": false
+}

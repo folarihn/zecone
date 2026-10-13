@@ -1,0 +1,17 @@
+   Compiling zcash_primitives v0.31.0-pre.1
+   Compiling tempfile v3.27.0
+   Compiling pczt v0.10.0-pre.1
+   Compiling zcash_client_backend v0.25.0-pre.1
+   Compiling zcash_pool_migration v0.2.0-pre.1
+   Compiling zcash_client_sqlite v0.23.0-pre.1
+   Compiling zecone-zcash-watch v0.1.0 (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\zcash-watch)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 30.56s
+     Running unittests src\main.rs (target\debug\deps\zecone_zcash_watch-af83203232ffcc2b.exe)
+
+running 3 tests
+test tests::refuses_legacy_or_secret_files_without_opening_database ... ok
+test tests::malformed_or_mainnet_manifest_fails_closed ... ok
+test tests::ufvk_import_reopens_without_seed_and_rejects_mainnet_key ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.10s
+

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import OpenSeaPanel from "../opensea/panel";
+import CheckoutTerms from "../checkout/terms";
 const units = (v: string, d = 18) => {
   const n = BigInt(v),
     b = 10n ** BigInt(d);
@@ -148,6 +149,7 @@ export default function SeaportPanel() {
         {rows.map((r) => (
           <article className="purchase-card" key={r.id}>
             <h3>{r.status}</h3>
+            {r.status === 'Completed' && <details><summary>Historical approved terms</summary><p>Historical record only. This does not create a new quote or payment.</p><CheckoutTerms terms={r}/></details>}
             <p>
               Base Sepolia · Seaport 1.6 · Token #{r.tokenId} · {r.id}
             </p>
@@ -295,7 +297,7 @@ export default function SeaportPanel() {
                 </>
               )}
             </dl>
-            <p>{review.data.trust}</p>
+            <CheckoutTerms terms={review.data}/>
             <button disabled={busy} onClick={() => void act(cancel)}>
               Cancel
             </button>

@@ -1,0 +1,8 @@
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\zecone_refund_signer-3vagbbecwa8fl\s-hn6fv2ymdf-0lfv82m-working`
+
+warning: `zecone-refund-signer` (lib) generated 1 warning
+   Compiling zecone-refund-signer v0.1.0 (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\refund-signer-native)
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\zecone_refund_signer-2a91ojqfk5w79\s-hn6gm4ho6m-1wl9v9a-working`
+
+warning: `zecone-refund-signer` (bin "zecone-refund-signer") generated 1 warning
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 9.01s

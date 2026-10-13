@@ -1,0 +1,27 @@
+   Compiling zecone-refund-signer v0.1.0 (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\refund-signer-native)
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\zecone_refund_signer-2xeqxub7hznra\s-hn6gvyd0nn-0aeq2ow-working`
+
+warning: `zecone-refund-signer` (lib test) generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\zecone_refund_signer-3vagbbecwa8fl\s-hn6gvyd2a9-1jpz24n-working`
+
+warning: `zecone-refund-signer` (lib) generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\provision_watch_test-2oo3dt41a7cun\s-hn6gw2g4bu-1w6bf7o-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\provision_watch_test-2zaku5krwrlrw\s-hn6gw2jtvc-1yudfgd-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\zecone_refund_signer-058gzc43o5zmm\s-hn6gw2qw1w-10v2oqm-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\zecone_refund_signer-2a91ojqfk5w79\s-hn6gw2ry21-17vowpa-working`
+
+warning: `zecone-refund-signer` (bin "provision-watch-test" test) generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\verification-30e02csem6lzn\s-hn6gw2g54s-0x1gnwa-working`
+
+warning: `zecone-refund-signer` (bin "zecone-refund-signer" test) generated 1 warning
+warning: `zecone-refund-signer` (bin "provision-watch-test") generated 1 warning
+warning: `zecone-refund-signer` (bin "zecone-refund-signer") generated 1 warning
+error: failed to remove file `C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\zecone-refund-signer.exe`
+
+Caused by:
+  Access is denied. (os error 5)
+warning: build failed, waiting for other jobs to finish...
+warning: `zecone-refund-signer` (test "verification") generated 1 warning

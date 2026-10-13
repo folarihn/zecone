@@ -10,6 +10,7 @@ import {
   type InspectedListing,
 } from "./inspection.ts";
 import { PROTOCOL } from "../seaport/protocol.ts";
+import { listingHandoff } from "./handoff.ts";
 export function publicListing(raw: any) {
   check(
     raw?.chain === "ethereum" &&
@@ -130,6 +131,19 @@ export class OpenSeaPreviews {
         .filter((v: any) => v.chain === "ethereum")
         .map(publicListing),
     };
+  }
+  async importListing(input: unknown) {
+    let item: ReturnType<typeof listingHandoff>;
+    try { item = listingHandoff(input); }
+    catch { throw new DiscoveryError("Use an exact OpenSea Ethereum NFT URL without query parameters."); }
+    const metadata = await this.api.read(`/api/v2/chain/ethereum/contract/${item.nft}/nfts/${item.tokenId}`);
+    check(metadata.nft && addr(metadata.nft.contract) === item.nft && integer(metadata.nft.identifier) === item.tokenId && metadata.nft.token_standard === 'erc721', 'Imported NFT identity mismatch');
+    const collection = slug(metadata.nft.collection);
+    const best = parseListing(await this.api.read(`/api/v2/listings/collection/${collection}/nfts/${item.tokenId}/best`));
+    check(best.nft === item.nft && best.tokenId === item.tokenId, 'Imported listing identity mismatch');
+    // Existing preview verifies signatures/ownership/exact consideration and binds
+    // the configured recipient. No incoming URL or API calldata is executed.
+    return this.preview(collection, best.orderHash);
   }
   async preview(collection: unknown, orderHash: unknown) {
     const name = slug(collection);

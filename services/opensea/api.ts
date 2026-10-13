@@ -64,6 +64,7 @@ export class OpenSeaReadApi {
     const allowed =
       path === "/api/v2/chains" ||
       /^\/api\/v2\/collections\/[a-z0-9-]{1,100}$/.test(path) ||
+      /^\/api\/v2\/listings\/collection\/[a-z0-9-]{1,100}\/nfts\/[0-9]{1,78}\/best$/.test(path) ||
       /^\/api\/v2\/listings\/collection\/[a-z0-9-]{1,100}\/all\?limit=10$/.test(
         path,
       ) ||

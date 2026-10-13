@@ -1,0 +1,21 @@
+{
+  "at": "2026-10-13T12:37:16.855Z",
+  "kind": "real-backend-read-only-and-cancelled-quote",
+  "paymentsApproved": 0,
+  "refundsBroadcast": 0,
+  "unauthenticatedApiStatus": 401,
+  "localOwnershipVerified": true,
+  "marketReference": {
+    "status": 200,
+    "referenceOnly": true,
+    "sources": [
+      "coinbase",
+      "kraken"
+    ]
+  },
+  "tokenQuote": "unavailable; no approval or payment attempted",
+  "maliciousImportRejected": true,
+  "disconnectStatus": 200,
+  "afterDisconnectApiStatus": 401,
+  "pageErrors": []
+}

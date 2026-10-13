@@ -1,0 +1,14 @@
+(node:26288) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ exact approval, unique order and duplicate concurrent broadcast protections (5017.8358ms)
+✔ lost broadcast response survives restart and never triggers another send (38.1801ms)
+✔ nine confirmations, stale evidence, wrong destination and reorg never authorize replacement (66.6109ms)
+✔ crash after transport acknowledgment before persistence retains uncertain claim (34.3417ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6836.0353

@@ -16,9 +16,22 @@ export async function executeOne(store: Store, id: string, executor: Executor, c
     if (r.status === 'reverted') { store.failed(id,clock()); return; }
     if (!['prepared','submitted'].includes(o.state)) return;
   } else {
-    if (!store.eligible(o,clock())) return;
-    const tx = await executor.prepare(o);
-    store.prepared(id,tx.raw,tx.hash,clock()); // durable BEFORE any broadcast
+    if (!store.claimPreparation(id,clock())) return;
+    try {
+      const tx = await executor.prepare(o);
+      store.prepared(id,tx.raw,tx.hash,clock()); // durable BEFORE any broadcast
+    } catch (e) {
+      // The constructor may already have signed. Keep its claim permanently;
+      // a thrown error is not evidence that an executable transaction is absent.
+      store.atomic(() => {
+        const current = store.get(id);
+        if (current && !current.tx_hash && current.state !== 'settled') {
+          store.recover(id,'execution_construction_uncertain',{},clock());
+          store.transition(id,'recovery',clock());
+        }
+      });
+      throw e;
+    }
     o = store.get(id)!;
   }
   // Do not initiate/rebroadcast after expiry or a stale scan. Reconciliation can still continue.

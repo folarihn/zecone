@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import CheckoutTerms from "../checkout/terms";
 const amount = (v: string, d = 8) => {
   const n = BigInt(v),
     base = 10n ** BigInt(d);
@@ -103,6 +104,7 @@ export default function PurchasePanel({ id }: { id?: string }) {
         >
           <div className="eyebrow">SEPOLIA STUDIO · NFT #{r.tokenId}</div>
           <h3>{r.status}</h3><p>{r.networkName ?? "Base Sepolia"} · chain {r.chainId ?? 84532}</p>
+          {r.status === 'Completed' && <details><summary>Historical approved terms</summary><p>Historical record only. This does not create a new quote or payment.</p><CheckoutTerms terms={r}/></details>}
           <p className="mono break">{r.origin}</p>
           <dl className="review-list">
             <div>
@@ -207,32 +209,8 @@ export default function PurchasePanel({ id }: { id?: string }) {
             delivery is public. The trusted provider can correlate this payment
             with the purchase.
           </p>
-          <dl className="review-list">
-            <div>
-              <dt>Payment</dt>
-              <dd>{amount(review.zatoshis)} TAZ</dd>
-            </div>
-            <div>
-              <dt>Maximum Zcash fee</dt>
-              <dd>{amount(review.fee.feeZatoshis)} TAZ</dd>
-            </div>
-            <div>
-              <dt>Total debit</dt>
-              <dd>{amount(review.fee.totalZatoshis)} TAZ</dd>
-            </div>
-            <div>
-              <dt>Recipient</dt>
-              <dd className="mono break">{review.recipient}</dd>
-            </div>
-            <div>
-              <dt>Refund destination</dt>
-              <dd className="break">{review.refundDestination}</dd>
-            </div>
-          </dl>
-          <p>
-            Ten confirmations are required. A sold or cancelled listing may
-            require manual recovery. No automatic refund is available.
-          </p>
+          <dl><dt>Collection</dt><dd className="mono break">{review.nft}</dd><dt>Seller</dt><dd className="mono break">{review.seller}</dd></dl>
+          <CheckoutTerms terms={review}/>
           <div className="approval-actions">
             <button disabled={busy} onClick={() => setReview(null)}>
               Cancel

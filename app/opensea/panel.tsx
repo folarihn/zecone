@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { formatUnits } from "viem";
 export default function OpenSeaPanel() {
   const [collection, setCollection] = useState("pudgypenguins"),
+    [listingUrl, setListingUrl] = useState(""),
     [rows, setRows] = useState<any[]>([]),
     [preview, setPreview] = useState<any>(null),
     [busy, setBusy] = useState(false),
@@ -54,6 +55,12 @@ export default function OpenSeaPanel() {
         wallet addresses are visible to those services. ZecOne is not affiliated
         with OpenSea.
       </p>
+      <label>
+        OpenSea NFT URL
+        <input aria-label="OpenSea NFT URL" type="url" maxLength={512} value={listingUrl} disabled={busy} onChange={e=>setListingUrl(e.target.value)} placeholder="https://opensea.io/item/ethereum/0x…/1" />
+      </label>
+      <button disabled={busy || !listingUrl} onClick={()=>void run('import',{url:listingUrl})}>Import URL for inspection only</button>
+      <p className="muted">Import resolves an official listing and validates its exact NFT, seller, price and your receiving wallet. Ethereum mainnet remains a non-executing preview.</p>
       <label>
         OpenSea collection slug{" "}
         <input

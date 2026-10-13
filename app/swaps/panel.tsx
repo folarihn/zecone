@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import CheckoutTerms from "../checkout/terms";
 const units = (v: string, d = 18) => {
   const n = BigInt(v),
     b = 10n ** BigInt(d);
@@ -179,6 +180,7 @@ export default function SwapPanel() {
         {rows.map((r) => (
           <article key={r.id} className="purchase-card">
             <h3>{r.status}</h3>
+            {r.status === 'Completed' && <details><summary>Historical approved terms</summary><p>Historical record only. This does not create a new quote or payment.</p><CheckoutTerms terms={r}/></details>}
             <p>Base Sepolia · ZTEST · {r.id}</p>
             <p>
               Input: {units(r.amountIn)} test ETH · Minimum: {units(r.minOut)}{" "}
@@ -319,7 +321,7 @@ export default function SwapPanel() {
                 </>
               )}
             </dl>
-            <p>{review.data.trust}</p>
+            <CheckoutTerms terms={review.data}/>
             <button disabled={busy} onClick={() => void act(cancel)}>
               Cancel
             </button>
