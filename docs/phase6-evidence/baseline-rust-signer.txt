@@ -1,0 +1,5 @@
+   Compiling zecone-refund-signer v0.1.0 (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\refund-signer-native)
+error: failed to remove file `C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\zecone-refund-signer.exe`
+
+Caused by:
+  Access is denied. (os error 5)

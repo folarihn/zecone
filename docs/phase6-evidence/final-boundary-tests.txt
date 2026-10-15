@@ -1,0 +1,29 @@
+✔ extension runtime origin comes from the browser sender, never a payload (1.2395ms)
+✔ extension schema rejects forged authority, oversized data and malformed identity (0.8462ms)
+✔ extension denies unimplemented, Zcash, key export and raw signing RPCs (0.7683ms)
+✔ extension blocks mainnet chain selection and transactions before opening approvals (0.2322ms)
+✔ extension package has isolated transport, no secret or broad permission capability (1.5475ms)
+✔ extension accepts only a single public EVM account projection (0.2765ms)
+✔ worker expiry discards late approval responses and prevents request replay (3.1765ms)
+✔ worker rejects unknown response IDs, isolates documents, and removes disconnected state (1.14ms)
+✔ worker extension UI metadata is unavailable to website senders and contains no params (1.764ms)
+(node:27204) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ payment address inspection is testnet only and refuses paid, uncertain or expired orders (0.9848ms)
+✔ unified checkout expiration never hides a paid or uncertain transaction (0.2412ms)
+✔ legacy mint expiry is distinguished from an execution failure (0.112ms)
+✔ recovery veto takes precedence over completion and refund text never establishes a refund (0.1061ms)
+✔ projection has stable cross-adapter IDs, explicit simulated pricing and verified result distinctions (0.8479ms)
+✔ read-only RPC rejects state overrides, unknown fields, invalid addresses and excessive gas (1.0873ms)
+✔ extension generic discovery still authenticates exact browser sender and denies frames (0.3492ms)
+✔ generic read requests cannot bypass extension transaction and raw-signing restrictions (0.876ms)
+✔ RPC reads require a grant and use the selected configured chain, without invoking a signer (3.6425ms)
+✔ unified HTTP endpoint requires local account verification and projects every existing adapter without mutations (33.7609ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2676.1123

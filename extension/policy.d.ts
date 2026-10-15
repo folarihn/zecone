@@ -1,4 +1,3 @@
-export const ORIGINS: readonly string[];
 export const CHAINS: readonly string[];
 export const METHODS: readonly string[];
 export function idValid(value: unknown): value is string;

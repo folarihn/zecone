@@ -7,8 +7,8 @@ test("provider browser harness authenticates a separate-origin popup and disconn
   context,
 }) => {
   const source = readFileSync("extension/provider.js", "utf8").replace(
-    '["https://opensea.io", "https://www.opensea.io"]',
-    '["http://127.0.0.1:3211"]',
+    '!location.origin.startsWith("https://")',
+    'location.origin !== "http://127.0.0.1:3211"',
   );
   await page.route("**/provider-harness", (r) =>
     r.fulfill({

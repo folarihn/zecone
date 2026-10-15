@@ -1,0 +1,1864 @@
+
+> test:ui
+> playwright test
+
+[WebServer] (node:25648) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 19 tests using 1 worker
+
+(node:10804) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 tests\ui\extension.spec.ts:5:1 › provider browser harness authenticates a separate-origin popup and disconnects (1.1s)
+  ok  2 tests\ui\phase6.spec.ts:10:1 › eight primary destinations have real views and URL refresh recovery (881ms)
+  ok  3 tests\ui\phase6.spec.ts:15:1 › checkout recovery survives refresh without payment calls or fabricated refunds (757ms)
+  ok  4 tests\ui\phase6.spec.ts:21:1 › dashboard uses supplied balances and unknown EVM balance remains unavailable (692ms)
+  ok  5 tests\ui\phase6.spec.ts:26:1 › receive network selection is independent of website approvals and unsupported Zcash sends are disabled (376ms)
+  ok  6 tests\ui\phase6.spec.ts:29:1 › failed checkout reads show an actionable error with no fabricated empty success (472ms)
+  x   7 tests\ui\phase6.spec.ts:32:1 › mobile layout and keyboard focus remain accessible (1.2s)
+(node:24000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  8 tests\ui\phase6.spec.ts:38:1 › unavailable swap adapters show no executable fake quote (673ms)
+  ok  9 tests\ui\purchase-popup.spec.ts:3:1 › marketplace popup shows exact quote approval then the separate payment panel (620ms)
+  ok 10 tests\ui\wallet.spec.ts:45:1 › marketplace payment needs a separate native-fee approval and preserves recovery details (727ms)
+  ok 11 tests\ui\wallet.spec.ts:158:1 › malformed network data shows an error without crashing the wallet (477ms)
+  ok 12 tests\ui\wallet.spec.ts:171:1 › token swap requires exact intent approval and a separate native payment approval (850ms)
+  ok 13 tests\ui\wallet.spec.ts:192:1 › Seaport purchase labels controlled origin and separates intent from shielded payment approval (766ms)
+  x  14 tests\ui\wallet.spec.ts:204:1 › desktop wallet is accessible and has no horizontal overflow (1.3s)
+(node:22760) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  15 tests\ui\wallet.spec.ts:222:1 › mobile navigation, checkout review and focus-trapped approval are accessible (1.8s)
+(node:21784) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 16 tests\ui\wallet.spec.ts:269:1 › no signing happens merely by visiting checkout or opening an approval (810ms)
+  ok 17 tests\ui\wallet.spec.ts:289:1 › sponsor screen displays fixed terms before its explicit approval (613ms)
+  ok 18 tests\ui\wallet.spec.ts:314:1 › apps page names exact origins and lets the user revoke a connection (775ms)
+  ok 19 tests\ui\wallet.spec.ts:333:1 › OpenSea preview is non-executing, recipient-bound and expires visibly (4.5s)
+
+
+  1) tests\ui\phase6.spec.ts:32:1 › mobile layout and keyboard focus remain accessible ─────────────
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  -   1
+    + Received  + 688
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+    +     "help": "Elements must meet minimum color contrast ratio thresholds",
+    +     "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=playwright",
+    +     "id": "color-contrast",
+    +     "impact": "serious",
+    +     "nodes": Array [
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#f1f6ed",
+    +               "contrastRatio": 1.25,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#d2dfd5",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 1.25 (foreground color: #d2dfd5, background color: #f1f6ed, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<button class=\"account-pill verified\">",
+    +                 "target": Array [
+    +                   ".account-pill",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 1.25 (foreground color: #d2dfd5, background color: #f1f6ed, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span>0x1111…1111</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".account-pill > span:nth-child(2)",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.7,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#6b7962",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<section class=\"checkout-tracker\" aria-label=\"Unified checkout tracker\">",
+    +                 "target": Array [
+    +                   ".checkout-tracker",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<dt>Action / destination</dt>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "div:nth-child(1) > dt",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.7,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#6b7962",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<section class=\"checkout-tracker\" aria-label=\"Unified checkout tracker\">",
+    +                 "target": Array [
+    +                   ".checkout-tracker",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<dt>Source</dt>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "div:nth-child(2) > dt",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.7,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#6b7962",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<section class=\"checkout-tracker\" aria-label=\"Unified checkout tracker\">",
+    +                 "target": Array [
+    +                   ".checkout-tracker",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<dt>Receiving wallet</dt>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "div:nth-child(3) > dt",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.7,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#6b7962",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<section class=\"checkout-tracker\" aria-label=\"Unified checkout tracker\">",
+    +                 "target": Array [
+    +                   ".checkout-tracker",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<dt>Quoted payment</dt>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "div:nth-child(4) > dt",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.7,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#6b7962",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<section class=\"checkout-tracker\" aria-label=\"Unified checkout tracker\">",
+    +                 "target": Array [
+    +                   ".checkout-tracker",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<dt>Quote deadline</dt>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "div:nth-child(5) > dt",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.7,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#6b7962",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<section class=\"checkout-tracker\" aria-label=\"Unified checkout tracker\">",
+    +                 "target": Array [
+    +                   ".checkout-tracker",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<dt>Payment confirmations</dt>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "div:nth-child(6) > dt",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.7,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#6b7962",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<section class=\"checkout-tracker\" aria-label=\"Unified checkout tracker\">",
+    +                 "target": Array [
+    +                   ".checkout-tracker",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<dt>Zcash transaction</dt>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "div:nth-child(7) > dt",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.7,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#6b7962",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<section class=\"checkout-tracker\" aria-label=\"Unified checkout tracker\">",
+    +                 "target": Array [
+    +                   ".checkout-tracker",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<dt>Result verification</dt>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "div:nth-child(8) > dt",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#18251f",
+    +               "contrastRatio": 4.41,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#7c8991",
+    +               "fontSize": "8.3pt (11px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 4.41 (foreground color: #7c8991, background color: #18251f, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<div class=\"balance-card shielded\">",
+    +                 "target": Array [
+    +                   ".shielded",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 4.41 (foreground color: #7c8991, background color: #18251f, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<p class=\"balance-detail\">0.001 TAZ available · 0.001 TAZ unavailable / pending</p>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".shielded > .balance-detail",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#18212d",
+    +               "contrastRatio": 4.49,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#7c8895",
+    +               "fontSize": "8.3pt (11px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 4.49 (foreground color: #7c8895, background color: #18212d, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<div class=\"balance-card base\">",
+    +                 "target": Array [
+    +                   ".base",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 4.49 (foreground color: #7c8895, background color: #18212d, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<p class=\"balance-detail\">Test ETH · No monetary value</p>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".base > .balance-detail",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#18212d",
+    +               "contrastRatio": 2.94,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#5e6c65",
+    +               "fontSize": "9.0pt (12px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 2.94 (foreground color: #5e6c65, background color: #18212d, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<div class=\"balance-card base\">",
+    +                 "target": Array [
+    +                   ".base",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 2.94 (foreground color: #5e6c65, background color: #18212d, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span class=\"mono\">0x11111111…1111</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".balance-footer > .mono",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#1c272d",
+    +               "contrastRatio": 2.11,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#4b5c44",
+    +               "fontSize": "6.0pt (8px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 2.11 (foreground color: #4b5c44, background color: #1c272d, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<div class=\"health-strip\"><div><span class=\"status-dot pending\"></span><strong>Zcash</strong><span>Block 1</span></div><div><span class=\"status-dot pending\"></span><strong>Base</strong><span>Connecting</span></div><span class=\"health-time\">Zcash synced at 01:00 AM</span></div>",
+    +                 "target": Array [
+    +                   ".health-strip",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 2.11 (foreground color: #4b5c44, background color: #1c272d, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<strong>Zcash</strong>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "div:nth-child(1) > strong",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#1c272d",
+    +               "contrastRatio": 2.11,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#4b5c44",
+    +               "fontSize": "6.0pt (8px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 2.11 (foreground color: #4b5c44, background color: #1c272d, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<div class=\"health-strip\"><div><span class=\"status-dot pending\"></span><strong>Zcash</strong><span>Block 1</span></div><div><span class=\"status-dot pending\"></span><strong>Base</strong><span>Connecting</span></div><span class=\"health-time\">Zcash synced at 01:00 AM</span></div>",
+    +                 "target": Array [
+    +                   ".health-strip",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 2.11 (foreground color: #4b5c44, background color: #1c272d, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<strong>Base</strong>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".health-strip > div:nth-child(2) > strong",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#0d1117",
+    +               "contrastRatio": 2.49,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#365c43",
+    +               "fontSize": "6.8pt (9px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 2.49 (foreground color: #365c43, background color: #0d1117, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<body>",
+    +                 "target": Array [
+    +                   "body",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 2.49 (foreground color: #365c43, background color: #0d1117, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<button class=\"text-link\">",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".section:nth-child(9) > .section-heading > .text-link",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#f0f3eb",
+    +               "contrastRatio": 1.06,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#e7ebef",
+    +               "fontSize": "13.5pt (18px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 1.06 (foreground color: #e7ebef, background color: #f0f3eb, font size: 13.5pt (18px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<article class=\"mint-callout\">",
+    +                 "target": Array [
+    +                   ".mint-callout",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 1.06 (foreground color: #e7ebef, background color: #f0f3eb, font size: 13.5pt (18px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<h3>Start private.<br>Arrive connected.</h3>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".mint-callout > h3",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#f0f3eb",
+    +               "contrastRatio": 1.96,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#a3b0be",
+    +               "fontSize": "5.3pt (7px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 1.96 (foreground color: #a3b0be, background color: #f0f3eb, font size: 5.3pt (7px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<article class=\"mint-callout\">",
+    +                 "target": Array [
+    +                   ".mint-callout",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 1.96 (foreground color: #a3b0be, background color: #f0f3eb, font size: 5.3pt (7px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span class=\"tiny\">0.01 TAZ + Zcash network fee</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".tiny",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#0d1117",
+    +               "contrastRatio": 2.49,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#365c43",
+    +               "fontSize": "6.8pt (9px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 2.49 (foreground color: #365c43, background color: #0d1117, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<body>",
+    +                 "target": Array [
+    +                   "body",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 2.49 (foreground color: #365c43, background color: #0d1117, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<button class=\"text-link\">",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".section:nth-child(10) > .section-heading > .text-link",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#0d1117",
+    +               "contrastRatio": 3.45,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#5e6e54",
+    +               "fontSize": "6.0pt (8px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.45 (foreground color: #5e6e54, background color: #0d1117, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<body>",
+    +                 "target": Array [
+    +                   "body",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.45 (foreground color: #5e6e54, background color: #0d1117, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "footer > span:nth-child(1)",
+    +         ],
+    +       },
+    +     ],
+    +     "tags": Array [
+    +       "cat.color",
+    +       "wcag2aa",
+    +       "wcag143",
+    +       "TTv5",
+    +       "TT13.c",
+    +       "EN-301-549",
+    +       "EN-9.1.4.3",
+    +       "ACT",
+    +       "RGAAv4",
+    +       "RGAA-3.2.1",
+    +     ],
+    +   },
+    + ]
+
+      33 |  await page.setViewportSize({width:390,height:844});await page.goto('/');await expect(page.getByLabel('Unified checkout tracker')).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+      34 |  await page.keyboard.press('Tab');await expect(page.getByRole('link',{name:'Skip to content'})).toBeFocused();await page.keyboard.press('Enter');
+    > 35 |  const scan=await new AxeBuilder({page}).analyze();expect(scan.violations.filter(v=>['critical','serious'].includes(v.impact??''))).toEqual([]);
+         |                                                                                                                                     ^
+      36 |  await page.screenshot({path:'docs/phase6-evidence/ui-mobile-fixture.png',fullPage:true});
+      37 | });
+      38 | test('unavailable swap adapters show no executable fake quote',async({page})=>{
+        at C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\ui\phase6.spec.ts:35:133
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\phase6-mobile-layout-and-keyboard-focus-remain-accessible\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\phase6-mobile-layout-and-keyboard-focus-remain-accessible\error-context.md
+
+  2) tests\ui\wallet.spec.ts:204:1 › desktop wallet is accessible and has no horizontal overflow ───
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  -   1
+    + Received  + 793
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+    +     "help": "Elements must meet minimum color contrast ratio thresholds",
+    +     "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=playwright",
+    +     "id": "color-contrast",
+    +     "impact": "serious",
+    +     "nodes": Array [
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#10161e",
+    +               "contrastRatio": 3.55,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#60735c",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.55 (foreground color: #60735c, background color: #10161e, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<aside class=\"sidebar\">",
+    +                 "target": Array [
+    +                   "aside",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.55 (foreground color: #60735c, background color: #10161e, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<p>Connected to your device</p>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".local-note > div > p",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.45,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#677367",
+    +               "fontSize": "9.0pt (12px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.45 (foreground color: #677367, background color: #151c24, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<header class=\"topbar\">",
+    +                 "target": Array [
+    +                   "header",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.45 (foreground color: #677367, background color: #151c24, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span class=\"topbar-label\">Your local wallet</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".topbar-label",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#f1f6ed",
+    +               "contrastRatio": 1.25,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#d2dfd5",
+    +               "fontSize": "8.3pt (11px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 1.25 (foreground color: #d2dfd5, background color: #f1f6ed, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<button class=\"account-pill verified\">",
+    +                 "target": Array [
+    +                   ".account-pill",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 1.25 (foreground color: #d2dfd5, background color: #f1f6ed, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span>0x1111…1111</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".account-pill > span:nth-child(2)",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#18251f",
+    +               "contrastRatio": 4.41,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#7c8991",
+    +               "fontSize": "8.3pt (11px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 4.41 (foreground color: #7c8991, background color: #18251f, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<div class=\"balance-card shielded\">",
+    +                 "target": Array [
+    +                   ".shielded",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 4.41 (foreground color: #7c8991, background color: #18251f, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<p class=\"balance-detail\">0.1148 TAZ available · 0 TAZ unavailable / pending</p>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".shielded > .balance-detail",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#18212d",
+    +               "contrastRatio": 4.49,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#7c8895",
+    +               "fontSize": "8.3pt (11px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 4.49 (foreground color: #7c8895, background color: #18212d, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<div class=\"balance-card base\">",
+    +                 "target": Array [
+    +                   ".base",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 4.49 (foreground color: #7c8895, background color: #18212d, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<p class=\"balance-detail\">Test ETH · No monetary value</p>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".base > .balance-detail",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#18212d",
+    +               "contrastRatio": 2.94,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#5e6c65",
+    +               "fontSize": "9.0pt (12px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 2.94 (foreground color: #5e6c65, background color: #18212d, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<div class=\"balance-card base\">",
+    +                 "target": Array [
+    +                   ".base",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 2.94 (foreground color: #5e6c65, background color: #18212d, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span class=\"mono\">0x11111111…1111</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".balance-footer > .mono",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#1c272d",
+    +               "contrastRatio": 2.11,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#4b5c44",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 2.11 (foreground color: #4b5c44, background color: #1c272d, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<div class=\"health-strip\"><div><span class=\"status-dot \"></span><strong>Zcash</strong><span>Block 4,491,431</span></div><div><span class=\"status-dot \"></span><strong>Base</strong><span>Block 48,010,357</span></div><span class=\"health-time\">Zcash synced at 08:33 AM</span></div>",
+    +                 "target": Array [
+    +                   ".health-strip",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 2.11 (foreground color: #4b5c44, background color: #1c272d, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<strong>Zcash</strong>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "div:nth-child(1) > strong",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#1c272d",
+    +               "contrastRatio": 2.11,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#4b5c44",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 2.11 (foreground color: #4b5c44, background color: #1c272d, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<div class=\"health-strip\"><div><span class=\"status-dot \"></span><strong>Zcash</strong><span>Block 4,491,431</span></div><div><span class=\"status-dot \"></span><strong>Base</strong><span>Block 48,010,357</span></div><span class=\"health-time\">Zcash synced at 08:33 AM</span></div>",
+    +                 "target": Array [
+    +                   ".health-strip",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 2.11 (foreground color: #4b5c44, background color: #1c272d, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<strong>Base</strong>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".health-strip > div:nth-child(2) > strong",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#0d1117",
+    +               "contrastRatio": 2.49,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#365c43",
+    +               "fontSize": "8.3pt (11px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 2.49 (foreground color: #365c43, background color: #0d1117, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<body>",
+    +                 "target": Array [
+    +                   "body",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 2.49 (foreground color: #365c43, background color: #0d1117, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<button class=\"text-link\">",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".section:nth-child(8) > .section-heading > .text-link",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.13,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#5e6e54",
+    +               "fontSize": "6.8pt (9px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.13 (foreground color: #5e6e54, background color: #151c24, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<article class=\"nft-card\">",
+    +                 "target": Array [
+    +                   ".nft-card",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.13 (foreground color: #5e6e54, background color: #151c24, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<p>Testnet collectible · 12345…6789</p>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".nft-info > div > p",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.4,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#637457",
+    +               "fontSize": "6.8pt (9px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.4 (foreground color: #637457, background color: #151c24, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<article class=\"nft-card\">",
+    +                 "target": Array [
+    +                   ".nft-card",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.4 (foreground color: #637457, background color: #151c24, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-check\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"></path></svg> Ownership verified</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".nft-footer > span",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#f0f3eb",
+    +               "contrastRatio": 1.06,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#e7ebef",
+    +               "fontSize": "15.8pt (21px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 1.06 (foreground color: #e7ebef, background color: #f0f3eb, font size: 15.8pt (21px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<article class=\"mint-callout\">",
+    +                 "target": Array [
+    +                   ".mint-callout",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 1.06 (foreground color: #e7ebef, background color: #f0f3eb, font size: 15.8pt (21px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<h3>Start private.<br>Arrive connected.</h3>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".mint-callout > h3",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#f0f3eb",
+    +               "contrastRatio": 1.96,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#a3b0be",
+    +               "fontSize": "6.8pt (9px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 1.96 (foreground color: #a3b0be, background color: #f0f3eb, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<article class=\"mint-callout\">",
+    +                 "target": Array [
+    +                   ".mint-callout",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 1.96 (foreground color: #a3b0be, background color: #f0f3eb, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span class=\"tiny\">0.01 TAZ + Zcash network fee</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".tiny",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#0d1117",
+    +               "contrastRatio": 2.49,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#365c43",
+    +               "fontSize": "8.3pt (11px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 2.49 (foreground color: #365c43, background color: #0d1117, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<body>",
+    +                 "target": Array [
+    +                   "body",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 2.49 (foreground color: #365c43, background color: #0d1117, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<button class=\"text-link\">",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".section:nth-child(9) > .section-heading > .text-link",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.13,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#5e6e54",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.13 (foreground color: #5e6e54, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<div class=\"activity-list\">",
+    +                 "target": Array [
+    +                   ".activity-list",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.13 (foreground color: #5e6e54, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span>Base Sepolia <span class=\"separator\">·</span> Public</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".activity-row:nth-child(1) > .activity-name > span",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.5,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#64765b",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.5 (foreground color: #64765b, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<div class=\"activity-list\">",
+    +                 "target": Array [
+    +                   ".activity-list",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.5 (foreground color: #64765b, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span class=\"\">Confirmed</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".activity-row:nth-child(1) > .activity-status > span:nth-child(1)",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.13,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#5e6e54",
+    +               "fontSize": "6.8pt (9px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.13 (foreground color: #5e6e54, background color: #151c24, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<div class=\"activity-list\">",
+    +                 "target": Array [
+    +                   ".activity-list",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.13 (foreground color: #5e6e54, background color: #151c24, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span class=\"mono\">0xbbbbbb…bbbb</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".activity-row:nth-child(1) > .activity-status > .mono",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.13,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#5e6e54",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.13 (foreground color: #5e6e54, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<div class=\"activity-list\">",
+    +                 "target": Array [
+    +                   ".activity-list",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.13 (foreground color: #5e6e54, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span>Zcash Testnet <span class=\"separator\">·</span> Shielded</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".activity-row:nth-child(2) > .activity-name > span",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.5,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#64765b",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.5 (foreground color: #64765b, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<div class=\"activity-list\">",
+    +                 "target": Array [
+    +                   ".activity-list",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.5 (foreground color: #64765b, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span class=\"\">57 confirmations</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".activity-row:nth-child(2) > .activity-status > span:nth-child(1)",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.13,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#5e6e54",
+    +               "fontSize": "6.8pt (9px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.13 (foreground color: #5e6e54, background color: #151c24, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<div class=\"activity-list\">",
+    +                 "target": Array [
+    +                   ".activity-list",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.13 (foreground color: #5e6e54, background color: #151c24, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span class=\"mono\">aaaaaaaa…aaaa</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".activity-row:nth-child(2) > .activity-status > .mono",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#0d1117",
+    +               "contrastRatio": 3.45,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#5e6e54",
+    +               "fontSize": "6.8pt (9px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.45 (foreground color: #5e6e54, background color: #0d1117, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<body>",
+    +                 "target": Array [
+    +                   "body",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.45 (foreground color: #5e6e54, background color: #0d1117, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "footer > span:nth-child(1)",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#0d1117",
+    +               "contrastRatio": 3.45,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#5e6e54",
+    +               "fontSize": "6.8pt (9px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.45 (foreground color: #5e6e54, background color: #0d1117, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<body>",
+    +                 "target": Array [
+    +                   "body",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.45 (foreground color: #5e6e54, background color: #0d1117, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span>Built around your choice.</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "footer > span:nth-child(2)",
+    +         ],
+    +       },
+    +     ],
+    +     "tags": Array [
+    +       "cat.color",
+    +       "wcag2aa",
+    +       "wcag143",
+    +       "TTv5",
+    +       "TT13.c",
+    +       "EN-301-549",
+    +       "EN-9.1.4.3",
+    +       "ACT",
+    +       "RGAAv4",
+    +       "RGAA-3.2.1",
+    +     ],
+    +   },
+    + ]
+
+      218 |     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+      219 |     .analyze();
+    > 220 |   expect(results.violations).toEqual([]);
+          |                              ^
+      221 | });
+      222 | test("mobile navigation, checkout review and focus-trapped approval are accessible", async ({
+      223 |   page,
+        at C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\ui\wallet.spec.ts:220:30
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\wallet-desktop-wallet-is-a-1b3a4--has-no-horizontal-overflow\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\wallet-desktop-wallet-is-a-1b3a4--has-no-horizontal-overflow\error-context.md
+
+  3) tests\ui\wallet.spec.ts:222:1 › mobile navigation, checkout review and focus-trapped approval are accessible 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  -   1
+    + Received  + 268
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+    +     "help": "Elements must meet minimum color contrast ratio thresholds",
+    +     "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=playwright",
+    +     "id": "color-contrast",
+    +     "impact": "serious",
+    +     "nodes": Array [
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.52,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#66765e",
+    +               "fontSize": "9.0pt (12px)",
+    +               "fontWeight": "bold",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.52 (foreground color: #66765e, background color: #151c24, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<dialog aria-labelledby=\"dialog-title\" open=\"\">",
+    +                 "target": Array [
+    +                   "dialog",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.52 (foreground color: #66765e, background color: #151c24, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1",
+    +         "html": "<strong>ZecOne Phase 0</strong>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "p > strong",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.7,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#6b7962",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<dialog aria-labelledby=\"dialog-title\" open=\"\">",
+    +                 "target": Array [
+    +                   "dialog",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<dt>Source → destination</dt>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "dialog > dl > div:nth-child(1) > dt",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.7,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#6b7962",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<dialog aria-labelledby=\"dialog-title\" open=\"\">",
+    +                 "target": Array [
+    +                   "dialog",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<dt>Payment</dt>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "dialog > dl > div:nth-child(2) > dt",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.7,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#6b7962",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<dialog aria-labelledby=\"dialog-title\" open=\"\">",
+    +                 "target": Array [
+    +                   "dialog",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<dt>Signature fee</dt>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "dialog > dl > div:nth-child(3) > dt",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.7,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#6b7962",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<dialog aria-labelledby=\"dialog-title\" open=\"\">",
+    +                 "target": Array [
+    +                   "dialog",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<dt>Receive at</dt>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "dialog > dl > div:nth-child(4) > dt",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.7,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#6b7962",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<dialog aria-labelledby=\"dialog-title\" open=\"\">",
+    +                 "target": Array [
+    +                   "dialog",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<dt>Contract</dt>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "dialog > dl > div:nth-child(5) > dt",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#151c24",
+    +               "contrastRatio": 3.7,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#6b7962",
+    +               "fontSize": "7.5pt (10px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<dialog aria-labelledby=\"dialog-title\" open=\"\">",
+    +                 "target": Array [
+    +                   "dialog",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 3.7 (foreground color: #6b7962, background color: #151c24, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<dt>Order validity</dt>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "dialog > dl > div:nth-child(6) > dt",
+    +         ],
+    +       },
+    +     ],
+    +     "tags": Array [
+    +       "cat.color",
+    +       "wcag2aa",
+    +       "wcag143",
+    +       "TTv5",
+    +       "TT13.c",
+    +       "EN-301-549",
+    +       "EN-9.1.4.3",
+    +       "ACT",
+    +       "RGAAv4",
+    +       "RGAA-3.2.1",
+    +     ],
+    +   },
+    + ]
+
+      257 |     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+      258 |     .analyze();
+    > 259 |   expect(results.violations).toEqual([]);
+          |                              ^
+      260 |   await page.keyboard.press("Escape");
+      261 |   await expect(page.getByRole("dialog")).not.toBeVisible();
+      262 |   await page
+        at C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\ui\wallet.spec.ts:259:30
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\wallet-mobile-navigation-c-82ad7-ped-approval-are-accessible\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\wallet-mobile-navigation-c-82ad7-ped-approval-are-accessible\error-context.md
+
+  3 failed
+    tests\ui\phase6.spec.ts:32:1 › mobile layout and keyboard focus remain accessible ──────────────
+    tests\ui\wallet.spec.ts:204:1 › desktop wallet is accessible and has no horizontal overflow ────
+    tests\ui\wallet.spec.ts:222:1 › mobile navigation, checkout review and focus-trapped approval are accessible 
+  16 passed (26.5s)

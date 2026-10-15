@@ -20,10 +20,11 @@ import { Store } from "../execution/store.ts";
 import { Zcash } from "../execution/zcash.ts";
 import { Base, abi } from "../execution/base.ts";
 import { executeOne } from "../execution/worker.ts";
-import {userWalletNative} from './native.ts';
+import { userWalletNative } from "./native.ts";
 import { AppState, type Checkout } from "./state.ts";
 import { ApiError, ORIGIN, randomToken, type Session } from "./security.ts";
 import { checkoutView, type Dashboard, type WalletSummary } from "./view.ts";
+import { revealPaymentRequest } from "./checkouts.ts";
 import {
   ActionBase,
   actionAbi,
@@ -232,6 +233,23 @@ export class Engine {
         "Local signing or order creation could not finish. Recheck the saved checkout; do not make another payment.",
       );
     }
+  }
+  paymentRequest(s: Session, id: string) {
+    requireApproval(s, true);
+    const c = this.checkout(uuid(id));
+    if (["sending", "sent", "review"].includes(c.stage))
+      throw new ApiError(
+        409,
+        "Reconcile the existing payment; do not pay again.",
+      );
+    const order = c.order_id ? this.store.get(c.order_id) : undefined;
+    if (!order) throw new ApiError(409, "Approve exact terms first.");
+    return revealPaymentRequest(
+      id,
+      order,
+      this.store.totals(order.id).received,
+      now(),
+    );
   }
   dashboard(): Dashboard {
     const merchantTip = this.app.db

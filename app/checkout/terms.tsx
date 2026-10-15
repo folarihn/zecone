@@ -1,5 +1,6 @@
 "use client";
 import { formatUnits } from "viem";
+import { useClock, reviewExpired } from "./clock";
 import { useState } from "react";
 type Terms = {
   networkName?: string;
@@ -18,6 +19,7 @@ const units = (s: string, decimals = 18) => formatUnits(BigInt(s), decimals);
  * Values come from the existing authenticated intent/fee projection, not UI pricing.
  */
 export default function CheckoutTerms({ terms: t }: { terms: Terms }) {
+  const clock = useClock();
   const [references, setReferences] = useState<any>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
@@ -30,6 +32,12 @@ export default function CheckoutTerms({ terms: t }: { terms: Terms }) {
     }[t.chainId ?? 84532];
   return (
     <section aria-label="Unified checkout terms">
+      {reviewExpired(t, clock) && (
+        <p className="notice error" role="status">
+          Quote expired. Close this review and request fresh terms. Do not retry
+          an uncertain payment.
+        </p>
+      )}
       <dl className="review-list">
         <div>
           <dt>Destination network</dt>

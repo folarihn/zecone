@@ -1,0 +1,240 @@
+
+> test:ui
+> playwright test
+
+[WebServer] (node:27516) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 20 tests using 1 worker
+
+(node:2728) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 tests\ui\extension.spec.ts:5:1 › provider browser harness authenticates a separate-origin popup and disconnects (709ms)
+  ok  2 tests\ui\phase6.spec.ts:74:1 › eight primary destinations have real views and URL refresh recovery (984ms)
+  ok  3 tests\ui\phase6.spec.ts:101:1 › checkout recovery survives refresh without payment calls or fabricated refunds (845ms)
+  ok  4 tests\ui\phase6.spec.ts:124:1 › dashboard uses supplied balances and unknown EVM balance remains unavailable (600ms)
+  ok  5 tests\ui\phase6.spec.ts:141:1 › receive network selection is independent of website approvals and unsupported Zcash sends are disabled (367ms)
+  ok  6 tests\ui\phase6.spec.ts:154:1 › failed checkout reads show an actionable error with no fabricated empty success (458ms)
+  x   7 tests\ui\phase6.spec.ts:166:1 › mobile layout and keyboard focus remain accessible (1.2s)
+(node:26184) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  8 tests\ui\phase6.spec.ts:191:1 › unavailable swap adapters show no executable fake quote (661ms)
+  ok  9 tests\ui\phase6.spec.ts:206:1 › expired swap reviews cannot authorize payment or an execution intent (573ms)
+  ok 10 tests\ui\purchase-popup.spec.ts:3:1 › marketplace popup shows exact quote approval then the separate payment panel (683ms)
+  ok 11 tests\ui\wallet.spec.ts:45:1 › marketplace payment needs a separate native-fee approval and preserves recovery details (717ms)
+  ok 12 tests\ui\wallet.spec.ts:158:1 › malformed network data shows an error without crashing the wallet (498ms)
+  ok 13 tests\ui\wallet.spec.ts:171:1 › token swap requires exact intent approval and a separate native payment approval (682ms)
+  ok 14 tests\ui\wallet.spec.ts:269:1 › Seaport purchase labels controlled origin and separates intent from shielded payment approval (769ms)
+  x  15 tests\ui\wallet.spec.ts:374:1 › desktop wallet is accessible and has no horizontal overflow (1.6s)
+(node:27228) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 16 tests\ui\wallet.spec.ts:392:1 › mobile navigation, checkout review and focus-trapped approval are accessible (2.3s)
+  ok 17 tests\ui\wallet.spec.ts:438:1 › no signing happens merely by visiting checkout or opening an approval (1.1s)
+  ok 18 tests\ui\wallet.spec.ts:456:1 › sponsor screen displays fixed terms before its explicit approval (852ms)
+  ok 19 tests\ui\wallet.spec.ts:479:1 › apps page names exact origins and lets the user revoke a connection (854ms)
+  ok 20 tests\ui\wallet.spec.ts:498:1 › OpenSea preview is non-executing, recipient-bound and expires visibly (3.8s)
+
+
+  1) tests\ui\phase6.spec.ts:166:1 › mobile layout and keyboard focus remain accessible ────────────
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 58
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+    +     "help": "Elements must meet minimum color contrast ratio thresholds",
+    +     "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=playwright",
+    +     "id": "color-contrast",
+    +     "impact": "serious",
+    +     "nodes": Array [
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#202c35",
+    +               "contrastRatio": 2.82,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#65735b",
+    +               "fontSize": "6.8pt (9px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 2.82 (foreground color: #65735b, background color: #202c35, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<article class=\"mint-callout\">",
+    +                 "target": Array [
+    +                   ".mint-callout",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 2.82 (foreground color: #65735b, background color: #202c35, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<p>One shielded payment. One NFT in your wallet. Base gas is covered by the testnet relayer.</p>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".mint-callout > p",
+    +         ],
+    +       },
+    +     ],
+    +     "tags": Array [
+    +       "cat.color",
+    +       "wcag2aa",
+    +       "wcag143",
+    +       "TTv5",
+    +       "TT13.c",
+    +       "EN-301-549",
+    +       "EN-9.1.4.3",
+    +       "ACT",
+    +       "RGAAv4",
+    +       "RGAA-3.2.1",
+    +     ],
+    +   },
+    + ]
+
+      183 |       ["critical", "serious"].includes(v.impact ?? ""),
+      184 |     ),
+    > 185 |   ).toEqual([]);
+          |     ^
+      186 |   await page.screenshot({
+      187 |     path: "docs/phase6-evidence/ui-mobile-fixture.png",
+      188 |     fullPage: true,
+        at C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\ui\phase6.spec.ts:185:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\phase6-mobile-layout-and-keyboard-focus-remain-accessible\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\phase6-mobile-layout-and-keyboard-focus-remain-accessible\error-context.md
+
+  2) tests\ui\wallet.spec.ts:374:1 › desktop wallet is accessible and has no horizontal overflow ───
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 93
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+    +     "help": "Elements must meet minimum color contrast ratio thresholds",
+    +     "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=playwright",
+    +     "id": "color-contrast",
+    +     "impact": "serious",
+    +     "nodes": Array [
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#23312a",
+    +               "contrastRatio": 2.71,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#6a725f",
+    +               "fontSize": "8.3pt (11px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 2.71 (foreground color: #6a725f, background color: #23312a, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<button class=\"account-pill verified\">",
+    +                 "target": Array [
+    +                   ".account-pill",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 2.71 (foreground color: #6a725f, background color: #23312a, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span class=\"desktop-only\">Verified</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".desktop-only",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#202c35",
+    +               "contrastRatio": 2.82,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#65735b",
+    +               "fontSize": "8.3pt (11px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 2.82 (foreground color: #65735b, background color: #202c35, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<article class=\"mint-callout\">",
+    +                 "target": Array [
+    +                   ".mint-callout",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 2.82 (foreground color: #65735b, background color: #202c35, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<p>One shielded payment. One NFT in your wallet. Base gas is covered by the testnet relayer.</p>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".mint-callout > p",
+    +         ],
+    +       },
+    +     ],
+    +     "tags": Array [
+    +       "cat.color",
+    +       "wcag2aa",
+    +       "wcag143",
+    +       "TTv5",
+    +       "TT13.c",
+    +       "EN-301-549",
+    +       "EN-9.1.4.3",
+    +       "ACT",
+    +       "RGAAv4",
+    +       "RGAA-3.2.1",
+    +     ],
+    +   },
+    + ]
+
+      388 |     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+      389 |     .analyze();
+    > 390 |   expect(results.violations).toEqual([]);
+          |                              ^
+      391 | });
+      392 | test("mobile navigation, checkout review and focus-trapped approval are accessible", async ({
+      393 |   page,
+        at C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\ui\wallet.spec.ts:390:30
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\wallet-desktop-wallet-is-a-1b3a4--has-no-horizontal-overflow\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\wallet-desktop-wallet-is-a-1b3a4--has-no-horizontal-overflow\error-context.md
+
+  2 failed
+    tests\ui\phase6.spec.ts:166:1 › mobile layout and keyboard focus remain accessible ─────────────
+    tests\ui\wallet.spec.ts:374:1 › desktop wallet is accessible and has no horizontal overflow ────
+  18 passed (26.8s)

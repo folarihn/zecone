@@ -46,18 +46,30 @@ export function checkoutView(c: Checkout, store: Store, tip: number) {
   );
   return {
     id: c.id,
-    kind: JSON.parse(c.intent).kind === 'action' ? 'action' as const : 'mint' as const,
-    actionTarget: JSON.parse(c.intent).kind === 'action' ? JSON.parse(c.intent).target as string : null,
+    kind:
+      JSON.parse(c.intent).kind === "action"
+        ? ("action" as const)
+        : ("mint" as const),
+    actionTarget:
+      JSON.parse(c.intent).kind === "action"
+        ? (JSON.parse(c.intent).target as string)
+        : null,
     status,
+    orderState: o?.state ?? null,
     stage: c.stage,
     created: c.created,
     expiry: JSON.parse(c.intent).expiry,
+    recipient: JSON.parse(c.intent).recipient,
+    zatoshis: JSON.parse(c.intent).zatoshis,
     receivedZatoshis: total.received.toString(),
     confirmations,
     requiredConfirmations: 10,
     paymentTx: c.txid,
     baseTx: o?.tx_hash ?? null,
-    tokenId: JSON.parse(c.intent).kind!=='action' && o?.state === "settled" ? BigInt(o.id).toString() : null,
+    tokenId:
+      JSON.parse(c.intent).kind !== "action" && o?.state === "settled"
+        ? BigInt(o.id).toString()
+        : null,
     quote: quote
       ? {
           id: quote.id,
@@ -95,6 +107,11 @@ export type Dashboard = {
   base: { wei: string; block: string; observedAt: number } | null;
   health: { zcash: string; base: string; worker: string; busy: boolean };
   nfts: { tokenId: string; hash: string; verifiedAt: number }[];
-  baseActivity: { hash: string; status: string; kind: "action" | "mint"; tokenId: string | null }[];
+  baseActivity: {
+    hash: string;
+    status: string;
+    kind: "action" | "mint";
+    tokenId: string | null;
+  }[];
   checkouts: CheckoutView[];
 };

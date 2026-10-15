@@ -14,7 +14,7 @@ async function refresh() {
     root.replaceChildren();
     if (!status.connections.length)
       root.textContent =
-        "Disconnected. Open OpenSea and select ZecOne Testnet.";
+        "Disconnected. Open a compatible HTTPS dApp and select ZecOne Testnet.";
     for (const c of status.connections) {
       const div = document.createElement("section");
       div.className = "site";

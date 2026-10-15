@@ -1,11 +1,7 @@
 // MAIN world is public. This facade has no signing or extension authority.
 (() => {
   "use strict";
-  if (
-    window.top !== window ||
-    !["https://opensea.io", "https://www.opensea.io"].includes(location.origin)
-  )
-    return;
+  if (window.top !== window || !location.origin.startsWith("https://")) return;
   const pending = new Map(),
     listeners = new Map();
   const error = (code, message) => Object.assign(new Error(message), { code });

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import OpenSeaPanel from "../opensea/panel";
+import { useClock, reviewExpired } from "../checkout/clock";
 import CheckoutTerms from "../checkout/terms";
 const units = (v: string, d = 18) => {
   const n = BigInt(v),
@@ -8,6 +9,8 @@ const units = (v: string, d = 18) => {
   return `${n / b}.${(n % b).toString().padStart(d, "0").replace(/0+$/, "") || "0"}`;
 };
 export default function SeaportPanel() {
+  const clock = useClock(),
+    inFlight = useRef(false);
   const [catalog, setCatalog] = useState<any>(null),
     [rows, setRows] = useState<any[]>([]),
     [review, setReview] = useState<any>(null),
@@ -55,6 +58,8 @@ export default function SeaportPanel() {
     else dialog.current?.close();
   }, [review]);
   async function act(fn: () => Promise<void>) {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy(true);
     setError("");
     try {
@@ -62,6 +67,7 @@ export default function SeaportPanel() {
     } catch (e: any) {
       setError(e.message);
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   }
@@ -149,7 +155,16 @@ export default function SeaportPanel() {
         {rows.map((r) => (
           <article className="purchase-card" key={r.id}>
             <h3>{r.status}</h3>
-            {r.status === 'Completed' && <details><summary>Historical approved terms</summary><p>Historical record only. This does not create a new quote or payment.</p><CheckoutTerms terms={r}/></details>}
+            {r.status === "Completed" && (
+              <details>
+                <summary>Historical approved terms</summary>
+                <p>
+                  Historical record only. This does not create a new quote or
+                  payment.
+                </p>
+                <CheckoutTerms terms={r} />
+              </details>
+            )}
             <p>
               Base Sepolia · Seaport 1.6 · Token #{r.tokenId} · {r.id}
             </p>
@@ -297,13 +312,13 @@ export default function SeaportPanel() {
                 </>
               )}
             </dl>
-            <CheckoutTerms terms={review.data}/>
+            <CheckoutTerms terms={review.data} />
             <button disabled={busy} onClick={() => void act(cancel)}>
               Cancel
             </button>
             <button
               className="primary"
-              disabled={busy}
+              disabled={busy || reviewExpired(review.data, clock)}
               onClick={() =>
                 void act(async () => {
                   const r = review;

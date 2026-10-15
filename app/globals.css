@@ -1,17 +1,17 @@
 @import "tailwindcss";
 @theme {
-  --color-forest: #183e32;
-  --color-paper: #f7f8f5;
+  --color-forest: #c9e78a;
+  --color-paper: #0d1117;
 }
 :root {
   font-family: Arial, Helvetica, sans-serif;
-  color: #23352d;
-  background: #f7f8f5;
+  color: #e7ebef;
+  background: #0d1117;
   font-synthesis: none;
-  --muted: #5b695f;
-  --line: #e2e7e0;
-  --green: #1d503d;
-  --sage: #edf2e9;
+  --muted: #9ba8b5;
+  --line: #293440;
+  --green: #c9e78a;
+  --sage: #1c2927;
 }
 * {
   box-sizing: border-box;
@@ -106,7 +106,7 @@ summary:focus-visible {
   top: -80px;
   left: 20px;
   z-index: 100;
-  background: #fff;
+  background: #151c24;
   padding: 14px;
 }
 .skip:focus {
@@ -176,7 +176,7 @@ summary:focus-visible {
   padding: 14px 15px;
   border-radius: 10px;
   font-size: 14px;
-  color: #5e6e54;
+  color: #a3b0be;
   text-align: left;
   transition: background 0.15s;
 }
@@ -211,7 +211,7 @@ summary:focus-visible {
 }
 .local-note p {
   font-size: 10px;
-  color: #60735c;
+  color: #a3b0be;
   margin-top: 2px;
 }
 .local-dot,
@@ -232,7 +232,7 @@ summary:focus-visible {
   gap: 9px;
   padding: 18px 7px;
   font-size: 12px;
-  color: #5e6f61;
+  color: #a3b0be;
 }
 .version {
   font-size: 10px;
@@ -253,7 +253,7 @@ summary:focus-visible {
 }
 .topbar-label {
   font-size: 12px;
-  color: #677367;
+  color: #a3b0be;
 }
 .account-controls {
   display: flex;
@@ -286,17 +286,17 @@ summary:focus-visible {
   gap: 8px;
   border: 1px solid #dbe1d6;
   border-radius: 8px;
-  background: #fff;
+  background: #151c24;
   padding: 10px 12px;
   font-size: 11px;
 }
 .account-pill .desktop-only {
-  color: #6a725f;
+  color: #a3b0be;
   border-left: 1px solid var(--line);
   padding-left: 8px;
 }
 .account-pill.verified {
-  background: #f1f6ed;
+  background: #202c35;
 }
 .main {
   max-width: 1260px;
@@ -314,7 +314,7 @@ summary:focus-visible {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 1.65px;
-  color: #5e6e54;
+  color: #a3b0be;
   margin-bottom: 10px;
 }
 .subtitle {
@@ -329,7 +329,7 @@ summary:focus-visible {
   padding: 10px 13px;
   border-radius: 8px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: #151c24;
 }
 .connect-banner {
   display: flex;
@@ -367,13 +367,13 @@ summary:focus-visible {
 }
 .primary {
   background: #224e3a;
-  color: #fff;
+  color: #151c24;
 }
 .primary:hover:enabled {
   background: #143e2a;
 }
 .secondary {
-  background: #fff;
+  background: #151c24;
   border: 1px solid #dce2d6;
 }
 .secondary:hover:enabled {
@@ -406,7 +406,7 @@ summary:focus-visible {
   box-shadow: 0 5px 12px #233d2110;
 }
 .base {
-  background: #fff;
+  background: #151c24;
   border: 1px solid var(--line);
 }
 .card-top {
@@ -443,7 +443,7 @@ summary:focus-visible {
 }
 .base-symbol {
   background: #215edf;
-  color: #fff;
+  color: #151c24;
   border-radius: 50%;
   width: 33px;
   height: 33px;
@@ -512,7 +512,7 @@ summary:focus-visible {
 }
 .base .balance-footer {
   border-color: var(--line);
-  color: #5e6c65;
+  color: #a3b0be;
 }
 .health-strip {
   display: flex;
@@ -524,7 +524,7 @@ summary:focus-visible {
   background: #f1f4ed;
   margin-top: 14px;
   font-size: 10px;
-  color: #5e6e54;
+  color: #a3b0be;
 }
 .health-strip > div {
   display: flex;
@@ -533,7 +533,7 @@ summary:focus-visible {
 }
 .health-strip strong {
   font-weight: 500;
-  color: #4b5c44;
+  color: #a3b0be;
 }
 .health-time {
   margin-left: auto;
@@ -554,7 +554,7 @@ summary:focus-visible {
 }
 .section-heading p {
   font-size: 11px;
-  color: #5e6e54;
+  color: #a3b0be;
   margin-top: 5px;
 }
 .section-heading h2 {
@@ -576,7 +576,7 @@ summary:focus-visible {
   gap: 7px;
   font-size: 11px;
   font-weight: 500;
-  color: #365c43;
+  color: #c9e78a;
 }
 .collectibles {
   display: grid;
@@ -584,7 +584,7 @@ summary:focus-visible {
   gap: 20px;
 }
 .nft-card {
-  background: #fff;
+  background: #151c24;
   border: 1px solid #dfe4d8;
   border-radius: 13px;
   overflow: hidden;
@@ -670,7 +670,7 @@ summary:focus-visible {
 }
 .nft-info p {
   font-size: 9px;
-  color: #5e6e54;
+  color: #a3b0be;
   margin-top: 4px;
 }
 .nft-info > svg {
@@ -682,7 +682,7 @@ summary:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #637457;
+  color: #a3b0be;
   font-size: 9px;
 }
 .nft-footer span {
@@ -697,7 +697,7 @@ summary:focus-visible {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  background: #f0f3eb;
+  background: #202c35;
   justify-content: center;
 }
 .callout-icon {
@@ -712,7 +712,7 @@ summary:focus-visible {
 }
 .mint-callout p {
   font-size: 11px;
-  color: #65735b;
+  color: #a3b0be;
   margin: 12px 0 17px;
 }
 .mint-callout .secondary {
@@ -725,7 +725,7 @@ summary:focus-visible {
   margin-top: 10px;
 }
 .activity-list {
-  background: #fff;
+  background: #151c24;
   border: 1px solid var(--line);
   border-radius: 12px;
   overflow: hidden;
@@ -765,7 +765,7 @@ summary:focus-visible {
 .activity-name > span {
   display: block;
   font-size: 10px;
-  color: #5e6e54;
+  color: #a3b0be;
   margin-top: 4px;
 }
 .separator {
@@ -777,11 +777,11 @@ summary:focus-visible {
   gap: 5px;
   text-align: right;
   font-size: 10px;
-  color: #64765b;
+  color: #a3b0be;
 }
 .activity-status .mono {
   font-size: 9px;
-  color: #5e6e54;
+  color: #a3b0be;
 }
 .activity-amount {
   width: 126px;
@@ -809,7 +809,7 @@ summary:focus-visible {
   padding: 25px 0;
   margin-top: 25px;
   border-top: 1px solid var(--line);
-  color: #5e6e54;
+  color: #a3b0be;
   font-size: 9px;
 }
 .page-footer > span:first-child {
@@ -824,7 +824,7 @@ summary:focus-visible {
   align-items: start;
 }
 .checkout-product {
-  background: #fff;
+  background: #151c24;
   border: 1px solid var(--line);
   border-radius: 15px;
   overflow: hidden;
@@ -900,7 +900,7 @@ summary:focus-visible {
   color: #6c7a61;
 }
 .checkout-panel {
-  background: #fff;
+  background: #151c24;
   border: 1px solid var(--line);
   border-radius: 15px;
   padding: 26px;
@@ -912,7 +912,7 @@ summary:focus-visible {
 .saved-checkouts {
   display: block;
   font-size: 11px;
-  color: #5e6e54;
+  color: #a3b0be;
   margin-bottom: 20px;
 }
 .saved-checkouts select {
@@ -943,7 +943,7 @@ summary:focus-visible {
   align-items: flex-start;
 }
 .review-list dt {
-  color: #6b7962;
+  color: #a3b0be;
   min-width: 95px;
 }
 .review-list dd {
@@ -985,7 +985,7 @@ summary:focus-visible {
 }
 .checkout-disclaimer {
   font-size: 10px;
-  color: #5e6e54;
+  color: #a3b0be;
   line-height: 1.7;
   margin-top: 17px;
 }
@@ -1010,7 +1010,7 @@ summary:focus-visible {
 }
 .progress-title > span {
   font-size: 10px;
-  color: #5e6e54;
+  color: #a3b0be;
 }
 .progress-track {
   height: 5px;
@@ -1037,7 +1037,7 @@ summary:focus-visible {
   align-items: center;
   gap: 10px;
   font-size: 11px;
-  color: #5e6e54;
+  color: #a3b0be;
 }
 .steps li > span {
   display: grid;
@@ -1098,7 +1098,7 @@ summary:focus-visible {
 }
 .activity-intro > span:last-child {
   font-size: 10px;
-  color: #5e6e54;
+  color: #a3b0be;
   margin-left: auto;
 }
 .activity-foot {
@@ -1110,7 +1110,7 @@ summary:focus-visible {
   gap: 20px;
 }
 .privacy-card {
-  background: #fff;
+  background: #151c24;
   border: 1px solid var(--line);
   padding: 27px;
   border-radius: 13px;
@@ -1177,7 +1177,7 @@ summary:focus-visible {
 .unlock-card input {
   border: 1px solid #d9e2d0;
   border-radius: 8px;
-  background: #fff;
+  background: #151c24;
   width: 100%;
   padding: 13px;
   font-size: 12px;
@@ -1234,7 +1234,7 @@ dialog::backdrop {
 }
 dialog > p {
   font-size: 12px;
-  color: #66765e;
+  color: #a3b0be;
 }
 dialog .full {
   margin-top: 15px;
@@ -1262,7 +1262,7 @@ dialog .full {
 .approval-amount span {
   font-size: 17px;
   letter-spacing: 0;
-  color: #5e6e54;
+  color: #a3b0be;
 }
 .spinning {
   animation: spin 2s linear infinite;
@@ -1885,7 +1885,7 @@ dialog .full {
   overflow: auto;
 }
 .connect-shell .panel {
-  background: #fff;
+  background: #151c24;
   border: 1px solid #dbe5dd;
   border-radius: 12px;
 }
@@ -1909,7 +1909,7 @@ dialog .full {
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: #151c24;
   color: inherit;
   font: inherit;
 }
@@ -1923,7 +1923,7 @@ dialog .full {
 }
 .swap-panel > button.primary {
   background: var(--green);
-  color: #fff;
+  color: #151c24;
 }
 .swap-panel .purchase-list {
   display: grid;
@@ -1935,10 +1935,344 @@ dialog .full {
   padding: 24px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fff;
+  background: #151c24;
 }
 .swap-panel .purchase-card a {
   color: var(--green);
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* Phase 6 product tokens. Shared by dashboard, checkout and approval windows. */
+:root {
+  color-scheme: dark;
+  --surface: #151c24;
+  --surface-raised: #1b2530;
+  --text: #e7ebef;
+  --muted: #a3b0be;
+  --line: #303d4b;
+  --green: #c9e78a;
+  --sage: #1c2927;
+  --radius: 16px;
+  --space: 8px;
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+}
+body {
+  background: #0d1117;
+  color: var(--text);
+}
+.sidebar,
+.topbar,
+.panel,
+.unlock-card,
+dialog,
+.balance-card,
+.purchase-card,
+.checkout-panel,
+.nft-card,
+.privacy-card {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--line);
+}
+.sidebar {
+  background: #10161e;
+}
+.brand-mark,
+.primary,
+.primary.full,
+.swap-panel > button.primary {
+  background: var(--green);
+  color: #18220d;
+}
+.primary svg {
+  color: inherit;
+}
+.brand,
+.page-heading h1,
+.balance-value,
+h1,
+h2,
+h3,
+.account-pill,
+.asset-label,
+.nav-item.active,
+.review-list dd {
+  color: var(--text);
+}
+.muted,
+.subtitle,
+.eyebrow,
+.balance-detail,
+.section-heading p,
+.privacy-card p,
+.version {
+  color: var(--muted);
+}
+.nav-item {
+  color: var(--muted);
+  min-height: 44px;
+}
+.nav-item.active,
+.workflow-tools .active {
+  background: #253526;
+  color: #d5eda4;
+}
+.nav-dot,
+.status-dot,
+.local-dot {
+  background: #c9e78a;
+}
+.testnet-tag,
+.badge,
+.network-pill,
+.account-pill,
+.health-strip,
+.connect-banner,
+.notice {
+  background: #1c272d;
+  color: #d2dfd5;
+  border-color: var(--line);
+}
+.badge.public {
+  background: #202d3b;
+  color: #becfe6;
+}
+.error,
+.error.notice {
+  background: #321f25;
+  color: #ffc7c7;
+  border-color: #78414e;
+}
+.secondary,
+.refresh,
+.icon-button,
+.lock-button {
+  color: var(--text);
+  border-color: var(--line);
+}
+button:disabled {
+  cursor: not-allowed;
+}
+button:not(:disabled):hover {
+  filter: brightness(1.12);
+}
+input,
+select,
+textarea,
+.swap-panel input,
+.swap-panel select {
+  background: #101720;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-height: 44px;
+  padding: 10px 12px;
+  max-width: 100%;
+  font: inherit;
+}
+:focus-visible {
+  outline: 2px solid #d0e997;
+  outline-offset: 4px;
+}
+button,
+a,
+input,
+select,
+summary {
+  scroll-margin: 24px;
+}
+.workflow-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.workflow-tools button {
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-height: 44px;
+  font-size: 13px;
+}
+.privacy-ribbon {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 0 0 28px;
+  border-left: 2px solid #c9e78a;
+  padding-left: 12px;
+}
+.checkout-tracker {
+  padding: 24px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--radius);
+  margin-bottom: 24px;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.checkout-tracker select {
+  width: 100%;
+}
+.checkout-record {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.checkout-steps {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  gap: 12px;
+  margin: 8px 0;
+  flex-wrap: wrap;
+}
+.checkout-steps li {
+  flex: 1;
+  min-width: 100px;
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  border-top: 2px solid var(--line);
+  padding-top: 12px;
+}
+.checkout-steps .reached {
+  color: #d3eba4;
+  border-color: #c9e78a;
+}
+.checkout-steps span {
+  font-variant-numeric: tabular-nums;
+}
+.empty-state {
+  padding: 24px 0;
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+}
+.account-panel {
+  padding: 28px;
+  display: grid;
+  gap: 18px;
+  overflow-wrap: anywhere;
+  margin-bottom: 24px;
+}
+.account-panel article {
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+}
+.account-panel .secondary {
+  justify-self: start;
+  padding: 12px 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-height: 44px;
+}
+.balance-value {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1.5px;
+}
+.balance-card.shielded {
+  background: #18251f;
+  border: 1px solid #3a4e38;
+}
+.balance-card.base {
+  background: #18212d;
+}
+.nft-art {
+  background: #1b2d25;
+  color: #d8eab2;
+}
+.connect-shell .panel {
+  background: var(--surface);
+  border-color: var(--line);
+}
+.review-data {
+  background: #10161e;
+  color: var(--text);
+  padding: 12px;
+}
+.swap-panel .purchase-card {
+  background: var(--surface);
+}
+@media (max-width: 760px) {
+  .main {
+    padding: 22px 16px 36px;
+  }
+  .checkout-tracker,
+  .account-panel {
+    padding: 18px;
+  }
+  .topbar {
+    padding: 12px 16px;
+  }
+  .workflow-tools {
+    gap: 6px;
+  }
+  .checkout-steps li {
+    min-width: 80px;
+  }
+  .sidebar nav {
+    overflow-x: auto;
+  }
+  .account-pill .desktop-only {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.balance-card p,
+.balance-footer,
+.balance-value span,
+.balance-card .asset-label p {
+  opacity: 1;
+  color: var(--muted);
+}
+.account-pill.verified {
+  background: #23312a;
+}
+
+body {
+  font-size: 14px;
+}
+.eyebrow,
+.tiny,
+.privacy-ribbon,
+.version,
+.health-strip,
+.balance-detail,
+.balance-footer,
+.asset-label p,
+.nft-empty p,
+.page-footer,
+.review-list dt {
+  font-size: 12px;
+}
+.balance-detail {
+  line-height: 1.6;
+}
+.checkout-record summary {
+  cursor: pointer;
+  padding: 12px 0;
+  color: var(--muted);
+}
+.checkout-record details[open] {
+  border-top: 1px solid var(--line);
+}
+.nft-empty {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--line);
 }

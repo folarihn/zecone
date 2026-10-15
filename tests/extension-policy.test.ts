@@ -26,7 +26,7 @@ test("extension runtime origin comes from the browser sender, never a payload", 
     { tab: undefined },
     { documentId: "" },
     { origin: "https://opensea.io.evil.example" },
-    { url: "https://opensea.io.evil.example/" },
+    { url: "https://opensea.io.evil.example/", origin: "https://opensea.io" },
     { url: "http://opensea.io/" },
     { url: "https://www.opensea.io/" },
   ])
@@ -108,10 +108,7 @@ test("extension package has isolated transport, no secret or broad permission ca
   );
   for (const script of manifest.content_scripts) {
     assert.equal(script.all_frames, false);
-    assert.deepEqual(script.matches, [
-      "https://opensea.io/*",
-      "https://www.opensea.io/*",
-    ]);
+    assert.deepEqual(script.matches, ["https://*/*"]);
   }
   for (const file of [
     "background.js",
@@ -139,42 +136,140 @@ test("extension accepts only a single public EVM account projection", () => {
 });
 
 function workerHarness() {
-  let connected: Function = () => {}, ui: Function = () => {};
-  const timers = new Map<number, Function>(); let sequence = 0;
-  const chrome = {runtime: {id: "zecone", getURL: (p: string) => `chrome-extension://zecone/${p}`, onConnect: {addListener: (f: Function) => connected = f}, onMessage: {addListener: (f: Function) => ui = f}}};
-  runInNewContext(readFileSync("extension/background.js", "utf8").replace(/import\s*\{[\s\S]*?\}\s*from "\.\/policy\.js";/, ""), {chrome, senderOrigin, validateRequest, accountsValid, CHAINS, idValid, Date, Map, Set, Error, setTimeout: (f: Function) => {timers.set(++sequence, f); return sequence;}, clearTimeout: (id: number) => timers.delete(id)});
-  const makePort = (source = sender) => {
-    const sent: any[] = []; let receive: Function = () => {}, closed: Function = () => {}, disconnected = false;
-    const port = {name: "zecone-content-v1", sender: source, postMessage: (m: any) => sent.push(m), disconnect: () => {disconnected = true; closed();}, onMessage: {addListener: (f: Function) => receive = f}, onDisconnect: {addListener: (f: Function) => closed = f}};
-    connected(port);
-    return {sent, send: (m: any) => receive(m), get disconnected() {return disconnected;}};
+  let connected: Function = () => {},
+    ui: Function = () => {};
+  const timers = new Map<number, Function>();
+  let sequence = 0;
+  const chrome = {
+    runtime: {
+      id: "zecone",
+      getURL: (p: string) => `chrome-extension://zecone/${p}`,
+      onConnect: { addListener: (f: Function) => (connected = f) },
+      onMessage: { addListener: (f: Function) => (ui = f) },
+    },
   };
-  const status = (source: any = {id: "zecone", url: "chrome-extension://zecone/popup.html"}) => {let result: any; ui({kind: "status"}, source, (v: any) => result = JSON.parse(JSON.stringify(v))); return result;};
-  return {makePort, status, expire: () => {for (const f of [...timers.values()]) f();}};
+  runInNewContext(
+    readFileSync("extension/background.js", "utf8").replace(
+      /import\s*\{[\s\S]*?\}\s*from "\.\/policy\.js";/,
+      "",
+    ),
+    {
+      chrome,
+      senderOrigin,
+      validateRequest,
+      accountsValid,
+      CHAINS,
+      idValid,
+      Date,
+      Map,
+      Set,
+      Error,
+      setTimeout: (f: Function) => {
+        timers.set(++sequence, f);
+        return sequence;
+      },
+      clearTimeout: (id: number) => timers.delete(id),
+    },
+  );
+  const makePort = (source = sender) => {
+    const sent: any[] = [];
+    let receive: Function = () => {},
+      closed: Function = () => {},
+      disconnected = false;
+    const port = {
+      name: "zecone-content-v1",
+      sender: source,
+      postMessage: (m: any) => sent.push(m),
+      disconnect: () => {
+        disconnected = true;
+        closed();
+      },
+      onMessage: { addListener: (f: Function) => (receive = f) },
+      onDisconnect: { addListener: (f: Function) => (closed = f) },
+    };
+    connected(port);
+    return {
+      sent,
+      send: (m: any) => receive(m),
+      get disconnected() {
+        return disconnected;
+      },
+    };
+  };
+  const status = (
+    source: any = { id: "zecone", url: "chrome-extension://zecone/popup.html" },
+  ) => {
+    let result: any;
+    ui(
+      { kind: "status" },
+      source,
+      (v: any) => (result = JSON.parse(JSON.stringify(v))),
+    );
+    return result;
+  };
+  return {
+    makePort,
+    status,
+    expire: () => {
+      for (const f of [...timers.values()]) f();
+    },
+  };
 }
 test("worker expiry discards late approval responses and prevents request replay", () => {
-  const h = workerHarness(), p = h.makePort(), request = {kind: "request", id: randomUUID(), method: "eth_requestAccounts", params: []};
-  p.send(request); h.expire();
-  assert.equal(p.sent.at(-1).error.code, -32002);
-  p.send({kind: "wallet", message: {kind: "response", id: request.id, result: ["0x" + "11".repeat(20)]}});
+  const h = workerHarness(),
+    p = h.makePort(),
+    request = {
+      kind: "request",
+      id: randomUUID(),
+      method: "eth_requestAccounts",
+      params: [],
+    };
   p.send(request);
-  assert.equal(p.sent.filter(m => m.kind === "execute").length, 1);
+  h.expire();
+  assert.equal(p.sent.at(-1).error.code, -32002);
+  p.send({
+    kind: "wallet",
+    message: {
+      kind: "response",
+      id: request.id,
+      result: ["0x" + "11".repeat(20)],
+    },
+  });
+  p.send(request);
+  assert.equal(p.sent.filter((m) => m.kind === "execute").length, 1);
   assert.equal(h.status().connections[0].account, null);
 });
 test("worker rejects unknown response IDs, isolates documents, and removes disconnected state", () => {
-  const h = workerHarness(), p = h.makePort();
-  p.send({kind: "wallet", message: {kind: "response", id: randomUUID(), result: ["0x" + "11".repeat(20)]}});
+  const h = workerHarness(),
+    p = h.makePort();
+  p.send({
+    kind: "wallet",
+    message: {
+      kind: "response",
+      id: randomUUID(),
+      result: ["0x" + "11".repeat(20)],
+    },
+  });
   assert.equal(h.status().connections[0].account, null);
-  const q = h.makePort({...sender, documentId: "document-2"});
+  const q = h.makePort({ ...sender, documentId: "document-2" });
   assert.equal(h.status().connections.length, 2);
-  p.send({kind: "closed"});
+  p.send({ kind: "closed" });
   assert.equal(h.status().connections.length, 1);
   assert.equal(q.disconnected, false);
 });
 test("worker extension UI metadata is unavailable to website senders and contains no params", () => {
-  const h = workerHarness(), p = h.makePort();
-  p.send({kind: "request", id: randomUUID(), method: "personal_sign", params: ["sensitive-message-marker"]});
+  const h = workerHarness(),
+    p = h.makePort();
+  p.send({
+    kind: "request",
+    id: randomUUID(),
+    method: "personal_sign",
+    params: ["sensitive-message-marker"],
+  });
   assert.equal(h.status(sender), undefined);
-  assert.doesNotMatch(JSON.stringify(h.status()), /sensitive-message-marker|params|signature/);
-  assert.equal(h.makePort({...sender, frameId: 1}).disconnected, true);
+  assert.doesNotMatch(
+    JSON.stringify(h.status()),
+    /sensitive-message-marker|params|signature/,
+  );
+  assert.equal(h.makePort({ ...sender, frameId: 1 }).disconnected, true);
 });

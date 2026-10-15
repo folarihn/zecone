@@ -24,12 +24,19 @@ import { locked, readJson, exclusiveJson } from "../execution/io.ts";
 import { requireApproval, uuid } from "../wallet/engine.ts";
 import { ApiError, type Session } from "../wallet/security.ts";
 import { userWalletNative } from "../wallet/native.ts";
+import { revealPaymentRequest } from "../wallet/checkouts.ts";
 import type { Base } from "../execution/base.ts";
 import type { Executor } from "../execution/worker.ts";
-import { classifyIntent, type SignedExecutionIntent, type UnsignedExecutionIntent } from "../execution/model.ts";
+import {
+  classifyIntent,
+  type SignedExecutionIntent,
+  type UnsignedExecutionIntent,
+} from "../execution/model.ts";
 export interface PurchaseBackend extends Executor {
-  public: Base["public"]; account: Base["account"];
-  check(): Promise<void>; validate(intent: SignedExecutionIntent): Promise<Hex>;
+  public: Base["public"];
+  account: Base["account"];
+  check(): Promise<void>;
+  validate(intent: SignedExecutionIntent): Promise<Hex>;
 }
 const exec = promisify(execFile),
   now = () => Math.floor(Date.now() / 1000),
@@ -42,10 +49,22 @@ export class Purchases {
   approvalDir = ".state/purchase-approvals";
   signerScript = "scripts/local-purchase-sign.ts";
   receiptUncertainReason = "nft_ownership_or_receipt_uncertain";
-  validateTerms(i: UnsignedExecutionIntent) { if(i.kind!=="purchase")throw Error("wrong_execution_adapter");return terms(i, this.config(i.chainId), this.manifest.base.user, now()); }
-  validateSigned(i: SignedExecutionIntent) { const view=classifyIntent(i);if(view.action!=="NFT_PURCHASE")throw Error("wrong_execution_adapter");return validateSignature(view.signed, this.config(i.chainId), this.manifest.base.user, now()); }
+  validateTerms(i: UnsignedExecutionIntent) {
+    if (i.kind !== "purchase") throw Error("wrong_execution_adapter");
+    return terms(i, this.config(i.chainId), this.manifest.base.user, now());
+  }
+  validateSigned(i: SignedExecutionIntent) {
+    const view = classifyIntent(i);
+    if (view.action !== "NFT_PURCHASE") throw Error("wrong_execution_adapter");
+    return validateSignature(
+      view.signed,
+      this.config(i.chainId),
+      this.manifest.base.user,
+      now(),
+    );
+  }
   available() {
-    return NETWORK_IDS.some(id => existsSync(network(id).deploymentFile));
+    return NETWORK_IDS.some((id) => existsSync(network(id).deploymentFile));
   }
   constructor(
     readonly store = new PurchaseJournal(),
@@ -66,7 +85,8 @@ export class Purchases {
     if (!existsSync(file))
       throw new ApiError(503, "Marketplace has not been configured.");
     const c = readJson<MarketConfig>(file);
-    if ((c.chainId ?? 84532) !== chainId) throw Error("deployment_chain_mismatch");
+    if ((c.chainId ?? 84532) !== chainId)
+      throw Error("deployment_chain_mismatch");
     return c;
   }
   base(chainId = 84532): PurchaseBackend {
@@ -75,7 +95,13 @@ export class Purchases {
   async native<T>(args: string[], deadline?: number): Promise<T> {
     return userWalletNative<T>(args, deadline);
   }
-  async review(s: Session, origin: string, id: string, p: unknown[], chainId = 84532) {
+  async review(
+    s: Session,
+    origin: string,
+    id: string,
+    p: unknown[],
+    chainId = 84532,
+  ) {
     requireApproval(s, true);
     const c = this.config(chainId);
     if (origin !== c.origin)
@@ -108,7 +134,13 @@ export class Purchases {
       orderId,
       nonce: orderId,
       chainId,
-      ...(chainId === 84532 ? {} : { sourceNetwork: keccak256(toHex("zcash-testnet")), provider: b.account.address, adapter: keccak256(toHex(network(chainId).adapter)) }),
+      ...(chainId === 84532
+        ? {}
+        : {
+            sourceNetwork: keccak256(toHex("zcash-testnet")),
+            provider: b.account.address,
+            adapter: keccak256(toHex(network(chainId).adapter)),
+          }),
       contract: c.executor,
       marketplace: c.marketplace,
       listingId: l.listingId,
@@ -127,19 +159,21 @@ export class Purchases {
       originHash: keccak256(toHex(origin)),
     };
     terms(i, c, this.manifest.base.user, now());
-    await this.withLock(async () => this.store.reserve(
-      id,
-      origin,
-      s.id,
-      i,
-      this.manifest.zcash.payer.address,
-      randomUUID(),
-      await b.public.getBalance({
-        address: b.account.address,
-        blockTag: "pending",
-      }),
-      now(),
-    ));
+    await this.withLock(async () =>
+      this.store.reserve(
+        id,
+        origin,
+        s.id,
+        i,
+        this.manifest.zcash.payer.address,
+        randomUUID(),
+        await b.public.getBalance({
+          address: b.account.address,
+          blockTag: "pending",
+        }),
+        now(),
+      ),
+    );
     return {
       ...i,
       networkName: network(chainId).name,
@@ -176,7 +210,9 @@ export class Purchases {
         ["--import", "tsx", this.signerScript, path],
         { windowsHide: true, timeout: 90000, maxBuffer: 100000 },
       );
-      const signed = readJson<SignedExecutionIntent>(JSON.parse(stdout).intentFile);
+      const signed = readJson<SignedExecutionIntent>(
+        JSON.parse(stdout).intentFile,
+      );
       await this.attach(r, signed);
     } catch {
       this.store.stage(id, "review");
@@ -190,7 +226,8 @@ export class Purchases {
   async attach(r: PurchaseRow, signed: SignedExecutionIntent) {
     classifyIntent(signed);
     const { signature: approvalSignature, ...unsigned } = signed;
-    if (JSON.stringify(unsigned) !== r.intent) throw Error("signed_reservation_mismatch");
+    if (JSON.stringify(unsigned) !== r.intent)
+      throw Error("signed_reservation_mismatch");
     const b = this.base(signed.chainId),
       id = await this.validateSigned(signed);
     await b.validate(signed);
@@ -309,6 +346,18 @@ export class Purchases {
   list() {
     return this.store.rows().map((r) => this.view(r));
   }
+  paymentRequest(s: Session, id: string) {
+    requireApproval(s, true);
+    const r = this.row(uuid(id));
+    if (["sending", "sent", "review"].includes(r.stage))
+      throw new ApiError(
+        409,
+        "Reconcile the existing payment; do not pay again.",
+      );
+    const o = r.order_id ? this.store.get(r.order_id) : undefined;
+    if (!o) throw new ApiError(409, "Approve exact terms first.");
+    return revealPaymentRequest(id, o, this.store.totals(o.id).received, now());
+  }
   externalStatus(origin: string, id: string) {
     const r = this.row(id);
     if (r.origin !== origin)
@@ -326,7 +375,9 @@ export class Purchases {
       this.store.totals(o.id).received > 0n
     )
       throw new ApiError(409, "This purchase cannot accept another payment.");
-    await this.base(JSON.parse(o.intent).chainId).validate(JSON.parse(o.intent));
+    await this.base(JSON.parse(o.intent).chainId).validate(
+      JSON.parse(o.intent),
+    );
     const q = await this.native<{ feeZatoshis: string; totalZatoshis: string }>(
       [
         "quote",
@@ -368,7 +419,9 @@ export class Purchases {
       q.expires <= Date.now()
     )
       throw new ApiError(409, "Fresh exact payment approval is required.");
-    await this.base(JSON.parse(o.intent).chainId).validate(JSON.parse(o.intent));
+    await this.base(JSON.parse(o.intent).chainId).validate(
+      JSON.parse(o.intent),
+    );
     if (
       this.store.db
         .prepare(
@@ -517,11 +570,33 @@ export class Purchases {
         if (!r) return;
         const o = this.store.get(r.order_id!)!;
         const chainId = JSON.parse(o.intent).chainId as number;
-        if (this.store.all().some(x => JSON.parse(x.intent).chainId === chainId && x.tx_hash && !["settled", "failed"].includes(x.state))) return;
+        if (
+          this.store
+            .all()
+            .some(
+              (x) =>
+                JSON.parse(x.intent).chainId === chainId &&
+                x.tx_hash &&
+                !["settled", "failed"].includes(x.state),
+            )
+        )
+          return;
         if (chainId === 84532) {
           const old = new Store(this.legacyPath);
-          try { if (old.all().some(x => x.tx_hash && ["prepared", "submitted", "recovery"].includes(x.state))) return; }
-          finally { old.close(); }
+          try {
+            if (
+              old
+                .all()
+                .some(
+                  (x) =>
+                    x.tx_hash &&
+                    ["prepared", "submitted", "recovery"].includes(x.state),
+                )
+            )
+              return;
+          } finally {
+            old.close();
+          }
         }
         try {
           const b = this.base(chainId);
@@ -557,7 +632,11 @@ export class Purchases {
             "insufficient_provider_liquidity",
             "gas_budget_exceeded",
             "already_consumed_reconcile",
-            "slippage_exceeded", "excessive_price_impact", "quote_reference_reorganization", "pool_reserves_or_token_behavior", "contract_code_mismatch",
+            "slippage_exceeded",
+            "excessive_price_impact",
+            "quote_reference_reorganization",
+            "pool_reserves_or_token_behavior",
+            "contract_code_mismatch",
           ];
           this.recover(
             o.id,

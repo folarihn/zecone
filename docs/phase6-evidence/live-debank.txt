@@ -1,0 +1,84 @@
+- banner:
+  - navigation:
+    - link:
+      - /url: /
+    - link "Portfolio":
+      - /url: /profile
+    - link "Community":
+      - /url: /stream
+    - link "Portfolio API":
+      - /url: https://cloud.debank.com/
+    - generic: More
+  - button "Connect Wallet" [active]
+- main:
+  - generic: Whale Asset Tracking, Paid Consultations, and Web3 Dynamic Community
+  - generic: Concise View of Portfolio Tracking
+  - generic: Search address/Web3 ID
+  - textbox
+  - button "Connect Wallet"
+  - generic: Tracking any Whale's Portfolio
+  - link "View more👉":
+    - /url: /profile/0xf7b10d603907658f690da534e9b7dbc4dab3e2d6
+    - generic: View more👉
+  - generic: Real Web3 Social Community
+  - link "Read More👉":
+    - /url: /stream-search?filter=types%5B%5D%3Dpost
+  - link:
+    - /url: /stream-search?filter=types%5B%5D%3Dpost
+  - generic: Stream
+  - generic: Quest
+  - generic: Lucky Draw
+  - generic: Explore More Featured Functions
+  - link "View More👉":
+    - /url: /xp
+  - link "DeBank XP Earn DeBank XP by referring, joining Quest and interacting with the community. Stay active on chain to keep earning more XP, and get ready to redeem for more rewards in the future!":
+    - /url: /xp
+    - generic: DeBank XP
+    - text: Earn DeBank XP by referring, joining Quest and interacting with the community.
+    - text: Stay active on chain to keep earning more XP, and get ready to redeem for more rewards in the future!
+  - link "Credit A comprehensive system to measure the authenticity, activity and value of Web3 users. Head over to activate your Credit and verify your real user status.":
+    - /url: /credit
+    - generic: Credit
+    - text: A comprehensive system to measure the authenticity, activity and value of Web3 users.
+    - text: Head over to activate your Credit and verify your real user status.
+  - link "Web3 Badges Reflects the unique achievements accomplished by each 0x address. View and mint the badges and let them witness your journey on-chain.":
+    - /url: /badge
+    - generic: Web3 Badges
+    - text: Reflects the unique achievements accomplished by each 0x address.
+    - text: View and mint the badges and let them witness your journey on-chain.
+  - generic: Join VIP to Unlock More Premium Features
+  - link "Subscribe Now👉":
+    - /url: /paid
+  - generic: Time Machine
+  - generic: Compare asset changes between any two dates
+  - generic: Transaction History Analysis Mode
+  - generic: User-friendly transaction data summaries and record filter
+  - generic: “Change View” of Portfolio
+  - generic: View 24-hour asset changes of any address
+  - generic: “Summary View” of Portfolio
+  - generic: Compare asset changes between any two dates
+  - generic: Set Non-NFT Avatar
+  - generic: Set any custom picture as profile avatar
+  - generic: Set Cover Picture for Profile Page
+  - generic: Set a cover picture for your profile page
+  - generic: Follow up to 3,000 Users
+  - generic: Increase the follow limit on DeBank
+  - generic: Follow up to 300 Official Accounts
+  - generic: Increase the official account follow limit
+  - generic: Download DeBank APP
+  - button "Download Now👉"
+  - generic: Find us on
+  - link:
+    - /url: /official/DeBank
+  - link "media/discord":
+    - /url: https://discordapp.com/invite/KYuj8DE
+    - img "media/discord"
+  - link:
+    - /url: https://twitter.com/DebankDeFi
+  - link "icon/github":
+    - /url: https://github.com/DeBankDeFi
+    - img "icon/github"
+  - link "Brand assets":
+    - /url: https://github.com/DeBankDeFi/logo/tree/master/DeBank
+  - link "Terms of service":
+    - /url: https://debank.com/docs/terms

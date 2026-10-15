@@ -421,20 +421,20 @@ function extension(origin = "https://opensea.io") {
     timers,
   };
 }
-test("Extension EIP-6963 discovery is frozen and restricted to exact top-level OpenSea origins", () => {
+test("Extension EIP-6963 discovery is frozen on HTTPS origins without granting account access", () => {
   const e = extension();
   assert.equal(e.announcements[0].info.name, "ZecOne Testnet");
   assert.ok(Object.isFrozen(e.provider));
   e.win.dispatchEvent({ type: "eip6963:requestProvider" });
   assert.equal(e.announcements.length, 2);
-  assert.equal(
-    extension("https://opensea.io.evil.example").provider,
-    undefined,
-  );
+  assert.equal(extension("http://opensea.io.evil.example").provider, undefined);
   const m = JSON.parse(readFileSync("extension/manifest.json", "utf8"));
   assert.equal(m.manifest_version, 3);
   assert.equal(m.permissions, undefined);
-  assert.deepEqual(m.background, { service_worker: "background.js", type: "module" });
+  assert.deepEqual(m.background, {
+    service_worker: "background.js",
+    type: "module",
+  });
   assert.equal(m.externally_connectable, undefined);
 });
 test("Extension rejects unauthorized signing and private wallet RPC without opening a signer", async () => {

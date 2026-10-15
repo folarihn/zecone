@@ -22,8 +22,12 @@ for (const file of ["inpage.js", "content.js", "policy.js"])
   writeFileSync(
     join(root, file),
     readFileSync(join(root, file), "utf8").replace(
-      '["https://opensea.io", "https://www.opensea.io"]',
-      JSON.stringify([fixtureOrigin]),
+      file === "policy.js"
+        ? 'new URL(origin).protocol !== "https:"'
+        : '!location.origin.startsWith("https://")',
+      file === "policy.js"
+        ? `origin !== ${JSON.stringify(fixtureOrigin)}`
+        : `location.origin !== ${JSON.stringify(fixtureOrigin)}`,
     ),
   );
 const revision = JSON.parse(
@@ -89,6 +93,60 @@ const rpc = (method: string, params: any[] = []) =>
     },
     { method, params },
   );
+
+test("unmodified production extension discovers independently on two HTTPS fixture origins", async () => {
+  const productionRoot = resolve("extension");
+  const isolated = await chromium.launchPersistentContext(
+    mkdtempSync(resolve(".state/phase6-https-profile-")),
+    {
+      ...options,
+      args: [
+        `--disable-extensions-except=${productionRoot}`,
+        `--load-extension=${productionRoot}`,
+      ],
+    },
+  );
+  try {
+    await isolated.route("https://*.zecone.invalid/**", (r) =>
+      r.fulfill({
+        contentType: "text/html",
+        body: `<h1>Synthetic HTTPS provider fixture</h1><script>window.addEventListener('eip6963:announceProvider',e=>{window.p=e.detail.provider;window.info=e.detail.info});window.dispatchEvent(new Event('eip6963:requestProvider'));</script>`,
+      }),
+    );
+    for (const origin of [
+      "https://alpha.zecone.invalid",
+      "https://beta.zecone.invalid",
+    ]) {
+      const p = await isolated.newPage();
+      await p.goto(origin);
+      await expect.poll(() => p.evaluate(() => !!(window as any).p)).toBe(true);
+      expect(await p.evaluate(() => (window as any).info.name)).toBe(
+        "ZecOne Testnet",
+      );
+      expect(
+        await p.evaluate(() =>
+          (window as any).p.request({ method: "eth_accounts" }),
+        ),
+      ).toEqual([]);
+      expect(
+        await p.evaluate(async () => {
+          try {
+            await (window as any).p.request({
+              method: "eth_sendTransaction",
+              params: [{ chainId: "0x1" }],
+            });
+            return 0;
+          } catch (e: any) {
+            return e.code;
+          }
+        }),
+      ).toBe(4901);
+      await p.close();
+    }
+  } finally {
+    await isolated.close();
+  }
+});
 
 test("installed MV3 worker and independent EIP-6963 discovery with no impersonation", async () => {
   expect(context.serviceWorkers()[0].url()).toContain("background.js");
@@ -252,15 +310,20 @@ test("service worker termination disconnects and requires fresh account access",
 
 test("extension action displays account and pending status and disconnects transport", async () => {
   await connect();
-  const worker = context.serviceWorkers()[0], id = new URL(worker.url()).host;
+  const worker = context.serviceWorkers()[0],
+    id = new URL(worker.url()).host;
   const panel = await context.newPage();
   await panel.goto(`chrome-extension://${id}/popup.html`);
   await expect(panel.locator("#connections")).toContainText(account);
   await expect(panel.locator("#connections")).toContainText("Base Sepolia");
   await expect(panel.locator("#connections")).toContainText("0 pending");
-  await panel.getByRole("button", {name: "Disconnect transport"}).click();
-  await expect(panel.locator("#connections")).toContainText("Disconnected. Open OpenSea");
-  await expect.poll(() => rpc("eth_accounts")).toEqual({value: []});
-  expect(await rpc("personal_sign")).toEqual({error: 4100});
-  await expect(panel.getByRole("link", {name: "Open wallet · manage saved permissions"})).toHaveAttribute("href", walletOrigin);
+  await panel.getByRole("button", { name: "Disconnect transport" }).click();
+  await expect(panel.locator("#connections")).toContainText(
+    "Disconnected. Open a compatible HTTPS dApp",
+  );
+  await expect.poll(() => rpc("eth_accounts")).toEqual({ value: [] });
+  expect(await rpc("personal_sign")).toEqual({ error: 4100 });
+  await expect(
+    panel.getByRole("link", { name: "Open wallet · manage saved permissions" }),
+  ).toHaveAttribute("href", walletOrigin);
 });

@@ -1,11 +1,7 @@
 // ISOLATED world: webpage scripts cannot access this popup reference or channel.
 (() => {
   "use strict";
-  if (
-    window.top !== window ||
-    !["https://opensea.io", "https://www.opensea.io"].includes(location.origin)
-  )
-    return;
+  if (window.top !== window || !location.origin.startsWith("https://")) return;
   const WALLET = "http://127.0.0.1:3210";
   let port = null,
     popup = null,

@@ -1,4 +1,5 @@
 import { portfolio } from "../evm/portfolio.ts";
+import { unifiedCheckouts } from "./checkouts.ts";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { ApiError, requireLocal, Sessions } from "./security.ts";
 import { uuid, type Engine } from "./engine.ts";
@@ -20,6 +21,7 @@ type Backend = Pick<
   | "quote"
   | "pay"
   | "recheck"
+  | "paymentRequest"
 >;
 export function api(
   sessions: Sessions,
@@ -104,53 +106,178 @@ export function api(
           throw new ApiError(429, "Too many requests. Please wait a minute.");
       }
       let data: unknown;
+      if (method === "POST" && path === "/api/checkouts/payment-request") {
+        if (!session.connected || body.reveal !== true)
+          throw new ApiError(
+            403,
+            "Explicit local payment-address reveal required.",
+          );
+        const source =
+          body.kind === "mint" || body.kind === "action"
+            ? engine
+            : body.kind === "purchase"
+              ? purchases
+              : body.kind === "swap"
+                ? swaps
+                : body.kind === "seaport"
+                  ? seaport
+                  : undefined;
+        if (!source) throw new ApiError(400, "Unsupported checkout adapter");
+        send(200, source.paymentRequest(session, uuid(body.id)));
+        return;
+      }
+      if (method === "GET" && path === "/api/checkouts") {
+        if (!session.connected)
+          throw new ApiError(403, "Verify wallet ownership first.");
+        const dashboard = engine.dashboard();
+        send(200, {
+          checkouts: unifiedCheckouts(
+            [
+              {
+                kind: "mint",
+                rows: dashboard.checkouts.filter((r) => r.kind !== "action"),
+              },
+              {
+                kind: "action",
+                rows: dashboard.checkouts.filter((r) => r.kind === "action"),
+              },
+              { kind: "purchase", rows: purchases?.list() ?? [] },
+              { kind: "swap", rows: swaps?.list() ?? [] },
+              { kind: "seaport", rows: seaport?.list() ?? [] },
+            ],
+            dashboard.address,
+          ),
+          liveRefundsEnabled: false,
+        });
+        return;
+      }
       if (method === "GET" && path === "/api/reference-prices") {
-        if (!session.connected) throw new ApiError(403, "Verify wallet ownership first.");
-        try { send(200, {referenceOnly:true, changesApprovedPayment:false, ...await marketReferences()}); }
-        catch { send(503, {error:"Market references unavailable or stale. No payment terms changed."}); }
+        if (!session.connected)
+          throw new ApiError(403, "Verify wallet ownership first.");
+        try {
+          send(200, {
+            referenceOnly: true,
+            changesApprovedPayment: false,
+            ...(await marketReferences()),
+          });
+        } catch {
+          send(503, {
+            error:
+              "Market references unavailable or stale. No payment terms changed.",
+          });
+        }
         return;
       }
       if (path?.startsWith("/api/opensea/") && opensea) {
-        if (!session.connected) throw new ApiError(403, "Verify wallet ownership first.");
+        if (!session.connected)
+          throw new ApiError(403, "Verify wallet ownership first.");
         try {
-          if (method === "POST" && path === "/api/opensea/listings") data = await opensea.catalog(body.collection);
-          else if (method === "POST" && path === "/api/opensea/preview") data = await opensea.preview(body.collection, body.orderHash);
-          else if (method === "POST" && path === "/api/opensea/import") data = await opensea.importListing(body.url);
-          else throw new ApiError(404, "Read-only OpenSea operation unavailable.");
+          if (method === "POST" && path === "/api/opensea/listings")
+            data = await opensea.catalog(body.collection);
+          else if (method === "POST" && path === "/api/opensea/preview")
+            data = await opensea.preview(body.collection, body.orderHash);
+          else if (method === "POST" && path === "/api/opensea/import")
+            data = await opensea.importListing(body.url);
+          else
+            throw new ApiError(404, "Read-only OpenSea operation unavailable.");
         } catch (e) {
           if (e instanceof DiscoveryError) throw new ApiError(422, e.message);
           throw e;
         }
-        send(200, data); return;
+        send(200, data);
+        return;
       }
-      if(path?.startsWith("/api/seaport/")&&seaport){
-        if(!session.connected)throw new ApiError(403,"Verify wallet ownership first.");
-        switch(`${method} ${path}`){
-          case "GET /api/seaport/catalog": data=await seaport.catalog();break;
-          case "GET /api/seaport/list": data={purchases:seaport.list()};break;
-          case "POST /api/seaport/quote": data=await seaport.quote(session,body);break;
-          case "POST /api/seaport/approve": if(body.approved!==true)throw new ApiError(400,"Exact Seaport approval required.");data=await seaport.approve(session,uuid(body.id));break;
-          case "POST /api/seaport/cancel": {const r=seaport.row(uuid(body.id));if(r.session!==session.id)throw new ApiError(403,"Session mismatch");seaport.cancelDraft(r.id);data={cancelled:true};break;}
-          case "POST /api/seaport/fee": data=await seaport.fee(session,uuid(body.id));break;
-          case "POST /api/seaport/pay": data=await seaport.pay(session,uuid(body.id),uuid(body.quoteId),body.approved);break;
-          case "POST /api/seaport/recheck": data=await seaport.reconcile(session,uuid(body.id));break;
-          default:throw new ApiError(404,"Seaport operation unavailable.");
-        }send(200,data);return;
+      if (path?.startsWith("/api/seaport/") && seaport) {
+        if (!session.connected)
+          throw new ApiError(403, "Verify wallet ownership first.");
+        switch (`${method} ${path}`) {
+          case "GET /api/seaport/catalog":
+            data = await seaport.catalog();
+            break;
+          case "GET /api/seaport/list":
+            data = { purchases: seaport.list() };
+            break;
+          case "POST /api/seaport/quote":
+            data = await seaport.quote(session, body);
+            break;
+          case "POST /api/seaport/approve":
+            if (body.approved !== true)
+              throw new ApiError(400, "Exact Seaport approval required.");
+            data = await seaport.approve(session, uuid(body.id));
+            break;
+          case "POST /api/seaport/cancel": {
+            const r = seaport.row(uuid(body.id));
+            if (r.session !== session.id)
+              throw new ApiError(403, "Session mismatch");
+            seaport.cancelDraft(r.id);
+            data = { cancelled: true };
+            break;
+          }
+          case "POST /api/seaport/fee":
+            data = await seaport.fee(session, uuid(body.id));
+            break;
+          case "POST /api/seaport/pay":
+            data = await seaport.pay(
+              session,
+              uuid(body.id),
+              uuid(body.quoteId),
+              body.approved,
+            );
+            break;
+          case "POST /api/seaport/recheck":
+            data = await seaport.reconcile(session, uuid(body.id));
+            break;
+          default:
+            throw new ApiError(404, "Seaport operation unavailable.");
+        }
+        send(200, data);
+        return;
       }
       if (path?.startsWith("/api/swaps/") && swaps) {
-        if (!session.connected) throw new ApiError(403,"Verify wallet ownership first.");
+        if (!session.connected)
+          throw new ApiError(403, "Verify wallet ownership first.");
         switch (`${method} ${path}`) {
-          case "GET /api/swaps/assets": data=await swaps.assets(); break;
-          case "GET /api/swaps/list": data={swaps:swaps.list()}; break;
-          case "POST /api/swaps/quote": data=await swaps.quote(session,body); break;
-          case "POST /api/swaps/approve": if(body.approved!==true)throw new ApiError(400,"Exact swap approval required."); data=await swaps.approve(session,uuid(body.id)); break;
-          case "POST /api/swaps/cancel": {const r=swaps.row(uuid(body.id));if(r.session!==session.id)throw new ApiError(403,"Session mismatch");swaps.cancelDraft(r.id);data={cancelled:true};break;}
-          case "POST /api/swaps/fee": data=await swaps.fee(session,uuid(body.id));break;
-          case "POST /api/swaps/pay": data=await swaps.pay(session,uuid(body.id),uuid(body.quoteId),body.approved);break;
-          case "POST /api/swaps/recheck": data=await swaps.reconcile(session,uuid(body.id));break;
-          default: throw new ApiError(404,"Swap operation unavailable.");
+          case "GET /api/swaps/assets":
+            data = await swaps.assets();
+            break;
+          case "GET /api/swaps/list":
+            data = { swaps: swaps.list() };
+            break;
+          case "POST /api/swaps/quote":
+            data = await swaps.quote(session, body);
+            break;
+          case "POST /api/swaps/approve":
+            if (body.approved !== true)
+              throw new ApiError(400, "Exact swap approval required.");
+            data = await swaps.approve(session, uuid(body.id));
+            break;
+          case "POST /api/swaps/cancel": {
+            const r = swaps.row(uuid(body.id));
+            if (r.session !== session.id)
+              throw new ApiError(403, "Session mismatch");
+            swaps.cancelDraft(r.id);
+            data = { cancelled: true };
+            break;
+          }
+          case "POST /api/swaps/fee":
+            data = await swaps.fee(session, uuid(body.id));
+            break;
+          case "POST /api/swaps/pay":
+            data = await swaps.pay(
+              session,
+              uuid(body.id),
+              uuid(body.quoteId),
+              body.approved,
+            );
+            break;
+          case "POST /api/swaps/recheck":
+            data = await swaps.reconcile(session, uuid(body.id));
+            break;
+          default:
+            throw new ApiError(404, "Swap operation unavailable.");
         }
-        send(200,data);return;
+        send(200, data);
+        return;
       }
       if (path?.startsWith("/api/purchases/") && purchases) {
         if (!session.connected)
@@ -215,7 +342,8 @@ export function api(
           data = { csrf: session.csrf, connected: !!session.connected };
           break;
         case "GET /api/networks":
-          if (!session.connected || !dapps) throw new ApiError(403, "Verify wallet ownership first.");
+          if (!session.connected || !dapps)
+            throw new ApiError(403, "Verify wallet ownership first.");
           data = { networks: await portfolio(dapps.user) };
           break;
         case "GET /api/dashboard":

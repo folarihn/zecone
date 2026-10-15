@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useClock, reviewExpired } from "../checkout/clock";
 import CheckoutTerms from "../checkout/terms";
 const amount = (v: string, d = 8) => {
   const n = BigInt(v),
@@ -7,6 +8,8 @@ const amount = (v: string, d = 8) => {
   return `${n / base}.${(n % base).toString().padStart(d, "0").replace(/0+$/, "") || "0"}`;
 };
 export default function PurchasePanel({ id }: { id?: string }) {
+  const clock = useClock(),
+    inFlight = useRef(false);
   const [rows, setRows] = useState<any[]>([]),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
@@ -57,11 +60,14 @@ export default function PurchasePanel({ id }: { id?: string }) {
     } catch (e: any) {
       setError(e.message);
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   }
   async function pay() {
-    if (!review) return;
+    if (!review || inFlight.current || reviewExpired(review, Date.now()))
+      return;
+    inFlight.current = true;
     setBusy(true);
     try {
       await api("pay", {
@@ -74,6 +80,7 @@ export default function PurchasePanel({ id }: { id?: string }) {
     } catch (e: any) {
       setError(e.message);
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   }
@@ -82,8 +89,8 @@ export default function PurchasePanel({ id }: { id?: string }) {
     <section aria-label="Marketplace purchases">
       <h2>Marketplace purchases</h2>
       <p className="muted">
-        Shielded Testnet ZEC payment · prefunded testnet purchase · direct
-        NFT delivery
+        Shielded Testnet ZEC payment · prefunded testnet purchase · direct NFT
+        delivery
       </p>
       {error && (
         <p className="notice error" role="alert">
@@ -103,8 +110,20 @@ export default function PurchasePanel({ id }: { id?: string }) {
           style={{ padding: 20, marginBottom: 16 }}
         >
           <div className="eyebrow">SEPOLIA STUDIO · NFT #{r.tokenId}</div>
-          <h3>{r.status}</h3><p>{r.networkName ?? "Base Sepolia"} · chain {r.chainId ?? 84532}</p>
-          {r.status === 'Completed' && <details><summary>Historical approved terms</summary><p>Historical record only. This does not create a new quote or payment.</p><CheckoutTerms terms={r}/></details>}
+          <h3>{r.status}</h3>
+          <p>
+            {r.networkName ?? "Base Sepolia"} · chain {r.chainId ?? 84532}
+          </p>
+          {r.status === "Completed" && (
+            <details>
+              <summary>Historical approved terms</summary>
+              <p>
+                Historical record only. This does not create a new quote or
+                payment.
+              </p>
+              <CheckoutTerms terms={r} />
+            </details>
+          )}
           <p className="mono break">{r.origin}</p>
           <dl className="review-list">
             <div>
@@ -205,17 +224,26 @@ export default function PurchasePanel({ id }: { id?: string }) {
         >
           <h2 id="purchase-payment-title">Authorize shielded payment</h2>
           <p>
-            Pay for Sepolia Studio NFT #{review.tokenId} on {review.networkName ?? "Base Sepolia"}. NFT
-            delivery is public. The trusted provider can correlate this payment
-            with the purchase.
+            Pay for Sepolia Studio NFT #{review.tokenId} on{" "}
+            {review.networkName ?? "Base Sepolia"}. NFT delivery is public. The
+            trusted provider can correlate this payment with the purchase.
           </p>
-          <dl><dt>Collection</dt><dd className="mono break">{review.nft}</dd><dt>Seller</dt><dd className="mono break">{review.seller}</dd></dl>
-          <CheckoutTerms terms={review}/>
+          <dl>
+            <dt>Collection</dt>
+            <dd className="mono break">{review.nft}</dd>
+            <dt>Seller</dt>
+            <dd className="mono break">{review.seller}</dd>
+          </dl>
+          <CheckoutTerms terms={review} />
           <div className="approval-actions">
             <button disabled={busy} onClick={() => setReview(null)}>
               Cancel
             </button>
-            <button className="primary" disabled={busy} onClick={pay}>
+            <button
+              className="primary"
+              disabled={busy || reviewExpired(review, clock)}
+              onClick={pay}
+            >
               {busy ? "Authorizing…" : "Approve & pay test ZEC"}
             </button>
           </div>

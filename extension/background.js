@@ -44,7 +44,10 @@ chrome.runtime.onConnect.addListener((port) => {
     state.pending.clear();
     if (connections.get(key) === state) connections.delete(key);
   }
-  state.close = () => { cleanup(); port.disconnect(); };
+  state.close = () => {
+    cleanup();
+    port.disconnect();
+  };
   const send = (m) => {
     try {
       port.postMessage(m);

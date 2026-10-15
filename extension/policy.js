@@ -1,10 +1,16 @@
 // Public policy, imported by the worker. No wallet credentials.
-export const ORIGINS = ["https://opensea.io", "https://www.opensea.io"];
 export const CHAINS = ["0x14a34", "0xaa36a7", "0xb626"];
 export const METHODS = [
   "eth_requestAccounts",
   "eth_accounts",
   "eth_chainId",
+  "net_version",
+  "eth_blockNumber",
+  "eth_getBalance",
+  "eth_getCode",
+  "eth_call",
+  "eth_estimateGas",
+  "eth_getTransactionReceipt",
   "wallet_revokePermissions",
   "wallet_switchEthereumChain",
   "wallet_addEthereumChain",
@@ -27,7 +33,7 @@ export function senderOrigin(sender, extensionId) {
   )
     throw Error("Untrusted extension sender");
   const origin = new URL(sender.url).origin;
-  if (!ORIGINS.includes(origin) || sender.origin !== origin)
+  if (new URL(origin).protocol !== "https:" || sender.origin !== origin)
     throw Error("Unsupported website origin");
   return origin;
 }

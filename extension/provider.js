@@ -3,11 +3,7 @@
 // plus local session and visible approval form the authority boundary.
 (() => {
   "use strict";
-  if (
-    window.top !== window ||
-    !["https://opensea.io", "https://www.opensea.io"].includes(location.origin)
-  )
-    return;
+  if (window.top !== window || !location.origin.startsWith("https://")) return;
   const WALLET = "http://127.0.0.1:3210",
     channel = crypto.randomUUID();
   const pending = new Map(),
@@ -16,6 +12,13 @@
     "eth_requestAccounts",
     "eth_accounts",
     "eth_chainId",
+    "net_version",
+    "eth_blockNumber",
+    "eth_getBalance",
+    "eth_getCode",
+    "eth_call",
+    "eth_estimateGas",
+    "eth_getTransactionReceipt",
     "wallet_revokePermissions",
     "wallet_switchEthereumChain",
     "wallet_addEthereumChain",

@@ -21,11 +21,17 @@ import {
   X,
 } from "lucide-react";
 import type { Dashboard, CheckoutView } from "../services/wallet/view";
+import CheckoutTracker from "./checkout/tracker";
+import AccountPanel from "./account-panel";
 import NetworksPanel from "./networks/panel";
 import PurchasePanel from "./purchases/panel";
 import SwapPanel from "./swaps/panel";
 import SeaportPanel from "./seaport/panel";
 type Tab =
+  | "Overview"
+  | "Send / Receive"
+  | "NFTs"
+  | "Settings"
   | "Wallet"
   | "Checkout"
   | "Sponsor"
@@ -49,6 +55,10 @@ const time = (n: number) =>
     minute: "2-digit",
   });
 const icons = {
+  Overview: Grid2X2,
+  "Send / Receive": ArrowUpRight,
+  NFTs: Grid2X2,
+  Settings: KeyRound,
   Wallet: WalletIcon,
   Checkout: Layers,
   Activity: Clock,
@@ -173,7 +183,22 @@ export default function Wallet() {
       connected: boolean;
     } | null>(null),
     [data, setData] = useState<Dashboard | null>(null),
-    [tab, setTab] = useState<Tab>("Wallet");
+    [tab, setTab] = useState<Tab>("Overview");
+  const navigate = (next: Tab) => {
+    setTab(next);
+    const url = new URL(location.href);
+    url.searchParams.set("view", next);
+    history.pushState(null, "", url);
+  };
+  useEffect(() => {
+    const restore = () => {
+      const next = new URL(location.href).searchParams.get("view");
+      if (next && Object.hasOwn(icons, next)) setTab(next as Tab);
+    };
+    restore();
+    addEventListener("popstate", restore);
+    return () => removeEventListener("popstate", restore);
+  }, []);
   const [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -389,15 +414,14 @@ export default function Wallet() {
         <nav aria-label="Main navigation">
           {(
             [
+              "Overview",
               "Wallet",
-              "Checkout",
-              "Sponsor",
-              "Apps",
-              "Purchases",
+              "Send / Receive",
               "Tokens",
-              "Seaport",
+              "NFTs",
               "Activity",
-              "Privacy",
+              "Apps",
+              "Settings",
             ] as Tab[]
           ).map((t) => {
             const Icon = icons[t];
@@ -406,10 +430,16 @@ export default function Wallet() {
                 key={t}
                 className={tab === t ? "nav-item active" : "nav-item"}
                 aria-current={tab === t ? "page" : undefined}
-                onClick={() => setTab(t)}
+                onClick={() => navigate(t)}
               >
                 <Icon size={19} />
-                <span>{t}</span>
+                <span>
+                  {t === "Tokens"
+                    ? "Swap"
+                    : t === "Apps"
+                      ? "Connected Apps"
+                      : t}
+                </span>
                 {t === tab && <span className="nav-dot" />}
               </button>
             );
@@ -435,7 +465,7 @@ export default function Wallet() {
           >
             <LockKeyhole size={16} /> Lock wallet
           </button>
-          <p className="version">ZecOne · Phase 1</p>
+          <p className="version">ZecOne · Phase 6 · testnet</p>
         </div>
       </aside>
       <div className="workspace">
@@ -450,7 +480,7 @@ export default function Wallet() {
               <LockKeyhole size={17} />
             </button>
             <span className="network-pill">
-              <span /> Base Sepolia
+              <span /> Testnet workspace
             </span>
             <button
               className={`account-pill ${session.connected ? "verified" : ""}`}
@@ -473,7 +503,7 @@ export default function Wallet() {
           <div className="page-heading">
             <div>
               <p className="eyebrow">
-                {tab === "Wallet"
+                {tab === "Wallet" || tab === "Overview"
                   ? "YOUR ASSETS, TOGETHER"
                   : tab === "Checkout"
                     ? "FROM PRIVATE PAYMENT TO PUBLIC OWNERSHIP"
@@ -485,12 +515,14 @@ export default function Wallet() {
                           ? "PRIVATE PAYMENT, PUBLIC NFT OWNERSHIP"
                           : tab === "Tokens"
                             ? "PRIVATE PAYMENT, PUBLIC TOKEN OWNERSHIP"
-                          : tab === "Seaport" ? "PRIVATE PAYMENT, DIRECT SEAPORT DELIVERY" : tab === "Activity"
-                            ? "A CLEAR RECORD"
-                            : "UNDERSTAND YOUR WALLET"}
+                            : tab === "Seaport"
+                              ? "PRIVATE PAYMENT, DIRECT SEAPORT DELIVERY"
+                              : tab === "Activity"
+                                ? "A CLEAR RECORD"
+                                : "UNDERSTAND YOUR WALLET"}
               </p>
               <h1>
-                {tab === "Wallet"
+                {tab === "Wallet" || tab === "Overview"
                   ? "Wallet overview"
                   : tab === "Checkout"
                     ? "Cross-chain checkout"
@@ -502,14 +534,20 @@ export default function Wallet() {
                           ? "Your marketplace purchases"
                           : tab === "Tokens"
                             ? "Your token purchases"
-                          : tab === "Seaport"
-                            ? "Your Seaport purchases"
-                          : tab === "Activity"
-                            ? "Recent activity"
-                            : "Privacy, in plain language"}
+                            : tab === "Seaport"
+                              ? "Your Seaport purchases"
+                              : tab === "Activity"
+                                ? "Recent activity"
+                                : tab === "Send / Receive"
+                                  ? "Send / Receive"
+                                  : tab === "NFTs"
+                                    ? "NFT workspace"
+                                    : tab === "Settings"
+                                      ? "Wallet settings"
+                                      : "Privacy, in plain language"}
               </h1>
               <p className="subtitle">
-                {tab === "Wallet"
+                {tab === "Wallet" || tab === "Overview"
                   ? "Shielded where it matters. Connected when you choose."
                   : tab === "Checkout"
                     ? "Pay with shielded test ZEC. Receive an NFT on Base."
@@ -521,11 +559,11 @@ export default function Wallet() {
                           ? "Track shielded payments, NFT delivery and recovery."
                           : tab === "Tokens"
                             ? "Review an AMM quote and fund a bounded swap with test ZEC."
-                          : tab === "Seaport"
-                            ? "Review a genuine Seaport listing and fund its exact fulfillment with test ZEC."
-                          : tab === "Activity"
-                            ? "Transactions tracked by your local ZecOne wallet."
-                            : "Know what stays private, and what becomes public."}
+                            : tab === "Seaport"
+                              ? "Review a genuine Seaport listing and fund its exact fulfillment with test ZEC."
+                              : tab === "Activity"
+                                ? "Transactions tracked by your local ZecOne wallet."
+                                : "Know what stays private, and what becomes public."}
               </p>
             </div>
             <button
@@ -554,6 +592,29 @@ export default function Wallet() {
               </button>
             </div>
           )}
+          <div className="workflow-tools" aria-label="Checkout tools">
+            {(
+              [
+                "Checkout",
+                "Sponsor",
+                "Purchases",
+                "Seaport",
+                "Privacy",
+              ] as Tab[]
+            ).map((t) => (
+              <button
+                key={t}
+                className={tab === t ? "secondary active" : "secondary"}
+                onClick={() => navigate(t)}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          <p className="privacy-ribbon">
+            Zcash-side shielding · public EVM transactions and ownership ·
+            trusted relayer correlation · live refunds disabled
+          </p>
           {!session.connected && (
             <div className="connect-banner">
               <KeyRound size={19} />
@@ -573,8 +634,81 @@ export default function Wallet() {
             <p role="status">Loading wallet data…</p>
           ) : (
             <>
-              {tab === "Wallet" && session?.connected && <NetworksPanel />}
-              {tab === "Wallet" && (
+              {tab === "Send / Receive" && (
+                <AccountPanel address={data.address} />
+              )}
+              {tab === "Settings" && (
+                <section className="panel account-panel">
+                  <h2>Account and security</h2>
+                  <label htmlFor="account-view">Configured account</label>
+                  <select id="account-view">
+                    <option>{data.address}</option>
+                  </select>
+                  <p>
+                    One configured local account. Additional account import is
+                    unavailable.
+                  </p>
+                  <button className="secondary" onClick={lockWallet}>
+                    Lock local session
+                  </button>
+                  <h3>Settlement policy</h3>
+                  <p>
+                    Testnet execution only. Mainnet settlement and live refunds
+                    disabled. General signing is reviewed separately from
+                    ZEC-funded actions.
+                  </p>
+                  <h3>Privacy</h3>
+                  <p>
+                    Shielded ZEC funding does not hide destination transactions
+                    or NFT ownership. The trusted relayer can correlate them.
+                    This is not a trustless bridge.
+                  </p>
+                  <button
+                    className="secondary"
+                    onClick={() => navigate("Apps")}
+                  >
+                    Manage website permissions
+                  </button>
+                </section>
+              )}
+              {tab === "NFTs" && (
+                <section className="panel account-panel">
+                  <h2>Verified collectibles</h2>
+                  <p>
+                    Known ZecOne collection only. No general NFT metadata
+                    indexer is configured.
+                  </p>
+                  {!data.nfts.length && (
+                    <p>No verified collectibles in this collection.</p>
+                  )}
+                  {data.nfts.map((n) => (
+                    <article key={n.tokenId}>
+                      <h3>ZecOne #{n.tokenId}</h3>
+                      <p className="mono break">{data.contract}</p>
+                      <p>
+                        Ownership checked{" "}
+                        {new Date(n.verifiedAt * 1000).toLocaleString()}
+                      </p>
+                      <TxLink hash={n.hash} />
+                    </article>
+                  ))}
+                  <button
+                    className="secondary"
+                    onClick={() => navigate("Purchases")}
+                  >
+                    Marketplace purchases
+                  </button>
+                  <button
+                    className="secondary"
+                    onClick={() => navigate("Seaport")}
+                  >
+                    Browse Seaport listings and OpenSea previews
+                  </button>
+                  <NetworksPanel />
+                </section>
+              )}
+
+              {(tab === "Wallet" || tab === "Overview") && (
                 <>
                   <section className="balances" aria-label="Wallet balances">
                     <div className="balance-card shielded">
@@ -594,14 +728,14 @@ export default function Wallet() {
                       </div>
                       <p className="balance-detail">
                         {data.zcash
-                          ? `${units(data.zcash.spendableZatoshis)} TAZ available to spend`
+                          ? `${units(data.zcash.spendableZatoshis)} TAZ available · ${units((BigInt(data.zcash.totalZatoshis) > BigInt(data.zcash.spendableZatoshis) ? BigInt(data.zcash.totalZatoshis) - BigInt(data.zcash.spendableZatoshis) : 0n).toString())} TAZ unavailable / pending`
                           : "Waiting for a verified wallet sync"}
                       </p>
                       <div className="balance-footer">
                         <span>
-                          <LockKeyhole size={13} /> Your balance is private
+                          <LockKeyhole size={13} /> Shielded on Zcash
                         </span>
-                        <button onClick={() => setTab("Checkout")}>
+                        <button onClick={() => navigate("Checkout")}>
                           Use test ZEC <ArrowUpRight size={17} />
                         </button>
                       </div>
@@ -633,6 +767,25 @@ export default function Wallet() {
                       </div>
                     </div>
                   </section>
+                  {tab === "Overview" && (
+                    <CheckoutTracker
+                      open={(kind) =>
+                        navigate(
+                          (
+                            {
+                              swap: "Tokens",
+                              purchase: "Purchases",
+                              seaport: "Seaport",
+                              action: "Sponsor",
+                              mint: "Checkout",
+                            } as Record<string, Tab>
+                          )[kind] ?? "Checkout",
+                        )
+                      }
+                    />
+                  )}
+                  {(tab === "Wallet" || tab === "Overview") &&
+                    session?.connected && <NetworksPanel />}
                   <div className="health-strip">
                     <div>
                       <span
@@ -688,7 +841,7 @@ export default function Wallet() {
                       </div>
                       <button
                         className="text-link"
-                        onClick={() => setTab("Checkout")}
+                        onClick={() => navigate("Checkout")}
                       >
                         Mint a test NFT <ArrowRight size={16} />
                       </button>
@@ -734,12 +887,12 @@ export default function Wallet() {
                         </p>
                         <button
                           className="secondary"
-                          onClick={() => setTab("Checkout")}
+                          onClick={() => navigate("Checkout")}
                         >
                           Explore checkout <ArrowRight size={16} />
                         </button>
                         <span className="tiny">
-                          0.01 TAZ + Zcash network fee
+                          {units(data.priceZatoshis)} TAZ + Zcash network fee
                         </span>
                       </article>
                     </div>
@@ -749,7 +902,7 @@ export default function Wallet() {
                       <h2>Latest activity</h2>
                       <button
                         className="text-link"
-                        onClick={() => setTab("Activity")}
+                        onClick={() => navigate("Activity")}
                       >
                         View all <ArrowRight size={16} />
                       </button>
@@ -1132,8 +1285,8 @@ export default function Wallet() {
                     </button>
                   </div>
                   <p>
-                    Cooperating dApps can use the public EIP-1193 connector.
-                    The optional ZecOne extension also discovers this wallet on
+                    Cooperating dApps can use the public EIP-1193 connector. The
+                    optional ZecOne extension also discovers this wallet on
                     OpenSea. Every connection uses a local approval window.
                   </p>
                   <div className="activity-list">

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useClock, reviewExpired } from "../checkout/clock";
 import CheckoutTerms from "../checkout/terms";
 const units = (v: string, d = 18) => {
   const n = BigInt(v),
@@ -7,6 +8,8 @@ const units = (v: string, d = 18) => {
   return `${n / b}.${(n % b).toString().padStart(d, "0").replace(/0+$/, "") || "0"}`;
 };
 export default function SwapPanel() {
+  const clock = useClock(),
+    inFlight = useRef(false);
   const [assets, setAssets] = useState<any>(null),
     [rows, setRows] = useState<any[]>([]),
     [amount, setAmount] = useState("0.0001"),
@@ -55,6 +58,8 @@ export default function SwapPanel() {
     else dialog.current?.close();
   }, [review]);
   async function act(fn: () => Promise<void>) {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy(true);
     setError("");
     try {
@@ -62,6 +67,7 @@ export default function SwapPanel() {
     } catch (e: any) {
       setError(e.message);
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   }
@@ -180,7 +186,16 @@ export default function SwapPanel() {
         {rows.map((r) => (
           <article key={r.id} className="purchase-card">
             <h3>{r.status}</h3>
-            {r.status === 'Completed' && <details><summary>Historical approved terms</summary><p>Historical record only. This does not create a new quote or payment.</p><CheckoutTerms terms={r}/></details>}
+            {r.status === "Completed" && (
+              <details>
+                <summary>Historical approved terms</summary>
+                <p>
+                  Historical record only. This does not create a new quote or
+                  payment.
+                </p>
+                <CheckoutTerms terms={r} />
+              </details>
+            )}
             <p>Base Sepolia · ZTEST · {r.id}</p>
             <p>
               Input: {units(r.amountIn)} test ETH · Minimum: {units(r.minOut)}{" "}
@@ -321,13 +336,13 @@ export default function SwapPanel() {
                 </>
               )}
             </dl>
-            <CheckoutTerms terms={review.data}/>
+            <CheckoutTerms terms={review.data} />
             <button disabled={busy} onClick={() => void act(cancel)}>
               Cancel
             </button>
             <button
               className="primary"
-              disabled={busy}
+              disabled={busy || reviewExpired(review.data, clock)}
               onClick={() =>
                 void act(async () => {
                   const r = review;

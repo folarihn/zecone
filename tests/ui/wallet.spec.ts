@@ -168,37 +168,207 @@ test("malformed network data shows an error without crashing the wallet", async 
   ).toContainText("Invalid response from the local service");
 });
 
-test("token swap requires exact intent approval and a separate native payment approval",async({page})=>{
- let quotes=0,approvals=0,payments=0;let stage="draft";
- const row={id:"synthetic-swap",recipient:fixture.address,token:fixture.contract,router:fixture.contract,route:[fixture.address,fixture.contract],amountIn:"100000000000000",expectedOut:"19000000000000000000",minOut:"18810000000000000000",slippageBps:100,referenceBlock:"1234",expiry:Math.floor(Date.now()/1000)+3600,zatoshis:"1000000",gasBudget:"100000000000000",impactBps:230,estimatedFee:"1000000000000",confirmations:0,trust:"Synthetic fixture. Simulated rate; manual recovery only.",fee:{id:"fee",feeZatoshis:"10000",totalZatoshis:"1010000"}};
- await page.route("**/api/swaps/**",async route=>{const path=new URL(route.request().url()).pathname;
-  if(path.endsWith("/quote"))quotes++;
-  if(path.endsWith("/approve")){approvals++;stage="awaiting";}
-  if(path.endsWith("/pay")){payments++;stage="sent";}
-  const view={...row,stage,status:stage==="draft"?"Awaiting quote approval":stage==="sent"?"Confirming":"Awaiting payment"};
-  await route.fulfill({json:path.endsWith("/assets")?{available:true,tokens:[{address:fixture.contract,balance:"0"}]}:path.endsWith("/list")?{swaps:quotes?[view]:[]}:view});
- });
- await page.goto("/");await page.getByRole("button",{name:"Tokens",exact:true}).click();await expect(page.getByRole("heading",{name:"Your token purchases"})).toBeVisible();expect(approvals).toBe(0);expect(payments).toBe(0);
- await page.getByRole("button",{name:"Get AMM quote"}).click();await expect(page.getByRole("dialog")).toContainText("18.81 ZTEST");await expect(page.getByRole("dialog")).toContainText("100 bps");await expect(page.getByRole("dialog")).toContainText("230 bps");expect(payments).toBe(0);
- const sharedTerms=page.getByRole("dialog").getByRole("region",{name:"Unified checkout terms"});
- await expect(sharedTerms).toContainText(fixture.address);
- await expect(sharedTerms).toContainText("Ten Zcash confirmations");
- await expect(sharedTerms).toContainText("no automatic or confirmed refund is promised");
- await page.getByRole("button",{name:"Approve exact swap intent",exact:true}).click();await expect(page.getByRole("dialog")).not.toBeVisible();expect(approvals).toBe(1);expect(payments).toBe(0);
- await page.getByRole("button",{name:"Review shielded payment"}).click();await expect(page.getByRole("dialog")).toContainText("0.0101 TAZ");expect(payments).toBe(0);
- await page.getByRole("button",{name:"Send shielded payment",exact:true}).click();await expect(page.getByRole("dialog")).not.toBeVisible();expect(payments).toBe(1);await expect(page.getByRole("heading",{name:"Confirming",exact:true})).toBeVisible();
+test("token swap requires exact intent approval and a separate native payment approval", async ({
+  page,
+}) => {
+  let quotes = 0,
+    approvals = 0,
+    payments = 0;
+  let stage = "draft";
+  const row = {
+    id: "synthetic-swap",
+    recipient: fixture.address,
+    token: fixture.contract,
+    router: fixture.contract,
+    route: [fixture.address, fixture.contract],
+    amountIn: "100000000000000",
+    expectedOut: "19000000000000000000",
+    minOut: "18810000000000000000",
+    slippageBps: 100,
+    referenceBlock: "1234",
+    expiry: Math.floor(Date.now() / 1000) + 3600,
+    zatoshis: "1000000",
+    gasBudget: "100000000000000",
+    impactBps: 230,
+    estimatedFee: "1000000000000",
+    confirmations: 0,
+    trust: "Synthetic fixture. Simulated rate; manual recovery only.",
+    fee: { id: "fee", feeZatoshis: "10000", totalZatoshis: "1010000" },
+  };
+  await page.route("**/api/swaps/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith("/quote")) quotes++;
+    if (path.endsWith("/approve")) {
+      approvals++;
+      stage = "awaiting";
+    }
+    if (path.endsWith("/pay")) {
+      payments++;
+      stage = "sent";
+    }
+    const view = {
+      ...row,
+      stage,
+      status:
+        stage === "draft"
+          ? "Awaiting quote approval"
+          : stage === "sent"
+            ? "Confirming"
+            : "Awaiting payment",
+    };
+    await route.fulfill({
+      json: path.endsWith("/assets")
+        ? {
+            available: true,
+            tokens: [{ address: fixture.contract, balance: "0" }],
+          }
+        : path.endsWith("/list")
+          ? { swaps: quotes ? [view] : [] }
+          : view,
+    });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Swap", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Your token purchases" }),
+  ).toBeVisible();
+  expect(approvals).toBe(0);
+  expect(payments).toBe(0);
+  await page.getByRole("button", { name: "Get AMM quote" }).click();
+  await expect(page.getByRole("dialog")).toContainText("18.81 ZTEST");
+  await expect(page.getByRole("dialog")).toContainText("100 bps");
+  await expect(page.getByRole("dialog")).toContainText("230 bps");
+  expect(payments).toBe(0);
+  const sharedTerms = page
+    .getByRole("dialog")
+    .getByRole("region", { name: "Unified checkout terms" });
+  await expect(sharedTerms).toContainText(fixture.address);
+  await expect(sharedTerms).toContainText("Ten Zcash confirmations");
+  await expect(sharedTerms).toContainText(
+    "no automatic or confirmed refund is promised",
+  );
+  await page
+    .getByRole("button", { name: "Approve exact swap intent", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  expect(approvals).toBe(1);
+  expect(payments).toBe(0);
+  await page.getByRole("button", { name: "Review shielded payment" }).click();
+  await expect(page.getByRole("dialog")).toContainText("0.0101 TAZ");
+  expect(payments).toBe(0);
+  await page
+    .getByRole("button", { name: "Send shielded payment", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  expect(payments).toBe(1);
+  await expect(
+    page.getByRole("heading", { name: "Confirming", exact: true }),
+  ).toBeVisible();
 });
 
-test("Seaport purchase labels controlled origin and separates intent from shielded payment approval",async({page})=>{
- let quotes=0,approvals=0,payments=0,stage="draft";
- const row={id:"synthetic-seaport",nft:fixture.contract,tokenId:"1",recipient:fixture.address,seller:fixture.contract,protocol:fixture.contract,protocolVersion:"1.6",orderHash:"0x"+"ab".repeat(32),sellerAmount:"100000000000000",feeAmount:"2500000000000",feeRecipient:fixture.contract,price:"102500000000000",estimatedFee:"2000000000000",gasBudget:"100000000000000",zatoshis:"1012500",expiry:Math.floor(Date.now()/1000)+3600,confirmations:0,trust:"Synthetic fixture; simulated rate and manual recovery.",fee:{id:"fee",feeZatoshis:"10000",totalZatoshis:"1022500"}};
- await page.route("**/api/seaport/**",async route=>{const p=new URL(route.request().url()).pathname;if(p.endsWith("/quote"))quotes++;if(p.endsWith("/approve")){approvals++;stage="awaiting";}if(p.endsWith("/pay")){payments++;stage="sent";}const view={...row,stage,status:stage==="draft"?"Awaiting quote approval":stage==="sent"?"Confirming":"Awaiting payment"};await route.fulfill({json:p.endsWith("/catalog")?{available:true,apiStatus:"Controlled Seaport test listing",listings:[{...row,available:true,chainId:84532}]}:p.endsWith("/list")?{purchases:quotes?[view]:[]}:view});});
- await page.goto("/");await page.getByRole("button",{name:"Seaport",exact:true}).click();await expect(page.getByRole("heading",{name:"Your Seaport purchases",exact:true})).toBeVisible();await expect(page.getByRole("region",{name:"Seaport purchases"})).toContainText("not OpenSea API listings");expect(approvals).toBe(0);expect(payments).toBe(0);
- await page.getByRole("button",{name:"Review Seaport purchase",exact:true}).click();await expect(page.getByRole("dialog")).toContainText("0.0000025 ETH");await expect(page.getByRole("dialog")).toContainText("chain 84532");expect(payments).toBe(0);
- await expect(page.getByRole("dialog").getByRole("region",{name:"Unified checkout terms"})).toContainText(fixture.address);
- await page.getByRole("button",{name:"Approve exact Seaport intent",exact:true}).click();await expect(page.getByRole("dialog")).not.toBeVisible();expect(approvals).toBe(1);expect(payments).toBe(0);
- await page.getByRole("button",{name:"Review shielded Seaport payment",exact:true}).click();await expect(page.getByRole("dialog")).toContainText("0.010225 TAZ");expect(payments).toBe(0);
- await page.getByRole("button",{name:"Send shielded Seaport payment",exact:true}).click();await expect(page.getByRole("heading",{name:"Confirming",exact:true})).toBeVisible();expect(payments).toBe(1);
+test("Seaport purchase labels controlled origin and separates intent from shielded payment approval", async ({
+  page,
+}) => {
+  let quotes = 0,
+    approvals = 0,
+    payments = 0,
+    stage = "draft";
+  const row = {
+    id: "synthetic-seaport",
+    nft: fixture.contract,
+    tokenId: "1",
+    recipient: fixture.address,
+    seller: fixture.contract,
+    protocol: fixture.contract,
+    protocolVersion: "1.6",
+    orderHash: "0x" + "ab".repeat(32),
+    sellerAmount: "100000000000000",
+    feeAmount: "2500000000000",
+    feeRecipient: fixture.contract,
+    price: "102500000000000",
+    estimatedFee: "2000000000000",
+    gasBudget: "100000000000000",
+    zatoshis: "1012500",
+    expiry: Math.floor(Date.now() / 1000) + 3600,
+    confirmations: 0,
+    trust: "Synthetic fixture; simulated rate and manual recovery.",
+    fee: { id: "fee", feeZatoshis: "10000", totalZatoshis: "1022500" },
+  };
+  await page.route("**/api/seaport/**", async (route) => {
+    const p = new URL(route.request().url()).pathname;
+    if (p.endsWith("/quote")) quotes++;
+    if (p.endsWith("/approve")) {
+      approvals++;
+      stage = "awaiting";
+    }
+    if (p.endsWith("/pay")) {
+      payments++;
+      stage = "sent";
+    }
+    const view = {
+      ...row,
+      stage,
+      status:
+        stage === "draft"
+          ? "Awaiting quote approval"
+          : stage === "sent"
+            ? "Confirming"
+            : "Awaiting payment",
+    };
+    await route.fulfill({
+      json: p.endsWith("/catalog")
+        ? {
+            available: true,
+            apiStatus: "Controlled Seaport test listing",
+            listings: [{ ...row, available: true, chainId: 84532 }],
+          }
+        : p.endsWith("/list")
+          ? { purchases: quotes ? [view] : [] }
+          : view,
+    });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Seaport", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Your Seaport purchases", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Seaport purchases" }),
+  ).toContainText("not OpenSea API listings");
+  expect(approvals).toBe(0);
+  expect(payments).toBe(0);
+  await page
+    .getByRole("button", { name: "Review Seaport purchase", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toContainText("0.0000025 ETH");
+  await expect(page.getByRole("dialog")).toContainText("chain 84532");
+  expect(payments).toBe(0);
+  await expect(
+    page
+      .getByRole("dialog")
+      .getByRole("region", { name: "Unified checkout terms" }),
+  ).toContainText(fixture.address);
+  await page
+    .getByRole("button", { name: "Approve exact Seaport intent", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  expect(approvals).toBe(1);
+  expect(payments).toBe(0);
+  await page
+    .getByRole("button", {
+      name: "Review shielded Seaport payment",
+      exact: true,
+    })
+    .click();
+  await expect(page.getByRole("dialog")).toContainText("0.010225 TAZ");
+  expect(payments).toBe(0);
+  await page
+    .getByRole("button", { name: "Send shielded Seaport payment", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Confirming", exact: true }),
+  ).toBeVisible();
+  expect(payments).toBe(1);
 });
 
 test("desktop wallet is accessible and has no horizontal overflow", async ({
@@ -229,7 +399,10 @@ test("mobile navigation, checkout review and focus-trapped approval are accessib
   ).toBeVisible();
   const nav = await page.getByRole("navigation").boundingBox();
   expect(nav).not.toBeNull();
-  for (const button of await page.getByRole("navigation").getByRole("button").all()) {
+  for (const button of await page
+    .getByRole("navigation")
+    .getByRole("button")
+    .all()) {
     const box = await button.boundingBox();
     expect(box).not.toBeNull();
     expect(box!.y).toBeGreaterThanOrEqual(nav!.y);
@@ -241,10 +414,7 @@ test("mobile navigation, checkout review and focus-trapped approval are accessib
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
-  await page
-    .getByRole("navigation")
-    .getByRole("button", { name: "Checkout", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Checkout", exact: true }).click();
   await page.getByRole("button", { name: "Review & create order" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(
@@ -260,10 +430,7 @@ test("mobile navigation, checkout review and focus-trapped approval are accessib
   expect(results.violations).toEqual([]);
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).not.toBeVisible();
-  await page
-    .getByRole("navigation")
-    .getByRole("button", { name: "Privacy", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Privacy", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Base is public" }),
   ).toBeVisible();
@@ -281,10 +448,7 @@ test("no signing happens merely by visiting checkout or opening an approval", as
       signing.push(req.url());
   });
   await page.goto("/");
-  await page
-    .getByRole("navigation")
-    .getByRole("button", { name: "Checkout", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Checkout", exact: true }).click();
   await page.getByRole("button", { name: "Review & create order" }).click();
   await page.getByRole("button", { name: "Close dialog" }).click();
   expect(signing).toEqual([]);
@@ -297,10 +461,7 @@ test("sponsor screen displays fixed terms before its explicit approval", async (
     if (r.method() === "POST") posts.push(new URL(r.url()).pathname);
   });
   await page.goto("/");
-  await page
-    .getByRole("navigation")
-    .getByRole("button", { name: "Sponsor", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Sponsor", exact: true }).click();
   await page.getByRole("button", { name: "Review fixed action terms" }).click();
   await expect(
     page.getByText(/ZEC payment is a testnet service price/),
@@ -324,8 +485,7 @@ test("apps page names exact origins and lets the user revoke a connection", asyn
   });
   await page.goto("/");
   await page
-    .getByRole("navigation")
-    .getByRole("button", { name: "Apps", exact: true })
+    .getByRole("button", { name: "Connected Apps", exact: true })
     .click();
   await page.getByRole("button", { name: "Refresh list" }).click();
   await expect(
@@ -335,20 +495,84 @@ test("apps page names exact origins and lets the user revoke a connection", asyn
   expect(posts).toContain("/api/dapps/revoke");
 });
 
-test("OpenSea preview is non-executing, recipient-bound and expires visibly", async ({ page }) => {
-  const posts:string[]=[];
-  page.on("request",r=>{if(r.method()==="POST")posts.push(new URL(r.url()).pathname);});
-  const hash="0x"+"c".repeat(64), row={orderHash:hash,tokenId:"42",priceWei:"1000000000000000",currency:"ETH",status:"ACTIVE"};
-  await page.route("**/api/seaport/**",r=>r.fulfill({json:new URL(r.request().url()).pathname.endsWith("list")?{purchases:[]}:{listings:[],available:false}}));
-  await page.route("**/api/opensea/**",r=>r.fulfill({json:new URL(r.request().url()).pathname.endsWith("listings")?{listings:[row]}:{...row,name:"Synthetic NFT #42",collection:"fixture-collection",source:"SYNTHETIC browser fixture",network:"Ethereum mainnet — inspection only",seller:fixture.contract,recipient:fixture.address,nft:fixture.contract,sellerWei:"990000000000000",feesWei:"10000000000000",gasBudgetWei:"100000000000000",requiredLiquidityWei:"1100000000000000",simulatedZatoshis:"5500000",expiry:Math.floor(Date.now()/1000)+3,block:"12345",bindingHash:hash,sellerAuthorization:"Synthetic fixture",consideration:[],executable:false,simulation:"Fixture simulation only",executionBlocker:"Mainnet settlement is disabled.",trust:"Manual recovery only.",privacy:"Public EVM account visible.",openSeaUrl:"https://opensea.io/"}}));
-  await page.goto("/");await page.getByRole("button",{name:"Seaport",exact:true}).click();
-  const panel=page.getByRole("region",{name:"OpenSea inspection",exact:true});
-  await panel.getByRole("button",{name:"Discover official listings"}).click();
-  await panel.getByRole("button",{name:"Validate & preview #42"}).click();
-  const preview=page.getByRole("article",{name:"Non-executing checkout preview"});
-  await expect(preview).toContainText(fixture.address);await expect(preview).toContainText("0.0011 ETH");
+test("OpenSea preview is non-executing, recipient-bound and expires visibly", async ({
+  page,
+}) => {
+  const posts: string[] = [];
+  page.on("request", (r) => {
+    if (r.method() === "POST") posts.push(new URL(r.url()).pathname);
+  });
+  const hash = "0x" + "c".repeat(64),
+    row = {
+      orderHash: hash,
+      tokenId: "42",
+      priceWei: "1000000000000000",
+      currency: "ETH",
+      status: "ACTIVE",
+    };
+  await page.route("**/api/seaport/**", (r) =>
+    r.fulfill({
+      json: new URL(r.request().url()).pathname.endsWith("list")
+        ? { purchases: [] }
+        : { listings: [], available: false },
+    }),
+  );
+  await page.route("**/api/opensea/**", (r) =>
+    r.fulfill({
+      json: new URL(r.request().url()).pathname.endsWith("listings")
+        ? { listings: [row] }
+        : {
+            ...row,
+            name: "Synthetic NFT #42",
+            collection: "fixture-collection",
+            source: "SYNTHETIC browser fixture",
+            network: "Ethereum mainnet — inspection only",
+            seller: fixture.contract,
+            recipient: fixture.address,
+            nft: fixture.contract,
+            sellerWei: "990000000000000",
+            feesWei: "10000000000000",
+            gasBudgetWei: "100000000000000",
+            requiredLiquidityWei: "1100000000000000",
+            simulatedZatoshis: "5500000",
+            expiry: Math.floor(Date.now() / 1000) + 3,
+            block: "12345",
+            bindingHash: hash,
+            sellerAuthorization: "Synthetic fixture",
+            consideration: [],
+            executable: false,
+            simulation: "Fixture simulation only",
+            executionBlocker: "Mainnet settlement is disabled.",
+            trust: "Manual recovery only.",
+            privacy: "Public EVM account visible.",
+            openSeaUrl: "https://opensea.io/",
+          },
+    }),
+  );
+  await page.goto("/");
+  await page.getByRole("button", { name: "Seaport", exact: true }).click();
+  const panel = page.getByRole("region", {
+    name: "OpenSea inspection",
+    exact: true,
+  });
+  await panel
+    .getByRole("button", { name: "Discover official listings" })
+    .click();
+  await panel.getByRole("button", { name: "Validate & preview #42" }).click();
+  const preview = page.getByRole("article", {
+    name: "Non-executing checkout preview",
+  });
+  await expect(preview).toContainText(fixture.address);
+  await expect(preview).toContainText("0.0011 ETH");
   expect(await preview.getByRole("button").count()).toBe(0);
-  await expect(preview.getByRole("status")).toContainText("Preview expired",{timeout:10000});
-  expect(posts).toEqual(["/api/opensea/listings","/api/opensea/preview"]);
-  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await expect(preview.getByRole("status")).toContainText("Preview expired", {
+    timeout: 10000,
+  });
+  expect(posts).toEqual(["/api/opensea/listings", "/api/opensea/preview"]);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
 });
