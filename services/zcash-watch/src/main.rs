@@ -1,5 +1,6 @@
 //! Testnet UFVK scanner. No seed import, spending key access, signing or broadcast API.
 mod cache;
+mod phase52_refund;
 use anyhow::{Context, Result, ensure};
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
@@ -33,6 +34,11 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+    /// Fixed new-profile unsigned refund export. No seed, key input or signing.
+    PreparePhase52Refund {
+        #[arg(long)]
+        profile_id: String,
+    },
     /// Public chain metadata only; does not open the wallet path or fetch wallet data.
     ProbeProvider {
         #[arg(long)]
@@ -306,6 +312,9 @@ async fn main() {
     let _ = rustls::crypto::ring::default_provider().install_default();
     let c = Cli::parse();
     let result = match c.command {
+        Command::PreparePhase52Refund { profile_id } => {
+            phase52_refund::prepare(&c.wallet, &profile_id).await
+        }
         Command::ProbeProvider { server, height } => probe(&server, height).await,
         Command::Import {
             ufvk_file,

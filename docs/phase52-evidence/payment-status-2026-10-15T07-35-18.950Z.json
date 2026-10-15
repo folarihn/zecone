@@ -1,0 +1,13 @@
+{
+  "at": "2026-10-15T07:35:18.951Z",
+  "profileId": "99ef6572-b2ba-4d7f-a1fb-1bf333f2cb0b",
+  "expiryHeight": 4504107,
+  "minedHeight": 4504089,
+  "network": "zcash-testnet",
+  "rebroadcastAttempted": false,
+  "replacementAuthorized": false,
+  "scannersMustVerify": true,
+  "status": "provider-reports-mined",
+  "tip": 4504099,
+  "txid": "620bdb644efcb47559e98ebf553eab07ea04ad0179b5361cdd549b8f8a2fafac"
+}

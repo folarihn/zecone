@@ -1,0 +1,26 @@
+
+> wallet:build
+> node scripts/build-wallet.mjs
+
+▲ Next.js 16.4.0 (webpack)
+✓ Running next.config.ts took 214ms
+
+  Creating an optimized production build ...
+  Using tsconfig file: tsconfig.web.json
+  Using tsconfig file: tsconfig.web.json
+  Using tsconfig file: tsconfig.web.json
+✓ Compiled successfully in 38.4s
+  Running TypeScript ...
+  Finished TypeScript in 953ms ...
+  Collecting page data using 5 workers ...
+  Generating static pages using 5 workers (0/2) ...
+Error occurred prerendering page "/_global-error". Read more: https://nextjs.org/docs/messages/prerender-error
+Error: EPERM: operation not permitted, mkdir 'C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\.next\server\app\_global-error.segments\_global-error'
+    at ignore-listed frames {
+  errno: -4048,
+  code: 'EPERM',
+  syscall: 'mkdir',
+  path: 'C:\\Users\\Folarihn Top-Boi\\Documents\\ChatGPT\\zecone\\.next\\server\\app\\_global-error.segments\\_global-error'
+}
+Export encountered an error on /_global-error/page: /_global-error, exiting the build.
+⨯ Next.js build worker exited with code: 1 and signal: null

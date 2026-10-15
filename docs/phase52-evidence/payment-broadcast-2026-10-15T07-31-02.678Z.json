@@ -1,0 +1,26 @@
+{
+  "at": "2026-10-15T07:31:02.678Z",
+  "profileId": "99ef6572-b2ba-4d7f-a1fb-1bf333f2cb0b",
+  "review": {
+    "version": 1,
+    "profileId": "99ef6572-b2ba-4d7f-a1fb-1bf333f2cb0b",
+    "requestId": "b2f334e8-22ed-4d0d-bcd2-9766e4b4d89e",
+    "network": "zcash-testnet",
+    "recipient": "utest14vf2nwz2mzlr8skd5lacqv0ytcqxtemsh6zn0nujjhnrhja7xajgenpgg72jfxesz2ltxt6ek9pepgnk3zjlk237df0r63ujzgpntau6",
+    "zatoshis": "100000",
+    "feeZatoshis": "10000",
+    "expiryHeight": 4504107,
+    "txid": "620bdb644efcb47559e98ebf553eab07ea04ad0179b5361cdd549b8f8a2fafac",
+    "rawSha256": "7bf4da5fe567c30b7e61113d596b439b24f7ab34d49e553e136e548f5a8d4dbb",
+    "rawBytes": 9166
+  },
+  "result": {
+    "confirmed": false,
+    "errorCode": 0,
+    "expiryHeight": 4504107,
+    "network": "zcash-testnet",
+    "status": "broadcast-not-confirmed",
+    "txid": "620bdb644efcb47559e98ebf553eab07ea04ad0179b5361cdd549b8f8a2fafac"
+  },
+  "refundsEnabled": false
+}

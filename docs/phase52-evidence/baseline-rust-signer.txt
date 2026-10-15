@@ -1,0 +1,57 @@
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\zecone_refund_signer-3vagbbecwa8fl\s-hn6gvyd2a9-1jpz24n-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\zecone_refund_signer-2xeqxub7hznra\s-hn6gvyd0nn-0aeq2ow-working`
+
+warning: `zecone-refund-signer` (lib) generated 1 warning
+warning: `zecone-refund-signer` (lib test) generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\zecone_refund_signer-058gzc43o5zmm\s-hn6gw2qw1w-10v2oqm-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\provision_watch_test-2oo3dt41a7cun\s-hn6gw2g4bu-1w6bf7o-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\verification-30e02csem6lzn\s-hn6gw2g54s-0x1gnwa-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\zecone_refund_signer-2a91ojqfk5w79\s-hn6gye3y1r-0b0pkje-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\provision_watch_test-2zaku5krwrlrw\s-hn6gw2jtvc-1yudfgd-working`
+
+warning: `zecone-refund-signer` (bin "zecone-refund-signer" test) generated 1 warning
+warning: `zecone-refund-signer` (bin "provision-watch-test" test) generated 1 warning
+warning: `zecone-refund-signer` (test "verification") generated 1 warning
+warning: `zecone-refund-signer` (bin "zecone-refund-signer") generated 1 warning
+warning: `zecone-refund-signer` (bin "provision-watch-test") generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.11s
+     Running unittests src\lib.rs (target\debug\deps\zecone_refund_signer-7d4f57fa7e33a117.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\bin\provision-watch-test.rs (target\debug\deps\provision_watch_test-3b0df63d6fbb5224.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\main.rs (target\debug\deps\zecone_refund_signer-0e133e93fdb8491a.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\verification.rs (target\debug\deps\verification-86c8e637097074f8.exe)
+
+running 5 tests
+test signed_synthetic_pczt_proves_and_extracts_a_native_transaction ... ignored, expensive isolated proof/extraction; run explicitly, never broadcasts
+test encrypted_output_tampering_is_not_accepted_as_a_valid_plaintext_hint ... ok
+test foreign_change_and_missing_effects_are_rejected ... ok
+test genuine_native_signatures_bind_reviewed_synthetic_transaction ... ok
+test substitution_fee_network_age_input_and_amount_checks ... ok
+
+test result: ok. 4 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 1.94s
+
+   Doc-tests zecone_refund_signer
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

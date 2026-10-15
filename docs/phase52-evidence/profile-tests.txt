@@ -1,0 +1,16 @@
+✔ payment approval binds exact bytes, fee, recipient, amount and expiry (1.4419ms)
+✔ wrong effects, excessive fees and expiry cannot authorize a broadcast (0.3675ms)
+✔ watch copies bind identity and birthday while allowing native address diversification (1.2491ms)
+✔ fresh profile separates payer, backend watch, signer watch and recovery namespace (77.0111ms)
+✔ reserved or interrupted profiles cannot be replaced and old wallet bytes are untouched (27.0763ms)
+✔ old wallet paths, role substitution, traversal and extra secret fields are rejected (52.9616ms)
+✔ network, confirmation and live-signing gate tampering is rejected (22.8347ms)
+✔ backend configuration exposes only watch access and cannot activate execution or refunds (53.3833ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1908.9093

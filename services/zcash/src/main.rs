@@ -1,4 +1,5 @@
 mod cache;
+mod phase52_payment;
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use clap::{Parser, Subcommand};
 use rand::{RngCore, rngs::OsRng};
@@ -50,6 +51,33 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+    /// Read public status for the exact new-profile transaction; never resubmit.
+    InspectPhase52Payment {
+        #[arg(long)]
+        profile_id: uuid::Uuid,
+        #[arg(long)]
+        request_id: uuid::Uuid,
+    },
+    /// Fresh Phase 5.2 payer only; a 32-byte seed is read from stdin, never stored.
+    PreparePhase52Payment {
+        #[arg(long)]
+        profile_id: uuid::Uuid,
+        #[arg(long)]
+        request_id: uuid::Uuid,
+        #[arg(long)]
+        birthday: u32,
+    },
+    /// Submit the exact persisted Phase 5.2 payer transaction once, after review.
+    BroadcastPhase52Payment {
+        #[arg(long)]
+        profile_id: uuid::Uuid,
+        #[arg(long)]
+        request_id: uuid::Uuid,
+        #[arg(long)]
+        approved_txid: String,
+        #[arg(long)]
+        allow_testnet_broadcast: bool,
+    },
     /// Decode a shielded testnet address offline, without opening a wallet or seed.
     ValidateAddress {
         #[arg(long)]
@@ -379,6 +407,8 @@ async fn send(
     request_id: uuid::Uuid,
     quote_only: bool,
     max_fee: Option<u64>,
+    prepare_only: bool,
+    seed_override: Option<&SecretVec<u8>>,
 ) -> Result<Value> {
     let request_file = path.join(format!("request-{request_id}.json"));
     let started_file = path.join(format!("request-{request_id}.started.json"));
@@ -460,13 +490,28 @@ async fn send(
             json!({"zatoshis":value.to_string(),"feeZatoshis":fee.to_string(),"totalZatoshis":(value+fee).to_string(),"tip":u32::from(wallet.chain_height()?.context("missing tip")?),"quotedAt":SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs()}),
         );
     }
-    let usk = UnifiedSpendingKey::from_seed(&NET, seed(path)?.expose_secret(), account_index)
+    let legacy_seed;
+    let spend_seed = if let Some(s) = seed_override {
+        s
+    } else {
+        legacy_seed = seed(path)?;
+        &legacy_seed
+    };
+    let usk = UnifiedSpendingKey::from_seed(&NET, spend_seed.expose_secret(), account_index)
         .map_err(|_| anyhow!("key derivation failed"))?;
     let prover = zcash_proofs::prover::LocalTxProver::bundled();
+    let expiry_override = if prepare_only {
+        Some(
+            zcash_protocol::consensus::BlockHeight::from(proposal.min_target_height())
+                + zcash_primitives::transaction::builder::DEFAULT_TX_EXPIRY_DELTA,
+        )
+    } else {
+        None
+    };
     write_new(
         &started_file,
         serde_json::to_string(
-            &json!({"account":account,"recipient":recipient,"zatoshis":value.to_string()}),
+            &json!({"account":account,"recipient":recipient,"zatoshis":value.to_string(),"plannedExpiryHeight":expiry_override.map(u32::from),"feeZatoshis":fee.to_string()}),
         )?
         .as_bytes(),
     )?;
@@ -487,7 +532,7 @@ async fn send(
         &SpendingKeys::from_unified_spending_key(usk),
         OvkPolicy::Sender,
         &proposal,
-        None,
+        expiry_override,
     )
     .map_err(|e| anyhow!("transaction construction failed: {e:?}"))?;
     ensure!(
@@ -501,11 +546,19 @@ async fn send(
     let mut raw = service::RawTransaction::default();
     tx.write(&mut raw.data)?;
     // Save reference before broadcast. Unknown outcomes need txid reconciliation, never blind re-send.
-    let pending = json!({"txid":txid.to_string(), "status":"constructed", "recipient":recipient, "zatoshis":value.to_string(), "account":account});
+    if prepare_only {
+        write_new(&path.join(format!("request-{request_id}.raw")), &raw.data)?;
+    }
+    let pending = json!({"txid":txid.to_string(), "status":"constructed", "recipient":recipient, "zatoshis":value.to_string(), "account":account,"feeZatoshis":fee.to_string(),"expiryHeight":u32::from(tx.expiry_height())});
     write_new(
         &request_file,
         serde_json::to_string_pretty(&pending)?.as_bytes(),
     )?;
+    if prepare_only {
+        return Ok(
+            json!({"txid":txid.to_string(),"status":"prepared-not-broadcast","recipient":recipient,"zatoshis":value.to_string(),"feeZatoshis":fee.to_string(),"expiryHeight":u32::from(tx.expiry_height()),"broadcast":false}),
+        );
+    }
     let response = client.send_transaction(raw).await?.into_inner();
     ensure!(
         response.error_code == 0,
@@ -542,11 +595,67 @@ async fn run() -> Result<()> {
         .install_default()
         .map_err(|_| anyhow!("TLS provider initialization failed"))?;
     let args = Cli::parse();
+    match &args.command {
+        Command::InspectPhase52Payment {
+            profile_id,
+            request_id,
+        } => {
+            let v = phase52_payment::inspect(&args.wallet, &args.server, *profile_id, *request_id)
+                .await?;
+            println!("{v}");
+            return Ok(());
+        }
+        Command::PreparePhase52Payment {
+            profile_id,
+            request_id,
+            birthday,
+        } => {
+            let v = phase52_payment::prepare(
+                &args.wallet,
+                &args.server,
+                *profile_id,
+                *request_id,
+                *birthday,
+            )
+            .await?;
+            println!("{v}");
+            return Ok(());
+        }
+        Command::BroadcastPhase52Payment {
+            profile_id,
+            request_id,
+            approved_txid,
+            allow_testnet_broadcast,
+        } => {
+            ensure!(
+                *allow_testnet_broadcast,
+                "explicit broadcast approval required"
+            );
+            let v = phase52_payment::broadcast(
+                &args.wallet,
+                &args.server,
+                *profile_id,
+                *request_id,
+                approved_txid,
+            )
+            .await?;
+            println!("{v}");
+            return Ok(());
+        }
+        _ => (),
+    }
     if let Command::ValidateAddress { address } = &args.command {
         validate_shielded_destination(address)?;
+        let receivers = match Address::decode(&NET, address).context("invalid recipient")? {
+            Address::Sapling(_) => json!({"sapling":true,"orchard":false,"transparent":false}),
+            Address::Unified(ua) => {
+                json!({"sapling":ua.sapling().is_some(),"orchard":ua.orchard().is_some(),"transparent":ua.transparent().is_some()})
+            }
+            _ => bail!("shielded-only recipient required"),
+        };
         println!(
             "{}",
-            json!({"network":"zcash-testnet","shielded":true,"valid":true})
+            json!({"network":"zcash-testnet","shielded":true,"valid":true,"receivers":receivers})
         );
         return Ok(());
     }
@@ -628,6 +737,8 @@ async fn run() -> Result<()> {
                 zatoshis,
                 uuid::Uuid::nil(),
                 true,
+                None,
+                false,
                 None,
             )
             .await?
@@ -734,6 +845,8 @@ async fn run() -> Result<()> {
                 request_id,
                 false,
                 max_fee_zatoshis,
+                false,
+                None,
             )
             .await?
         }

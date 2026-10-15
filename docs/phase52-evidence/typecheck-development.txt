@@ -1,0 +1,5 @@
+
+> typecheck
+> tsc --noEmit
+
+scripts/phase52-profile.ts(168,9): error TS2783: 'profileId' is specified more than once, so this usage will be overwritten.
