@@ -327,6 +327,48 @@ fn enforce_fee_approval(fee: u64, max_fee: Option<u64>) -> Result<()> {
     );
     Ok(())
 }
+// A new request ID must not bypass an earlier interrupted construction. This is
+// read-only: resolving a claim is an explicit recovery operation, never a timeout.
+fn ensure_no_unresolved_construction(path: &Path) -> Result<()> {
+    for entry in fs::read_dir(path)? {
+        let entry = entry?;
+        let name = entry.file_name();
+        let name = name.to_str().context("non-UTF8 wallet entry")?;
+        if let Some(id) = name
+            .strip_prefix("request-")
+            .and_then(|s| s.strip_suffix(".started.json"))
+        {
+            let id = uuid::Uuid::parse_str(id).context("unrecognized construction marker")?;
+            ensure!(entry.file_type()?.is_file(), "invalid construction marker");
+            let saved = path.join(format!("request-{id}.json"));
+            ensure!(
+                saved.is_file(),
+                "wallet has an unresolved construction; a new request ID cannot authorize a replacement"
+            );
+            let started: Value = serde_json::from_slice(&fs::read(entry.path())?)?;
+            let record: Value = serde_json::from_slice(&fs::read(saved)?)?;
+            ensure!(
+                record["account"].is_string()
+                    && record["recipient"].is_string()
+                    && record["zatoshis"].is_string(),
+                "invalid persisted construction binding"
+            );
+            ensure!(
+                ["account", "recipient", "zatoshis"]
+                    .iter()
+                    .all(|k| started[*k] == record[*k]),
+                "construction binding conflict"
+            );
+            zcash_protocol::TxId::from_hex(
+                record["txid"]
+                    .as_str()
+                    .context("persisted transaction reference missing")?,
+            )
+            .context("invalid persisted transaction reference")?;
+        }
+    }
+    Ok(())
+}
 async fn send(
     wallet: &mut Db,
     client: &mut CompactTxStreamerClient<Channel>,
@@ -356,6 +398,9 @@ async fn send(
         !started_file.exists(),
         "previous construction has an uncertain outcome; reconcile the wallet transaction history before retrying"
     );
+    if !quote_only {
+        ensure_no_unresolved_construction(path)?;
+    }
     validate_shielded_destination(recipient)?;
     ensure!(value > 0, "amount must be positive");
     sync(wallet, client).await?;
@@ -700,6 +745,38 @@ async fn run() -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn unresolved_construction_blocks_new_request_ids_and_survives_restart() {
+        let tmp = tempfile::tempdir().unwrap();
+        let id = uuid::Uuid::new_v4();
+        let marker = tmp.path().join(format!("request-{id}.started.json"));
+        let bytes = br#"{"account":"a","recipient":"r","zatoshis":"200000"}"#;
+        super::write_new(&marker, bytes).unwrap();
+        assert!(super::ensure_no_unresolved_construction(tmp.path()).is_err());
+        assert!(super::ensure_no_unresolved_construction(tmp.path()).is_err());
+        assert_eq!(std::fs::read(marker).unwrap(), bytes);
+    }
+    #[test]
+    fn persisted_binding_must_match_before_old_markers_stop_blocking_new_sends() {
+        let tmp = tempfile::tempdir().unwrap();
+        let id = uuid::Uuid::new_v4();
+        super::write_new(
+            &tmp.path().join(format!("request-{id}.started.json")),
+            br#"{"account":"a","recipient":"r","zatoshis":"200000"}"#,
+        )
+        .unwrap();
+        let file = tmp.path().join(format!("request-{id}.json"));
+        std::fs::write(&file, br#"{"account":"a","recipient":"other","zatoshis":"200000","txid":"0000000000000000000000000000000000000000000000000000000000000000"}"#).unwrap();
+        assert!(super::ensure_no_unresolved_construction(tmp.path()).is_err());
+        std::fs::write(
+            &file,
+            br#"{"account":"a","recipient":"r","zatoshis":"200000","txid":"invalid"}"#,
+        )
+        .unwrap();
+        assert!(super::ensure_no_unresolved_construction(tmp.path()).is_err());
+        std::fs::write(&file, br#"{"account":"a","recipient":"r","zatoshis":"200000","txid":"0000000000000000000000000000000000000000000000000000000000000000"}"#).unwrap();
+        assert!(super::ensure_no_unresolved_construction(tmp.path()).is_ok());
+    }
     #[test]
     fn fee_increase_cannot_exceed_approved_ceiling() {
         assert!(super::enforce_fee_approval(20_000, Some(20_000)).is_ok());

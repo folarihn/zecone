@@ -225,7 +225,7 @@ test(
       // Metadata/report includes no synthetic txid or private native evidence.
       const { writeFileSync } = await import("node:fs");
       writeFileSync(
-        "docs/phase5-evidence/completion-portable-roundtrip.json",
+        join(f.dir, "portable-roundtrip-evidence.json"),
         JSON.stringify(
           {
             at: new Date().toISOString(),

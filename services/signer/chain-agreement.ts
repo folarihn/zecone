@@ -1,6 +1,7 @@
 const operators: Record<string, string> = {
   "https://testnet.zec.rocks:443": "zec.rocks",
   "https://lightwalletd.testnet.electriccoin.co:9067": "ECC",
+  "https://lwd.testnet.zec.pro:443": "ZEC.PRO",
 };
 export type ChainCheckpoint = {
   network: string;

@@ -124,7 +124,12 @@ async fn connect() -> Result<CompactTxStreamerClient<Channel>> {
 }
 async fn connect_to(server: &str) -> Result<CompactTxStreamerClient<Channel>> {
     ensure!(
-        [SERVER, "https://lightwalletd.testnet.electriccoin.co:9067"].contains(&server),
+        [
+            SERVER,
+            "https://lightwalletd.testnet.electriccoin.co:9067",
+            "https://lwd.testnet.zec.pro:443"
+        ]
+        .contains(&server),
         "unreviewed_provider"
     );
     let channel = Channel::from_shared(server.to_owned())?

@@ -1,0 +1,197 @@
+{
+  "at": "2026-10-15T06:39:10.935Z",
+  "checkpoint": "6975598",
+  "network": "zcash-testnet",
+  "requestId": "bcb86911-fb11-44e5-9f76-cbfaa713091f",
+  "requestedZatoshis": "200000",
+  "feeCapZatoshis": "10000",
+  "recipient": "utest1pqppvgctn6any9ktxueyrazhw7ajl5s5gvr3h9fcrgm6tuf0kpn9d7hnapz8utja5vphksucv2smxavfxfhlame8t8fvyj2sayg87pqh",
+  "addressValidation": {
+    "network": "zcash-testnet",
+    "shielded": true,
+    "valid": true
+  },
+  "constructionMarker": {
+    "bytes": 195,
+    "created": "2026-10-13T16:38:27.164Z",
+    "modified": "2026-10-13T16:38:27.165Z",
+    "sha256": "0d42e437b691b43d6d9fa11c14820ef1304d007040cf27f8bf29fc4db72e2fde"
+  },
+  "markerBindingMatches": true,
+  "savedTransactionReferencePresent": false,
+  "lockProcess": "pid-absent",
+  "sourceDatabase": {
+    "readOnly": true,
+    "unchangedDuringInvestigation": true,
+    "scan": {
+      "height": 4498492
+    },
+    "transactions": [
+      {
+        "txid": "2ff278de8aaf45428ba67232284be725025efcedfd05e7e9369d698c86b01628",
+        "created": null,
+        "mined_height": 4490256,
+        "expiry_height": null,
+        "fee": null,
+        "target_height": null,
+        "confirmed_unmined_at_height": null,
+        "rawBytes": null
+      },
+      {
+        "txid": "4a10f571865ace3c61fc53ed6c032bb81b12bdfd605a1703c63bf0d7ba00046a",
+        "created": "2026-10-12 06:49:12.7747485+00:00",
+        "mined_height": null,
+        "expiry_height": 4491367,
+        "fee": 20000,
+        "target_height": 4491327,
+        "confirmed_unmined_at_height": 4491368,
+        "rawBytes": 11518
+      },
+      {
+        "txid": "e1c868b73be5d6f67121b415507ea3a7529fc7c0fe9f9423933b7abd62757942",
+        "created": "2026-10-12 07:04:42.7860564+00:00",
+        "mined_height": 4491375,
+        "expiry_height": 4491409,
+        "fee": 20000,
+        "target_height": 4491369,
+        "confirmed_unmined_at_height": null,
+        "rawBytes": 11518
+      },
+      {
+        "txid": "c56581846c507113c62f0ede6e742261852f5c65ddb7b590c3a4cc08ec782b57",
+        "created": "2026-10-12 07:59:48.8944536+00:00",
+        "mined_height": 4491496,
+        "expiry_height": 4491531,
+        "fee": 10000,
+        "target_height": 4491491,
+        "confirmed_unmined_at_height": null,
+        "rawBytes": 9166
+      },
+      {
+        "txid": "eea00e872a3b1be22a449c5af8c1c6c82385cdb64e06a5a8993290f0304f66ca",
+        "created": "2026-10-12 09:07:09.0135249+00:00",
+        "mined_height": 4491670,
+        "expiry_height": 4491708,
+        "fee": 10000,
+        "target_height": 4491668,
+        "confirmed_unmined_at_height": null,
+        "rawBytes": 9166
+      },
+      {
+        "txid": "09c49d32499e1fd2680a88308fbc154febbfb579ac765412795e9f445bd547b8",
+        "created": "2026-10-12 17:57:58.2184016+00:00",
+        "mined_height": 4492959,
+        "expiry_height": 4492995,
+        "fee": 10000,
+        "target_height": 4492955,
+        "confirmed_unmined_at_height": null,
+        "rawBytes": 9166
+      },
+      {
+        "txid": "8e301d20e3e660e9259ebcf9738910cf7be1311e979925d2c54e0bbb455911a8",
+        "created": "2026-10-13 05:43:03.6118048+00:00",
+        "mined_height": 4496573,
+        "expiry_height": 4496600,
+        "fee": 10000,
+        "target_height": 4496560,
+        "confirmed_unmined_at_height": null,
+        "rawBytes": 9166
+      },
+      {
+        "txid": "44938c5d28d61143bf703cc5557cabf732c897dee1ffdb883a3a89d49bb43848",
+        "created": "2026-10-13 05:49:14.4041845+00:00",
+        "mined_height": 4496626,
+        "expiry_height": 4496653,
+        "fee": 10000,
+        "target_height": 4496613,
+        "confirmed_unmined_at_height": null,
+        "rawBytes": 9166
+      },
+      {
+        "txid": "92816a4d190bbfbcbe55cb1a09e1d7ee0785aa248ae1b7501f0edb2bc68e6e74",
+        "created": "2026-10-13 07:13:32.5984186+00:00",
+        "mined_height": 4497075,
+        "expiry_height": 4497106,
+        "fee": 10000,
+        "target_height": 4497066,
+        "confirmed_unmined_at_height": null,
+        "rawBytes": 9166
+      },
+      {
+        "txid": "be203c56ae342ae368d13547b1a65f09f8912decd6bf2e7fd18aaf7071ff8bdf",
+        "created": "2026-10-13 08:34:05.6264854+00:00",
+        "mined_height": 4497319,
+        "expiry_height": 4497355,
+        "fee": 10000,
+        "target_height": 4497315,
+        "confirmed_unmined_at_height": null,
+        "rawBytes": 9166
+      }
+    ],
+    "matchingOutgoingRecords": 0,
+    "lockedIronwoodInputs": {
+      "count": 0
+    },
+    "noteState": [
+      {
+        "pool": "sapling",
+        "unspentInStoredDatabase": {
+          "count": 0,
+          "zatoshis": 0
+        },
+        "spendLinks": {
+          "count": 2
+        }
+      },
+      {
+        "pool": "orchard",
+        "unspentInStoredDatabase": {
+          "count": 0,
+          "zatoshis": 0
+        },
+        "spendLinks": {
+          "count": 0
+        }
+      },
+      {
+        "pool": "ironwood",
+        "unspentInStoredDatabase": {
+          "count": 2,
+          "zatoshis": 13377500
+        },
+        "spendLinks": {
+          "count": 7
+        }
+      }
+    ],
+    "spendability": "stored-state-only-not-a-fresh-native-balance-or-input-selection"
+  },
+  "recipientScans": [
+    {
+      "role": "payer",
+      "status": "unavailable-no-settlement-evidence"
+    },
+    {
+      "role": "settlement-refund-signer",
+      "status": "unavailable-no-settlement-evidence"
+    }
+  ],
+  "assessment": {
+    "status": "recipient-scan-unavailable",
+    "replacementAuthorized": false,
+    "broadcastAuthorized": false,
+    "markersMayBeCleared": false
+  },
+  "expiryHeightForInterruptedRequest": null,
+  "provingLogAvailable": false,
+  "broadcastRecordForRequestAvailable": false,
+  "artifactNames": [
+    "request-bcb86911-fb11-44e5-9f76-cbfaa713091f.started.json"
+  ],
+  "caveat": "Construction marker predates create_proposed_transactions; persisted reference precedes broadcast in source. No transaction identity/expiry/input selection survived for this request. Missing records alone are not proof of non-broadcast or expiry.",
+  "originalMarkersChanged": false,
+  "replacementPrepared": false,
+  "replacementBroadcast": false,
+  "liveRefundsEnabled": false,
+  "separateDeviceValidated": false
+}

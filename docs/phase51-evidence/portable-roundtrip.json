@@ -1,0 +1,11 @@
+{
+  "at": "2026-10-15T06:42:20.422Z",
+  "syntheticNotes": true,
+  "simulatedIsolation": true,
+  "separateDeviceValidated": false,
+  "nativeProofExtracted": true,
+  "exactReplay": true,
+  "rawTransactionBytes": 9166,
+  "liveRefundEnabled": false,
+  "broadcast": false
+}
