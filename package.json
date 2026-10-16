@@ -6,6 +6,11 @@
     "node": ">=24.12.0 <25"
   },
   "scripts": {
+    "extension:build": "node scripts/build-extension.mjs",
+    "phase7a:check": "tsx scripts/phase7a-solana.ts",
+    "phase7a:wallet": "tsx scripts/phase7a-server.ts",
+    "phase7a:preserve": "node scripts/phase7a-preserve.mjs",
+    "test:phase7a": "playwright test -c playwright.phase7a.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.ts",
     "wallets": "tsx scripts/wallets.ts",
@@ -41,9 +46,13 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "5.6.1",
+    "@solana-program/system": "0.15.0",
+    "@solana-program/token": "0.17.0",
+    "@solana/kit": "8.5.0",
     "@tailwindcss/postcss": "4.3.3",
     "@uniswap/v2-core": "1.0.1",
     "@uniswap/v2-periphery": "1.1.0-beta.0",
+    "@wallet-standard/wallet": "1.1.1",
     "lucide-react": "1.55.0",
     "next": "16.4.0",
     "postcss": "8.5.29",

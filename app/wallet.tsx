@@ -24,6 +24,7 @@ import type { Dashboard, CheckoutView } from "../services/wallet/view";
 import CheckoutTracker from "./checkout/tracker";
 import AccountPanel from "./account-panel";
 import NetworksPanel from "./networks/panel";
+import SolanaPanel from "./solana/panel";
 import PurchasePanel from "./purchases/panel";
 import SwapPanel from "./swaps/panel";
 import SeaportPanel from "./seaport/panel";
@@ -40,7 +41,8 @@ type Tab =
   | "Seaport"
   | "Tokens"
   | "Activity"
-  | "Privacy";
+  | "Privacy"
+  | "Solana";
 const short = (v: string, n = 6) => `${v.slice(0, n)}…${v.slice(-4)}`;
 const units = (v: string, decimals = 8) => {
   const x = BigInt(v),
@@ -63,6 +65,7 @@ const icons = {
   Checkout: Layers,
   Activity: Clock,
   Privacy: ShieldCheck,
+  Solana: Globe,
   Sponsor: KeyRound,
   Apps: Globe,
   Purchases: Grid2X2,
@@ -549,7 +552,9 @@ export default function Wallet() {
                                     ? "NFT workspace"
                                     : tab === "Settings"
                                       ? "Wallet settings"
-                                      : "Privacy, in plain language"}
+                                      : tab === "Solana"
+                                        ? "Solana devnet"
+                                        : "Privacy, in plain language"}
               </h1>
               <p className="subtitle">
                 {tab === "Wallet" || tab === "Overview"
@@ -604,6 +609,7 @@ export default function Wallet() {
                 "Sponsor",
                 "Purchases",
                 "Seaport",
+                "Solana",
                 "Privacy",
               ] as Tab[]
             ).map((t) => (
@@ -1405,6 +1411,7 @@ export default function Wallet() {
                   </p>
                 </>
               )}
+              {tab === "Solana" && <SolanaPanel />}
               {tab === "Privacy" && (
                 <div className="privacy-grid">
                   {[

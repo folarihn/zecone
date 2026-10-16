@@ -2,6 +2,7 @@
 import { test, expect } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
 import { readFileSync, writeFileSync } from "node:fs";
+const evidence = process.env.ZECONE_QA_EVIDENCE_DIR ?? "docs/phase6c-evidence";
 let cookie: any;
 const snapshot = JSON.parse(
   readFileSync(".state/phase6c/snapshot.json", "utf8"),
@@ -19,7 +20,7 @@ test.beforeAll(async ({ request, browser }) => {
     (c) => c.name === "zecone_session",
   );
   writeFileSync(
-    "docs/phase6c-evidence/local-browser.json",
+    `${evidence}/local-browser.json`,
     JSON.stringify(
       {
         browser: browser.version(),
@@ -64,7 +65,7 @@ for (const [name, width, height] of [
         .violations,
     ).toEqual([]);
     await page.screenshot({
-      path: `docs/phase6c-evidence/real-${name}.png`,
+      path: `${evidence}/real-${name}.png`,
       fullPage: true,
     });
     await page.reload();
@@ -104,7 +105,7 @@ test("historical checkout adapters replay real references and survive refresh wi
     await expect(selection).toHaveValue(row.key);
   }
   await page.screenshot({
-    path: "docs/phase6c-evidence/real-checkout.png",
+    path: `${evidence}/real-checkout.png`,
     fullPage: true,
   });
   expect(mutations).toEqual([]);

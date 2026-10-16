@@ -1,6 +1,7 @@
 // Synthetic API fixtures, never real balances or live settlement evidence.
 import { test, expect } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
+const evidence = process.env.ZECONE_QA_EVIDENCE_DIR ?? "docs/phase6-evidence";
 const address = "0x1111111111111111111111111111111111111111";
 const dashboard = {
   address,
@@ -117,7 +118,7 @@ test("checkout recovery survives refresh without payment calls or fabricated ref
   await expect(page.getByLabel("Saved checkout")).toHaveValue(record.key);
   expect(writes).toBe(0);
   await page.screenshot({
-    path: "docs/phase6-evidence/ui-checkout-fixture.png",
+    path: `${evidence}/ui-checkout-fixture.png`,
     fullPage: true,
   });
 });
@@ -134,11 +135,11 @@ test("dashboard uses supplied balances and unknown EVM balance remains unavailab
   );
   await expect(page.getByLabel("Wallet balances")).not.toContainText("$");
   await page.screenshot({
-    path: "docs/phase6-evidence/ui-overview-fixture.png",
+    path: `${evidence}/ui-overview-fixture.png`,
     fullPage: true,
   });
   await page.screenshot({
-    path: "docs/phase6-evidence/ui-overview-viewport-fixture.png",
+    path: `${evidence}/ui-overview-viewport-fixture.png`,
     fullPage: false,
   });
 });
@@ -188,7 +189,7 @@ test("mobile layout and keyboard focus remain accessible", async ({ page }) => {
     ),
   ).toEqual([]);
   await page.screenshot({
-    path: "docs/phase6-evidence/ui-mobile-fixture.png",
+    path: `${evidence}/ui-mobile-fixture.png`,
     fullPage: true,
   });
 });
@@ -203,7 +204,7 @@ test("unavailable swap adapters show no executable fake quote", async ({
     0,
   );
   await page.screenshot({
-    path: "docs/phase6-evidence/ui-swap-fixture.png",
+    path: `${evidence}/ui-swap-fixture.png`,
     fullPage: true,
   });
 });

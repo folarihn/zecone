@@ -2,6 +2,23 @@
 import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 const files = [
+  "app/solana/panel.tsx",
+  "app/solana-connect/page.tsx",
+  "app/solana-connect/popup.tsx",
+  "services/wallet/phase7a-backend.ts",
+  "services/execution/solana-destination.ts",
+  "scripts/phase7a-server.ts",
+  "scripts/phase7a-solana.ts",
+  "scripts/phase7a-preserve.mjs",
+  "scripts/build-extension.mjs",
+  "tests/solana.test.ts",
+  "tests/ui/solana.spec.ts",
+  "tests/extension/solana.spec.ts",
+  "tests/phase7a/real-api.spec.ts",
+  "playwright.phase7a.config.ts",
+  ...readdirSync("services/solana")
+    .filter((f) => f.endsWith(".ts"))
+    .map((f) => `services/solana/${f}`),
   "app/wallet.tsx",
   "app/globals.css",
   "app/account-panel.tsx",

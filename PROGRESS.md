@@ -1,5 +1,17 @@
 # ZecOne progress
 
+## 16 October 2026 — Phase 7A devnet foundation
+
+Continues `cf2a0ff`. Implemented a separate Solana devnet adapter, isolated disposable accounts, exact SOL/SPL/Token-2022 balance views, bounded legacy SOL/SPL transaction preparation, SDK decoding and instruction/account policy, simulation, local approved signing boundary, durable idempotency/recovery journal and a synthetic-only ZEC destination interface. Added Wallet Standard discovery, origin-scoped connection/account selection and rejection-only browser signing hooks, plus the Solana wallet panel. A separate paired backend uses disposable EVM credentials and the existing rejection-only connector for manual website validation; historical workers remain stopped.
+
+**Verified live, unsigned:** funded payer has 0.1 devnet SOL. Preparing 0.001 SOL to the disposable recipient produced a successful real RPC simulation: 150 compute units, estimated fee 5,000 lamports. No Solana signature or broadcast occurred. SPL construction/policy is fixture-tested; live SPL simulation remains unverified because these accounts have no configured token mint/balance. No new ZEC payment, EVM transaction or refund was broadcast. Live refunds remain disabled.
+
+Validation: **366 passing tests** (248 Node including 18 Solana/backend tests, 23 UI, 17 installed-extension, 6 historical read-only UI, 3 real isolated-backend UI, 52 Solidity, 8 Rust wallet, 5 watch, 4 signer). The existing standalone expensive signer proof remains ignored; the Node integration suite exercises isolated native proof/signing. Both typechecks, scoped lint, extension packaging and production build passed. Preservation: **537 protected files, zero changes**.
+
+**Limitations:** browser Solana signing is deliberately rejection-only; the separate local signer is tested with ephemeral accounts. No live Jupiter/Raydium or new EVM website compatibility is claimed. No live ZEC-funded Solana settlement, swaps or NFT purchase exists. RPC effect consensus, arbitrary transaction import and automatic monitoring remain future work. Phase 7B was not started.
+
+See [implementation and exact evidence](docs/PHASE7A-SOLANA-IMPLEMENTATION.md), [Windows manual dApp workflow](docs/PHASE7A-MANUAL-DAPP-TEST.md), and [security boundaries](docs/PHASE7A-SECURITY.md).
+
 ## 15 October 2026 — Phase 6C (PARTIAL)
 
 Continues `19b5778`. Added a separately paired read-only viewer backed by copied real historical SQLite databases and native offline balance calculation. Original wallets, credentials and quarantined records are untouched; no live workers or signers start. Actual read-only EVM balance/NFT/receipt checks and historical mint, marketplace, swap and Seaport UI replay are recorded. Phase 5.2 payment and unsigned refund evidence are preserved; live refunds stay disabled.

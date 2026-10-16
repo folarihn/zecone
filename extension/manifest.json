@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ZecOne Testnet Connector",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "EIP-6963 discovery on HTTPS dApps. Origin-scoped local approvals; configured testnets only; no keys in extension.",
   "minimum_chrome_version": "111",
   "background": {
@@ -15,7 +15,7 @@
   "content_scripts": [
     {
       "matches": ["https://*/*"],
-      "js": ["inpage.js"],
+      "js": ["inpage.js", "solana.js"],
       "run_at": "document_start",
       "world": "MAIN",
       "all_frames": false

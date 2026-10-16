@@ -1,4 +1,6 @@
-# ZecOne Testnet Connector 0.3.1
+# ZecOne Testnet Connector 0.4.0
+
+Phase 7A adds a separate Solana Wallet Standard discovery/connection and rejection-only approval transport. No Solana broadcast feature is exposed. Use `npm run extension:build` and load `dist/extension`; see [the isolated Windows validation guide](../docs/PHASE7A-MANUAL-DAPP-TEST.md). Existing EVM transport remains unchanged.
 
 Phase 6C corrects duplicate event-listener semantics. Third-party website connection validation for this version remains blocked; see `docs/PHASE6C-LIVE-DAPP-VALIDATION.md`. Local fixture tests are not live compatibility evidence.
 
