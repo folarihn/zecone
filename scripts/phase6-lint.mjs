@@ -8,6 +8,7 @@ const files = [
   "services/solana/settlement-model.ts",
   "services/solana/phase7b-runtime.ts",
   "scripts/phase7b.ts",
+  "scripts/phase7b-verify-completed.ts",
   "scripts/phase7b-profile.ts",
   "scripts/phase7b-preserve.mjs",
   "scripts/phase7b-funding-review.ts",

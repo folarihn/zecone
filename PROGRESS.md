@@ -1,8 +1,8 @@
 # ZecOne progress
 
-## 16 October 2026 — Phase 7B (PARTIAL; live funding blocked)
+## 16 October 2026 — Phase 7B (completed testnet demonstration)
 
-Follow-up: the fresh payer received **0.125 TAZ**, reached ten confirmations, and prepared the fixed 0.001 TAZ settlement payment with an actual 0.0001 TAZ fee. Transaction `ade0250ca587bcfaac6b7e0b3dbcbd479ffe11e97f544235a3f72931ecda7385`, expiry 4,508,745, is saved and **awaiting exact broadcast approval**. Funding is no longer the blocker; no new payment or Solana delivery has been broadcast. The original wallet remains quarantined. See the latest transaction-evidence section.
+The fresh payer received **0.125 TAZ**. After separate exact user approvals, real shielded payment `ade0250ca587bcfaac6b7e0b3dbcbd479ffe11e97f544235a3f72931ecda7385` delivered **0.001 TAZ** with an actual **0.0001 TAZ** fee and reached **13 confirmations** before Solana execution. One devnet transfer finalized: `3RMoB1C93SfvnwzfdQxKg7jdw4VDP9qkKCKXbrPtDsiaw4AbM3KJz3VcRCvdDKV4irUhUrxZFmtbzNNkaW8xpH4y`. Recipient `HiGp8uCTupsv795g3iqK4Tex1K3hLdNryrZ6sukquRS3` gained **0.001 SOL**; relayer debit **0.001005 SOL** includes the **0.000005 SOL** fee. Full message and finalized per-transaction effects verified; durable order **COMPLETED/settled**. Restart reconciliation passed, duplicate execution was rejected before signer access, one signing/broadcast claim persisted, and completed-delivery refund recovery was vetoed. The original wallet remains quarantined; live refunds remain disabled.
 
 Continues `ee33020`. Moved the rebuildable Rust target cache to D: behind a junction, increasing C: free space from about 2.7 GiB to about 10.3 GiB. No wallet, key, database or evidence was deleted.
 
@@ -10,9 +10,9 @@ Implemented the bounded SOLANA_DEVNET_SOL_DELIVERY adapter using the existing pa
 
 Validation: **378 passing tests** (258 Node, 24 UI, 17 extension, 6 historical read-only UI, 3 real isolated-backend checks, 52 Solidity, 9 Rust wallet, 5 watch, 4 signer). The existing standalone expensive proof remains ignored; Node integration exercises isolated native proof/signing. Both typechecks, scoped lint and production build passed. All **537 protected files remain unchanged**.
 
-**Live blocker:** the fresh Phase 7B payer has zero confirmed unspent funds at scanned tip 4,508,649; the Solana relayer has 0.1 devnet SOL. The user requested funding from the quarantined original wallet. A new read-only review recovered no transaction reference and its fresh recipient scan was unavailable. The original missing raw/expiry/input evidence still prevents safe replacement. No original-wallet override, synchronization, marker clearing, new ZEC payment, Solana delivery or refund was performed. No real broadcast was approved or attempted. Synthetic settlement tests are not live transaction evidence.
+**Limitations:** fixed demonstration pricing, trusted prefunded inventory, operator-mediated broadcasts, one immutable checkout per isolated profile, no independent RPC/node consensus, and local plaintext development keys under one OS account. The original unresolved transfer remains quarantined; no original-wallet override, synchronization, marker clearing or refund was performed. Synthetic failure tests are labeled separately from the real completed settlement. Source identity of the fresh shielded funding deposit is not inferred.
 
-See [implementation and commands](docs/PHASE7B-SOLANA-SETTLEMENT.md), [transaction evidence and exact funding gate](docs/PHASE7B-TRANSACTION-EVIDENCE.md), and [security/trust limits](docs/PHASE7B-SECURITY.md). Phase 7B is not complete; Phase 7C/8 were not started.
+See [implementation and commands](docs/PHASE7B-SOLANA-SETTLEMENT.md), [real transaction evidence](docs/PHASE7B-TRANSACTION-EVIDENCE.md), and [security/trust limits](docs/PHASE7B-SECURITY.md). Phase 7B is complete within its bounded testnet scope; Phase 7C/8 were not started.
 
 ## 16 October 2026 — Phase 7A devnet foundation
 
