@@ -1,5 +1,17 @@
 # ZecOne progress
 
+## 16 October 2026 — Phase 7B (PARTIAL; live funding blocked)
+
+Continues `ee33020`. Moved the rebuildable Rust target cache to D: behind a junction, increasing C: free space from about 2.7 GiB to about 10.3 GiB. No wallet, key, database or evidence was deleted.
+
+Implemented the bounded SOLANA_DEVNET_SOL_DELIVERY adapter using the existing payment Store, native builder, watch-only scanner and Phase 7A Solana policy. Added fresh isolated Zcash profiles, exact fixed-demo quotes, owned-note/ten-confirmation authorization, inventory/fee/recipient checks, operator-only exact signing/broadcast approvals, durable signed bytes and submission claims, original-signature reconciliation, finalized message/balance-effect verification, duplicate protection and recovery/refund exclusion. Integrated terms/status and Solana IDs into the existing wallet and unified checkout. No automatic worker or browser signing/broadcast endpoint was enabled.
+
+Validation: **378 passing tests** (258 Node, 24 UI, 17 extension, 6 historical read-only UI, 3 real isolated-backend checks, 52 Solidity, 9 Rust wallet, 5 watch, 4 signer). The existing standalone expensive proof remains ignored; Node integration exercises isolated native proof/signing. Both typechecks, scoped lint and production build passed. All **537 protected files remain unchanged**.
+
+**Live blocker:** the fresh Phase 7B payer has zero confirmed unspent funds at scanned tip 4,508,649; the Solana relayer has 0.1 devnet SOL. The user requested funding from the quarantined original wallet. A new read-only review recovered no transaction reference and its fresh recipient scan was unavailable. The original missing raw/expiry/input evidence still prevents safe replacement. No original-wallet override, synchronization, marker clearing, new ZEC payment, Solana delivery or refund was performed. No real broadcast was approved or attempted. Synthetic settlement tests are not live transaction evidence.
+
+See [implementation and commands](docs/PHASE7B-SOLANA-SETTLEMENT.md), [transaction evidence and exact funding gate](docs/PHASE7B-TRANSACTION-EVIDENCE.md), and [security/trust limits](docs/PHASE7B-SECURITY.md). Phase 7B is not complete; Phase 7C/8 were not started.
+
 ## 16 October 2026 — Phase 7A devnet foundation
 
 Continues `cf2a0ff`. Implemented a separate Solana devnet adapter, isolated disposable accounts, exact SOL/SPL/Token-2022 balance views, bounded legacy SOL/SPL transaction preparation, SDK decoding and instruction/account policy, simulation, local approved signing boundary, durable idempotency/recovery journal and a synthetic-only ZEC destination interface. Added Wallet Standard discovery, origin-scoped connection/account selection and rejection-only browser signing hooks, plus the Solana wallet panel. A separate paired backend uses disposable EVM credentials and the existing rejection-only connector for manual website validation; historical workers remain stopped.

@@ -3,6 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { Hex } from 'viem';
 import type { Intent } from './intent.ts';
+import type { SolanaDeliveryIntent } from '../solana/settlement-model.ts';
 
 export type State = 'awaiting_payment' | 'verified' | 'prepared' | 'submitted' | 'settled' | 'expired' | 'failed' | 'recovery';
 export type Order = { id: Hex; nonce: Hex; account: string; address: string; intent: string; state: State; created: number; observed_at: number; raw: Hex | null; tx_hash: Hex | null };
@@ -38,7 +39,7 @@ export class Store {
     this.db.prepare('INSERT INTO recoveries(order_id,reason,detail) VALUES(?,?,?) ON CONFLICT(order_id,reason) DO UPDATE SET detail=excluded.detail').run(id,reason,encoded);
     this.event(id,previous?'recovery_updated':'recovery_required',{reason,detail},now);
   }
-  create(id: Hex, intent: Intent, account: string, address: string, now: number) {
+  create(id: Hex, intent: Intent | SolanaDeliveryIntent, account: string, address: string, now: number) {
     return this.atomic(() => {
       const found = this.get(id);
       if (found) { if (found.intent !== JSON.stringify(intent)) throw Error('idempotency conflict'); return found; }

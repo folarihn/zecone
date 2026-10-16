@@ -1,6 +1,7 @@
 // Read-only projection of existing durable journals. Never authorizes a payment,
 // advances a lifecycle, retries a transaction or marks a refund complete.
-export type CheckoutKind = "mint" | "action" | "purchase" | "swap" | "seaport";
+export type CheckoutKind =
+  "mint" | "action" | "purchase" | "swap" | "seaport" | "solana";
 export type CheckoutSource = {
   id: string;
   kind?: string;
@@ -56,8 +57,8 @@ export function checkoutState(r: CheckoutSource, now: number) {
   if (r.stage === "draft") return "USER_REVIEW";
   return "PAYMENT_REQUEST";
 }
-export function unifiedCheckouts(
-  groups: { kind: CheckoutKind; rows: CheckoutSource[] }[],
+export function unifiedCheckouts<K extends CheckoutKind>(
+  groups: { kind: K; rows: CheckoutSource[] }[],
   recipient: string,
   now = Math.floor(Date.now() / 1000),
 ) {
@@ -69,7 +70,9 @@ export function unifiedCheckouts(
       state: checkoutState(r, now),
       status: r.status,
       stage: r.stage,
-      chainId: r.chainId ?? 84532,
+      chainId: (g.kind === "solana"
+        ? null
+        : (r.chainId ?? 84532)) as K extends "solana" ? null : number,
       networkName: r.networkName ?? "Base Sepolia",
       recipient: r.recipient ?? recipient,
       zatoshis: r.zatoshis ?? null,

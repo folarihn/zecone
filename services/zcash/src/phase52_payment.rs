@@ -3,10 +3,15 @@ use super::*;
 use std::io::Read;
 const PAYMENT: u64 = 100_000;
 const FEE_CAP: u64 = 10_000;
+#[cfg(test)]
 fn context(path: &Path, profile: uuid::Uuid, request: uuid::Uuid) -> Result<(PathBuf, String)> {
+    context_for(path, profile, request, false)
+}
+fn context_for(path: &Path, profile: uuid::Uuid, request: uuid::Uuid, phase7b: bool) -> Result<(PathBuf, String)> {
     let root = std::env::current_dir()?;
+    let namespace = if phase7b { "phase7b" } else { "phase52" };
     let expected = root
-        .join(".state/phase52")
+        .join(format!(".state/{namespace}"))
         .join(profile.to_string())
         .join("payer-native");
     ensure!(path == expected, "isolated payer path required");
@@ -24,18 +29,18 @@ fn context(path: &Path, profile: uuid::Uuid, request: uuid::Uuid) -> Result<(Pat
         ancestor = p.parent();
     }
     let config: Value =
-        serde_json::from_slice(&fs::read(root.join(".state/phase52-profile.json"))?)?;
+        serde_json::from_slice(&fs::read(root.join(if phase7b { ".state/phase7b/profile.json" } else { ".state/phase52-profile.json" }))?)?;
     ensure!(
         config["id"] == profile.to_string()
-            && config["paymentRequestId"] == request.to_string()
+            && config[if phase7b { "orderId" } else { "paymentRequestId" }] == request.to_string()
             && config["network"] == "zcash-testnet"
             && config["liveRefundsEnabled"] == false,
         "profile binding conflict"
     );
     let m: Value = serde_json::from_slice(&fs::read(
-        root.join(".state/phase52")
+        root.join(format!(".state/{namespace}"))
             .join(profile.to_string())
-            .join("backend/wallet-b-watch/watch-only.json"),
+            .join(if phase7b { "settlement-watch/watch-only.json" } else { "backend/wallet-b-watch/watch-only.json" }),
     )?)?;
     let address = m["address"]
         .as_str()
@@ -43,7 +48,7 @@ fn context(path: &Path, profile: uuid::Uuid, request: uuid::Uuid) -> Result<(Pat
         .to_owned();
     validate_shielded_destination(&address)?;
     let key = root
-        .join(".secrets/phase52")
+        .join(format!(".secrets/{namespace}"))
         .join(profile.to_string())
         .join("payer/viewing-key.txt");
     Ok((key, address))
@@ -55,7 +60,10 @@ pub async fn prepare(
     request: uuid::Uuid,
     birthday: u32,
 ) -> Result<Value> {
-    let (key_file, address) = context(path, profile, request)?;
+    prepare_for(path, server, profile, request, birthday, false).await
+}
+pub async fn prepare_for(path: &Path, server: &str, profile: uuid::Uuid, request: uuid::Uuid, birthday:u32, phase7b:bool) -> Result<Value> {
+    let (key_file, address) = context_for(path, profile, request, phase7b)?;
     // Bind all spending to A's locally generated viewing key before opening a DB.
     let mut bytes = Vec::new();
     std::io::stdin().take(33).read_to_end(&mut bytes)?;
@@ -145,7 +153,10 @@ pub async fn inspect(
     profile: uuid::Uuid,
     request: uuid::Uuid,
 ) -> Result<Value> {
-    context(path, profile, request)?;
+    inspect_for(path,server,profile,request,false).await
+}
+pub async fn inspect_for(path:&Path,server:&str,profile:uuid::Uuid,request:uuid::Uuid,phase7b:bool)->Result<Value>{
+    context_for(path, profile, request, phase7b)?;
     let raw = fs::read(path.join(format!("request-{request}.raw")))?;
     let tx = zcash_primitives::transaction::Transaction::read(
         raw.as_slice(),
@@ -188,7 +199,10 @@ pub async fn broadcast(
     request: uuid::Uuid,
     approved: &str,
 ) -> Result<Value> {
-    let (_, address) = context(path, profile, request)?;
+    broadcast_for(path,server,profile,request,approved,false).await
+}
+pub async fn broadcast_for(path:&Path,server:&str,profile:uuid::Uuid,request:uuid::Uuid,approved:&str,phase7b:bool)->Result<Value>{
+    let (_, address) = context_for(path, profile, request, phase7b)?;
     let _lock = lock_wallet(path)?;
     let record: Value =
         serde_json::from_slice(&fs::read(path.join(format!("request-{request}.json")))?)?;
@@ -242,6 +256,13 @@ pub async fn broadcast(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn phase7b_rejects_historical_profile_paths_before_reading_files() {
+        let id=uuid::Uuid::new_v4();
+        let old=std::env::current_dir().unwrap().join(".state/phase52").join(id.to_string()).join("payer-native");
+        assert!(context_for(&old,id,id,true).is_err());
+        assert!(context_for(Path::new(".secrets/user/zcash"),id,id,true).is_err());
+    }
     #[test]
     fn a_broadcast_claim_survives_restart_and_prevents_duplicate_submission() {
         let d = tempfile::tempdir().unwrap();

@@ -1,0 +1,19 @@
+# Phase 7B security and trust
+
+16 October 2026. Development/testnets only. This is trusted inventory settlement across independent chains, without shared atomic finality. Shielded ZEC stays on Zcash; the operator supplies separate prefunded devnet SOL and can correlate payment/destination. No privacy, redemption or trustless-bridge claim is made.
+
+The native payer is restricted to the new Phase 7B profile path and matching request ID, settlement watch address and payer viewing key. It reuses the existing builder and persisted one-shot broadcast claim. Historical Phase 5.2 path restrictions remain intact. Native tests reject historical paths before reading files. The fresh payer seed enters only its local native process over stdin, never CLI arguments, browser responses or external RPCs. Settlement scanners receive viewing keys only. The original wallet is not opened, synced or unlocked.
+
+Solana checks the full pinned devnet genesis, one allowlisted legacy System Program transfer, exact source/recipient/amount/fee payer, inventory, fee cap, canonical message, fresh blockhash and simulation. External dApp bytes never become sponsored execution. The paired API can quote/read/reveal, but has no payment/signing/broadcast endpoints. Each concrete Zcash transaction ID and Solana digest needs separate operator approval. No automatic settlement worker runs.
+
+The funded disposable Phase 7A payer is assigned as the dedicated Phase 7B relayer; its credential is unchanged. Newly generated Zcash secrets and journals are gitignored. Local development credentials are plaintext under one OS account; POSIX modes do not establish Windows ACL isolation. This is not hardware or separate-device custody. Live refund signing remains disabled.
+
+Payment verification requires fresh complete SDK scans, exact watch identity, owned shielded notes and ten confirmations. Extra payments require recovery. The journal commits an irreversible signing claim and signed bytes/signature before submission. Timeouts retain the original signature; no application retry, replacement or blockhash renewal exists. A crash after signing but before persistence blocks automatic replacement. Recovery vetoes exclude execution; completed delivery cannot initiate refund execution. Audit and state changes share a durable SQLite transaction boundary.
+
+Finalization requires the approved complete message and exact per-transaction recipient increase and relayer decrease including fee. This still trusts the RPC. Zcash uses the existing zec.rocks scanner; independent node/operator agreement is unavailable. Independent Solana effect consensus is also not configured. A malicious provider can falsify observations. Independent validation and an atomic onchain receipt/PDA are required before broader automated retry/production claims; an offchain journal cannot prevent separately approved IDs or a compromised operator.
+
+No quarantine override was added. Missing original transaction/input evidence prevents safe original-wallet funding even when requested. Historical payments, Phase 5.2 recovery inputs and the unresolved 0.002 TAZ attempt do not authorize new settlement.
+
+Limits: one immutable checkout per fresh profile, labeled demo pricing, operator-mediated broadcasts, no automatic replacement, live refunds, mainnet, arbitrary sponsored instructions, paid services or Phase 7C/8. Phase 7B is partial until a real fresh payment and approved finalized SOL delivery exist.
+
+Official RPC semantics checked: [sendTransaction](https://solana.com/docs/rpc/http/sendtransaction) returns before confirmation and supports preflight/retry configuration; [getTransaction](https://solana.com/docs/rpc/http/gettransaction) returns data at the requested commitment. Installed pinned SDK declarations and synthetic tests verify the APIs used.

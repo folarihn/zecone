@@ -13,6 +13,7 @@ const labels: Record<string, string> = {
   PAYMENT_REQUEST: "Payment request",
   PAYMENT_CONFIRMATIONS: "Zcash confirmations",
   DESTINATION_EXECUTION: "Destination execution",
+  AWAITING_SOLANA_AUTHORIZATION: "Awaiting Solana authorization",
   COMPLETED: "Completed",
   RECOVERY_REQUIRED: "Recovery required",
   PAYMENT_EXPIRED: "Payment expired",
@@ -71,8 +72,8 @@ export default function CheckoutTracker({
         <span className="badge">Testnet settlement</span>
       </div>
       <p className="muted">
-        Simulated pricing · trusted prefunded relayer. Public EVM delivery. No
-        trustless bridge or live refunds.
+        Simulated pricing · trusted prefunded relayer. Public destination
+        delivery. No trustless bridge or live refunds.
       </p>
       {error && (
         <p className="notice error" role="alert">
@@ -134,7 +135,8 @@ export default function CheckoutTracker({
                   <div>
                     <dt>Action / destination</dt>
                     <dd>
-                      {row.kind} · {row.networkName} ({row.chainId})
+                      {row.kind} · {row.networkName}
+                      {row.chainId === null ? "" : ` (${row.chainId})`}
                     </dd>
                   </div>
                   <div>

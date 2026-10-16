@@ -51,6 +51,22 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+    /// Fresh Phase 7B isolated payer only. Does not load historical wallet seeds.
+    PreparePhase7bPayment {
+        #[arg(long)] profile_id: uuid::Uuid,
+        #[arg(long)] request_id: uuid::Uuid,
+        #[arg(long)] birthday: u32,
+    },
+    InspectPhase7bPayment {
+        #[arg(long)] profile_id: uuid::Uuid,
+        #[arg(long)] request_id: uuid::Uuid,
+    },
+    BroadcastPhase7bPayment {
+        #[arg(long)] profile_id: uuid::Uuid,
+        #[arg(long)] request_id: uuid::Uuid,
+        #[arg(long)] approved_txid: String,
+        #[arg(long)] allow_testnet_broadcast: bool,
+    },
     /// Read public status for the exact new-profile transaction; never resubmit.
     InspectPhase52Payment {
         #[arg(long)]
@@ -596,6 +612,19 @@ async fn run() -> Result<()> {
         .map_err(|_| anyhow!("TLS provider initialization failed"))?;
     let args = Cli::parse();
     match &args.command {
+        Command::PreparePhase7bPayment {profile_id,request_id,birthday} => {
+            let v=phase52_payment::prepare_for(&args.wallet,&args.server,*profile_id,*request_id,*birthday,true).await?;
+            println!("{v}");return Ok(());
+        }
+        Command::InspectPhase7bPayment {profile_id,request_id} => {
+            let v=phase52_payment::inspect_for(&args.wallet,&args.server,*profile_id,*request_id,true).await?;
+            println!("{v}");return Ok(());
+        }
+        Command::BroadcastPhase7bPayment {profile_id,request_id,approved_txid,allow_testnet_broadcast} => {
+            ensure!(*allow_testnet_broadcast,"explicit broadcast approval required");
+            let v=phase52_payment::broadcast_for(&args.wallet,&args.server,*profile_id,*request_id,approved_txid,true).await?;
+            println!("{v}");return Ok(());
+        }
         Command::InspectPhase52Payment {
             profile_id,
             request_id,

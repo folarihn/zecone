@@ -25,6 +25,7 @@ import CheckoutTracker from "./checkout/tracker";
 import AccountPanel from "./account-panel";
 import NetworksPanel from "./networks/panel";
 import SolanaPanel from "./solana/panel";
+import SolanaDelivery from "./solana/delivery";
 import PurchasePanel from "./purchases/panel";
 import SwapPanel from "./swaps/panel";
 import SeaportPanel from "./seaport/panel";
@@ -814,6 +815,7 @@ export default function Wallet() {
                               seaport: "Seaport",
                               action: "Sponsor",
                               mint: "Checkout",
+                              solana: "Solana",
                             } as Record<string, Tab>
                           )[kind] ?? "Checkout",
                         )
@@ -1411,7 +1413,12 @@ export default function Wallet() {
                   </p>
                 </>
               )}
-              {tab === "Solana" && <SolanaPanel />}
+              {tab === "Solana" && (
+                <>
+                  <SolanaPanel />
+                  <SolanaDelivery />
+                </>
+              )}
               {tab === "Privacy" && (
                 <div className="privacy-grid">
                   {[

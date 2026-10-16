@@ -2,10 +2,16 @@
 import { test, expect } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { AxeBuilder } from "@axe-core/playwright";
+const evidence = process.env.ZECONE_QA_EVIDENCE_DIR ?? "docs/phase7a-evidence";
 let cookies: any[], csrf: string;
 test.beforeAll(async ({ request, browser }) => {
   const token = JSON.parse(
-    readFileSync(".state/phase7a/pairing.json", "utf8"),
+    readFileSync(
+      process.env.ZECONE_PHASE7B_TEST === "1"
+        ? ".state/phase7b/browser/pairing.json"
+        : ".state/phase7a/pairing.json",
+      "utf8",
+    ),
   ).token;
   const paired = await request.post("/api/pair", {
     headers: { Origin: "http://127.0.0.1:3210" },
@@ -23,7 +29,7 @@ test.beforeAll(async ({ request, browser }) => {
   expect(connect.ok()).toBe(true);
   cookies = (await request.storageState()).cookies;
   writeFileSync(
-    "docs/phase7a-evidence/isolated-browser.json",
+    `${evidence}/isolated-browser.json`,
     JSON.stringify(
       {
         at: new Date().toISOString(),
@@ -57,7 +63,7 @@ test("isolated backend displays real devnet balance and real simulation, without
     page.getByRole("button", { name: /broadcast|submit|sign transaction/i }),
   ).toHaveCount(0);
   await page.screenshot({
-    path: "docs/phase7a-evidence/real-solana-desktop.png",
+    path: `${evidence}/real-solana-desktop.png`,
     fullPage: true,
   });
 });
@@ -77,13 +83,25 @@ test("real isolated Solana mobile view fits and is accessible", async ({
       .violations,
   ).toEqual([]);
   await page.screenshot({
-    path: "docs/phase7a-evidence/real-solana-mobile.png",
+    path: `${evidence}/real-solana-mobile.png`,
     fullPage: true,
   });
 });
 test("isolated HTTP endpoints reject signing, broadcasts, Zcash payment and missing CSRF", async ({
   page,
 }) => {
+  if (process.env.ZECONE_PHASE7B_TEST === "1") {
+    const status = await page.request.get("/api/solana-settlement/status");
+    expect(status.ok()).toBe(true);
+    const data = await status.json();
+    expect(data.orders.length).toBe(1);
+    expect(data.orders[0].paymentAddress).toBeUndefined();
+    const checkouts = await page.request.get("/api/checkouts");
+    const rows = (await checkouts.json()).checkouts;
+    expect(rows[0].kind).toBe("solana");
+    expect(rows[0].chainId).toBeNull();
+    expect(rows[0].paymentAddress).toBeNull();
+  }
   await page.goto("/?view=Solana");
   const results = await page.evaluate(async (csrf) => {
     const responses = [];

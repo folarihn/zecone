@@ -2,6 +2,17 @@
 import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 const files = [
+  "app/solana/delivery.tsx",
+  "services/solana/settlement.ts",
+  "services/solana/settlement-api.ts",
+  "services/solana/settlement-model.ts",
+  "services/solana/phase7b-runtime.ts",
+  "scripts/phase7b.ts",
+  "scripts/phase7b-profile.ts",
+  "scripts/phase7b-preserve.mjs",
+  "scripts/phase7b-funding-review.ts",
+  "tests/solana-settlement.test.ts",
+  "tests/ui/solana-delivery.spec.ts",
   "app/solana/panel.tsx",
   "app/solana-connect/page.tsx",
   "app/solana-connect/popup.tsx",

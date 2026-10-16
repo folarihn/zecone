@@ -6,6 +6,10 @@
     "node": ">=24.12.0 <25"
   },
   "scripts": {
+    "phase7b:wallet": "tsx scripts/phase7a-server.ts --phase7b",
+    "phase7b": "tsx scripts/phase7b.ts",
+    "phase7b:profile": "tsx scripts/phase7b-profile.ts",
+    "phase7b:preserve": "node scripts/phase7b-preserve.mjs",
     "extension:build": "node scripts/build-extension.mjs",
     "phase7a:check": "tsx scripts/phase7a-solana.ts",
     "phase7a:wallet": "tsx scripts/phase7a-server.ts",
