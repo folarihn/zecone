@@ -2,6 +2,8 @@
 
 ## 16 October 2026 — Phase 7B (PARTIAL; live funding blocked)
 
+Follow-up: the fresh payer received **0.125 TAZ**, reached ten confirmations, and prepared the fixed 0.001 TAZ settlement payment with an actual 0.0001 TAZ fee. Transaction `ade0250ca587bcfaac6b7e0b3dbcbd479ffe11e97f544235a3f72931ecda7385`, expiry 4,508,745, is saved and **awaiting exact broadcast approval**. Funding is no longer the blocker; no new payment or Solana delivery has been broadcast. The original wallet remains quarantined. See the latest transaction-evidence section.
+
 Continues `ee33020`. Moved the rebuildable Rust target cache to D: behind a junction, increasing C: free space from about 2.7 GiB to about 10.3 GiB. No wallet, key, database or evidence was deleted.
 
 Implemented the bounded SOLANA_DEVNET_SOL_DELIVERY adapter using the existing payment Store, native builder, watch-only scanner and Phase 7A Solana policy. Added fresh isolated Zcash profiles, exact fixed-demo quotes, owned-note/ten-confirmation authorization, inventory/fee/recipient checks, operator-only exact signing/broadcast approvals, durable signed bytes and submission claims, original-signature reconciliation, finalized message/balance-effect verification, duplicate protection and recovery/refund exclusion. Integrated terms/status and Solana IDs into the existing wallet and unified checkout. No automatic worker or browser signing/broadcast endpoint was enabled.

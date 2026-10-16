@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-16T15:33:56.512Z",
+  "version": 1,
+  "profileId": "3e89c1b8-74ef-4802-af61-5789460b2d42",
+  "requestId": "e35ce3ee-459f-4aee-92aa-5024932c2a33",
+  "network": "zcash-testnet",
+  "recipient": "utest1qd3dqu65fzsff73e7y08vsn60gwl8rd5jnyjh5akpmz3x4e33hhj7kfhgnt287wkw5lwqqnl8psjt5gas79j0ua4gqmt7fahkgvchhaf",
+  "zatoshis": "100000",
+  "feeZatoshis": "10000",
+  "expiryHeight": 4508745,
+  "txid": "ade0250ca587bcfaac6b7e0b3dbcbd479ffe11e97f544235a3f72931ecda7385",
+  "rawSha256": "97b46d45f4279ac5e3da43ca91d943d3efa826826332415864535696d7c3ceac",
+  "rawBytes": 9166,
+  "broadcast": false,
+  "status": "prepared-awaiting-exact-broadcast-approval"
+}

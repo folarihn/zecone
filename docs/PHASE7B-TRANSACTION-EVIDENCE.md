@@ -1,5 +1,15 @@
 # Phase 7B transaction evidence — PARTIAL
 
+## Funding and preparation follow-up, 16 October 2026
+
+The fresh payer received **0.125 TAZ** (12,500,000 zatoshis) in transaction `fa0f8eb329a2480e4cdf84436ad13209d0a6fdb9b2fa0fafc7183e31a8ac0507`, mined at height 4,508,693. Its owned Ironwood note reached ten confirmations at scanned tip 4,508,702. The funding source's identity is not inferred from shielding; the recipient viewing key establishes ownership of the incoming note. The original wallet and its quarantine remain untouched.
+
+A new payer-to-settlement payment is now prepared and durably saved, **not broadcast**: 100,000 zatoshis plus an actual 10,000-zatoshi fee (total 0.0011 TAZ); expiry height 4,508,745; transaction ID `ade0250ca587bcfaac6b7e0b3dbcbd479ffe11e97f544235a3f72931ecda7385`. The [exact preparation review](phase7b-evidence/payment-prepared-ade0250ca587bcfaac6b7e0b3dbcbd479ffe11e97f544235a3f72931ecda7385.json) records the raw-byte hash and length without publishing transaction bytes or keys. Explicit approval of this exact payment has been requested. Solana execution needs a separate later approval after the settlement receiver verifies ten confirmations. No refund is enabled.
+
+The funding blocker below describes the earlier checkpoint. It is now resolved for the fresh payer; broadcast approval is the current gate. A completed real cross-chain settlement is still not claimed.
+
+## Initial checkpoint
+
 16 October 2026. No fresh shielded Zcash payment was prepared or broadcast, and no Solana delivery was signed or broadcast in this phase. There is no payment transaction ID, delivery signature or finalized recipient delta to report. Synthetic notes/signatures are not live evidence.
 
 Fresh [profile capture](phase7b-evidence/profile.json):
