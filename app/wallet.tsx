@@ -181,6 +181,7 @@ export default function Wallet() {
   const [session, setSession] = useState<{
       csrf: string;
       connected: boolean;
+      readOnly?: boolean;
     } | null>(null),
     [data, setData] = useState<Dashboard | null>(null),
     [tab, setTab] = useState<Tab>("Overview");
@@ -485,7 +486,7 @@ export default function Wallet() {
             <button
               className={`account-pill ${session.connected ? "verified" : ""}`}
               onClick={connect}
-              disabled={busy}
+              disabled={busy || session.readOnly}
             >
               {session.connected ? (
                 <ShieldCheck size={16} />
@@ -494,7 +495,11 @@ export default function Wallet() {
               )}
               <span>{data ? short(data.address) : "Local account"}</span>
               <span className="desktop-only">
-                {session.connected ? "Verified" : "Verify ownership"}
+                {session.readOnly
+                  ? "Read-only account"
+                  : session.connected
+                    ? "Verified"
+                    : "Verify ownership"}
               </span>
             </button>
           </div>
@@ -615,7 +620,30 @@ export default function Wallet() {
             Zcash-side shielding · public EVM transactions and ownership ·
             trusted relayer correlation · live refunds disabled
           </p>
-          {!session.connected && (
+          {data?.readOnlyNotice && (
+            <p className="notice" role="status">
+              {data.readOnlyNotice}
+            </p>
+          )}
+          {data?.recoverySnapshot && (
+            <section className="notice" aria-label="Archived refund recovery">
+              <h2>Refund awaiting authorization</h2>
+              <p>
+                Phase 5.2 payment:{" "}
+                <span className="mono break">
+                  {data.recoverySnapshot.paymentTx}
+                </span>
+              </p>
+              <p>
+                Unsigned draft: {units(data.recoverySnapshot.refundZatoshis)}{" "}
+                TAZ refund + {units(data.recoverySnapshot.feeZatoshis)} TAZ fee.
+                Expiry height {data.recoverySnapshot.expiryHeight}. Archived at{" "}
+                {data.recoverySnapshot.archivedAt}; no current authorization or
+                separate-device validation. Live refunds disabled.
+              </p>
+            </section>
+          )}
+          {!session.connected && !session.readOnly && (
             <div className="connect-banner">
               <KeyRound size={19} />
               <div>
@@ -728,7 +756,9 @@ export default function Wallet() {
                       </div>
                       <p className="balance-detail">
                         {data.zcash
-                          ? `${units(data.zcash.spendableZatoshis)} TAZ available · ${units((BigInt(data.zcash.totalZatoshis) > BigInt(data.zcash.spendableZatoshis) ? BigInt(data.zcash.totalZatoshis) - BigInt(data.zcash.spendableZatoshis) : 0n).toString())} TAZ unavailable / pending`
+                          ? data.readOnlyNotice
+                            ? `Historical total ${units(data.zcash.totalZatoshis)} TAZ · spending disabled`
+                            : `${units(data.zcash.spendableZatoshis)} TAZ available · ${units((BigInt(data.zcash.totalZatoshis) > BigInt(data.zcash.spendableZatoshis) ? BigInt(data.zcash.totalZatoshis) - BigInt(data.zcash.spendableZatoshis) : 0n).toString())} TAZ unavailable / pending`
                           : "Waiting for a verified wallet sync"}
                       </p>
                       <div className="balance-footer">
@@ -785,7 +815,9 @@ export default function Wallet() {
                     />
                   )}
                   {(tab === "Wallet" || tab === "Overview") &&
-                    session?.connected && <NetworksPanel />}
+                    (session?.connected || session?.readOnly) && (
+                      <NetworksPanel />
+                    )}
                   <div className="health-strip">
                     <div>
                       <span
@@ -813,7 +845,9 @@ export default function Wallet() {
                       {data.health.busy
                         ? "Checking networks…"
                         : data.zcash
-                          ? `Zcash synced at ${time(data.zcash.observedAt)}`
+                          ? data.readOnlyNotice
+                            ? `Historical Zcash scan height ${data.zcash.scanned}; no fresh sync`
+                            : `Zcash synced at ${time(data.zcash.observedAt)}`
                           : "Initial sync in progress"}
                     </span>
                   </div>
@@ -1671,7 +1705,9 @@ function CheckoutProgress({ c }: { c: CheckoutView }) {
           {c.confirmations} / {c.requiredConfirmations} confirmations
         </span>
       </div>
-      <p className="tiny">Received {units(c.receivedZatoshis)} / 0.01 TAZ</p>
+      <p className="tiny">
+        Received {units(c.receivedZatoshis)} / {units(c.zatoshis)} TAZ
+      </p>
       <div
         className="progress-track"
         role="progressbar"
@@ -1717,17 +1753,31 @@ function Activity({
     failed: t.expired,
     hash: t.txid,
     incoming: BigInt(t.deltaZatoshis) > 0n,
+    explorer: null,
   }));
   const b = data.baseActivity.map((t) => ({
     key: t.hash,
-    title: t.kind === "action" ? "ZecOne sponsored action" : "ZecOne NFT mint",
-    network: "Base Sepolia",
-    amount: t.kind === "action" ? "1 fixed action" : "1 NFT",
+    title:
+      t.kind === "action"
+        ? "ZecOne sponsored action"
+        : t.kind === "swap"
+          ? "ZecOne token swap"
+          : t.kind === "mint"
+            ? "ZecOne NFT mint"
+            : "ZecOne NFT purchase",
+    network: t.networkName ?? "Base Sepolia",
+    amount:
+      t.kind === "action"
+        ? "1 fixed action"
+        : t.kind === "swap"
+          ? "Token swap"
+          : "1 NFT",
     status: t.status,
     private: false,
     failed: t.status === "Reverted",
     hash: t.hash,
     incoming: true,
+    explorer: t.explorer ?? "https://sepolia.basescan.org",
   }));
   const rows = compact
     ? [...b.slice(-1), ...z.slice(0, 2)]
@@ -1765,10 +1815,10 @@ function Activity({
               <strong>{r.failed ? "—" : r.amount}</strong>
               {!r.private && (
                 <a
-                  href={`https://sepolia.basescan.org/tx/${r.hash}`}
+                  href={`${r.explorer}/tx/${r.hash}`}
                   target="_blank"
                   rel="noreferrer"
-                  aria-label="View NFT mint transaction"
+                  aria-label="View destination transaction"
                 >
                   <ArrowUpRight size={15} />
                 </a>

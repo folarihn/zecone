@@ -100,6 +100,15 @@ export type WalletSummary = {
   }[];
 };
 export type Dashboard = {
+  readOnlyNotice?: string;
+  recoverySnapshot?: {
+    paymentTx: string;
+    refundZatoshis: string;
+    feeZatoshis: string;
+    expiryHeight: number;
+    archivedAt: string;
+    pcztSha256: string;
+  };
   address: string;
   contract: string;
   priceZatoshis: string;
@@ -110,8 +119,10 @@ export type Dashboard = {
   baseActivity: {
     hash: string;
     status: string;
-    kind: "action" | "mint";
+    kind: "action" | "mint" | "purchase" | "swap" | "seaport";
     tokenId: string | null;
+    networkName?: string;
+    explorer?: string;
   }[];
   checkouts: CheckoutView[];
 };

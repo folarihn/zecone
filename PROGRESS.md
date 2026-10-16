@@ -1,5 +1,19 @@
 # ZecOne progress
 
+## 15 October 2026 — Phase 6C (PARTIAL)
+
+Continues `19b5778`. Added a separately paired read-only viewer backed by copied real historical SQLite databases and native offline balance calculation. Original wallets, credentials and quarantined records are untouched; no live workers or signers start. Actual read-only EVM balance/NFT/receipt checks and historical mint, marketplace, swap and Seaport UI replay are recorded. Phase 5.2 payment and unsigned refund evidence are preserved; live refunds stay disabled.
+
+Validation: **339 passing tests**, both typechecks, scoped lint and production build. Preservation: 537 protected files, zero changes.
+
+16 October follow-up: regenerated an interrupted disposable export using atomic replacement, refreshed read-only testnet RPC evidence and repeated snapshot QA. Historical wallets and refund evidence remain unchanged.
+
+Fixed duplicate provider listener semantics (extension 0.3.1), guarded legacy personal-sign ordering, explicit unlimited/all-NFT approval warnings, hardcoded checkout progress amount, destination activity labels/links and expired-history text contrast. Added rejection-only dry-run coverage and real-data desktop/narrow/mobile/offline QA. Final validation is documented in [Phase 6C product QA](docs/PHASE6C-PRODUCT-QA.md).
+
+**Not fully complete:** no new live dApp account connection is verified. Chrome is unavailable through the browser connector; both supported computer-use runtimes now fail kernel initialization. The dedicated profile was not modified. [Compatibility matrix/blockers](docs/PHASE6C-LIVE-DAPP-VALIDATION.md). No transactions were broadcast and Phase 7 has not begun.
+
+### Previous checkpoint validation
+
 Validation: **325 passing tests**, both typechecks, scoped lint and production build. Preservation audit: 537 inventoried files, zero changes. Detailed logs and screenshots are linked from the implementation report.
 
 ## 15 October 2026 — Phase 6A + 6B

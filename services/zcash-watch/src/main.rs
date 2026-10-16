@@ -34,6 +34,8 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+    /// Offline summary of a dedicated Phase 6C database copy. Never syncs or reads keys.
+    SnapshotSummary,
     /// Fixed new-profile unsigned refund export. No seed, key input or signing.
     PreparePhase52Refund {
         #[arg(long)]
@@ -312,6 +314,7 @@ async fn main() {
     let _ = rustls::crypto::ring::default_provider().install_default();
     let c = Cli::parse();
     let result = match c.command {
+        Command::SnapshotSummary => snapshot_summary(&c.wallet),
         Command::PreparePhase52Refund { profile_id } => {
             phase52_refund::prepare(&c.wallet, &profile_id).await
         }
@@ -331,9 +334,58 @@ async fn main() {
     }
 }
 
+fn snapshot_summary(path: &Path) -> Result<Value> {
+    let root = std::env::current_dir()?
+        .join(".state/phase6c/snapshots")
+        .canonicalize()?;
+    let file = path.join("wallet.sqlite").canonicalize()?;
+    ensure!(file.starts_with(&root), "snapshot_copy_required");
+    ensure!(
+        !path.join("seed.bin").exists(),
+        "snapshot_must_not_contain_seed"
+    );
+    let conn =
+        rusqlite::Connection::open_with_flags(&file, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+    let db = WalletDb::from_connection(conn, NET, SystemClock, rand::rng());
+    let policy = zcash_client_backend::data_api::wallet::ConfirmationsPolicy::new_symmetrical(
+        std::num::NonZeroU32::new(10).unwrap(),
+        false,
+    );
+    let summary = db
+        .get_wallet_summary(policy)?
+        .context("snapshot_summary_unavailable")?;
+    let mut total = 0u64;
+    let mut available = 0u64;
+    for balance in summary.account_balances().values() {
+        total += balance.sapling_balance().total().into_u64()
+            + balance.orchard_balance().total().into_u64()
+            + balance.ironwood_balance().total().into_u64();
+        available += balance.spendable_value().into_u64();
+    }
+    let conn =
+        rusqlite::Connection::open_with_flags(file, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+    let mut stmt = conn.prepare("SELECT txid,mined_height,account_balance_delta,fee_paid,block_time,expired_unmined FROM v_transactions ORDER BY COALESCE(mined_height,2147483647) DESC LIMIT 30")?;
+    let history = stmt.query_map([], |r| {
+        let mut tx: Vec<u8> = r.get(0)?; tx.reverse();
+        Ok(json!({"txid":hex::encode(tx),"height":r.get::<_,Option<u32>>(1)?,"deltaZatoshis":r.get::<_,i64>(2)?.to_string(),"feeZatoshis":r.get::<_,Option<u64>>(3)?.map(|v|v.to_string()),"time":r.get::<_,Option<u64>>(4)?,"expired":r.get::<_,Option<bool>>(5)?.unwrap_or(false)}))
+    })?.collect::<Result<Vec<_>,_>>()?;
+    Ok(
+        json!({"network":"zcash-testnet","offlineSnapshot":true,"syncPerformed":false,"minimumConfirmations":10,"totalZatoshis":total.to_string(),"spendableZatoshis":available.to_string(),"tip":u32::from(summary.chain_tip_height()),"scanned":u32::from(summary.fully_scanned_height()),"observedAt":SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),"history":history}),
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn snapshot_reader_rejects_original_wallet_without_opening_it() {
+        let d = tempfile::tempdir().unwrap();
+        fs::write(d.path().join("wallet.sqlite"), b"not-a-database").unwrap();
+        let before = fs::read(d.path().join("wallet.sqlite")).unwrap();
+        assert!(snapshot_summary(d.path()).is_err());
+        assert_eq!(fs::read(d.path().join("wallet.sqlite")).unwrap(), before);
+        assert!(!d.path().join("wallet.sqlite-wal").exists());
+    }
     #[test]
     fn ufvk_import_reopens_without_seed_and_rejects_mainnet_key() {
         use rand::{Rng, rand_core::UnwrapErr, rngs::SysRng};

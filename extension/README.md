@@ -1,4 +1,6 @@
-# ZecOne Testnet Connector 0.3.0
+# ZecOne Testnet Connector 0.3.1
+
+Phase 6C corrects duplicate event-listener semantics. Third-party website connection validation for this version remains blocked; see `docs/PHASE6C-LIVE-DAPP-VALIDATION.md`. Local fixture tests are not live compatibility evidence.
 
 Manifest V3 / EIP-1193 / EIP-6963 on top-level HTTPS origins, with separate origin-scoped account approval. `inpage.js` is the public facade, `content.js` the isolated popup transport, `background.js` the sender-validating request router and `popup.html` the status action. `policy.js` lists supported methods/testnets. No keys, direct HTTP signer access, native host, background host/API privileges or remote code. The authenticated local wallet verifies actual opener origin and requires approval.
 

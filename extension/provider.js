@@ -32,7 +32,7 @@
     chainId = "0x14a34";
   const error = (code, message) => Object.assign(new Error(message), { code });
   const emit = (event, value) => {
-    for (const fn of listeners.get(event) || []) {
+    for (const fn of [...(listeners.get(event) || [])]) {
       try {
         fn(value);
       } catch {}
@@ -168,13 +168,15 @@
     on(event, fn) {
       if (typeof fn !== "function")
         throw error(-32602, "Listener must be a function");
-      const s = listeners.get(event) || new Set();
-      s.add(fn);
+      const s = listeners.get(event) || [];
+      s.push(fn);
       listeners.set(event, s);
       return provider;
     },
     removeListener(event, fn) {
-      listeners.get(event)?.delete(fn);
+      const list = listeners.get(event) || [];
+      const i = list.lastIndexOf(fn);
+      if (i >= 0) list.splice(i, 1);
       return provider;
     },
   });

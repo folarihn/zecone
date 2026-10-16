@@ -1,5 +1,7 @@
 # Phase 6 dApp compatibility
 
+Phase 6C follow-up: extension source **0.3.1** corrects listener semantics and adds local security regression coverage. New real-site connections remain **BLOCKED**, not verified. See the [Phase 6C matrix and concrete runtime failures](PHASE6C-LIVE-DAPP-VALIDATION.md) and [real-data product QA](PHASE6C-PRODUCT-QA.md). Earlier website screenshots below remain historical Phase 6 observations only.
+
 15 October 2026. **Generic EVM provider support is implemented and locally tested; new real-site account connections are not verified.** Do not interpret a wallet picker screenshot as evidence of signing or settlement.
 
 ## Evidence boundaries

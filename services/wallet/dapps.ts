@@ -68,6 +68,7 @@ export class Dapps {
     readonly user: Address,
     path = ".state/dapps.sqlite",
     readonly purchases?: Purchases,
+    readonly policy: { signingDisabled?: boolean } = {},
   ) {
     mkdirSync(".state", { recursive: true });
     this.db = new DatabaseSync(path);
@@ -439,6 +440,19 @@ export class Dapps {
     if (r.method !== "eth_requestAccounts" && !this.permitted(r.origin))
       throw new RpcError(4100, "Connection revoked");
     if (r.state !== "pending") return this.status(s, id);
+    if (
+      this.policy.signingDisabled &&
+      [
+        "personal_sign",
+        "eth_signTypedData_v4",
+        "eth_sendTransaction",
+        "zecone_payWithZec",
+      ].includes(r.method)
+    )
+      throw new RpcError(
+        4001,
+        "Rejection-only validation: signing and broadcasts disabled",
+      );
     const selected = JSON.parse(r.review).chainId ?? 84532;
     if (this.selected(r.origin) !== selected)
       throw new RpcError(4901, "Selected network changed; request again");

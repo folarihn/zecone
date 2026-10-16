@@ -107,9 +107,22 @@ export function transaction(p: unknown[], user: Address, chainId = 84532) {
   };
 }
 export function message(p: unknown[], user: Address) {
-  if (p.length !== 2 || address(p[1]) !== user)
-    throw new RpcError(4100, "Message account mismatch");
-  return hex(p[0], 8194);
+  if (p.length !== 2)
+    throw new RpcError(-32602, "Two message parameters required");
+  // Prefer the standard [data, account] form, including address-shaped messages.
+  const matches = (v: unknown) =>
+    typeof v === "string" && v.toLowerCase() === user.toLowerCase();
+  if (matches(p[1])) return hex(p[0], 8194);
+  // Legacy [account, data] is accepted only when data cannot be another account.
+  if (
+    matches(p[0]) &&
+    !(typeof p[1] === "string" && /^0x[0-9a-f]{40}$/i.test(p[1]))
+  )
+    return hex(p[1], 8194);
+  throw new RpcError(
+    4100,
+    "Message account mismatch or ambiguous parameter order",
+  );
 }
 export function typedMessage(p: unknown[], user: Address, chainId = 84532) {
   if (
@@ -158,9 +171,14 @@ export function describeCall(data: Hex) {
     const d = decodeFunctionData({ abi: common, data });
     return {
       method: `${d.functionName}(${d.args.map(String).join(", ")})`,
-      warning: ["approve", "setApprovalForAll"].includes(d.functionName)
-        ? "TOKEN SPENDING PERMISSION: the spender/operator may move your assets. Verify its address and limits."
-        : "Decoded selector only; the destination contract can behave differently.",
+      warning:
+        d.functionName === "approve" && d.args[1] === (1n << 256n) - 1n
+          ? "UNLIMITED TOKEN ALLOWANCE: spender may move the entire token balance. Decoded selector only; verify the contract."
+          : d.functionName === "setApprovalForAll" && d.args[1] === true
+            ? "ALL NFTs: operator may move every NFT in this collection. Decoded selector only; verify the contract."
+            : ["approve", "setApprovalForAll"].includes(d.functionName)
+              ? "TOKEN SPENDING PERMISSION: the spender/operator may move your assets. Verify its address and limits."
+              : "Decoded selector only; the destination contract can behave differently.",
     };
   } catch {
     return {

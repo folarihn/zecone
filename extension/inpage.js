@@ -6,7 +6,7 @@
     listeners = new Map();
   const error = (code, message) => Object.assign(new Error(message), { code });
   const emit = (name, value) => {
-    for (const fn of listeners.get(name) ?? []) {
+    for (const fn of [...(listeners.get(name) ?? [])]) {
       try {
         fn(value);
       } catch {}
@@ -85,13 +85,15 @@
     on(event, fn) {
       if (typeof fn !== "function")
         throw error(-32602, "Listener must be a function");
-      const set = listeners.get(event) ?? new Set();
-      set.add(fn);
+      const set = listeners.get(event) ?? [];
+      set.push(fn);
       listeners.set(event, set);
       return provider;
     },
     removeListener(event, fn) {
-      listeners.get(event)?.delete(fn);
+      const list = listeners.get(event) ?? [];
+      const i = list.lastIndexOf(fn);
+      if (i >= 0) list.splice(i, 1);
       return provider;
     },
   });
