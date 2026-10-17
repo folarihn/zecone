@@ -58,6 +58,7 @@ import {
   authorizePaidPreparation,
   recoveryRecord,
   authorizeExactRecoveredTransaction,
+  reviewUnsignedRpcRecovery,
 } from "../services/solana/paid-recovery.ts";
 const key = await generateKeyPairSigner(),
   recipient = (await generateKeyPairSigner()).address;
@@ -262,6 +263,113 @@ async function paidRecoveryFixture() {
   x.service.authorize(x.id, x.snapshot());
   return { ...x, old, attempt: randomUUID() };
 }
+
+test("reviewed unsigned RPC recovery binds the same paid order; duplicates and unrelated vetoes survive restart", async () => {
+  const x = await paidRecoveryFixture();
+  try {
+    await authorizePaidPreparation(
+      x.service,
+      x.id,
+      x.attempt,
+      true,
+      x.snapshot(),
+    );
+    await retireExpiredUnsignedSwap(x.service, x.id, true);
+    x.service.recover(x.id, "RPC_UNAVAILABLE");
+    await assert.rejects(
+      reviewUnsignedRpcRecovery(
+        x.service,
+        x.id,
+        x.attempt,
+        false,
+        x.snapshot(),
+      ),
+      /EXPLICIT/,
+    );
+    const paymentBefore = JSON.stringify(
+      x.store.db.prepare("SELECT * FROM payments").all(),
+    );
+    const results = await Promise.allSettled([
+      reviewUnsignedRpcRecovery(x.service, x.id, x.attempt, true, x.snapshot()),
+      reviewUnsignedRpcRecovery(x.service, x.id, x.attempt, true, x.snapshot()),
+    ]);
+    assert.equal(results.filter((r) => r.status === "fulfilled").length, 1);
+    assert.equal(x.service.row(x.id).state, "AWAITING_SOLANA_AUTHORIZATION");
+    assert.equal(
+      JSON.stringify(x.store.db.prepare("SELECT * FROM payments").all()),
+      paymentBefore,
+    );
+    const restarted = new SolanaSettlement(
+      x.store,
+      x.net,
+      () => 107201,
+      x.policy,
+    );
+    assert.equal(restarted.eligible(x.id, true).recipient, recipient);
+    assert.throws(() => restarted.eligible(x.id));
+    x.net.latest = async () => ({
+      blockhash: blockhash(key.address),
+      lastValidBlockHeight: 1200n,
+    });
+    assert.equal((await restarted.prepare(x.id)).simulation.err, null);
+    assert.equal(x.sends(), 0);
+    assert.equal(restarted.row(x.id).claimed, 0);
+    assert.equal(restarted.row(x.id).wire, null);
+    assert.equal(
+      x.store.db
+        .prepare(
+          "SELECT COUNT(*) AS n FROM solana_paid_recovery_exact_approvals",
+        )
+        .get()!.n,
+      0,
+    );
+  } finally {
+    x.store.close();
+  }
+});
+
+test("transient unsigned preparation failure releases only its claim and never retries execution", async () => {
+  const x = setup();
+  try {
+    x.service.authorize(x.id, x.snapshot());
+    x.net.balance = async () => {
+      throw new (await import("../services/solana/network.ts")).SolanaError(
+        "RPC_UNAVAILABLE",
+      );
+    };
+    await assert.rejects(x.service.prepare(x.id), /RPC_UNAVAILABLE/);
+    assert.equal(x.service.row(x.id).state, "AWAITING_SOLANA_AUTHORIZATION");
+    assert.equal(x.service.row(x.id).claimed, 0);
+    assert.equal(x.sends(), 0);
+  } finally {
+    x.store.close();
+  }
+});
+
+test("reserve-read quote age and post-simulation block margin cannot be reset for review", async () => {
+  for (const cause of ["quote", "block-margin"]) {
+    const x = setup();
+    try {
+      x.service.authorize(x.id, x.snapshot());
+      if (cause === "quote")
+        x.policy.accounts = async () => {
+          x.time(100091);
+        };
+      else
+        x.net.blockhashStatus = async () => ({ valid: true, remaining: 99n });
+      await assert.rejects(
+        x.service.prepare(x.id),
+        cause === "quote" ? /SWAP_QUOTE_EXPIRED/ : /BLOCKHASH_EXPIRED/,
+      );
+      assert.equal(x.service.row(x.id).state, "AWAITING_SOLANA_AUTHORIZATION");
+      assert.equal(x.service.row(x.id).prepared, null);
+      assert.equal(x.service.row(x.id).claimed, 0);
+      assert.equal(x.sends(), 0);
+    } finally {
+      x.store.close();
+    }
+  }
+});
 test("explicit paid recovery binds original payment/intent and prepares only; no implicit execution grant", async () => {
   const x = await paidRecoveryFixture();
   try {

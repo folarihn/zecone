@@ -93,7 +93,7 @@ test("real mobile swap review is accessible and makes public-ownership limits cl
       .violations,
   ).toEqual([]);
   await page.screenshot({
-    path: "docs/phase7c-evidence/real-swap-mobile.png",
+    path: `${process.env.ZECONE_QA_EVIDENCE_DIR ?? "docs/phase7c-evidence"}/real-swap-mobile.png`,
     fullPage: true,
   });
 });

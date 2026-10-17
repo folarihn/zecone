@@ -1,0 +1,76 @@
+(node:33416) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ manual expired unsigned review archives bytes and vetoes valid, claimed or signed replacement (70.5301ms)
+✔ explicit paid recovery binds original payment/intent and prepares only; no implicit execution grant (64.9311ms)
+✔ paid preparation registration requires explicit exact target and is idempotent without extending deadline (36.339ms)
+✔ refund and prior settlement claims veto paid-order reopening (165.4014ms)
+✔ independent submission reconciliation must succeed before a paid recovery grant (25.7277ms)
+✔ paid preparation cannot change original economic terms or survive changed evidence, refunds or expiry (173.0156ms)
+✔ paid recovery survives restart as preparation only and preserves original expired approval records (46.5454ms)
+✔ concurrent paid recovery registration creates one attempt and leaves other orders locked (35.1672ms)
+✔ archived transaction digest cannot be presented as a new recovered preparation (44.167ms)
+✔ recovered execution needs a second explicit exact authorization and consumes it once (74.6313ms)
+✔ separate recovered exact approval cannot carry to a fresh digest or expired quote (67.9278ms)
+✔ a fresh quote cannot silently widen slippage or rewrite the original minimum (44.7585ms)
+✔ swap terms pin one devnet route, decimals, amount, slippage and minimum (0.6574ms)
+✔ canonical swap rejects malicious route bytes, changed recipient and injected instructions (39.1331ms)
+✔ real Ed25519 synthetic swap settles only with exact token effects and rejects duplicate/refund (38.0032ms)
+✔ swap cannot authorize unconfirmed, underpaid, reused or wrong-account Zcash evidence (12.176ms)
+✔ slippage and simulation failures require recovery; unsigned quote expiry preserves the payment (63.1099ms)
+✔ late exact approval cannot spend even while the reviewed economic terms remain valid (18.0842ms)
+✔ expired blockhash retires unsigned bytes without retiring verified payment or reusing approval (38.2021ms)
+✔ quote expiration during preflight releases only the unsigned validation claim (27.9834ms)
+✔ economic review binds recipient, mint, slippage and minimum; terms review alone never signs (8.9106ms)
+✔ simultaneous exact approvals cannot race or revoke the winning signer (31.0686ms)
+✔ restart during unsigned validation fails closed and cannot reset recovery by a new scan (80.3351ms)
+✔ payment attribution cannot move to another order during review recovery (6.7966ms)
+✔ quote expiry and approval expiry are independent gates even with a chain-valid blockhash (21.2111ms)
+✔ expired original paid order retains payment attribution but cannot refresh, sign or reset recovery (22.1953ms)
+✔ swap lost submission response remains signature-only after restart (75.008ms)
+✔ finalized transaction with wrong mint, output or recipient owner cannot settle (86.464ms)
+✔ raw mint/pool/account decoding rejects unsupported extensions, authorities and program upgrades (11.006ms)
+✔ privacy projection excludes secret/history/correlation fields and scopes history by session (4.4617ms)
+✔ new age credentials reject wrong passwords/tampering and recover from encrypted backup (13042.0732ms)
+✔ Windows DPAPI round-trip requires explicit unlock without plaintext key storage (1143.3394ms)
+✖ paired swap API rejects unauthorized queries, cross-session correlation and arbitrary spending (29.5015ms)
+(node:32548) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ RPC outage retries are bounded, concurrent reads are refused, and abort signals reach transport (2318.3244ms)
+✔ confidential Token-2022 balances are unavailable, never a fabricated zero (3.7428ms)
+✔ isolated Ed25519 signing requires exact approval and persists signed bytes without submission (22.6004ms)
+✔ manual EVM backend uses a disposable ownership challenge and disables all settlement entrypoints (61.8792ms)
+✔ devnet identity rejects a mainnet or truncated genesis before any account query (2.467ms)
+✔ public key and destination allowlist reject invalid/mismatched accounts and caps (1.4904ms)
+✔ token amounts retain integer precision and reject invalid decimals/mints (0.5861ms)
+✔ Token-2022 extensions and frozen accounts are displayed but never transferable (4.2221ms)
+✔ canonical SOL decoding rejects byte edits, extra programs/metas and fee-payer substitution (10.223ms)
+✔ canonical SPL transfer uses checked decimals and bounded owner ATAs (29.3606ms)
+✔ SPL preflight refuses missing/Token-2022/freezeable mints (0.4905ms)
+✔ simulation failure cannot become approval-ready; expired blockhash and high fees fail (3.9778ms)
+✔ durable idempotency, duplicate signature and submission protections (2.4774ms)
+✔ restart recovery preserves ambiguous signing; recovery and execution exclude each other (50.5377ms)
+✔ origin permissions, session binding, rejection, replay and revoke are enforced (1.8235ms)
+✔ RPC finalization requires agreement; outages/processed are not settled (0.3785ms)
+✔ synthetic verified ZEC authorizes only a nonbroadcast Solana simulation; historical/replayed payments rejected (3.3773ms)
+✔ Wallet Standard discovery is separate, devnet-only and has no send capability (2.3857ms)
+ℹ tests 51
+ℹ suites 0
+ℹ pass 50
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 22639.1256
+
+✖ failing tests:
+
+test at tests\solana-swap.test.ts:1:32412
+✖ paired swap API rejects unauthorized queries, cross-session correlation and arbitrary spending (29.5015ms)
+  Error: connect EACCES 127.0.0.1:58289
+      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16) {
+    errno: -4092,
+    code: 'EACCES',
+    syscall: 'connect',
+    address: '127.0.0.1',
+    port: 58289
+  }

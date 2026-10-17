@@ -35,13 +35,15 @@ try {
     ["relayer", intent.relayer],
     ["recipientTokenAccount", outputAccount],
   ]) {
-    const rows = await net.read((s) =>
-      net.rpc
-        .getSignaturesForAddress(address(key), {
-          commitment: "confirmed",
-          limit: 1000,
-        })
-        .send({ abortSignal: s }),
+    const rows = await net.read(
+      (s) =>
+        net.rpc
+          .getSignaturesForAddress(address(key), {
+            commitment: "confirmed",
+            limit: 1000,
+          })
+          .send({ abortSignal: s }),
+      false,
     );
     if (
       rows.length === 1000 &&

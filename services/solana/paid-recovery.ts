@@ -15,6 +15,9 @@ export function recoverySchema(service: SolanaSettlement) {
   service.store.db.exec(
     "CREATE TABLE IF NOT EXISTS solana_paid_recovery_exact_approvals(order_id TEXT NOT NULL REFERENCES orders(id),attempt_id TEXT NOT NULL,digest TEXT NOT NULL,approved_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,state TEXT NOT NULL,PRIMARY KEY(order_id,attempt_id,digest))",
   );
+  service.store.db.exec(
+    "CREATE TABLE IF NOT EXISTS solana_rpc_preparation_reviews(order_id TEXT PRIMARY KEY,attempt_id TEXT NOT NULL,reviewed_at INTEGER NOT NULL,scope TEXT NOT NULL)",
+  );
 }
 export function recoveryRecord(service: SolanaSettlement, id: string) {
   return service.store.db
@@ -83,7 +86,24 @@ function binding(service: SolanaSettlement, id: string, validatingDigest = "") {
   const reasons = service.store.db
     .prepare("SELECT reason FROM recoveries WHERE order_id=?")
     .all(id);
-  if (!reasons.length || reasons.some((r) => r.reason !== "expired_payment"))
+  const reviewed = service.store.db
+    .prepare(
+      "SELECT attempt_id FROM solana_rpc_preparation_reviews WHERE order_id=? AND scope='UNSIGNED_RPC_RETRY_ONLY'",
+    )
+    .get(id);
+  const grant = recoveryRecord(service, id);
+  if (
+    !reasons.length ||
+    reasons.some(
+      (r) =>
+        r.reason !== "expired_payment" &&
+        !(
+          r.reason === "RPC_UNAVAILABLE" &&
+          reviewed &&
+          reviewed.attempt_id === grant?.attempt_id
+        ),
+    )
+  )
     throw new SolanaError("UNRELATED_RECOVERY_VETO");
   for (const table of [
     "execution_construction_claims",
@@ -121,6 +141,82 @@ function binding(service: SolanaSettlement, id: string, validatingDigest = "") {
     originalIntent: JSON.parse(o.intent),
     originalPayment: payments,
     originalPaymentAuthorization: originalAuthorization.payment_digest,
+  });
+}
+
+// Explicit review of the one known transient *unsigned preparation* failure.
+// Original reasons, grant deadline, payment and all expired reviews remain intact.
+export async function reviewUnsignedRpcRecovery(
+  service: SolanaSettlement,
+  id: string,
+  attemptId: string,
+  explicit: boolean,
+  snapshot: WatchSnapshot,
+) {
+  if (!explicit) throw new SolanaError("EXPLICIT_SCOPED_RECOVERY_REQUIRED");
+  service.authorize(id, snapshot);
+  const grant = recoveryRecord(service, id),
+    before = service.row(id);
+  if (
+    !grant ||
+    grant.attempt_id !== attemptId ||
+    grant.scope !== "PREPARATION_ONLY" ||
+    Number(grant.prepare_until) <= service.now() ||
+    before.state !== "RECOVERY_REQUIRED" ||
+    before.prepared ||
+    before.claimed ||
+    before.wire ||
+    before.signature ||
+    before.receipt
+  )
+    throw new SolanaError("UNSIGNED_RPC_RECOVERY_VETO");
+  const reasons = service.store.db
+    .prepare("SELECT reason FROM recoveries WHERE order_id=?")
+    .all(id);
+  if (
+    !reasons.some((r) => r.reason === "RPC_UNAVAILABLE") ||
+    reasons.some(
+      (r) => !["RPC_UNAVAILABLE", "expired_payment"].includes(String(r.reason)),
+    )
+  )
+    throw new SolanaError("UNRELATED_RECOVERY_VETO");
+  if (!service.network.recoveryAbsence)
+    throw new SolanaError("INDEPENDENT_RECONCILIATION_REQUIRED");
+  await service.network.recoveryAbsence(
+    service.intent(id),
+    service.store.get(id)!.created,
+  );
+  return service.store.atomic(() => {
+    if (
+      service.row(id).state !== "RECOVERY_REQUIRED" ||
+      recoveryRecord(service, id)?.binding !== grant.binding
+    )
+      throw new SolanaError("RECOVERY_REGISTRATION_RACE_VETO");
+    service.store.db
+      .prepare("INSERT INTO solana_rpc_preparation_reviews VALUES(?,?,?,?)")
+      .run(id, attemptId, service.now(), "UNSIGNED_RPC_RETRY_ONLY");
+    const current = binding(service, id);
+    if (current !== grant.binding || digest(current) !== grant.binding_digest)
+      throw new SolanaError("RECOVERY_BINDING_CHANGED");
+    if (
+      service.store.db
+        .prepare(
+          "UPDATE solana_settlement SET state='AWAITING_SOLANA_AUTHORIZATION' WHERE order_id=? AND state='RECOVERY_REQUIRED' AND claimed=0 AND wire IS NULL AND signature IS NULL AND prepared IS NULL",
+        )
+        .run(id).changes !== 1
+    )
+      throw new SolanaError("RECOVERY_REGISTRATION_RACE_VETO");
+    service.store.event(
+      id,
+      "unsigned_rpc_recovery_reviewed",
+      {
+        scope: "UNSIGNED_RPC_RETRY_ONLY",
+        attemptId,
+        liveRefundsEnabled: false,
+      },
+      service.now(),
+    );
+    return assertPreparationRecovery(service, id);
   });
 }
 export function assertPreparationRecovery(

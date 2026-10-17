@@ -1,0 +1,16 @@
+✔ primary timeout is bounded and secondary read failover checks genesis (1078.4327ms)
+✔ wrong genesis vetoes fallback without querying wallet state (2.0982ms)
+✔ pool snapshots corroborate complete data and reject conflicting providers (9.5721ms)
+✔ pool failover explicitly records unavailable corroboration without inventing agreement (1072.7963ms)
+✔ pool snapshot rejects stale context and wrong secondary cluster (359.4821ms)
+✔ exact blockhash fee/simulation checks never silently fail over (704.7744ms)
+✔ redacted diagnostics never preserve endpoint credentials, payload or error text (1.6143ms)
+✔ implementation-only rehearsal exposes no signer or broadcast command (0.7439ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4256.6981

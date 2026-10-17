@@ -63,13 +63,15 @@ export class SolanaSettlementNetwork implements SettlementNetwork {
   async recoveryAbsence(i: SolanaDeliveryIntent, since: number) {
     const output = await ata(i.recipient, i.swap!.outputMint);
     for (const key of [i.relayer, output]) {
-      const rows = await this.net.read((s) =>
-        this.net.rpc
-          .getSignaturesForAddress(publicKey(key), {
-            commitment: "confirmed",
-            limit: 1000,
-          })
-          .send({ abortSignal: s }),
+      const rows = await this.net.read(
+        (s) =>
+          this.net.rpc
+            .getSignaturesForAddress(publicKey(key), {
+              commitment: "confirmed",
+              limit: 1000,
+            })
+            .send({ abortSignal: s }),
+        false,
       );
       if (
         (rows.length === 1000 &&
@@ -392,7 +394,33 @@ export class SolanaSettlement {
       );
       return p;
     } catch (e) {
-      this.recover(id, e instanceof SolanaError ? e.code : "RPC_UNAVAILABLE");
+      if (
+        i.swap &&
+        e instanceof SolanaError &&
+        ["RPC_UNAVAILABLE", "BLOCKHASH_EXPIRED", "SWAP_QUOTE_EXPIRED"].includes(
+          e.code,
+        )
+      ) {
+        // The preparation claim has never loaded a key or produced signed bytes.
+        // Keep the verified order available for a new review; never execute a retry here.
+        this.store.atomic(() => {
+          if (
+            this.store.db
+              .prepare(
+                "UPDATE solana_settlement SET state='AWAITING_SOLANA_AUTHORIZATION' WHERE order_id=? AND state='PREPARING' AND claimed=0 AND wire IS NULL AND signature IS NULL",
+              )
+              .run(id).changes !== 1
+          )
+            throw new SolanaError("UNSIGNED_RETRY_STATE_VETO");
+          this.store.event(
+            id,
+            "unsigned_preparation_retry_required",
+            { reason: e.code, approvalCarried: false },
+            this.now(),
+          );
+        });
+      } else
+        this.recover(id, e instanceof SolanaError ? e.code : "RPC_UNAVAILABLE");
       throw e;
     }
   }

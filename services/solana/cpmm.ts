@@ -58,6 +58,7 @@ export type SwapPrepared = {
   quoteExpiresAt?: number;
   approvalExpiresAt?: number;
   quotedOutput?: string;
+  blockhashRemainingAtSimulation?: string;
 };
 const fail = (code: string): never => {
   throw new SolanaError(code);
@@ -324,13 +325,11 @@ export class CpmmPolicy {
   async raw(keys: string[]): Promise<RawAccount[]> {
     this.queryCounts.getMultipleAccounts =
       (this.queryCounts.getMultipleAccounts ?? 0) + 1;
-    return this.net.read(async (signal) => {
-      const result = await this.net.rpc
-        .getMultipleAccounts(keys.map(publicKey), {
-          encoding: "base64",
-          commitment: "confirmed",
-        })
-        .send({ abortSignal: signal });
+    {
+      const result = await this.net.consistentAccounts(
+        keys,
+        keys.includes(POOL),
+      );
       return result.value.map((a) =>
         a
           ? {
@@ -340,7 +339,7 @@ export class CpmmPolicy {
             }
           : null,
       );
-    });
+    }
   }
   async pool() {
     const accounts = await this.raw([
@@ -407,6 +406,7 @@ export class CpmmPolicy {
   ): Promise<SwapPrepared> {
     validateTerms(i.swap!);
     const quotedOutput = quoteOutput(await this.pool());
+    const quotedAt = this.now();
     if (quotedOutput < BigInt(i.swap!.minimumOut)) fail("SLIPPAGE_VIOLATION");
     if ((quotedOutput * 9900n) / 10000n > BigInt(i.swap!.minimumOut))
       fail("FRESH_QUOTE_REQUIRES_CHANGED_MINIMUM_APPROVAL");
@@ -420,6 +420,16 @@ export class CpmmPolicy {
     if (fee === null || fee > BigInt(i.feeCap)) fail("FEE_CAP");
     if (!(await this.net.valid(lifetime.blockhash))) fail("BLOCKHASH_EXPIRED");
     const simulation = await this.net.simulate(wire);
+    if (!(await this.net.valid(lifetime.blockhash))) fail("BLOCKHASH_EXPIRED");
+    const blockStatus = this.net.blockhashStatus
+      ? await this.net.blockhashStatus(
+          lifetime.blockhash,
+          lifetime.lastValidBlockHeight,
+        )
+      : null;
+    if (blockStatus && (!blockStatus.valid || blockStatus.remaining < 100n))
+      fail("BLOCKHASH_EXPIRED");
+    if (this.now() >= quotedAt + 90) fail("SWAP_QUOTE_EXPIRED");
     const p: SwapPrepared = {
       wire,
       digest: digest(wire),
@@ -430,11 +440,14 @@ export class CpmmPolicy {
       },
       swap: i.swap!,
       quotedOutput: quotedOutput.toString(),
+      ...(blockStatus
+        ? { blockhashRemainingAtSimulation: blockStatus.remaining.toString() }
+        : {}),
       // These are application deadlines; neither extends lastValidBlockHeight.
-      quotedAt: this.now(),
-      quoteExpiresAt: Math.min(preparationDeadline, this.now() + 90),
+      quotedAt,
+      quoteExpiresAt: Math.min(preparationDeadline, quotedAt + 90),
       approvalExpiresAt: Math.min(preparationDeadline, this.now() + 300),
-      expiresAt: Math.min(preparationDeadline, this.now() + 90),
+      expiresAt: Math.min(preparationDeadline, quotedAt + 90),
       simulation: {
         err: simulation.err,
         unitsConsumed: simulation.unitsConsumed?.toString() ?? null,

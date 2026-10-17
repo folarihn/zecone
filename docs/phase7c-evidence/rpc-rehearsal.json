@@ -1,0 +1,1 @@
+{"at":"2026-10-17T03:18:53.998Z","rehearsalOnly":true,"originalDurableState":"RECOVERY_REQUIRED","originalPaymentRetained":true,"originalRecipientAndLimitsRetained":true,"simulation":{"err":null,"unitsConsumed":"48611"},"estimatedFee":"5000","signing":false,"broadcast":false,"keysLoaded":false,"blockhashRemainingAtSimulation":"142","liveRefundsEnabled":false,"diagnostics":[]}
