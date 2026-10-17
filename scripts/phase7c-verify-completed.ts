@@ -27,7 +27,11 @@ try {
   const persisted = JSON.parse(service.row(id).receipt!);
   assert.deepEqual(JSON.parse(json(fresh)), persisted);
   const gate = (e: unknown) =>
-    e instanceof SolanaError && e.code === "PAYMENT_NOT_ELIGIBLE_OR_RECOVERY";
+    e instanceof SolanaError &&
+    [
+      "PAYMENT_NOT_ELIGIBLE_OR_RECOVERY",
+      "PAID_PREPARATION_NOT_AUTHORIZED",
+    ].includes(e.code);
   assert.throws(() => service.eligible(id), gate);
   await assert.rejects(service.prepare(id), gate);
   const poison = new Proxy({} as KeyPairSigner, {
@@ -56,6 +60,22 @@ try {
   assert.equal(claims.length, 2);
   for (const c of claims) assert.equal(Number(c.count), 1);
   assert.equal(sends, 0);
+  assert.ok(service.row(id).wire, "Signed evidence must remain durable");
+  const bounded = store.db
+    .prepare(
+      "SELECT state FROM solana_bounded_settlement_authorizations WHERE order_id=?",
+    )
+    .get(id);
+  if (bounded) {
+    assert.equal(bounded.state, "CONSUMED");
+    assert.ok(
+      store.db
+        .prepare(
+          "SELECT 1 FROM solana_bounded_transaction_derivations WHERE order_id=? AND digest=?",
+        )
+        .get(id, before.prepared!.digest),
+    );
+  }
   assert.equal(store.totals(id).confirmed, 100000n);
   assert.ok(before.confirmations >= 10);
   const effects = await service.swapPolicy!.verifyEffects(
@@ -93,23 +113,29 @@ try {
     relayerDebitLamports: effects.relayerDelta,
     recipientCurrentTokenUnits: info.tokenAmount.amount,
     recipientTokenOwnershipVerified: true,
-    shieldedAuthorizationVerified: true,
-    minimumConfirmations: 10,
-    confirmationsBeforeExecution: before.confirmations,
     signingClaims: 1,
     broadcastClaims: 1,
     restartReconciliation: "passed",
     duplicateExecution: "rejected_before_signer_access",
     completedRefund: "vetoed",
     verificationBroadcastCalls: sends,
+    boundedAuthorityConsumed: bounded ? bounded.state === "CONSUMED" : null,
+    signedEvidencePersisted: true,
     liveRefundsEnabled: false,
     privatePaymentJoinPublished: false,
     rpcConsensusCorroborated: false,
   };
   writeFileSync(
-    join(root, "final-verification.private.json"),
-    json({ report, orderId: id, paymentTxs: before.paymentTxs }),
-    { mode: 0o600 },
+    join(root, `final-verification-${Date.now()}.private.json`),
+    json({
+      report,
+      orderId: id,
+      paymentTxs: before.paymentTxs,
+      shieldedAuthorizationVerified: true,
+      minimumConfirmations: 10,
+      confirmationsBeforeExecution: before.confirmations,
+    }),
+    { mode: 0o600, flag: "wx" },
   );
   writeFileSync(
     "docs/phase7c-evidence/completed-verification.json",

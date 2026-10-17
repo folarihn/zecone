@@ -1,0 +1,6 @@
+
+> lint
+> node scripts/phase6-lint.mjs
+
+Checking formatting...
+All matched files use Prettier code style!

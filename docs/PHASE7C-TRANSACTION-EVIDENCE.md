@@ -1,4 +1,20 @@
-# Phase 7C transaction evidence — live settlement not yet completed
+# Phase 7C transaction evidence — finalized bounded devnet settlement
+
+## Final result — 17 October 2026
+
+The original verified shielded payment authorized one successful real Raydium CPMM devnet swap under the human's later explicit bounded economic authorization. No second Zcash payment was created or resent. The finalized Solana transaction is [2GjNxoxoEgntEar7QrQnFUuGGBZrRywjqjbxosZF8DyGqTfajWr2dv2xhPuSKwrHFiVTSHZxrPNzcvTcpdFjPHVV](https://explorer.solana.com/tx/2GjNxoxoEgntEar7QrQnFUuGGBZrRywjqjbxosZF8DyGqTfajWr2dv2xhPuSKwrHFiVTSHZxrPNzcvTcpdFjPHVV?cluster=devnet), finalized slot **511942428**.
+
+Exact input **0.001 WSOL** delivered **76.043880** output tokens (minimum **75.283441**, maximum slippage **1%**). Actual network fee **5000 lamports**, two ATA rents **2976880 lamports**, total relayer debit **3981880 lamports**. Canonical instructions, selected fee payer/recipient, mints/owners, input/output vault deltas, exact recipient SPL balance and total debit were verified using a fresh finalized receipt. Output is an arbitrary devnet test token, not an asserted stablecoin or asset of monetary value.
+
+The original order is **COMPLETED/settled**. Signed wire/signature persisted before one broadcast. Exactly one signing and broadcast claim exists; bounded authority consumed. Restart reconciliation passed, duplicate execution rejected before signer access, completed-order refund recovery vetoed, and the verification itself made zero broadcast calls. Full signed and source-payment evidence remains restricted to the private journal/captures. Public evidence excludes the source transaction ID, order/payment joins and source confirmation-height metadata.
+
+Measured evidence: [completed verification](phase7c-evidence/completed-verification.json), [fresh finalized verification log](phase7c-evidence/bounded-final-verification.txt), [3 real finalized API/UI tests](phase7c-evidence/bounded-finalized-ui.txt), [bounded policy](PHASE7C-BOUNDED-SETTLEMENT.md), [306 Node tests](phase7c-evidence/bounded-node.txt), [40 focused swap tests](phase7c-evidence/bounded-focused.txt), [types](phase7c-evidence/bounded-types-final.txt), [web types](phase7c-evidence/bounded-types-web.txt), [lint](phase7c-evidence/bounded-lint-final.txt), [production build](phase7c-evidence/bounded-build.txt), [preservation](phase7c-evidence/preservation.json). One initial verifier assertion expected the generic replay code instead of the correct paid-recovery-specific rejection; its [diagnostic log](phase7c-evidence/bounded-final-verification-initial.txt) is retained. The corrected verifier additionally asserts consumed bounded authority and durable signed evidence.
+
+All 537 historical and 91 Phase 7B files are unchanged. Refunds remain disabled, historical credentials and the unresolved original transfer are untouched, and Phase 8 is not started. This completes the bounded Phase 7C testnet demonstration, not a production bridge or trustless exchange. Trusted relayer, primary-only live RPC, public destination ownership/activity, timing correlation and same-OS development credentials remain explicit limitations; no anonymity claim is made.
+
+## Historical unsigned checkpoints — before final bounded authorization
+
+The following records describe earlier states and approval failures, not the current completed state.
 
 16–17 October 2026. A fresh approved Phase 7C shielded settlement payment was broadcast once, recorded at **30 confirmations** before the replacement swap review, and verified at **933 confirmations** in the first recovery scan. The later human-authorized preparation is recorded separately below; its fresh watch evidence remains private. No SPL swap has been signed or broadcast. Real unsigned simulation is distinct from finalized settlement. Phase 7B's completed payment/delivery remain historical evidence and cannot authorize this order.
 

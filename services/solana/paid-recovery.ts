@@ -4,7 +4,7 @@ import { digest } from "./transactions.ts";
 import { json, SolanaError } from "./network.ts";
 import type { SolanaSettlement } from "./settlement.ts";
 import type { WatchSnapshot } from "../signer/watch-evidence.ts";
-import { inspectSwap } from "./cpmm.ts";
+import { inspectSwap, validateTerms } from "./cpmm.ts";
 import { blockhash } from "@solana/kit";
 import { assertReviewCurrent } from "./swap-approval.ts";
 
@@ -18,6 +18,111 @@ export function recoverySchema(service: SolanaSettlement) {
   service.store.db.exec(
     "CREATE TABLE IF NOT EXISTS solana_rpc_preparation_reviews(order_id TEXT PRIMARY KEY,attempt_id TEXT NOT NULL,reviewed_at INTEGER NOT NULL,scope TEXT NOT NULL)",
   );
+  service.store.db.exec(
+    "CREATE TABLE IF NOT EXISTS solana_bounded_settlement_authorizations(order_id TEXT PRIMARY KEY,binding TEXT NOT NULL,authorized_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,state TEXT NOT NULL,authorization TEXT NOT NULL); CREATE TABLE IF NOT EXISTS solana_bounded_transaction_derivations(order_id TEXT NOT NULL,digest TEXT NOT NULL,PRIMARY KEY(order_id,digest))",
+  );
+}
+
+export function boundedSettlementScope(service: SolanaSettlement, id: string) {
+  const i = service.intent(id);
+  validateTerms(i.swap!);
+  return {
+    orderId: id,
+    network: i.network,
+    inputMint: i.swap!.inputMint,
+    outputMint: i.swap!.outputMint,
+    amountIn: i.lamports,
+    minimumOut: i.swap!.minimumOut,
+    slippageBps: i.swap!.slippageBps,
+    recipient: i.recipient,
+    relayer: i.relayer,
+    pool: i.swap!.pool,
+    program: i.swap!.program,
+    feeCap: i.feeCap,
+    rentCap: "6000000",
+    maximumDebit: "7010000",
+  };
+}
+function boundedBinding(service: SolanaSettlement, id: string) {
+  const g = assertPreparationRecovery(service, id);
+  return json({
+    preparationBinding: g.binding,
+    scope: boundedSettlementScope(service, id),
+  });
+}
+function assertBoundedSettlement(service: SolanaSettlement, id: string) {
+  const a = service.store.db
+    .prepare(
+      "SELECT * FROM solana_bounded_settlement_authorizations WHERE order_id=?",
+    )
+    .get(id);
+  if (
+    !a ||
+    a.state !== "ACTIVE" ||
+    Number(a.expires_at) <= service.now() ||
+    a.binding !== boundedBinding(service, id)
+  )
+    throw new SolanaError("BOUNDED_SETTLEMENT_NOT_AUTHORIZED");
+  return a;
+}
+// A new, explicit human economic authorization; never inferred from expired exact approvals.
+export async function authorizeBoundedSettlement(
+  service: SolanaSettlement,
+  id: string,
+  expected: ReturnType<typeof boundedSettlementScope>,
+  explicit: boolean,
+) {
+  if (!explicit) throw new SolanaError("EXPLICIT_BOUNDED_SETTLEMENT_REQUIRED");
+  const scope = boundedSettlementScope(service, id);
+  if (
+    Object.keys(expected).length !== Object.keys(scope).length ||
+    Object.keys(scope).some(
+      (k) =>
+        scope[k as keyof typeof scope] !== expected[k as keyof typeof expected],
+    )
+  )
+    throw new SolanaError("BOUNDED_ECONOMIC_SCOPE_MISMATCH");
+  const original = boundedBinding(service, id),
+    grant = assertPreparationRecovery(service, id);
+  if (!service.network.recoveryAbsence)
+    throw new SolanaError("INDEPENDENT_RECONCILIATION_REQUIRED");
+  await service.network.recoveryAbsence(
+    service.intent(id),
+    service.store.get(id)!.created,
+  );
+  return service.store.atomic(() => {
+    if (boundedBinding(service, id) !== original)
+      throw new SolanaError("RECOVERY_BINDING_CHANGED");
+    const old = service.store.db
+      .prepare(
+        "SELECT * FROM solana_bounded_settlement_authorizations WHERE order_id=?",
+      )
+      .get(id);
+    if (old) return assertBoundedSettlement(service, id); // No deadline extension.
+    service.store.db
+      .prepare(
+        "INSERT INTO solana_bounded_settlement_authorizations VALUES(?,?,?,?,?,?)",
+      )
+      .run(
+        id,
+        original,
+        service.now(),
+        Number(grant.prepare_until),
+        "ACTIVE",
+        "Human: Complete the Swap Without Repeated Approval Prompts; one successful settlement within exact scoped constraints; refresh unsigned quotes/blockhashes only; uncertain/signed attempts veto replacement; no other orders, Zcash payments or refunds",
+      );
+    service.store.event(
+      id,
+      "bounded_single_settlement_authorized",
+      {
+        bindingDigest: digest(original),
+        scope: "ONE_SETTLEMENT_UNSIGNED_REFRESH_ALLOWED",
+        expiresAt: grant.prepare_until,
+      },
+      service.now(),
+    );
+    return assertBoundedSettlement(service, id);
+  });
 }
 export function recoveryRecord(service: SolanaSettlement, id: string) {
   return service.store.db
@@ -252,6 +357,7 @@ export async function authorizeExactRecoveredTransaction(
   id: string,
   exactDigest: string,
   explicitlyApproved: boolean,
+  authority: "HUMAN_EXACT" | "BOUNDED_ORDER" = "HUMAN_EXACT",
 ) {
   if (!explicitlyApproved)
     throw new SolanaError("SEPARATE_EXACT_RECOVERY_APPROVAL_REQUIRED");
@@ -260,11 +366,16 @@ export async function authorizeExactRecoveredTransaction(
   if (!raw || JSON.parse(raw).digest !== exactDigest)
     throw new SolanaError("EXACT_APPROVAL_REQUIRED");
   const p = JSON.parse(raw);
+  if (authority === "BOUNDED_ORDER") {
+    assertBoundedSettlement(service, id);
+    await inspectSwap(service.intent(id), p);
+  }
   assertReviewCurrent(p, service.now());
   if (!(await service.network.valid(blockhash(p.lifetime.blockhash))))
     throw new SolanaError("BLOCKHASH_EXPIRED");
   service.store.atomic(() => {
     assertPreparationRecovery(service, id);
+    if (authority === "BOUNDED_ORDER") assertBoundedSettlement(service, id);
     assertReviewCurrent(p, service.now());
     if (service.row(id).prepared !== raw)
       throw new SolanaError("EXACT_APPROVAL_RACE_VETO");
@@ -298,10 +409,18 @@ export async function authorizeExactRecoveredTransaction(
       );
     service.store.event(
       id,
-      "separate_recovered_transaction_approval",
-      { attemptId: grant.attempt_id, digest: exactDigest },
+      authority === "BOUNDED_ORDER"
+        ? "transaction_authorized_under_bounded_order"
+        : "separate_recovered_transaction_approval",
+      { attemptId: grant.attempt_id, digest: exactDigest, authority },
       service.now(),
     );
+    if (authority === "BOUNDED_ORDER")
+      service.store.db
+        .prepare(
+          "INSERT INTO solana_bounded_transaction_derivations VALUES(?,?)",
+        )
+        .run(id, exactDigest);
   });
 }
 export function assertExactRecoveryExecution(
@@ -330,6 +449,22 @@ export function consumeExactRecoveryApproval(
   id: string,
   digest: string,
 ) {
+  if (
+    service.store.db
+      .prepare(
+        "SELECT 1 FROM solana_bounded_transaction_derivations WHERE order_id=? AND digest=?",
+      )
+      .get(id, digest)
+  ) {
+    if (
+      service.store.db
+        .prepare(
+          "UPDATE solana_bounded_settlement_authorizations SET state='CONSUMED' WHERE order_id=? AND state='ACTIVE' AND expires_at>?",
+        )
+        .run(id, service.now()).changes !== 1
+    )
+      throw new SolanaError("BOUNDED_SETTLEMENT_ALREADY_CONSUMED");
+  }
   const grant = recoveryRecord(service, id);
   if (
     grant &&

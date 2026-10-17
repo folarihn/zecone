@@ -10,7 +10,7 @@ import { WindowsUnlock } from "../services/solana/windows-unlock.ts";
 import { swapBrowserView } from "../services/solana/privacy.ts";
 import { phase7cRuntime } from "../services/solana/phase7c-runtime.ts";
 import { WatchOnlyZcash } from "../services/signer/watch-evidence.ts";
-import { json } from "../services/solana/network.ts";
+import { json, SolanaError } from "../services/solana/network.ts";
 import { retireExpiredUnsignedSwap } from "../services/solana/swap-review.ts";
 import {
   economicReview,
@@ -25,6 +25,7 @@ import {
   authorizePaidPreparation,
   recoveryRecord,
   authorizeExactRecoveredTransaction,
+  authorizeBoundedSettlement,
 } from "../services/solana/paid-recovery.ts";
 const x = phase7cRuntime(),
   { p, root, service, store } = x;
@@ -93,7 +94,10 @@ function fundingInventory(watch: string, tip: number) {
     db.close();
   }
 }
-async function approvedExecution(hash: string) {
+async function approvedExecution(
+  hash: string,
+  authority: "HUMAN_EXACT" | "BOUNDED_ORDER" = "HUMAN_EXACT",
+) {
   if (
     !process.argv.includes("--allow-devnet-broadcast") ||
     !process.argv.includes("--unlock-local-dpapi")
@@ -109,11 +113,15 @@ async function approvedExecution(hash: string) {
       blockhash(JSON.parse(saved).lifetime.blockhash),
     ))
   )
-    throw Error(
-      "Blockhash expired; no unlock or signing; prepare and approve fresh bytes",
-    );
+    throw new SolanaError("BLOCKHASH_EXPIRED");
   if (recoveryRecord(service, id))
-    await authorizeExactRecoveredTransaction(service, id, hash, true);
+    await authorizeExactRecoveredTransaction(
+      service,
+      id,
+      hash,
+      true,
+      authority,
+    );
   service.eligible(id);
   const accounts = new EncryptedAccounts(),
     unlock = new WindowsUnlock();
@@ -290,6 +298,45 @@ try {
       confirmedZatoshis: service.view(id).confirmedZatoshis,
       confirmations: service.view(id).confirmations,
     };
+  } else if (command === "execute-bounded-swap") {
+    if (
+      !process.argv.includes("--user-authorized-bounded-order") ||
+      !process.argv.includes("--allow-devnet-broadcast") ||
+      !process.argv.includes("--unlock-local-dpapi")
+    )
+      throw Error("Explicit scoped human execution authorization required");
+    service.authorize(id, await freshScan(x.watch));
+    await authorizeBoundedSettlement(
+      service,
+      id,
+      JSON.parse(
+        readFileSync(".state/phase7c/user-bounded-scope.private.json", "utf8"),
+      ),
+      true,
+    );
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        service.authorize(id, await freshScan(x.watch));
+        const prepared = await refreshedUnsigned();
+        result = await approvedExecution(prepared.digest, "BOUNDED_ORDER");
+        break; // A submission attempt is never automatically repeated.
+      } catch (e) {
+        const r = service.row(id);
+        if (
+          r.claimed ||
+          r.wire ||
+          r.signature ||
+          !(e instanceof SolanaError) ||
+          ![
+            "BLOCKHASH_EXPIRED",
+            "SWAP_QUOTE_EXPIRED",
+            "USER_APPROVAL_EXPIRED",
+          ].includes(e.code) ||
+          attempt === 2
+        )
+          throw e;
+      }
+    }
   } else if (command === "review-swap") {
     if (!process.stdin.isTTY || !process.stdout.isTTY)
       throw Error("Local interactive terminal required; no piped approval");
@@ -476,6 +523,7 @@ try {
       "observe",
       "prepare-solana",
       "broadcast-solana",
+      "execute-bounded-swap",
       "reconcile",
       "quote",
     ].includes(command ?? "")

@@ -59,6 +59,8 @@ import {
   recoveryRecord,
   authorizeExactRecoveredTransaction,
   reviewUnsignedRpcRecovery,
+  authorizeBoundedSettlement,
+  boundedSettlementScope,
 } from "../services/solana/paid-recovery.ts";
 const key = await generateKeyPairSigner(),
   recipient = (await generateKeyPairSigner()).address;
@@ -263,6 +265,214 @@ async function paidRecoveryFixture() {
   x.service.authorize(x.id, x.snapshot());
   return { ...x, old, attempt: randomUUID() };
 }
+
+async function boundedFixture() {
+  const x = await paidRecoveryFixture();
+  await authorizePaidPreparation(
+    x.service,
+    x.id,
+    x.attempt,
+    true,
+    x.snapshot(),
+  );
+  await retireExpiredUnsignedSwap(x.service, x.id, true);
+  x.net.latest = async () => ({
+    blockhash: blockhash(key.address),
+    lastValidBlockHeight: 1200n,
+  });
+  return x;
+}
+test("bounded execution requires new explicit human scope and rejects every changed bound", async () => {
+  const x = await boundedFixture();
+  try {
+    const scope = boundedSettlementScope(x.service, x.id);
+    await assert.rejects(
+      authorizeBoundedSettlement(x.service, x.id, scope, false),
+      /EXPLICIT_BOUNDED/,
+    );
+    for (const field of Object.keys(scope)) {
+      const changed = {
+        ...scope,
+        [field]:
+          typeof scope[field as keyof typeof scope] === "number"
+            ? 200
+            : "changed",
+      };
+      await assert.rejects(
+        authorizeBoundedSettlement(x.service, x.id, changed, true),
+        /BOUNDED_ECONOMIC_SCOPE_MISMATCH/,
+      );
+    }
+    assert.equal(
+      x.store.db
+        .prepare(
+          "SELECT COUNT(*) AS n FROM solana_bounded_settlement_authorizations",
+        )
+        .get()!.n,
+      0,
+    );
+    const a = await authorizeBoundedSettlement(x.service, x.id, scope, true);
+    assert.equal(a.state, "ACTIVE");
+    const b = await authorizeBoundedSettlement(x.service, x.id, scope, true);
+    assert.equal(b.expires_at, a.expires_at);
+    assert.equal(x.sends(), 0);
+  } finally {
+    x.store.close();
+  }
+});
+test("bounded scope permits fresh unsigned digests but preserves expired records and prohibits implicit signing", async () => {
+  const x = await boundedFixture();
+  try {
+    await authorizeBoundedSettlement(
+      x.service,
+      x.id,
+      boundedSettlementScope(x.service, x.id),
+      true,
+    );
+    const p = await x.service.prepare(x.id);
+    await authorizeExactRecoveredTransaction(
+      x.service,
+      x.id,
+      p.digest,
+      true,
+      "BOUNDED_ORDER",
+    );
+    x.time(107292);
+    x.service.authorize(x.id, x.snapshot());
+    await retireExpiredUnsignedSwap(x.service, x.id, true);
+    x.net.latest = async () => ({
+      blockhash: blockhash(recipient),
+      lastValidBlockHeight: 1300n,
+    });
+    const next = await x.service.prepare(x.id);
+    assert.notEqual(next.digest, p.digest);
+    await authorizeExactRecoveredTransaction(
+      x.service,
+      x.id,
+      next.digest,
+      true,
+      "BOUNDED_ORDER",
+    );
+    assert.equal(
+      x.store.db
+        .prepare(
+          "SELECT COUNT(*) AS n FROM solana_bounded_transaction_derivations",
+        )
+        .get()!.n,
+      2,
+    );
+    assert.equal(x.service.row(x.id).claimed, 0);
+    assert.equal(x.sends(), 0);
+    await assert.rejects(
+      x.service.execute(
+        x.id,
+        { orderId: x.id, digest: p.digest, approved: true },
+        key,
+      ),
+      /EXACT_APPROVAL_REQUIRED/,
+    );
+  } finally {
+    x.store.close();
+  }
+});
+test("bounded settlement is consumed with the sole signing claim and cannot replay after restart", async () => {
+  const x = await boundedFixture();
+  try {
+    await authorizeBoundedSettlement(
+      x.service,
+      x.id,
+      boundedSettlementScope(x.service, x.id),
+      true,
+    );
+    const p = await x.service.prepare(x.id);
+    await authorizeExactRecoveredTransaction(
+      x.service,
+      x.id,
+      p.digest,
+      true,
+      "BOUNDED_ORDER",
+    );
+    await x.service.execute(
+      x.id,
+      { orderId: x.id, digest: p.digest, approved: true },
+      key,
+    );
+    assert.equal(
+      x.store.db
+        .prepare("SELECT state FROM solana_bounded_settlement_authorizations")
+        .get()!.state,
+      "CONSUMED",
+    );
+    x.setReceipt(await x.effects(p as SwapPrepared));
+    assert.equal((await x.service.reconcile(x.id)).state, "COMPLETED");
+    const restart = new SolanaSettlement(
+      x.store,
+      x.net,
+      () => 107201,
+      x.policy,
+    );
+    await assert.rejects(
+      restart.execute(
+        x.id,
+        { orderId: x.id, digest: p.digest, approved: true },
+        key,
+      ),
+    );
+    assert.throws(() => restart.recover(x.id, "refund"));
+    assert.equal(x.sends(), 1);
+  } finally {
+    x.store.close();
+  }
+});
+test("bounded authorization cannot derive another transaction after a lost broadcast response", async () => {
+  const x = await boundedFixture();
+  try {
+    await authorizeBoundedSettlement(
+      x.service,
+      x.id,
+      boundedSettlementScope(x.service, x.id),
+      true,
+    );
+    const p = await x.service.prepare(x.id);
+    await authorizeExactRecoveredTransaction(
+      x.service,
+      x.id,
+      p.digest,
+      true,
+      "BOUNDED_ORDER",
+    );
+    x.net.send = async () => {
+      throw Error("lost response");
+    };
+    await x.service.execute(
+      x.id,
+      { orderId: x.id, digest: p.digest, approved: true },
+      key,
+    );
+    assert.equal(x.service.row(x.id).state, "SUBMISSION_UNCERTAIN");
+    assert.ok(x.service.row(x.id).signature);
+    await assert.rejects(
+      authorizeBoundedSettlement(
+        x.service,
+        x.id,
+        boundedSettlementScope(x.service, x.id),
+        true,
+      ),
+    );
+    await assert.rejects(
+      authorizeExactRecoveredTransaction(
+        x.service,
+        x.id,
+        p.digest,
+        true,
+        "BOUNDED_ORDER",
+      ),
+    );
+    await assert.rejects(retireExpiredUnsignedSwap(x.service, x.id, true));
+  } finally {
+    x.store.close();
+  }
+});
 
 test("reviewed unsigned RPC recovery binds the same paid order; duplicates and unrelated vetoes survive restart", async () => {
   const x = await paidRecoveryFixture();
