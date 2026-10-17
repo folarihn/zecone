@@ -1676,6 +1676,8 @@ test("paired swap API rejects unauthorized queries, cross-session correlation an
   const user = sessions.pair(sessions.issuePairing()),
     other = sessions.pair(sessions.issuePairing());
   sessions.db.prepare("UPDATE sessions SET connected=1").run();
+  // The fixture already has an order; attach its history as an operator would.
+  new ScopedHistory(x.store.db).handle(user.session.id, x.id);
   const handler = swapApi(
     sessions,
     x.service,

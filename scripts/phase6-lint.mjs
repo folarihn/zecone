@@ -2,6 +2,14 @@
 import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 const files = [
+  "services/wallet/privacy.ts",
+  "services/wallet/snapshot-api.ts",
+  "services/solana/privacy.ts",
+  "services/solana/swap-api.ts",
+  "app/checkout/selection.ts",
+  "tests/phase8-privacy.test.ts",
+  "tests/ui/phase8-privacy.spec.ts",
+  "scripts/phase8-preserve.mjs",
   "app/solana/swap.tsx",
   "scripts/phase7c.ts",
   "scripts/phase7c-recovery-audit.ts",

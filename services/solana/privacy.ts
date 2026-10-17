@@ -11,7 +11,20 @@ export function swapBrowserView(v: any, handle: string) {
     network: v.network,
     state: v.state,
     recipient: v.recipient,
-    swap: v.swap,
+    swap: v.swap
+      ? {
+          program: v.swap.program,
+          pool: v.swap.pool,
+          inputMint: v.swap.inputMint,
+          outputMint: v.swap.outputMint,
+          inputDecimals: v.swap.inputDecimals,
+          outputDecimals: v.swap.outputDecimals,
+          amountIn: v.swap.amountIn,
+          expectedOut: v.swap.expectedOut,
+          minimumOut: v.swap.minimumOut,
+          slippageBps: v.swap.slippageBps,
+        }
+      : null,
     zatoshis: v.zatoshis,
     pricing: v.pricing,
     feeCap: v.feeCap,
@@ -23,6 +36,27 @@ export function swapBrowserView(v: any, handle: string) {
     liveRefundsEnabled: false,
     deliveredAmount: v.deliveredAmount ?? null,
     estimatedFee: v.prepared?.fee ?? null,
+    privacy: PRIVACY_NOTICE,
+  };
+}
+export function deliveryBrowserView(v: any, handle: string) {
+  return {
+    handle,
+    id: handle,
+    network: v.network,
+    state: v.state,
+    recipient: v.recipient,
+    lamports: v.lamports,
+    zatoshis: v.zatoshis,
+    feeCap: v.feeCap,
+    expires: v.expires,
+    confirmedZatoshis: v.confirmedZatoshis,
+    confirmations: v.confirmations,
+    requiredConfirmations: v.requiredConfirmations,
+    signature: v.signature,
+    explorer: v.explorer,
+    estimatedFee: v.prepared?.fee ?? null,
+    liveRefundsEnabled: false,
     privacy: PRIVACY_NOTICE,
   };
 }
@@ -53,6 +87,20 @@ export class ScopedHistory {
       .get(handle, session);
     if (!row) throw new SolanaError("UNKNOWN_CHECKOUT");
     return String(row.order_id);
+  }
+  rows(session: string) {
+    return this.db
+      .prepare(
+        "SELECT handle,order_id FROM swap_history_handles WHERE session_id=?",
+      )
+      .all(session);
+  }
+  owns(session: string, order: string) {
+    return !!this.db
+      .prepare(
+        "SELECT 1 FROM swap_history_handles WHERE session_id=? AND order_id=?",
+      )
+      .get(session, order);
   }
   reused(address: string) {
     return !!this.db

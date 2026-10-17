@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { UnifiedCheckout } from "../../services/wallet/checkouts";
+import { SELECTION_KEY, restoreSelection } from "./selection";
 const steps = [
   "USER_REVIEW",
   "PAYMENT_REQUEST",
@@ -32,24 +33,101 @@ export default function CheckoutTracker({
     [request, setRequest] = useState<{ id: string; address: string } | null>(
       null,
     ),
-    [revealing, setRevealing] = useState(false);
+    [revealing, setRevealing] = useState(false),
+    [selectionExpires, setSelectionExpires] = useState(0),
+    [privateDetails, setPrivateDetails] = useState<{
+      key: string;
+      paymentTx: string | null;
+    } | null>(null);
+  const selectionMeta = useRef({ scope: "", expires: 0 });
+  const inspectionEpoch = useRef(0);
+  useEffect(() => {
+    if (!selectionExpires) return;
+    const timer = setTimeout(
+      () => {
+        inspectionEpoch.current++;
+        setRows([]);
+        setSelected("");
+        setRequest(null);
+        setPrivateDetails(null);
+        try {
+          sessionStorage.removeItem(SELECTION_KEY);
+        } catch {}
+        setError(
+          "Your checkout session expired. Pair locally again. No payment was retried.",
+        );
+      },
+      Math.max(0, selectionExpires - Date.now()),
+    );
+    return () => clearTimeout(timer);
+  }, [selectionExpires]);
+  useEffect(() => {
+    inspectionEpoch.current++;
+    setRequest(null);
+    setPrivateDetails(null);
+  }, [selected]);
+  useEffect(() => {
+    if (!request && !privateDetails) return;
+    const timer = setTimeout(() => {
+      setRequest(null);
+      setPrivateDetails(null);
+    }, 60000);
+    return () => clearTimeout(timer);
+  }, [request, privateDetails]);
   useEffect(() => {
     let active = true;
     try {
-      setSelected(localStorage.getItem("zecone.checkout.selection") ?? "");
+      localStorage.removeItem("zecone.checkout.selection");
     } catch {}
     const load = async () => {
       try {
         const r = await fetch("/api/checkouts", { cache: "no-store" });
         const b = await r.json();
-        if (!r.ok || !Array.isArray(b.checkouts))
+        const expired =
+          typeof b.selectionExpires === "number" &&
+          b.selectionExpires <= Date.now();
+        if (active && (r.status === 401 || r.status === 403 || expired)) {
+          inspectionEpoch.current++;
+          setRows([]);
+          setSelected("");
+          setRequest(null);
+          setPrivateDetails(null);
+          selectionMeta.current = { scope: "", expires: 0 };
+          setSelectionExpires(0);
+          try {
+            sessionStorage.removeItem(SELECTION_KEY);
+          } catch {}
+        }
+        if (!r.ok || expired || !Array.isArray(b.checkouts))
           throw Error("Checkout journals unavailable. No payment was retried.");
         if (active) {
           setRows(b.checkouts);
+          const scope =
+              typeof b.selectionScope === "string" ? b.selectionScope : "",
+            expires =
+              typeof b.selectionExpires === "number" ? b.selectionExpires : 0;
+          selectionMeta.current = { scope, expires };
+          setSelectionExpires(expires);
+          let stored = "";
+          try {
+            stored = restoreSelection(
+              sessionStorage.getItem(SELECTION_KEY),
+              scope,
+              expires,
+              b.checkouts.map((r: UnifiedCheckout) => r.key),
+            );
+            if (!stored) sessionStorage.removeItem(SELECTION_KEY);
+          } catch {}
+          setSelected((prev) =>
+            b.checkouts.some((r: UnifiedCheckout) => r.key === prev)
+              ? prev
+              : stored || "",
+          );
           setError("");
         }
       } catch (e) {
-        if (active) setError((e as Error).message);
+        if (active)
+          setError("Checkout journals unavailable. No payment was retried.");
       } finally {
         if (active) setLoading(false);
       }
@@ -99,11 +177,19 @@ export default function CheckoutTracker({
             value={row?.key ?? ""}
             onChange={(e) => {
               setSelected(e.target.value);
+              setRequest(null);
+              setPrivateDetails(null);
               try {
-                localStorage.setItem(
-                  "zecone.checkout.selection",
-                  e.target.value,
-                );
+                const m = selectionMeta.current;
+                if (m.scope && m.expires > Date.now())
+                  sessionStorage.setItem(
+                    SELECTION_KEY,
+                    JSON.stringify({
+                      scope: m.scope,
+                      expires: m.expires,
+                      key: e.target.value,
+                    }),
+                  );
               } catch {}
             }}
           >
@@ -195,12 +281,6 @@ export default function CheckoutTracker({
                       </dd>
                     </div>
                   )}
-                  {row.paymentTx && (
-                    <div>
-                      <dt>Zcash transaction</dt>
-                      <dd className="mono break">{row.paymentTx}</dd>
-                    </div>
-                  )}
                   {row.destinationTx && (
                     <div>
                       <dt>Destination transaction</dt>
@@ -217,6 +297,60 @@ export default function CheckoutTracker({
                   </div>
                 </dl>
               </details>
+              <p className="muted">
+                Private local inspection can link shielded funding to a public
+                destination. The trusted operator can already correlate both. Do
+                not share this view. Revealed details clear after one minute.
+              </p>
+              <button
+                className="secondary"
+                disabled={revealing}
+                onClick={async () => {
+                  setRevealing(true);
+                  const epoch = inspectionEpoch.current;
+                  setError("");
+                  setPrivateDetails(null);
+                  try {
+                    const s = await (
+                      await fetch("/api/session", { cache: "no-store" })
+                    ).json();
+                    const response = await fetch("/api/checkouts/inspect", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        "X-ZecOne-CSRF": s.csrf,
+                      },
+                      body: JSON.stringify({
+                        id: row.id,
+                        kind: row.kind,
+                        reveal: true,
+                        acceptPrivacy: true,
+                      }),
+                      cache: "no-store",
+                    });
+                    const b = await response.json();
+                    if (!response.ok) throw Error("Inspection unavailable");
+                    if (epoch !== inspectionEpoch.current) return;
+                    setPrivateDetails({
+                      key: row.key,
+                      paymentTx: b.paymentTx ?? null,
+                    });
+                  } catch {
+                    setError(
+                      "Private inspection unavailable. Verify this session or ask the local operator; no payment was retried.",
+                    );
+                  } finally {
+                    setRevealing(false);
+                  }
+                }}
+              >
+                Inspect private payment reference locally
+              </button>
+              {privateDetails?.key === row.key && (
+                <p className="mono break">
+                  {privateDetails.paymentTx ?? "No payment reference available"}
+                </p>
+              )}
               {row.state === "PAYMENT_REQUEST" && (
                 <div>
                   <button
@@ -225,6 +359,7 @@ export default function CheckoutTracker({
                     onClick={async () => {
                       if (revealing) return;
                       setRevealing(true);
+                      const epoch = inspectionEpoch.current;
                       setError("");
                       try {
                         const session = await (
@@ -250,7 +385,8 @@ export default function CheckoutTracker({
                           throw Error(
                             body.error ?? "Payment address unavailable",
                           );
-                        setRequest({ id: row.key, address: body.address });
+                        if (epoch === inspectionEpoch.current)
+                          setRequest({ id: row.key, address: body.address });
                       } catch (e) {
                         setError((e as Error).message);
                       } finally {

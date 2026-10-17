@@ -73,7 +73,7 @@ for (const [name, width, height] of [
     expect((await page.request.get("/api/session")).status()).toBe(200);
   });
 }
-test("historical checkout adapters replay real references and survive refresh without payment requests", async ({
+test("historical checkout adapters minimize references, permit explicit local inspection and survive refresh", async ({
   page,
 }) => {
   const mutations: string[] = [];
@@ -85,6 +85,8 @@ test("historical checkout adapters replay real references and survive refresh wi
     name: "Unified checkout tracker",
   });
   const selection = tracker.getByLabel("Saved checkout");
+  const visible = (await (await page.request.get("/api/checkouts")).json())
+    .checkouts;
   await expect(selection.locator("option")).toHaveCount(
     snapshot.checkouts.length,
   );
@@ -93,22 +95,41 @@ test("historical checkout adapters replay real references and survive refresh wi
       (c: any) => c.kind === kind && c.state === "COMPLETED",
     );
     expect(row).toBeTruthy();
-    await selection.selectOption(row.key);
+    const browserRow = visible.find(
+      (c: any) => c.kind === row.kind && c.destinationTx === row.destinationTx,
+    );
+    expect(browserRow.id).not.toBe(row.id);
+    expect(browserRow.paymentTx).toBeNull();
+    await selection.selectOption(browserRow.key);
     await tracker.getByText("Transaction details, fees and references").click();
     await expect(
       tracker.getByText(row.destinationTx, { exact: true }),
     ).toBeVisible();
+    await expect(tracker.getByText(row.paymentTx, { exact: true })).toHaveCount(
+      0,
+    );
+    await tracker
+      .getByRole("button", {
+        name: "Inspect private payment reference locally",
+      })
+      .click();
     await expect(
       tracker.getByText(row.paymentTx, { exact: true }),
     ).toBeVisible();
     await page.reload();
-    await expect(selection).toHaveValue(row.key);
+    await expect(selection).toHaveValue(browserRow.key);
+    await expect(tracker.getByText(row.paymentTx, { exact: true })).toHaveCount(
+      0,
+    );
   }
   await page.screenshot({
     path: `${evidence}/real-checkout.png`,
     fullPage: true,
   });
-  expect(mutations).toEqual([]);
+  expect(mutations).toHaveLength(4);
+  expect(mutations.every((url) => url.endsWith("/api/checkouts/inspect"))).toBe(
+    true,
+  );
 });
 test("read-only UI handles denied refresh without starting a worker", async ({
   page,

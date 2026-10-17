@@ -11,6 +11,16 @@ import type { SeaportPurchases } from "../seaport/service.ts";
 import type { OpenSeaPreviews } from "../opensea/service.ts";
 import { DiscoveryError } from "../opensea/api.ts";
 import { marketReferences } from "../pricing/service.ts";
+import {
+  CheckoutScopes,
+  checkoutBrowserView,
+  dashboardBrowserView,
+  listingBrowserView,
+  paymentInspection,
+  PrivacyDiagnostics,
+  privacyError,
+  INSPECTION_WARNING,
+} from "./privacy.ts";
 type Backend = Pick<
   Engine,
   | "dashboard"
@@ -33,6 +43,8 @@ export function api(
   opensea?: OpenSeaPreviews,
 ) {
   const attempts = new Map<string, { at: number; count: number }>();
+  const scopes = new CheckoutScopes(sessions.now),
+    diagnostics = new PrivacyDiagnostics();
   return async (req: IncomingMessage, res: ServerResponse) => {
     res.setHeader("Content-Type", "application/json");
     res.setHeader("Cache-Control", "private, no-store");
@@ -91,6 +103,15 @@ export function api(
         return;
       }
       const session = sessions.get(req.headers.cookie);
+      const actionId = (kind: string, value: unknown = body.id) => {
+        try {
+          return uuid(scopes.resolve(session, value, kind));
+        } catch {
+          return uuid(value);
+        } // Existing action results retain their original review IDs.
+      };
+      if (path?.startsWith("/api/checkouts") && req.url?.includes("?"))
+        throw new ApiError(400, "No query parameters.");
       if (mutation) {
         sessions.csrf(
           session,
@@ -106,7 +127,12 @@ export function api(
           throw new ApiError(429, "Too many requests. Please wait a minute.");
       }
       let data: unknown;
-      if (method === "POST" && path === "/api/checkouts/payment-request") {
+      if (
+        method === "POST" &&
+        ["/api/checkouts/payment-request", "/api/checkouts/inspect"].includes(
+          path ?? "",
+        )
+      ) {
         if (!session.connected || body.reveal !== true)
           throw new ApiError(
             403,
@@ -123,7 +149,30 @@ export function api(
                   ? seaport
                   : undefined;
         if (!source) throw new ApiError(400, "Unsupported checkout adapter");
-        send(200, source.paymentRequest(session, uuid(body.id)));
+        const id = scopes.resolve(session, body.id, body.kind);
+        const owned =
+          body.kind === "mint" || body.kind === "action"
+            ? (engine as Engine).app?.get(id)?.quote_session === session.id
+            : (source as Purchases).store?.row(id)?.session === session.id;
+        if (!owned) throw new ApiError(403, "Checkout ownership mismatch.");
+        if (path === "/api/checkouts/inspect") {
+          if (body.acceptPrivacy !== true)
+            throw new ApiError(
+              403,
+              "Explicit privacy acknowledgement required.",
+            );
+          const row =
+            body.kind === "mint" || body.kind === "action"
+              ? engine.dashboard().checkouts.find((r) => r.id === id)
+              : (source as Purchases).list().find((r) => r.id === id);
+          if (!row) throw new ApiError(404, "Unknown checkout.");
+          send(200, {
+            paymentTx: row.paymentTx ?? null,
+            privacy: INSPECTION_WARNING,
+          });
+          return;
+        }
+        send(200, paymentInspection(source.paymentRequest(session, uuid(id))));
         return;
       }
       if (method === "GET" && path === "/api/checkouts") {
@@ -146,9 +195,18 @@ export function api(
               { kind: "seaport", rows: seaport?.list() ?? [] },
             ],
             dashboard.address,
+          ).map((r) =>
+            checkoutBrowserView(r, scopes.handle(session, r.kind, r.id)),
           ),
+          ...scopes.metadata(session),
           liveRefundsEnabled: false,
         });
+        return;
+      }
+      if (method === "GET" && path === "/api/privacy/diagnostics") {
+        if (!session.connected)
+          throw new ApiError(403, "Verify ownership first.");
+        send(200, diagnostics.export());
         return;
       }
       if (method === "GET" && path === "/api/reference-prices") {
@@ -195,7 +253,16 @@ export function api(
             data = await seaport.catalog();
             break;
           case "GET /api/seaport/list":
-            data = { purchases: seaport.list() };
+            data = {
+              purchases: seaport
+                .list()
+                .map((r) =>
+                  listingBrowserView(
+                    r,
+                    scopes.handle(session, "seaport", r.id),
+                  ),
+                ),
+            };
             break;
           case "POST /api/seaport/quote":
             data = await seaport.quote(session, body);
@@ -203,10 +270,10 @@ export function api(
           case "POST /api/seaport/approve":
             if (body.approved !== true)
               throw new ApiError(400, "Exact Seaport approval required.");
-            data = await seaport.approve(session, uuid(body.id));
+            data = await seaport.approve(session, actionId("seaport"));
             break;
           case "POST /api/seaport/cancel": {
-            const r = seaport.row(uuid(body.id));
+            const r = seaport.row(actionId("seaport"));
             if (r.session !== session.id)
               throw new ApiError(403, "Session mismatch");
             seaport.cancelDraft(r.id);
@@ -214,18 +281,18 @@ export function api(
             break;
           }
           case "POST /api/seaport/fee":
-            data = await seaport.fee(session, uuid(body.id));
+            data = await seaport.fee(session, actionId("seaport"));
             break;
           case "POST /api/seaport/pay":
             data = await seaport.pay(
               session,
-              uuid(body.id),
+              actionId("seaport"),
               uuid(body.quoteId),
               body.approved,
             );
             break;
           case "POST /api/seaport/recheck":
-            data = await seaport.reconcile(session, uuid(body.id));
+            data = await seaport.reconcile(session, actionId("seaport"));
             break;
           default:
             throw new ApiError(404, "Seaport operation unavailable.");
@@ -241,7 +308,13 @@ export function api(
             data = await swaps.assets();
             break;
           case "GET /api/swaps/list":
-            data = { swaps: swaps.list() };
+            data = {
+              swaps: swaps
+                .list()
+                .map((r) =>
+                  listingBrowserView(r, scopes.handle(session, "swap", r.id)),
+                ),
+            };
             break;
           case "POST /api/swaps/quote":
             data = await swaps.quote(session, body);
@@ -249,10 +322,10 @@ export function api(
           case "POST /api/swaps/approve":
             if (body.approved !== true)
               throw new ApiError(400, "Exact swap approval required.");
-            data = await swaps.approve(session, uuid(body.id));
+            data = await swaps.approve(session, actionId("swap"));
             break;
           case "POST /api/swaps/cancel": {
-            const r = swaps.row(uuid(body.id));
+            const r = swaps.row(actionId("swap"));
             if (r.session !== session.id)
               throw new ApiError(403, "Session mismatch");
             swaps.cancelDraft(r.id);
@@ -260,18 +333,18 @@ export function api(
             break;
           }
           case "POST /api/swaps/fee":
-            data = await swaps.fee(session, uuid(body.id));
+            data = await swaps.fee(session, actionId("swap"));
             break;
           case "POST /api/swaps/pay":
             data = await swaps.pay(
               session,
-              uuid(body.id),
+              actionId("swap"),
               uuid(body.quoteId),
               body.approved,
             );
             break;
           case "POST /api/swaps/recheck":
-            data = await swaps.reconcile(session, uuid(body.id));
+            data = await swaps.reconcile(session, actionId("swap"));
             break;
           default:
             throw new ApiError(404, "Swap operation unavailable.");
@@ -284,21 +357,30 @@ export function api(
           throw new ApiError(403, "Verify wallet ownership first.");
         switch (`${method} ${path}`) {
           case "GET /api/purchases/list":
-            data = { purchases: purchases.list() };
+            data = {
+              purchases: purchases
+                .list()
+                .map((r) =>
+                  listingBrowserView(
+                    r,
+                    scopes.handle(session, "purchase", r.id),
+                  ),
+                ),
+            };
             break;
           case "POST /api/purchases/fee":
-            data = await purchases.fee(session, uuid(body.id));
+            data = await purchases.fee(session, actionId("purchase"));
             break;
           case "POST /api/purchases/pay":
             data = await purchases.pay(
               session,
-              uuid(body.id),
+              actionId("purchase"),
               uuid(body.quoteId),
               body.approved,
             );
             break;
           case "POST /api/purchases/recheck":
-            data = await purchases.reconcile(session, uuid(body.id));
+            data = await purchases.reconcile(session, actionId("purchase"));
             break;
           default:
             throw new ApiError(404, "Purchase operation unavailable.");
@@ -347,7 +429,11 @@ export function api(
           data = { networks: await portfolio(dapps.user) };
           break;
         case "GET /api/dashboard":
-          data = engine.dashboard();
+          data = dashboardBrowserView(
+            engine.dashboard(),
+            (id) => scopes.handle(session, "mint", id),
+            (id) => scopes.handle(session, "mint-quote", id),
+          );
           break;
         case "POST /api/refresh":
           engine.refresh();
@@ -374,21 +460,22 @@ export function api(
           data = await engine.create(session, uuid(body.id), body.approved);
           break;
         case "POST /api/quote":
-          data = await engine.quote(session, uuid(body.id));
+          data = await engine.quote(session, actionId("mint"));
           break;
         case "POST /api/pay":
           data = engine.pay(
             session,
-            uuid(body.id),
-            uuid(body.quoteId),
+            actionId("mint"),
+            actionId("mint-quote", body.quoteId),
             body.approved,
           );
           break;
         case "POST /api/recheck":
-          data = await engine.recheck(session, uuid(body.id));
+          data = await engine.recheck(session, actionId("mint"));
           engine.refresh();
           break;
         case "POST /api/logout":
+          scopes.forget(session);
           sessions.disconnect(session);
           res.setHeader(
             "Set-Cookie",
@@ -401,18 +488,21 @@ export function api(
       }
       send(200, data);
     } catch (error) {
+      diagnostics.record(
+        error instanceof ApiError && error.status === 403
+          ? "ACCESS_DENIED"
+          : "INVALID_REQUEST",
+      );
+      const safe = privacyError(error);
       send(
         error instanceof RpcError
           ? 400
           : error instanceof ApiError
-            ? error.status
+            ? safe.status
             : 503,
         {
-          ...(error instanceof RpcError ? { code: error.code } : {}),
-          error:
-            error instanceof ApiError || error instanceof RpcError
-              ? error.message
-              : "The local operation could not finish. Your saved checkout is preserved. Recheck status before retrying.",
+          code: error instanceof RpcError ? error.code : undefined,
+          error: safe.body.error,
         },
       );
     }

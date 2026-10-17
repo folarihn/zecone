@@ -44,7 +44,14 @@ export class Sessions {
       "CREATE TABLE IF NOT EXISTS sessions(id TEXT PRIMARY KEY,csrf TEXT NOT NULL,expires INTEGER NOT NULL,connected INTEGER NOT NULL DEFAULT 0); CREATE TABLE IF NOT EXISTS pairing(hash TEXT PRIMARY KEY,expires INTEGER NOT NULL);",
     );
   }
+  private prune() {
+    // Only ephemeral authentication rows. Never touch checkout ownership,
+    // payment evidence, execution claims or financial audit records.
+    this.db.prepare("DELETE FROM sessions WHERE expires<=?").run(this.now());
+    this.db.prepare("DELETE FROM pairing WHERE expires<=?").run(this.now());
+  }
   issuePairing() {
+    this.prune();
     const token = randomToken();
     this.db.exec("DELETE FROM pairing");
     this.db
@@ -53,6 +60,7 @@ export class Sessions {
     return token;
   }
   pair(token: unknown) {
+    this.prune();
     if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token))
       throw new ApiError(401, "Pairing link is invalid or expired.");
     const consumed = this.db
@@ -70,6 +78,7 @@ export class Sessions {
     return { cookie, session: { id, csrf, expires, connected: 0 } };
   }
   get(cookieHeader: string | undefined): Session {
+    this.prune();
     const cookie = cookieHeader
       ?.split(";")
       .map((x) => x.trim())

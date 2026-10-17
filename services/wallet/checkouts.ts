@@ -1,4 +1,5 @@
-// Read-only projection of existing durable journals. Never authorizes a payment,
+// Restricted backend projection, not an HTTP response. Apply checkoutBrowserView
+// and session handles before serialization. Never authorizes a payment,
 // advances a lifecycle, retries a transaction or marks a refund complete.
 export type CheckoutKind =
   "mint" | "action" | "purchase" | "swap" | "seaport" | "solana";

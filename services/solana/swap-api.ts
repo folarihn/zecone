@@ -3,7 +3,12 @@ import { Sessions, requireLocal, ApiError } from "../wallet/security.ts";
 import { ScopedHistory, swapBrowserView, PRIVACY_NOTICE } from "./privacy.ts";
 import { type SolanaSettlement } from "./settlement.ts";
 import { type CpmmPolicy } from "./cpmm.ts";
-import { json, SolanaError } from "./network.ts";
+import { json } from "./network.ts";
+import {
+  paymentInspection,
+  privacyError,
+  PrivacyDiagnostics,
+} from "../wallet/privacy.ts";
 export function swapApi(
   sessions: Sessions,
   service: SolanaSettlement,
@@ -12,6 +17,7 @@ export function swapApi(
   manifest: any,
 ) {
   const history = new ScopedHistory(service.store.db);
+  const diagnostics = new PrivacyDiagnostics();
   return async (req: IncomingMessage, res: ServerResponse) => {
     res.setHeader("Content-Type", "application/json");
     res.setHeader("Cache-Control", "no-store");
@@ -58,6 +64,11 @@ export function swapApi(
             "Checkout belongs to another session; use operator recovery after session loss",
           );
         const old = service.store.all()[0];
+        if (old && !history.owns(session.id, old.id))
+          throw new ApiError(
+            403,
+            "Existing checkout requires operator history attachment.",
+          );
         if (
           !old &&
           (history.reused(b.recipient) ||
@@ -112,12 +123,16 @@ export function swapApi(
             409,
             "Order expired or already paid; do not send another payment",
           );
-        result = {
+        result = paymentInspection({
           address: v.paymentAddress,
           zatoshis: v.zatoshis,
-          network: "zcash-testnet",
           expires: v.expires,
-        };
+        });
+      } else if (
+        req.method === "GET" &&
+        req.url === "/api/solana-swap/diagnostics"
+      ) {
+        result = diagnostics.export();
       } else
         throw new ApiError(
           404,
@@ -125,17 +140,14 @@ export function swapApi(
         );
       res.end(json(result));
     } catch (e) {
-      res.statusCode = e instanceof ApiError ? e.status : 400;
-      res.end(
-        json({
-          error:
-            e instanceof ApiError
-              ? e.message
-              : e instanceof SolanaError
-                ? e.code
-                : "Swap unavailable; preserve records and ask the local operator",
-        }),
+      diagnostics.record(
+        e instanceof ApiError && e.status === 403
+          ? "ACCESS_DENIED"
+          : "INVALID_REQUEST",
       );
+      const safe = privacyError(e);
+      res.statusCode = safe.status;
+      res.end(json(safe.body));
     }
   };
 }

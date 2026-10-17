@@ -1,149 +1,179 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { type Sessions, requireLocal, ApiError } from "../wallet/security.ts";
 import { unifiedCheckouts, revealPaymentRequest } from "../wallet/checkouts.ts";
+import {
+  CheckoutScopes,
+  checkoutBrowserView,
+  paymentInspection,
+  privacyError,
+  PrivacyDiagnostics,
+  INSPECTION_WARNING,
+} from "../wallet/privacy.ts";
+import { ScopedHistory, deliveryBrowserView } from "./privacy.ts";
 import { type SolanaSettlement } from "./settlement.ts";
-import { json, SolanaError } from "./network.ts";
+import { json } from "./network.ts";
+import { digest } from "./transactions.ts";
 export function settlementApi(
   sessions: Sessions,
   service: SolanaSettlement,
   profile: any,
   manifest: any,
 ) {
-  const browserView = (view: ReturnType<SolanaSettlement["view"]>) => ({
-    ...view,
-    paymentAddress: undefined,
-  });
+  const history = new ScopedHistory(service.store.db),
+    scopes = new CheckoutScopes(sessions.now),
+    diagnostics = new PrivacyDiagnostics();
   return async (req: IncomingMessage, res: ServerResponse) => {
     res.setHeader("Content-Type", "application/json");
-    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Cache-Control", "private, no-store");
     try {
       const mutation = req.method !== "GET";
       requireLocal(req.headers as Record<string, string | undefined>, mutation);
+      if (req.url?.includes("?"))
+        throw new ApiError(400, "No query parameters.");
       const s = sessions.get(req.headers.cookie);
-      if (!s.connected)
-        throw new ApiError(403, "Verify the disposable local account first");
+      if (!s.connected) throw new ApiError(403, "Verify local account.");
       if (mutation) sessions.csrf(s, req.headers["x-zecone-csrf"] as string);
       let raw = "";
       for await (const c of req) {
         raw += c;
-        if (raw.length > 4096) throw new ApiError(413, "Request too large");
+        if (raw.length > 4096) throw new ApiError(413, "Request too large.");
       }
       const b = raw ? JSON.parse(raw) : {},
-        path = req.url?.split("?")[0];
+        path = req.url;
       let result: unknown;
-      if (req.method === "POST" && path === "/api/solana-settlement/quote")
-        result = browserView(
-          service.quote({
-            profileId: profile.id,
-            requestId: profile.orderId,
-            recipient: String(b.recipient),
-            relayer: profile.relayer,
-            lamports: String(b.lamports),
-            account: manifest.keyId,
-            paymentAddress: manifest.address,
-          }),
-        );
-      else if (req.method === "GET" && path === "/api/solana-settlement/status")
+      if (req.method === "POST" && path === "/api/solana-settlement/quote") {
+        const id = `0x${digest(`phase7b:${profile.id}:${profile.orderId}`)}`;
+        // No silent claim of historical or already-paid orders after session loss.
+        if (service.store.get(id) && !history.owns(s.id, id))
+          throw new ApiError(403, "Checkout owned by another session.");
+        const v = service.quote({
+          profileId: profile.id,
+          requestId: profile.orderId,
+          recipient: String(b.recipient),
+          relayer: profile.relayer,
+          lamports: String(b.lamports),
+          account: manifest.keyId,
+          paymentAddress: manifest.address,
+        });
+        result = deliveryBrowserView(v, history.handle(s.id, v.id));
+      } else if (
+        req.method === "GET" &&
+        path === "/api/solana-settlement/status"
+      ) {
         result = {
-          orders: service.store
-            .all()
-            .map((o) => browserView(service.view(o.id))),
+          orders: history
+            .rows(s.id)
+            .map((r) =>
+              deliveryBrowserView(
+                service.view(String(r.order_id)),
+                String(r.handle),
+              ),
+            ),
           broadcastsAutomatic: false,
         };
-      else if (req.method === "GET" && path === "/api/checkouts")
-        result = {
-          checkouts: service.store.all().map((o) => {
-            const v = service.view(o.id),
-              proof = service.store.db
-                .prepare(
-                  "SELECT detail FROM audit WHERE order_id=? AND event='scan_verified' ORDER BY seq DESC LIMIT 1",
-                )
-                .get(o.id),
-              scan = proof ? JSON.parse(String(proof.detail)) : null,
-              confirmations = scan?.outputs?.length
-                ? Math.min(
-                    ...scan.outputs.map((p: any) =>
-                      Math.max(0, scan.tip - p.height + 1),
-                    ),
-                  )
-                : 0;
-            const row = unifiedCheckouts(
-              [
-                {
-                  kind: "solana",
-                  rows: [
-                    {
-                      id: o.id,
-                      status:
-                        v.state === "COMPLETED"
-                          ? "Completed"
-                          : v.state === "RECOVERY_REQUIRED"
-                            ? "Manual review required"
-                            : v.signature
-                              ? "Executing"
-                              : "Awaiting payment",
-                      stage:
-                        v.state === "RECOVERY_REQUIRED" ? "review" : "quoted",
-                      expiry: v.expires,
-                      recipient: v.recipient,
-                      zatoshis: v.zatoshis,
-                      receivedZatoshis: v.receivedZatoshis,
-                      confirmations,
-                      requiredConfirmations: 10,
-                      paymentTx: v.paymentTxs[0] ?? null,
-                      baseTx: v.signature,
-                      networkName: "Solana devnet",
-                      token: "SOL",
-                      minOut: v.lamports,
-                      manualRecovery: v.state === "RECOVERY_REQUIRED",
-                    },
-                  ],
-                },
-              ],
-              v.recipient,
-            )[0];
+      } else if (req.method === "GET" && path === "/api/checkouts") {
+        const rows = history.rows(s.id).map((r) => {
+          const v = service.view(String(r.order_id));
+          const row = unifiedCheckouts(
+            [
+              {
+                kind: "solana",
+                rows: [
+                  {
+                    id: v.id,
+                    status:
+                      v.state === "COMPLETED"
+                        ? "Completed"
+                        : v.state === "RECOVERY_REQUIRED"
+                          ? "Manual review required"
+                          : v.signature
+                            ? "Executing"
+                            : "Awaiting payment",
+                    stage:
+                      v.state === "RECOVERY_REQUIRED" ? "review" : "quoted",
+                    expiry: v.expires,
+                    recipient: v.recipient,
+                    zatoshis: v.zatoshis,
+                    receivedZatoshis: v.receivedZatoshis,
+                    confirmations: v.confirmations,
+                    requiredConfirmations: 10,
+                    paymentTx: v.paymentTxs[0] ?? null,
+                    baseTx: v.signature,
+                    networkName: "Solana devnet",
+                    token: "SOL",
+                    minOut: v.lamports,
+                    manualRecovery: v.state === "RECOVERY_REQUIRED",
+                  },
+                ],
+              },
+            ],
+            v.recipient,
+          )[0];
+          if (v.state === "AWAITING_SOLANA_AUTHORIZATION")
             return {
-              ...row,
-              state:
-                v.state === "AWAITING_SOLANA_AUTHORIZATION"
-                  ? "AWAITING_SOLANA_AUTHORIZATION"
-                  : row.state,
-              resultVerified: v.state === "COMPLETED",
+              ...checkoutBrowserView(row, scopes.handle(s, "solana", v.id)),
+              state: "AWAITING_SOLANA_AUTHORIZATION",
             };
-          }),
+          return checkoutBrowserView(
+            { ...row, resultVerified: v.state === "COMPLETED" },
+            scopes.handle(s, "solana", v.id),
+          );
+        });
+        result = {
+          checkouts: rows,
+          ...scopes.metadata(s),
           liveRefundsEnabled: false,
         };
-      else if (
+      } else if (
         req.method === "POST" &&
-        path === "/api/checkouts/payment-request" &&
+        ["/api/checkouts/payment-request", "/api/checkouts/inspect"].includes(
+          path ?? "",
+        ) &&
         b.kind === "solana"
       ) {
         if (b.reveal !== true)
-          throw new ApiError(403, "Explicit reveal required");
-        const o = service.store.get(String(b.id));
-        if (!o) throw new ApiError(404, "Unknown order");
-        result = revealPaymentRequest(
-          o.id,
-          o,
-          service.store.totals(o.id).received,
-          Math.floor(Date.now() / 1000),
-        );
-      } else
-        throw new ApiError(
-          404,
-          "Signing, payment sending, execution and refunds are operator-only or disabled.",
-        );
+          throw new ApiError(403, "Explicit reveal required.");
+        const id = scopes.resolve(s, b.id, b.kind);
+        if (!history.owns(s.id, id))
+          throw new ApiError(403, "Checkout owned by another session.");
+        const o = service.store.get(id);
+        if (!o) throw new ApiError(404, "Unknown checkout.");
+        if (path === "/api/checkouts/inspect") {
+          if (b.acceptPrivacy !== true)
+            throw new ApiError(
+              403,
+              "Explicit privacy acknowledgement required.",
+            );
+          result = {
+            paymentTx: service.view(id).paymentTxs[0] ?? null,
+            privacy: INSPECTION_WARNING,
+          };
+        } else {
+          result = paymentInspection(
+            revealPaymentRequest(
+              id,
+              o,
+              service.store.totals(id).received,
+              service.now(),
+            ),
+          );
+        }
+      } else if (
+        req.method === "GET" &&
+        path === "/api/solana-settlement/diagnostics"
+      )
+        result = diagnostics.export();
+      else throw new ApiError(404, "Unavailable operation.");
       res.end(json(result));
     } catch (e) {
-      res.statusCode = e instanceof ApiError ? e.status : 400;
-      res.end(
-        json({
-          error:
-            e instanceof ApiError || e instanceof SolanaError
-              ? e.message
-              : "Settlement unavailable; preserve and reconcile the order.",
-        }),
+      diagnostics.record(
+        e instanceof ApiError && e.status === 403
+          ? "ACCESS_DENIED"
+          : "INVALID_REQUEST",
       );
+      const safe = privacyError(e);
+      res.statusCode = safe.status;
+      res.end(json(safe.body));
     }
   };
 }

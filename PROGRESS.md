@@ -1,5 +1,13 @@
 # ZecOne progress
 
+## 17 October 2026 — Phase 8A privacy boundaries complete
+
+Continues audit `15ae8dc`. Added explicit routine-response allowlists across unified checkouts, older EVM views, historical snapshots and Solana delivery/swap views; source payment references and raw/private backend objects remain in restricted storage. Browser history uses per-session display aliases. Private inspection requires authentication, CSRF, acknowledgement and backend ownership (or the fixed read-only snapshot capability); aliases grant no financial authority. Selection no longer persists identifiers in localStorage, expires with its session, and rejects stale scope/handle restoration. Inspection clears after one minute or session/selection loss, including late-response guards. Added bounded finite-code diagnostic exports and retention that prunes only ephemeral authentication/diagnostic data.
+
+**446 tests pass**: 317 Node, 29 wallet UI, 17 extension, 6 historical UI, 3 isolated API/UI, 3 completed swap API/UI, 52 Solidity, 10 Rust wallet, 5 watch and 4 signer. One pre-existing standalone signer proof remains ignored. Both typechecks, scoped lint and production build pass. All **628 protected files** and both original completed financial records remain unchanged. Fresh finalized receipts match saved evidence; consistent-copy restart/replay/refund-veto checks pass with zero signer access or broadcast calls. No new live payment, key unlock, transaction signing, broadcast, credential migration or refund activation occurred.
+
+The trusted operator still sees cross-chain joins; RPC metadata and destination ownership remain visible. Amount/timing correlation, public NFT identifier relationships, historical plaintext keys and old exports remain limitations. History is not automatically reassigned after session loss: Phase 7C retains explicit operator attachment; the old Phase 7B browser fails closed for an unbound historical order. See [privacy disclosure](docs/PHASE8A-PRIVACY.md), [full change/validation report](docs/PHASE8A-VALIDATION.md) and new `docs/phase8a-evidence/`. Screenshots/private evidence remain gitignored. **Stop after Phase 8A; Phase 8B/C/D not started.**
+
 ## 17 October 2026 — Phase 8 audit only; awaiting review
 
 Audited checkpoint `da18524` without changing application code or historical credentials. [Phase 8 audit](PHASE8_AUDIT.md) documents architecture, privacy exposures, mixed key storage/locking, RPC independence gaps, exact proposed file changes and a scoped plan for the user's **28 October** demo deadline. Phase 8A implementation has not started.
