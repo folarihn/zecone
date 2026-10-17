@@ -29,6 +29,13 @@ import {
 } from "@solana/kit";
 import { signWithLocalSigner, type LeasedSigner } from "./leased-signer.ts";
 import {
+  EvidenceReader,
+  verificationConfig,
+  type VerificationConfig,
+} from "../execution/rpc-confidence.ts";
+import { solanaReceiptEvidence } from "./receipt-confidence.ts";
+import { DEVNET } from "./network.ts";
+import {
   validateWatchSnapshot,
   type WatchSnapshot,
 } from "../signer/watch-evidence.ts";
@@ -54,7 +61,22 @@ export interface SettlementNetwork {
 }
 // Read calls use bounded retry; a broadcast deliberately bypasses the retry wrapper.
 export class SolanaSettlementNetwork implements SettlementNetwork {
-  constructor(readonly net = new Devnet()) {}
+  #evidenceConfig?: VerificationConfig;
+  constructor(
+    readonly net = new Devnet(),
+    evidenceConfig?: VerificationConfig,
+  ) {
+    this.#evidenceConfig = evidenceConfig;
+  }
+  private verification() {
+    return (
+      this.#evidenceConfig ?? verificationConfig("ZECONE_SOLANA_RPC", DEVNET)
+    );
+  }
+  // Separate read-only report: does not rewrite persisted receipts or grant execution.
+  receiptEvidence(sig: string) {
+    return solanaReceiptEvidence(new EvidenceReader(this.verification()), sig);
+  }
   balance = (a: string) => this.net.balance(a);
   latest = () => this.net.latest();
   fee = (m: string) => this.net.fee(m);
@@ -95,7 +117,14 @@ export class SolanaSettlementNetwork implements SettlementNetwork {
       })
       .send({ abortSignal: AbortSignal.timeout(15000) });
   }
-  receipt(sig: string) {
+  async receipt(sig: string) {
+    const config = this.verification();
+    if (config.requireCorroboration) {
+      const reader = new EvidenceReader(config);
+      const result = await solanaReceiptEvidence(reader, sig);
+      reader.assertAccepted(result);
+      return result.evidence;
+    }
     return this.net.read((s) =>
       this.net.rpc
         .getTransaction(signature(sig), {

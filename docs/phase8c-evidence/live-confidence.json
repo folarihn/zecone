@@ -1,0 +1,80 @@
+{
+  "at": "2026-10-17T10:03:00.797Z",
+  "readOnly": true,
+  "signingCalls": 0,
+  "broadcastCalls": 0,
+  "reports": [
+    {
+      "source": "phase7b",
+      "network": "solana-devnet",
+      "secondaryConfigured": false,
+      "confidence": {
+        "mode": "PRIMARY_ONLY",
+        "reason": "NO_SECONDARY_CONFIGURED",
+        "scope": "SOLANA_FINALIZED_TRANSACTION",
+        "providersChecked": 1,
+        "providerOutcomes": [
+          "VERIFIED"
+        ]
+      },
+      "evidenceAvailable": true
+    },
+    {
+      "source": "phase7c",
+      "network": "solana-devnet",
+      "secondaryConfigured": false,
+      "confidence": {
+        "mode": "PRIMARY_ONLY",
+        "reason": "NO_SECONDARY_CONFIGURED",
+        "scope": "SOLANA_FINALIZED_TRANSACTION",
+        "providersChecked": 1,
+        "providerOutcomes": [
+          "VERIFIED"
+        ]
+      },
+      "evidenceAvailable": true
+    },
+    {
+      "network": 84532,
+      "secondaryConfigured": false,
+      "confidence": {
+        "mode": "PRIMARY_ONLY",
+        "reason": "NO_SECONDARY_CONFIGURED",
+        "scope": "EVM_CANONICAL_DEPTH_RECEIPT",
+        "providersChecked": 1,
+        "providerOutcomes": [
+          "VERIFIED"
+        ]
+      },
+      "evidenceAvailable": true
+    },
+    {
+      "network": 11155111,
+      "secondaryConfigured": false,
+      "confidence": {
+        "mode": "DEGRADED",
+        "reason": "PRIMARY_EVIDENCE_UNAVAILABLE",
+        "scope": "EVM_CANONICAL_DEPTH_RECEIPT",
+        "providersChecked": 0,
+        "providerOutcomes": [
+          "MISSING_OR_INSUFFICIENT_FINALITY"
+        ]
+      },
+      "evidenceAvailable": false
+    },
+    {
+      "network": 46630,
+      "secondaryConfigured": false,
+      "confidence": {
+        "mode": "PRIMARY_ONLY",
+        "reason": "NO_SECONDARY_CONFIGURED",
+        "scope": "EVM_CANONICAL_DEPTH_RECEIPT",
+        "providersChecked": 1,
+        "providerOutcomes": [
+          "VERIFIED"
+        ]
+      },
+      "evidenceAvailable": true
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+(node:17376) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 8C primary-only evidence is scoped and required corroboration fails closed (5.9196ms)
+✔ 8C independent Solana corroboration ignores different current finalized heads and cosmetic UI token formatting (13.1176ms)
+✔ 8C secondary timeout is bounded and cannot become agreement (176.9785ms)
+✔ 8C unavailable primary cannot be replaced by a responsive secondary (111.2139ms)
+✔ 8C conflicting finalized Solana slots are a material conflict (1.4266ms)
+✔ 8C wrong devnet genesis rejects before requesting transaction data (0.4766ms)
+✔ 8C changed token owner, mint, amount, native balance or message cannot corroborate (4.9282ms)
+✔ 8C null, pruned or not-yet-finalized peer evidence is degraded rather than a false conflict (1.9022ms)
+✔ 8C duplicate operators, same host and missing independence acknowledgement never corroborate (2.3619ms)
+✔ 8C EVM corroboration compares canonical receipt effects, tolerating different head heights (1.3498ms)
+✔ 8C EVM conflicting status or block identity is rejected (1.1766ms)
+✔ 8C EVM wrong chain and insufficient peer depth cannot authorize corroborated evidence (1.2075ms)
+✔ 8C credentials and cross-chain identifiers never appear in confidence or destination request bodies (3.8452ms)
+✔ 8C verification policy is honored by existing Solana and EVM receipt adapters (2.6572ms)
+✔ 8C restart of a completed disposable order still vetoes execution, preparation and refund without reading signer/network (3.9292ms)
+✔ 8C malformed, unsafe-number and oversized responses fail closed with finite redacted outcomes (5.8886ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2501.8884

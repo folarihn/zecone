@@ -2,6 +2,12 @@
 import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 const files = [
+  "scripts/phase8-rpc-audit.ts",
+  "services/execution/rpc-confidence.ts",
+  "services/solana/receipt-confidence.ts",
+  "services/evm/receipt-confidence.ts",
+  "services/evm/adapter.ts",
+  "tests/phase8-rpc.test.ts",
   "services/signer/lease.ts",
   "services/signer/wallet-vault.ts",
   "services/signer/keystore.ts",

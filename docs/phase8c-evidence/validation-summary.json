@@ -1,0 +1,18 @@
+{
+  "testsPassed": 480,
+  "nodeTests": 351,
+  "newRpcTests": 16,
+  "existingNativeProofIgnored": 1,
+  "typechecks": "passed",
+  "lint": "passed",
+  "productionBuild": "passed",
+  "protectedFiles": 628,
+  "protectedFilesUnchanged": true,
+  "financialRowsUnchanged": true,
+  "restartReplayRefundVeto": "passed",
+  "liveIndependentSecondaryConfigured": false,
+  "liveCorroboratedEvidence": 0,
+  "liveSigning": 0,
+  "liveBroadcasts": 0,
+  "refundsEnabled": false
+}
