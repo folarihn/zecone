@@ -1,5 +1,19 @@
 # ZecOne progress
 
+## 17 October 2026 — Phase 7C.2 live-order recovery (unsigned; exact approval gate)
+
+Continues `a7a41c0` using its existing recovery mechanism, with **no implementation changes required**. Fresh private native evidence verifies the original 100000-zatoshi payment. Initial live journal inspection found `RECOVERY_REQUIRED`; independent devnet histories and ATA existence checks found no signing/submission claim, signed wire, signature or token delivery. The primary genesis/pool/program/token/liquidity checks pass. No secondary endpoint is configured; primary-only preparation is permitted by current policy, with no claim of independent provider corroboration.
+
+Applied the user's preparation-only authorization to the **live original order**, through `terms --review-unsigned-rpc`, under the unchanged original attempt/grant expiry. The Solana row is now `AWAITING_SOLANA_AUTHORIZATION`; general order state remains `recovery`. Original payment association, recipient, token pair, input/minimum/slippage limits, pool/program, deadline, old recovery reasons and all prior reviews/approvals are retained. No exact execution approval exists.
+
+The live-order unsigned rehearsal passed: **48611 compute units**, **5000-lamport fee**, **143 block heights remaining after simulation**, original expected **76.043880** and minimum **75.283441** test tokens for **0.001 WSOL**, with **1%** slippage. Its expired bytes were safely archived during validation. The user subsequently confirmed readiness for new exact bytes **after validation**, explicitly without signing/broadcast permission. Final preparation must recheck native evidence, the original economic bounds and current chain validity; no expired digest or approval carries forward.
+
+Latest measured rent is **1488440 lamports per account**, **2976880 total** for the two missing token accounts. The original **6000000-lamport rent cap**, **10000 fee cap** and **7010000 maximum total debit** remain unchanged, and relayer inventory is sufficient. Exact digest/wire/lifetimes remain operator-only and are presented directly to the human. The fresh final-state aggregate, when produced, is recorded separately from the earlier rehearsal.
+
+Repeated validation: **427 passing tests** (302 Node; 25 wallet UI; 17 extension; 6 historical UI; 3 real isolated API; 3 real swap API/UI; 52 Solidity; 10 Rust wallet; 5 watch; 4 offline signer). One pre-existing expensive standalone proof remains ignored; isolated Node integration exercises native proof/signing. Both typechecks, lint and production build pass. **537 historical + 91 Phase 7B protected files remain unchanged**. Browser captures are private. See [Phase 7C.2 live recovery and evidence](docs/PHASE7C2-LIVE-ORDER-RECOVERY.md).
+
+No live key unlock, signing, broadcast, second Zcash payment or refund activation occurred. The original unresolved wallet transfer and historical credentials are untouched. **Phase 7C remains incomplete. Phase 8 has not begun.**
+
 ## 17 October 2026 — Phase 7C.1 RPC reliability and unsigned recovery
 
 Continues `64d6393` and the failed unsigned preparation checkpoint. The original order/payment is preserved. Independent devnet reconciliation confirms **no signing claim, signed bytes, signature, submission or recipient delivery**. The live order deliberately remains **RECOVERY_REQUIRED**. No new Zcash payment, key unlock, live signing, broadcast or refund occurred.
