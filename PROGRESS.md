@@ -1,5 +1,13 @@
 # ZecOne progress
 
+## 17 October 2026 — Phase 8 audit only; awaiting review
+
+Audited checkpoint `da18524` without changing application code or historical credentials. [Phase 8 audit](PHASE8_AUDIT.md) documents architecture, privacy exposures, mixed key storage/locking, RPC independence gaps, exact proposed file changes and a scoped plan for the user's **28 October** demo deadline. Phase 8A implementation has not started.
+
+Fresh read-only devnet receipts match the saved Phase 7B and Phase 7C finalized evidence. Consistent journal copies reject completed-order preparation/execution before signer access and veto refunds. Original financial rows remain unchanged; no new payment, live key unlock, signing, broadcast or refund activation occurred.
+
+Baseline: **431 tests pass** (306 Node, 25 wallet UI, 17 extension, 6 historical UI, 3 isolated API/UI, 3 finalized swap API/UI, 52 Solidity, 10 Rust wallet, 5 watch, 4 signer); one pre-existing standalone signer proof ignored. Both typechecks, scoped lint and production build pass. All **537 historical + 91 Phase 7B protected files** match their inventories. Evidence is under `docs/phase8-evidence`; screenshots and exact private inventory/journal fingerprints stay gitignored. Mainnet readiness remains NO. Stop at the audit review gate.
+
 ## 17 October 2026 — Phase 7C completed within its bounded devnet scope
 
 The human explicitly authorized **one successful settlement under fixed economic constraints**, including new validated unsigned bytes when quotes/blockhashes expire. Added a distinct durable bounded-order authorization; previous preparation-only grants and expired exact approvals were not broadened or reused. It binds the original payment/order/intent and all stated recipient, mint, input, minimum-output, slippage, relayer, pool/program and fee/rent/debit constraints. Transaction derivations are audited as `BOUNDED_ORDER`; authority is atomically consumed with signing. Unsigned expiry can retry within the scope; signed or uncertain attempts cannot construct/broadcast replacements.

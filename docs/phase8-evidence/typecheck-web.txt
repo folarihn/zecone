@@ -1,0 +1,4 @@
+
+> typecheck:web
+> tsc -p tsconfig.web.json --noEmit
+
