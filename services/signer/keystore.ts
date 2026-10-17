@@ -32,7 +32,12 @@ type Envelope = typeof header & {
 const aad = (purpose: string) =>
   Buffer.from(JSON.stringify({ ...header, purpose }));
 const validPurpose = (v: string) => {
-  if (!/^(operator-approval|signer-approval|isolated-wallet-test)$/.test(v))
+  if (
+    !/^(operator-approval|signer-approval|isolated-wallet-test)$/.test(v) &&
+    !/^development-wallet:(user|relayer|refund-approver):(solana-devnet|base-sepolia|ethereum-sepolia|robinhood-testnet|approval-testnet):[a-f0-9-]{36}:[A-Za-z0-9]{32,64}$/.test(
+      v,
+    )
+  )
     throw Error("keystore_purpose");
 };
 async function derive(password: Buffer, salt: Buffer): Promise<Buffer> {

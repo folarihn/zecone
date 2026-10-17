@@ -23,11 +23,11 @@ import {
   blockhash,
   getSignatureFromTransaction,
   getBase64EncodedWireTransaction,
-  signTransaction,
   signature,
   type KeyPairSigner,
   type Base64EncodedWireTransaction,
 } from "@solana/kit";
+import { signWithLocalSigner, type LeasedSigner } from "./leased-signer.ts";
 import {
   validateWatchSnapshot,
   type WatchSnapshot,
@@ -427,7 +427,7 @@ export class SolanaSettlement {
   async execute(
     id: string,
     approval: { orderId: string; digest: string; approved: true },
-    signer: KeyPairSigner,
+    signer: KeyPairSigner | LeasedSigner,
   ) {
     const i = this.eligible(id),
       row = this.row(id);
@@ -540,7 +540,7 @@ export class SolanaSettlement {
           this.now(),
         );
       });
-      const signed = await signTransaction([signer.keyPair], tx),
+      const signed = await signWithLocalSigner(signer, tx),
         sig = getSignatureFromTransaction(signed),
         wire = getBase64EncodedWireTransaction(signed);
       this.store.atomic(() => {
