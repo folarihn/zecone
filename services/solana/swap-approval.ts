@@ -5,10 +5,13 @@ import type { SwapPrepared } from "./cpmm.ts";
 
 // Economic review is NOT signing/broadcast authorization. Exact bytes still need approval.
 export function economicReview(service: SolanaSettlement, id: string) {
-  const i = service.eligible(id);
+  const i = service.eligible(id, true);
   if (!i.swap) throw new SolanaError("SWAP_REQUIRED");
   const termsDigest = digest(json(i));
-  const reviewUntil = Math.min(i.expiry, service.now() + 1800);
+  const reviewUntil = Math.min(
+    service.preparationDeadline(id),
+    service.now() + 1800,
+  );
   service.store.db.exec(
     "CREATE TABLE IF NOT EXISTS solana_economic_reviews(order_id TEXT PRIMARY KEY,terms_digest TEXT NOT NULL,review_until INTEGER NOT NULL)",
   );
@@ -40,7 +43,7 @@ export function checkEconomicReview(
   id: string,
   termsDigest: string,
 ) {
-  const i = service.eligible(id);
+  const i = service.eligible(id, true);
   const r = service.store.db
     .prepare("SELECT * FROM solana_economic_reviews WHERE order_id=?")
     .get(id);

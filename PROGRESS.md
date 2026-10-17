@@ -1,5 +1,17 @@
 # ZecOne progress
 
+## 17 October 2026 — Authorized recovery preparation (separate transaction approval required)
+
+Continues `3614d67`. The human explicitly authorized **preparing recovery of the existing paid Phase 7C order only**. A two-hour `PREPARATION_ONLY` grant binds its exact persisted order, attempt UUID, original intent, recipient, token pair, input/minimum/slippage/fee limits and original confirmed payment/authorization. Registration rechecked native owned-note evidence, original unsigned transaction instructions, independent devnet signer/recipient-token-account histories, and absence of signing, settlement and refund claims. No new order or payment was created.
+
+Only that Solana row was reopened for preparation. The general order remains auditable as `recovery`; its original deadline, intent, payment association and old recovery/approval history remain unchanged. Expired unsigned reviews were archived without overwriting expired approval records. A repeated registration cannot extend the grant or unlock another order. Changed evidence, unrelated recovery reasons, claims, prior signatures or refund vetoes fail closed.
+
+Preparing does not unlock keys or create an execution approval. A later separately approved exact digest requires its own scoped authorization, consumed atomically with the signing claim. An old digest cannot carry to refreshed bytes. Fresh quotes retain the original minimum and at most 1% slippage; a price change requiring a different minimum stops for economic authorization. The final live preparation is deliberately deferred until after validation, with measured outcome in [authorized preparation evidence](docs/phase7c-evidence/authorized-preparation.json). No signing or broadcast is authorized in this step.
+
+Validation: **416 passing tests** (291 Node, 25 wallet UI, 17 installed-extension, 6 historical read-only UI, 3 real isolated-backend, 3 real swap browser/API, 52 Solidity, 10 Rust wallet, 5 watch, 4 offline signer). One pre-existing expensive standalone proof remains ignored; Node integration exercises native isolated proof/signing. Both typechecks, lint and production build passed. The extension suite had a concurrent-browser synthetic signing timeout; all 17 tests subsequently passed alone with assertions unchanged. Both logs are retained. Preservation checks confirm **537 original + 91 Phase 7B files unchanged**.
+
+The trusted relayer, single RPC provider, public Solana recipient/token activity, timing/amount correlation and existing local development-key limitations remain. Live refunds stay disabled. **Phase 7C is not complete; Phase 8 has not begun.** See [recovery lifecycle and commands](docs/PHASE7C-APPROVAL-RECOVERY.md) and [transaction evidence](docs/PHASE7C-TRANSACTION-EVIDENCE.md).
+
 ## 17 October 2026 — Phase 7C approval recovery (partial; live execution blocked)
 
 Continues `4ed111f` and the existing uncommitted Phase 7C checkout. The original fresh shielded payment remains attached to its original order and encrypted user recipient: historical 30-confirmation evidence is retained and the latest receiving scan verifies **933 confirmations**. No second payment was created or resent. Independent devnet signer and recipient-token-account histories, account existence and the durable journal show **zero signing/broadcast claims, no signed wire, no signature and no token delivery** for this swap. Full private payment associations remain gitignored; public logs omit them.

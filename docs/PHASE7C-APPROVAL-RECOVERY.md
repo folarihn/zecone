@@ -1,8 +1,12 @@
 # Phase 7C expired approval recovery
 
-16–17 October 2026. Status: **original paid order retained; no swap signed or submitted; original order deadline now expired**. Phase 7C is incomplete. Phase 8 has not begun.
+16–17 October 2026. Status: **the user has explicitly authorized preparation-only recovery of the original paid order; no swap signed or submitted**. Phase 7C is incomplete. Phase 8 has not begun.
 
 On resuming at 03:12 Lagos time on 17 October, the original order deadline (22:35:59 Lagos on 16 October, Unix 1792186559) had elapsed. Read-only journal and independent RPC reconciliation again found zero signing/submission claims, zero signatures, no signed wire and no relevant relayer/recipient-token-account transactions. This is a distinct blocker from the old 90-second swap approval. The original payment remains recorded against the original order, but current policy cannot authorize new execution after that deadline. No deadline, intent, payment association or recovery veto is silently rewritten. Reopening this same paid order needs an explicitly reviewed recovery authorization; no second payment is requested.
+
+The subsequent human request **“ZecOne Phase 7C — Authorized Order Recovery”** supplies that preparation authorization only. `solana_paid_preparation_recoveries` records its exact original order, attempt UUID, original intent and confirmed payment/authentication binding, scope, creation time and a separate two-hour preparation deadline. The original deadline, intent and payment assignment are unchanged. Independent RPC reconciliation and original unsigned-wire inspection precede the atomic scoped reopening. A retry with the same attempt is idempotent and does not extend its lifetime; a different attempt, refund/settlement claim, signed/uncertain transaction, different evidence or unrelated recovery reason is rejected.
+
+Only the specific Solana journal row becomes `AWAITING_SOLANA_AUTHORIZATION`; the general order remains `recovery` and its expired recovery/audit history is retained. Preparation eligibility requires the new grant plus fresh owned-note evidence. Ordinary execution eligibility remains blocked. A **second, separate exact transaction approval** must be recorded in `solana_paid_recovery_exact_approvals` before execution; preparation never creates that record or unlocks a key. That second record binds one attempt and digest, cannot extend/reuse an expired quote, and is consumed atomically with the signing claim. Its future path is fixture-tested; no such live execution approval has been recorded during preparation.
 
 ## Initial reconciliation
 
@@ -16,8 +20,8 @@ The old prepared review set `expiresAt = min(order.expiry, now + 90)`, using it 
 
 ## Separate lifetimes and authority
 
-- **Payment evidence and order:** the original payment association and authorization proof persist. Execution still requires a complete fresh watch scan (at most 120 seconds old), ten confirmations, exact owned-note evidence and the original order's two-hour payment/execution deadline. Expiry does not discard the payment or enable a replacement payment; it requires recovery review. This change does not silently extend the original order deadline.
-- **Economic review:** up to 30 minutes, bounded by that order deadline. Its digest binds the full immutable original intent, including recipient, relayer, network, pool, mint, exact input, minimum, slippage and fee ceiling. Reviewing these terms is explicitly **not authorization to sign or broadcast**.
+- **Payment evidence and order:** the original payment association and authorization proof persist. A complete fresh watch scan (at most 120 seconds old), ten confirmations and exact original owned-note evidence remain mandatory. The original order's two-hour deadline is retained. After expiry, only a specific human preparation grant can permit preparing that same paid order; future execution additionally requires a separately recorded exact approval. No original deadline is rewritten and no replacement payment is authorized.
+- **Economic review:** up to 30 minutes, bounded by the original deadline for normal orders or the explicit preparation deadline for this recovered order. Its digest binds the full immutable original intent, including recipient, relayer, network, pool, mint, exact input, minimum, slippage and fee ceiling. Reviewing these terms is explicitly **not authorization to sign or broadcast**.
 - **DEX quote:** a fresh 90-second application deadline, with current pool/program/mint/token-account validation and liquidity sufficient for the original minimum. Current inventory, ATA rent and fee ceilings are checked. A refresh cannot reduce the minimum, switch token/recipient, or increase slippage/input. Different economic terms require new explicit authorization; this recovery does not edit them.
 - **Recent blockhash:** chain-enforced `lastValidBlockHeight` plus fresh `isBlockhashValid` checks before preflight and immediately before signing. No fabricated extension, durable-nonce account creation or replacement of signed transactions is introduced.
 - **Exact user approval:** a separate five-minute application deadline binding the exact serialized transaction digest. This is only one gate: approval cannot override an expired quote or blockhash. Neither economic review nor approval of a retired digest carries forward to refreshed bytes.
@@ -30,6 +34,9 @@ From the repository root:
 
 ```powershell
 node --import tsx scripts/phase7c-recovery-audit.ts
+npm run phase7c -- inspect-paid-recovery
+# Operator only, after explicit human authorization for the displayed exact order:
+npm run phase7c -- authorize-paid-recovery <original-order-id> <attempt-uuid> --user-authorized-preparation
 npm run phase7c -- recovery-rehearsal
 ```
 
@@ -39,7 +46,7 @@ The rehearsal refreshes the original receiving watch evidence, opens the economi
 
 The following command is for the human operator in a local interactive PowerShell terminal; running it does not itself approve a transaction:
 
-**Current order:** this command cannot pass the expired original order gate. The workflow is implemented and regression-tested, but live preparation/signing must stop until paid-order recovery is explicitly authorized. Do not run a new quote/profile/payment to bypass it.
+**Current order:** preparation is authorized through its specific grant. Signing and broadcasting are still unauthorized. Do not run the following approval/signing workflow until the human separately approves the exact transaction; flags, the old digest and the preparation grant alone are insufficient. Do not run a new quote/profile/payment to bypass any expired grant.
 
 ```powershell
 npm run phase7c -- review-swap --allow-devnet-broadcast --unlock-local-dpapi
@@ -47,7 +54,7 @@ npm run phase7c -- review-swap --allow-devnet-broadcast --unlock-local-dpapi
 
 Review the economic terms, then type `READY`. That word authorizes fresh **unsigned** preparation only. The tool rechecks the original payment, economic digest, pool, tokens, inventory, rent and fees; it refreshes expired unsigned bytes and simulates the exact transaction. It displays exact serialized base64 bytes, digest, network, recipient, mints, amount, minimum, fee/rent caps, quote/approval deadlines and blockhash lifetime. Type `APPROVE <displayed-digest>` only if approving those exact bytes. Piped input is rejected. No private seed or passphrase appears in either prompt. A new exact approval is necessary for every replacement.
 
-If the prompt or blockhash expires, **no signing occurs**. Rerun the interactive command to review fresh bytes; no automatic loop rebuilds or broadcasts. Chain validity and both application deadlines are checked again after human review and immediately before the signing claim. If the original order deadline has elapsed, stop for explicit recovery policy rather than modifying its intent or creating another payment.
+If the prompt or blockhash expires, **no signing occurs**. Rerun the interactive command to review fresh bytes; no automatic loop rebuilds or broadcasts. Chain validity and both application deadlines are checked again after human review and immediately before the signing claim. An expired original deadline requires its explicit recovery grant; an expired preparation grant requires a new reviewed authorization, never a silent extension or another payment.
 
 The existing `prepare-solana` / `broadcast-solana <exact-digest> --allow-devnet-broadcast --unlock-local-dpapi` commands remain supported for prompt operator handoffs. Chat approvals are never converted into permission to refresh blockhashes automatically.
 
@@ -55,7 +62,7 @@ The existing `prepare-solana` / `broadcast-solana <exact-digest> --allow-devnet-
 
 An atomic SQLite `VALIDATING` claim and exact-approval row exclude concurrent execution before asynchronous preflight. A second attempt cannot revoke the winning attempt. Approval is consumed atomically with the irreversible signing claim. Signed bytes/signature are persisted before the sole submission attempt; lost responses remain original-signature reconciliation only. No re-signing or uncertain replacement occurs.
 
-Known quote/approval/blockhash expiry before any signing claim releases only the unsigned validation claim, marks that approval expired, and keeps the payment attached. Manual retirement archives the prepared bytes and revokes the old review. Any signature, signed wire, signing claim, uncertainty, recovery veto or changed journal state prevents retirement. A restart during validation fails closed into recovery, without silently reopening execution. Finalized effects must match exact message, input/output vault movement, recipient ownership/token delta, rent and fee. Completion vetoes execution and refund recovery.
+Known quote/approval/blockhash expiry before any signing claim releases only the unsigned validation claim, marks that approval expired, and keeps the payment attached. Manual retirement archives prepared bytes and records retirement without overwriting old expired approval records. A retired digest cannot be prepared as a fresh transaction. Any signature, signed wire, signing claim, uncertainty, unrelated recovery veto or changed journal state prevents retirement. A restart during validation fails closed into recovery, without silently reopening execution. Finalized effects must match exact message, input/output vault movement, recipient ownership/token delta, rent and fee. Completion vetoes execution and refund recovery.
 
 Browser APIs still cannot authorize, unlock, sign, broadcast or refund. Private approval/reconciliation records remain local; public evidence excludes the payment-to-recipient association. The trusted prefunded relayer, single RPC view, same-OS-account storage and reused development relayer's plaintext historical key remain limitations. New encrypted recipient credentials are unchanged. No production anonymity or custody isolation claim is made.
 

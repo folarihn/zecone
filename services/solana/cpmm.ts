@@ -57,6 +57,7 @@ export type SwapPrepared = {
   quotedAt?: number;
   quoteExpiresAt?: number;
   approvalExpiresAt?: number;
+  quotedOutput?: string;
 };
 const fail = (code: string): never => {
   throw new SolanaError(code);
@@ -400,10 +401,15 @@ export class CpmmPolicy {
     if ((await this.net.balance(i.relayer)) < needed)
       fail("INSUFFICIENT_RELAYER_BALANCE");
   }
-  async prepare(i: SolanaDeliveryIntent): Promise<SwapPrepared> {
+  async prepare(
+    i: SolanaDeliveryIntent,
+    preparationDeadline = i.expiry,
+  ): Promise<SwapPrepared> {
     validateTerms(i.swap!);
-    if (quoteOutput(await this.pool()) < BigInt(i.swap!.minimumOut))
-      fail("SLIPPAGE_VIOLATION");
+    const quotedOutput = quoteOutput(await this.pool());
+    if (quotedOutput < BigInt(i.swap!.minimumOut)) fail("SLIPPAGE_VIOLATION");
+    if ((quotedOutput * 9900n) / 10000n > BigInt(i.swap!.minimumOut))
+      fail("FRESH_QUOTE_REQUIRES_CHANGED_MINIMUM_APPROVAL");
     await this.accounts(i);
     const lifetime = await this.net.latest(),
       tx = await swapTransaction(i, i.swap!, lifetime),
@@ -423,11 +429,12 @@ export class CpmmPolicy {
         lastValidBlockHeight: lifetime.lastValidBlockHeight.toString(),
       },
       swap: i.swap!,
+      quotedOutput: quotedOutput.toString(),
       // These are application deadlines; neither extends lastValidBlockHeight.
       quotedAt: this.now(),
-      quoteExpiresAt: Math.min(i.expiry, this.now() + 90),
-      approvalExpiresAt: Math.min(i.expiry, this.now() + 300),
-      expiresAt: Math.min(i.expiry, this.now() + 90),
+      quoteExpiresAt: Math.min(preparationDeadline, this.now() + 90),
+      approvalExpiresAt: Math.min(preparationDeadline, this.now() + 300),
+      expiresAt: Math.min(preparationDeadline, this.now() + 90),
       simulation: {
         err: simulation.err,
         unitsConsumed: simulation.unitsConsumed?.toString() ?? null,

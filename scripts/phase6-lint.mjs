@@ -12,6 +12,7 @@ const files = [
   "scripts/phase7c-rehearsal.ts",
   "scripts/phase7c-use-funded.ts",
   "scripts/phase7c-verify-completed.ts",
+  "scripts/phase7c-verify-prepared.ts",
   "playwright.phase7c.config.ts",
   "tests/phase7c/real-swap.spec.ts",
   "tests/solana-swap.test.ts",

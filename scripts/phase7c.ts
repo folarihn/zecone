@@ -21,6 +21,11 @@ import {
 } from "../services/solana/swap-approval.ts";
 import { createInterface } from "node:readline/promises";
 import { blockhash } from "@solana/kit";
+import {
+  authorizePaidPreparation,
+  recoveryRecord,
+  authorizeExactRecoveredTransaction,
+} from "../services/solana/paid-recovery.ts";
 const x = phase7cRuntime(),
   { p, root, service, store } = x;
 const id = `0x${(await import("../services/solana/transactions.ts")).digest(`phase7c:${p.id}:${p.orderId}`)}`;
@@ -94,7 +99,7 @@ async function approvedExecution(hash: string) {
     !process.argv.includes("--unlock-local-dpapi")
   )
     throw Error("Explicit broadcast and local unlock flags required");
-  service.eligible(id);
+  service.eligible(id, true);
   const saved = service.row(id).prepared;
   if (!saved || JSON.parse(saved).digest !== hash)
     throw Error("Current exact digest required before unlock");
@@ -107,6 +112,9 @@ async function approvedExecution(hash: string) {
     throw Error(
       "Blockhash expired; no unlock or signing; prepare and approve fresh bytes",
     );
+  if (recoveryRecord(service, id))
+    await authorizeExactRecoveredTransaction(service, id, hash, true);
+  service.eligible(id);
   const accounts = new EncryptedAccounts(),
     unlock = new WindowsUnlock();
   try {
@@ -150,11 +158,13 @@ async function refreshedUnsigned() {
   return service.prepare(id);
 }
 function exactReview(prepared: any) {
+  const original = service.intent(id);
   return {
     network: "solana:devnet",
-    relayer: p.relayer,
-    recipient: p.recipient,
+    relayer: original.relayer,
+    recipient: original.recipient,
     swap: prepared.swap,
+    currentQuotedOutput: prepared.quotedOutput ?? prepared.swap.expectedOut,
     exactTransactionBase64: prepared.wire,
     digest: prepared.digest,
     simulated: prepared.simulation,
@@ -216,6 +226,51 @@ try {
     result = {
       historyReattached: true,
       oldHandlesRevoked: true,
+      noBroadcast: true,
+    };
+  } else if (command === "inspect-paid-recovery") {
+    const row = service.row(id),
+      order = store.get(id)!;
+    result = {
+      orderId: id,
+      state: row.state,
+      orderState: order.state,
+      originalDeadline: service.intent(id).expiry,
+      recipient: p.recipient,
+      swap: service.intent(id).swap,
+      signingClaim: row.claimed,
+      signature: row.signature,
+      signedWireExists: !!row.wire,
+      confirmations: service.view(id).confirmations,
+      confirmedZatoshis: service.view(id).confirmedZatoshis,
+      reasons: store.db
+        .prepare("SELECT reason,status FROM recoveries WHERE order_id=?")
+        .all(id),
+      recovery: recoveryRecord(service, id)
+        ? {
+            scope: recoveryRecord(service, id)!.scope,
+            prepareUntil: recoveryRecord(service, id)!.prepare_until,
+          }
+        : null,
+      noSigningKeysLoaded: true,
+    };
+  } else if (command === "authorize-paid-recovery") {
+    if (process.argv[3] !== id)
+      throw Error("Exact persisted original order identifier required");
+    const grant = await authorizePaidPreparation(
+      service,
+      id,
+      process.argv[4] ?? "",
+      process.argv.includes("--user-authorized-preparation"),
+      await freshScan(x.watch),
+    );
+    result = {
+      orderId: id,
+      attemptId: grant.attempt_id,
+      scope: grant.scope,
+      prepareUntil: grant.prepare_until,
+      originalDeadline: service.intent(id).expiry,
+      noSigningKeysLoaded: true,
       noBroadcast: true,
     };
   } else if (command === "recovery-rehearsal") {

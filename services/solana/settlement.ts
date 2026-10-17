@@ -1,5 +1,13 @@
 import { randomBytes } from "node:crypto";
 import { assertReviewCurrent } from "./swap-approval.ts";
+import {
+  recoverySchema,
+  recoveryRecord,
+  assertPreparationRecovery,
+  assertExactRecoveryExecution,
+  consumeExactRecoveryApproval,
+} from "./paid-recovery.ts";
+import { ata } from "./transactions.ts";
 import { Store, type Snapshot } from "../execution/store.ts";
 import { Devnet, GENESIS, SolanaError, publicKey, json } from "./network.ts";
 import { prepare, inspect, digest, type Prepared } from "./transactions.ts";
@@ -42,6 +50,7 @@ export interface SettlementNetwork {
   simulate: Devnet["simulate"];
   send(wire: string): Promise<string>;
   receipt(sig: string): Promise<any>;
+  recoveryAbsence?(intent: SolanaDeliveryIntent, since: number): Promise<void>;
 }
 // Read calls use bounded retry; a broadcast deliberately bypasses the retry wrapper.
 export class SolanaSettlementNetwork implements SettlementNetwork {
@@ -51,6 +60,28 @@ export class SolanaSettlementNetwork implements SettlementNetwork {
   fee = (m: string) => this.net.fee(m);
   valid = (h: ReturnType<typeof blockhash>) => this.net.valid(h);
   simulate = (w: string) => this.net.simulate(w);
+  async recoveryAbsence(i: SolanaDeliveryIntent, since: number) {
+    const output = await ata(i.recipient, i.swap!.outputMint);
+    for (const key of [i.relayer, output]) {
+      const rows = await this.net.read((s) =>
+        this.net.rpc
+          .getSignaturesForAddress(publicKey(key), {
+            commitment: "confirmed",
+            limit: 1000,
+          })
+          .send({ abortSignal: s }),
+      );
+      if (
+        (rows.length === 1000 &&
+          (!rows.at(-1)?.blockTime ||
+            Number(rows.at(-1)!.blockTime) >= since)) ||
+        rows.some((r) => r.blockTime === null || Number(r.blockTime) >= since)
+      )
+        throw new SolanaError("RECOVERY_HISTORY_RECONCILIATION_REQUIRED");
+    }
+    if (await this.net.account(output))
+      throw new SolanaError("PRIOR_OUTPUT_ACCOUNT_REQUIRES_REVIEW");
+  }
   async send(wire: string) {
     await this.net.health(); // Full genesis check BEFORE the sole submission attempt.
     return this.net.rpc
@@ -91,6 +122,7 @@ export class SolanaSettlement {
     store.db.exec(
       "CREATE TABLE IF NOT EXISTS solana_exact_approvals(order_id TEXT NOT NULL REFERENCES orders(id),digest TEXT NOT NULL,approved_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,state TEXT NOT NULL,PRIMARY KEY(order_id,digest)); UPDATE solana_settlement SET state='RECOVERY_REQUIRED' WHERE state='VALIDATING'",
     );
+    recoverySchema(this);
   }
   quote(
     input: {
@@ -204,6 +236,18 @@ export class SolanaSettlement {
     const total = this.store.totals(id),
       i = this.intent(id);
     const row = this.row(id);
+    if (
+      recoveryRecord(this, id) &&
+      !row.claimed &&
+      row.state !== "RECOVERY_REQUIRED"
+    ) {
+      try {
+        assertPreparationRecovery(this, id);
+      } catch {
+        this.recover(id, "paid_recovery_evidence_veto");
+      }
+      return this.view(id);
+    }
     if (row.claimed || ["COMPLETED", "RECOVERY_REQUIRED"].includes(row.state)) {
       if (total.confirmed < BigInt(i.zatoshis))
         this.recover(id, "payment_reorg_after_execution");
@@ -251,9 +295,14 @@ export class SolanaSettlement {
     );
     return this.view(id);
   }
-  eligible(id: string) {
+  eligible(id: string, preparationOnly = false) {
     const row = this.row(id),
       o = this.store.get(id)!;
+    if (recoveryRecord(this, id)) {
+      if (preparationOnly) assertPreparationRecovery(this, id);
+      else assertExactRecoveryExecution(this, id);
+      return this.intent(id);
+    }
     if (
       row.claimed ||
       row.state === "RECOVERY_REQUIRED" ||
@@ -265,10 +314,26 @@ export class SolanaSettlement {
       throw new SolanaError("PAYMENT_NOT_ELIGIBLE_OR_RECOVERY");
     return this.intent(id);
   }
+  preparationDeadline(id: string) {
+    const grant = recoveryRecord(this, id);
+    if (grant) {
+      assertPreparationRecovery(this, id);
+      return Number(grant.prepare_until);
+    }
+    return this.intent(id).expiry;
+  }
   async prepare(id: string) {
-    const i = this.eligible(id),
+    const i = this.eligible(id, true),
       row = this.row(id);
-    if (row.prepared) return JSON.parse(row.prepared) as StoredPrepared;
+    if (row.prepared) {
+      const cached = JSON.parse(row.prepared) as StoredPrepared;
+      if (i.swap) {
+        assertReviewCurrent(cached as SwapPrepared, this.now());
+        if (!(await this.network.valid(blockhash(cached.lifetime.blockhash))))
+          throw new SolanaError("BLOCKHASH_EXPIRED");
+      }
+      return cached;
+    }
     if (
       !this.store.db
         .prepare(
@@ -283,7 +348,7 @@ export class SolanaSettlement {
       if (balance < required)
         throw new SolanaError("INSUFFICIENT_RELAYER_BALANCE");
       const p = i.swap
-        ? await this.swapPolicy!.prepare(i)
+        ? await this.swapPolicy!.prepare(i, this.preparationDeadline(id))
         : await prepare(
             this.network as unknown as Devnet,
             {
@@ -299,7 +364,21 @@ export class SolanaSettlement {
             [i.relayer, i.recipient],
           );
       if (p.simulation.err) throw new SolanaError("SIMULATION_FAILED");
-      this.eligible(id);
+      if (
+        i.swap &&
+        this.store.db
+          .prepare(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='solana_unsigned_review_archive'",
+          )
+          .get() &&
+        this.store.db
+          .prepare(
+            "SELECT 1 FROM solana_unsigned_review_archive WHERE order_id=? AND digest=?",
+          )
+          .get(id, p.digest)
+      )
+        throw new SolanaError("STALE_TRANSACTION_DIGEST_REUSED");
+      this.eligible(id, true);
       this.store.db
         .prepare(
           "UPDATE solana_settlement SET state='AWAITING_SOLANA_AUTHORIZATION',prepared=? WHERE order_id=? AND state='PREPARING'",
@@ -425,6 +504,7 @@ export class SolanaSettlement {
             .run(id, p.digest).changes !== 1
         )
           throw new SolanaError("EXACT_APPROVAL_ALREADY_CONSUMED");
+        if (i.swap) consumeExactRecoveryApproval(this, id, p.digest);
         this.store.event(
           id,
           "solana_signing_claimed",

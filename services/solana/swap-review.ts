@@ -11,7 +11,7 @@ export async function retireExpiredUnsignedSwap(
   explicit: boolean,
 ) {
   if (!explicit) throw new SolanaError("MANUAL_UNSIGNED_REVIEW_REQUIRED");
-  const i = service.eligible(id),
+  const i = service.eligible(id, true),
     row = service.row(id);
   if (
     !i.swap ||
@@ -29,7 +29,7 @@ export async function retireExpiredUnsignedSwap(
   )
     throw new SolanaError("ORIGINAL_REVIEW_NOT_EXPIRED");
   service.store.atomic(() => {
-    service.eligible(id);
+    service.eligible(id, true);
     const current = service.row(id);
     if (
       current.claimed ||
@@ -50,15 +50,15 @@ export async function retireExpiredUnsignedSwap(
         "UPDATE solana_settlement SET prepared=NULL WHERE order_id=? AND claimed=0 AND signature IS NULL AND wire IS NULL",
       )
       .run(id);
-    service.store.db
-      .prepare(
-        "UPDATE solana_exact_approvals SET state='RETIRED' WHERE order_id=? AND digest=? AND state!='CONSUMED'",
-      )
-      .run(id, p.digest);
     service.store.event(
       id,
       "manual_expired_unsigned_review_retired",
-      { digest: p.digest, newApprovalRequired: true, signingClaim: false },
+      {
+        digest: p.digest,
+        newApprovalRequired: true,
+        signingClaim: false,
+        oldApprovalRecordsPreserved: true,
+      },
       service.now(),
     );
   });

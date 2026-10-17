@@ -54,6 +54,11 @@ import {
   checkEconomicReview,
   assertReviewCurrent,
 } from "../services/solana/swap-approval.ts";
+import {
+  authorizePaidPreparation,
+  recoveryRecord,
+  authorizeExactRecoveredTransaction,
+} from "../services/solana/paid-recovery.ts";
 const key = await generateKeyPairSigner(),
   recipient = (await generateKeyPairSigner()).address;
 const liquidity = {
@@ -245,6 +250,481 @@ test("manual expired unsigned review archives bytes and vetoes valid, claimed or
         key,
       ),
     );
+  } finally {
+    x.store.close();
+  }
+});
+async function paidRecoveryFixture() {
+  const x = setup(":memory:", { recoveryAbsence: async () => {} });
+  x.service.authorize(x.id, x.snapshot());
+  const old = await x.service.prepare(x.id);
+  x.time(107201);
+  x.service.authorize(x.id, x.snapshot());
+  return { ...x, old, attempt: randomUUID() };
+}
+test("explicit paid recovery binds original payment/intent and prepares only; no implicit execution grant", async () => {
+  const x = await paidRecoveryFixture();
+  try {
+    const intent = x.store.get(x.id)!.intent,
+      oldDeadline = x.service.intent(x.id).expiry;
+    const grant = await authorizePaidPreparation(
+      x.service,
+      x.id,
+      x.attempt,
+      true,
+      x.snapshot(),
+    );
+    assert.equal(grant.scope, "PREPARATION_ONLY");
+    assert.equal(grant.prepare_until, 107201 + 7200);
+    assert.equal(x.store.get(x.id)!.intent, intent);
+    assert.equal(x.service.intent(x.id).expiry, oldDeadline);
+    assert.equal(x.store.get(x.id)!.state, "recovery");
+    await assert.rejects(
+      x.service.prepare(x.id),
+      /USER_APPROVAL_EXPIRED|SWAP_QUOTE_EXPIRED/,
+    );
+    await retireExpiredUnsignedSwap(x.service, x.id, true);
+    x.net.latest = async () => ({
+      blockhash: blockhash(key.address),
+      lastValidBlockHeight: 1200n,
+    });
+    const p = (await x.service.prepare(x.id)) as SwapPrepared;
+    assert.notEqual(p.digest, x.old.digest);
+    assert.equal(p.quoteExpiresAt, 107291);
+    assert.deepEqual(p.swap, terms);
+    assert.equal(x.store.totals(x.id).confirmed, 100000n);
+    assert.throws(() => x.service.eligible(x.id));
+    await assert.rejects(
+      x.service.execute(
+        x.id,
+        { orderId: x.id, digest: p.digest, approved: true },
+        key,
+      ),
+    );
+    assert.equal(x.service.row(x.id).claimed, 0);
+    assert.equal(x.sends(), 0);
+    assert.equal(
+      x.store.db.prepare("SELECT COUNT(*) AS n FROM orders").get()!.n,
+      1,
+    );
+    assert.ok(economicReview(x.service, x.id).reviewUntil > 107201);
+  } finally {
+    x.store.close();
+  }
+});
+test("paid preparation registration requires explicit exact target and is idempotent without extending deadline", async () => {
+  const x = await paidRecoveryFixture();
+  try {
+    await assert.rejects(
+      authorizePaidPreparation(x.service, x.id, x.attempt, false, x.snapshot()),
+    );
+    await assert.rejects(
+      authorizePaidPreparation(
+        x.service,
+        "0x" + "0".repeat(64),
+        x.attempt,
+        true,
+        x.snapshot(),
+      ),
+    );
+    const first = await authorizePaidPreparation(
+      x.service,
+      x.id,
+      x.attempt,
+      true,
+      x.snapshot(),
+    );
+    x.time(107211);
+    const again = await authorizePaidPreparation(
+      x.service,
+      x.id,
+      x.attempt,
+      true,
+      x.snapshot(),
+    );
+    assert.equal(first.prepare_until, again.prepare_until);
+    await assert.rejects(
+      authorizePaidPreparation(
+        x.service,
+        x.id,
+        randomUUID(),
+        true,
+        x.snapshot(),
+      ),
+      /EXISTING_RECOVERY_ATTEMPT/,
+    );
+    assert.equal(
+      x.store.db
+        .prepare("SELECT COUNT(*) AS n FROM solana_paid_preparation_recoveries")
+        .get()!.n,
+      1,
+    );
+  } finally {
+    x.store.close();
+  }
+});
+test("refund and prior settlement claims veto paid-order reopening", async () => {
+  for (const kind of [
+    "signing",
+    "wire",
+    "signature",
+    "veto",
+    "construction",
+    "refund",
+    "uncertain",
+    "unrelatedRecovery",
+  ]) {
+    const x = await paidRecoveryFixture();
+    try {
+      if (kind === "signing")
+        x.store.db.exec("UPDATE solana_settlement SET claimed=1");
+      if (kind === "wire")
+        x.store.db.exec("UPDATE solana_settlement SET wire='SYNTHETIC_SIGNED'");
+      if (kind === "signature")
+        x.store.db.exec(
+          "UPDATE solana_settlement SET signature='SYNTHETIC_UNKNOWN'",
+        );
+      if (kind === "veto") {
+        x.store.db.exec(
+          "CREATE TABLE settlement_execution_veto(order_id TEXT)",
+        );
+        x.store.db
+          .prepare("INSERT INTO settlement_execution_veto VALUES(?)")
+          .run(x.id);
+      }
+      if (kind === "construction")
+        x.store.db
+          .prepare("INSERT INTO execution_construction_claims VALUES(?,0,1)")
+          .run(x.id);
+      if (kind === "refund") {
+        x.store.db.exec(
+          "CREATE TABLE settlement_refunds(order_id TEXT,state TEXT)",
+        );
+        x.store.db
+          .prepare("INSERT INTO settlement_refunds VALUES(?,'review_required')")
+          .run(x.id);
+      }
+      if (kind === "uncertain")
+        x.store.event(x.id, "solana_submission_uncertain", {}, 107201);
+      if (kind === "unrelatedRecovery")
+        x.store.recover(x.id, "RPC_UNAVAILABLE", {}, 107201);
+      await assert.rejects(
+        authorizePaidPreparation(
+          x.service,
+          x.id,
+          x.attempt,
+          true,
+          x.snapshot(),
+        ),
+      );
+      assert.equal(recoveryRecord(x.service, x.id), undefined);
+      assert.equal(x.sends(), 0);
+    } finally {
+      x.store.close();
+    }
+  }
+});
+test("independent submission reconciliation must succeed before a paid recovery grant", async () => {
+  const x = await paidRecoveryFixture();
+  try {
+    x.net.recoveryAbsence = async () => {
+      throw Error("synthetic uncertain RPC history");
+    };
+    await assert.rejects(
+      authorizePaidPreparation(x.service, x.id, x.attempt, true, x.snapshot()),
+    );
+    assert.equal(x.service.row(x.id).state, "RECOVERY_REQUIRED");
+    assert.equal(recoveryRecord(x.service, x.id), undefined);
+  } finally {
+    x.store.close();
+  }
+});
+test("paid preparation cannot change original economic terms or survive changed evidence, refunds or expiry", async () => {
+  for (const kind of [
+    "recipient",
+    "mint",
+    "minimum",
+    "slippage",
+    "evidence",
+    "refund",
+    "expiry",
+  ]) {
+    const x = await paidRecoveryFixture();
+    try {
+      await authorizePaidPreparation(
+        x.service,
+        x.id,
+        x.attempt,
+        true,
+        x.snapshot(),
+      );
+      if (["recipient", "mint", "minimum", "slippage"].includes(kind)) {
+        const i = JSON.parse(x.store.get(x.id)!.intent);
+        if (kind === "recipient") i.recipient = key.address;
+        if (kind === "mint") i.swap.outputMint = WSOL;
+        if (kind === "minimum") i.swap.minimumOut = "1";
+        if (kind === "slippage") i.swap.slippageBps = 200;
+        x.store.db
+          .prepare("UPDATE orders SET intent=? WHERE id=?")
+          .run(JSON.stringify(i), x.id);
+      }
+      if (kind === "evidence")
+        x.store.db.exec("UPDATE payments SET block_hash='changed'");
+      if (kind === "refund") {
+        x.store.db.exec(
+          "CREATE TABLE settlement_execution_veto(order_id TEXT)",
+        );
+        x.store.db
+          .prepare("INSERT INTO settlement_execution_veto VALUES(?)")
+          .run(x.id);
+      }
+      if (kind === "expiry") {
+        x.time(114402);
+        x.service.authorize(x.id, x.snapshot());
+      }
+      await assert.rejects(x.service.prepare(x.id));
+      assert.equal(x.sends(), 0);
+    } finally {
+      x.store.close();
+    }
+  }
+});
+test("paid recovery survives restart as preparation only and preserves original expired approval records", async () => {
+  const x = await paidRecoveryFixture();
+  try {
+    x.store.db
+      .prepare("INSERT INTO solana_exact_approvals VALUES(?,?,?,?,?)")
+      .run(x.id, x.old.digest, 100000, 100090, "EXPIRED");
+    const oldRow = x.store.db
+      .prepare("SELECT * FROM solana_exact_approvals")
+      .get();
+    await authorizePaidPreparation(
+      x.service,
+      x.id,
+      x.attempt,
+      true,
+      x.snapshot(),
+    );
+    await retireExpiredUnsignedSwap(x.service, x.id, true);
+    const restarted = new SolanaSettlement(
+      x.store,
+      x.net,
+      () => 107201,
+      x.policy,
+    );
+    assert.equal(restarted.eligible(x.id, true).recipient, recipient);
+    assert.throws(() => restarted.eligible(x.id));
+    assert.deepEqual(
+      x.store.db.prepare("SELECT * FROM solana_exact_approvals").get(),
+      oldRow,
+    );
+    x.net.latest = async () => ({
+      blockhash: blockhash(key.address),
+      lastValidBlockHeight: 1200n,
+    });
+    const p = await restarted.prepare(x.id);
+    await assert.rejects(
+      restarted.execute(
+        x.id,
+        { orderId: x.id, digest: x.old.digest, approved: true },
+        key,
+      ),
+    );
+    await assert.rejects(
+      restarted.execute(
+        x.id,
+        { orderId: x.id, digest: p.digest, approved: true },
+        key,
+      ),
+    );
+    assert.equal(x.sends(), 0);
+  } finally {
+    x.store.close();
+  }
+});
+test("concurrent paid recovery registration creates one attempt and leaves other orders locked", async () => {
+  const x = await paidRecoveryFixture();
+  try {
+    const other = x.service.quote(
+      {
+        ...x.q,
+        requestId: randomUUID(),
+        account: "1".repeat(64),
+        paymentAddress: "utest1_OTHER_RECOVERY_SYNTHETIC",
+      },
+      terms,
+    );
+    const outcomes = await Promise.allSettled([
+      authorizePaidPreparation(x.service, x.id, x.attempt, true, x.snapshot()),
+      authorizePaidPreparation(
+        x.service,
+        x.id,
+        randomUUID(),
+        true,
+        x.snapshot(),
+      ),
+    ]);
+    assert.equal(outcomes.filter((r) => r.status === "fulfilled").length, 1);
+    assert.equal(
+      x.store.db
+        .prepare("SELECT COUNT(*) AS n FROM solana_paid_preparation_recoveries")
+        .get()!.n,
+      1,
+    );
+    assert.equal(recoveryRecord(x.service, other.id), undefined);
+    await assert.rejects(x.service.prepare(other.id));
+  } finally {
+    x.store.close();
+  }
+});
+test("archived transaction digest cannot be presented as a new recovered preparation", async () => {
+  const x = await paidRecoveryFixture();
+  try {
+    await authorizePaidPreparation(
+      x.service,
+      x.id,
+      x.attempt,
+      true,
+      x.snapshot(),
+    );
+    await retireExpiredUnsignedSwap(x.service, x.id, true);
+    await assert.rejects(
+      x.service.prepare(x.id),
+      /STALE_TRANSACTION_DIGEST_REUSED/,
+    );
+    assert.equal(x.service.row(x.id).state, "RECOVERY_REQUIRED");
+    assert.equal(x.sends(), 0);
+  } finally {
+    x.store.close();
+  }
+});
+test("recovered execution needs a second explicit exact authorization and consumes it once", async () => {
+  const x = await paidRecoveryFixture();
+  try {
+    await authorizePaidPreparation(
+      x.service,
+      x.id,
+      x.attempt,
+      true,
+      x.snapshot(),
+    );
+    await retireExpiredUnsignedSwap(x.service, x.id, true);
+    x.net.latest = async () => ({
+      blockhash: blockhash(key.address),
+      lastValidBlockHeight: 1200n,
+    });
+    const p = (await x.service.prepare(x.id)) as SwapPrepared;
+    await assert.rejects(
+      authorizeExactRecoveredTransaction(x.service, x.id, p.digest, false),
+    );
+    await assert.rejects(
+      authorizeExactRecoveredTransaction(x.service, x.id, x.old.digest, true),
+    );
+    assert.equal(
+      x.store.db
+        .prepare(
+          "SELECT COUNT(*) AS n FROM solana_paid_recovery_exact_approvals",
+        )
+        .get()!.n,
+      0,
+    );
+    await authorizeExactRecoveredTransaction(x.service, x.id, p.digest, true); // Synthetic later human approval only.
+    await x.service.execute(
+      x.id,
+      { orderId: x.id, digest: p.digest, approved: true },
+      key,
+    );
+    x.setReceipt(await x.effects(p));
+    assert.equal((await x.service.reconcile(x.id)).state, "COMPLETED");
+    assert.equal(x.sends(), 1);
+    assert.equal(
+      x.store.db
+        .prepare("SELECT state FROM solana_paid_recovery_exact_approvals")
+        .get()!.state,
+      "CONSUMED",
+    );
+    await assert.rejects(
+      x.service.execute(
+        x.id,
+        { orderId: x.id, digest: p.digest, approved: true },
+        key,
+      ),
+    );
+    assert.throws(() => x.service.recover(x.id, "refund"));
+  } finally {
+    x.store.close();
+  }
+});
+test("separate recovered exact approval cannot carry to a fresh digest or expired quote", async () => {
+  const x = await paidRecoveryFixture();
+  try {
+    await authorizePaidPreparation(
+      x.service,
+      x.id,
+      x.attempt,
+      true,
+      x.snapshot(),
+    );
+    await retireExpiredUnsignedSwap(x.service, x.id, true);
+    x.net.latest = async () => ({
+      blockhash: blockhash(key.address),
+      lastValidBlockHeight: 1200n,
+    });
+    const old = await x.service.prepare(x.id);
+    await authorizeExactRecoveredTransaction(x.service, x.id, old.digest, true);
+    const recorded = x.store.db
+      .prepare("SELECT * FROM solana_paid_recovery_exact_approvals")
+      .get();
+    x.time(107292);
+    x.service.authorize(x.id, x.snapshot());
+    await assert.rejects(
+      authorizeExactRecoveredTransaction(x.service, x.id, old.digest, true),
+      /EXPIRED/,
+    );
+    await retireExpiredUnsignedSwap(x.service, x.id, true);
+    x.net.latest = async () => ({
+      blockhash: blockhash(recipient),
+      lastValidBlockHeight: 1400n,
+    });
+    const fresh = await x.service.prepare(x.id);
+    assert.notEqual(old.digest, fresh.digest);
+    assert.throws(
+      () => x.service.eligible(x.id),
+      /SEPARATE_EXACT_RECOVERY_APPROVAL_REQUIRED/,
+    );
+    assert.deepEqual(
+      x.store.db
+        .prepare("SELECT * FROM solana_paid_recovery_exact_approvals")
+        .get(),
+      recorded,
+    );
+    assert.equal(x.sends(), 0);
+  } finally {
+    x.store.close();
+  }
+});
+test("a fresh quote cannot silently widen slippage or rewrite the original minimum", async () => {
+  const x = await paidRecoveryFixture();
+  try {
+    await authorizePaidPreparation(
+      x.service,
+      x.id,
+      x.attempt,
+      true,
+      x.snapshot(),
+    );
+    await retireExpiredUnsignedSwap(x.service, x.id, true);
+    const original = x.store.get(x.id)!.intent;
+    x.policy.pool = async () => ({
+      ...liquidity,
+      reserveOut: liquidity.reserveOut * 2n,
+    });
+    await assert.rejects(
+      x.service.prepare(x.id),
+      /FRESH_QUOTE_REQUIRES_CHANGED_MINIMUM_APPROVAL/,
+    );
+    assert.equal(x.store.get(x.id)!.intent, original);
+    assert.equal(x.sends(), 0);
   } finally {
     x.store.close();
   }
