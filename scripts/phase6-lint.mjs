@@ -2,6 +2,20 @@
 import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 const files = [
+  "app/solana/swap.tsx",
+  "scripts/phase7c.ts",
+  "scripts/phase7c-recovery-audit.ts",
+  "scripts/phase7c-profile.ts",
+  "scripts/phase7c-funding.ts",
+  "scripts/phase7c-preserve.mjs",
+  "scripts/phase7c-recipient.ts",
+  "scripts/phase7c-rehearsal.ts",
+  "scripts/phase7c-use-funded.ts",
+  "scripts/phase7c-verify-completed.ts",
+  "playwright.phase7c.config.ts",
+  "tests/phase7c/real-swap.spec.ts",
+  "tests/solana-swap.test.ts",
+  "tests/ui/solana-swap.spec.ts",
   "app/solana/delivery.tsx",
   "services/solana/settlement.ts",
   "services/solana/settlement-api.ts",

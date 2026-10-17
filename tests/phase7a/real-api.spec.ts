@@ -7,9 +7,11 @@ let cookies: any[], csrf: string;
 test.beforeAll(async ({ request, browser }) => {
   const token = JSON.parse(
     readFileSync(
-      process.env.ZECONE_PHASE7B_TEST === "1"
-        ? ".state/phase7b/browser/pairing.json"
-        : ".state/phase7a/pairing.json",
+      process.env.ZECONE_PHASE7C_REGRESSION === "1"
+        ? ".state/phase7c/regression/pairing.json"
+        : process.env.ZECONE_PHASE7B_TEST === "1"
+          ? ".state/phase7b/browser/pairing.json"
+          : ".state/phase7a/pairing.json",
       "utf8",
     ),
   ).token;

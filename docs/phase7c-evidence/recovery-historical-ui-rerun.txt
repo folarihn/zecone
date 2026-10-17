@@ -1,0 +1,66 @@
+
+> test:phase6c
+> playwright test -c playwright.phase6c.config.ts
+
+[WebServer] (node:28308) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:28308) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+
+Running 6 tests using 1 worker
+
+(node:30852) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  1 tests\phase6c\real-data.spec.ts:45:3 › real historical wallet desktop: truthful snapshot labels, layout and accessibility (30.1s)
+(node:22024) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  2 tests\phase6c\real-data.spec.ts:45:3 › real historical wallet narrow: truthful snapshot labels, layout and accessibility (0ms)
+  -  3 tests\phase6c\real-data.spec.ts:45:3 › real historical wallet mobile: truthful snapshot labels, layout and accessibility
+  -  4 tests\phase6c\real-data.spec.ts:76:1 › historical checkout adapters replay real references and survive refresh without payment requests
+  -  5 tests\phase6c\real-data.spec.ts:113:1 › read-only UI handles denied refresh without starting a worker
+  -  6 tests\phase6c\real-data.spec.ts:131:1 › network loss reports stale checkout data and reconnect restores the saved selection
+
+
+  1) tests\phase6c\real-data.spec.ts:45:3 › real historical wallet desktop: truthful snapshot labels, layout and accessibility 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.goto: Test timeout of 30000ms exceeded.
+    Call log:
+      - navigating to "http://127.0.0.1:3210/", waiting until "load"
+
+
+      47 |   }) => {
+      48 |     await page.setViewportSize({ width, height });
+    > 49 |     await page.goto("/");
+         |                ^
+      50 |     await expect(page.getByText(/Historical snapshot captured/)).toBeVisible();
+      51 |     await expect(page.getByText(/Historical total 0.018975 TAZ/)).toBeVisible();
+      52 |     await expect(
+        at C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase6c\real-data.spec.ts:49:16
+
+    Fixture "trace recording" timeout of 30000ms exceeded during teardown.
+
+    Error Context: test-results\real-data-real-historical--72bf9-ls-layout-and-accessibility\error-context.md
+
+  2) tests\phase6c\real-data.spec.ts:45:3 › real historical wallet narrow: truthful snapshot labels, layout and accessibility 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 401
+
+      16 |     data: { token },
+      17 |   });
+    > 18 |   expect(response.status()).toBe(200);
+         |                             ^
+      19 |   cookie = (await request.storageState()).cookies.find(
+      20 |     (c) => c.name === "zecone_session",
+      21 |   );
+        at C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase6c\real-data.spec.ts:18:29
+
+    Error Context: test-results\real-data-real-historical--6f1c6-ls-layout-and-accessibility\error-context.md
+
+  2 failed
+    tests\phase6c\real-data.spec.ts:45:3 › real historical wallet desktop: truthful snapshot labels, layout and accessibility 
+    tests\phase6c\real-data.spec.ts:45:3 › real historical wallet narrow: truthful snapshot labels, layout and accessibility 
+  4 did not run

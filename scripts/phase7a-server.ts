@@ -14,8 +14,17 @@ import { SolanaJournal } from "../services/solana/journal.ts";
 import { SolanaPermissions } from "../services/solana/provider.ts";
 import { phase7bRuntime } from "../services/solana/phase7b-runtime.ts";
 import { settlementApi } from "../services/solana/settlement-api.ts";
+import { phase7cRuntime } from "../services/solana/phase7c-runtime.ts";
+import { swapApi } from "../services/solana/swap-api.ts";
+const phase7c = process.argv.includes("--phase7c");
 const phase7b = process.argv.includes("--phase7b"),
-  stateDir = phase7b ? ".state/phase7b/browser" : ".state/phase7a";
+  stateDir = process.argv.includes("--phase7c-regression")
+    ? ".state/phase7c/regression"
+    : phase7c
+      ? ".state/phase7c/browser"
+      : phase7b
+        ? ".state/phase7b/browser"
+        : ".state/phase7a";
 mkdirSync(stateDir, { recursive: true });
 const sessions = new Sessions(new DatabaseSync(`${stateDir}/browser.sqlite`));
 sessions.db.exec("DELETE FROM sessions");
@@ -28,7 +37,21 @@ const dapps = new Dapps(
 );
 const handler = api(sessions, backend, dapps);
 const db = new DatabaseSync(`${stateDir}/solana.sqlite`);
-const runtime = phase7b ? phase7bRuntime() : undefined;
+const runtime = phase7c
+  ? phase7cRuntime()
+  : phase7b
+    ? phase7bRuntime()
+    : undefined;
+const swap =
+  phase7c && runtime
+    ? swapApi(
+        sessions,
+        runtime.service,
+        runtime.service.swapPolicy!,
+        runtime.p,
+        runtime.manifest,
+      )
+    : undefined;
 const delivery = runtime
   ? settlementApi(sessions, runtime.service, runtime.p, runtime.manifest)
   : undefined;
@@ -37,7 +60,7 @@ const solana = solanaApi(
   new SolanaJournal(db),
   new SolanaPermissions(
     db,
-    Accounts.list().map((a) => a.address),
+    phase7c ? [] : Accounts.list().map((a) => a.address),
   ),
 );
 const next = nextModule as unknown as typeof import("next").default;
@@ -65,6 +88,16 @@ const server = createServer(async (req, res) => {
   res.setHeader("X-Frame-Options", "DENY");
   // Approval popups need their browser-provided opener; no cross-origin isolation header here.
   if (
+    swap &&
+    (req.url?.startsWith("/api/solana-swap/") ||
+      req.url?.startsWith("/api/solana-settlement/") ||
+      req.url?.startsWith("/api/solana/"))
+  )
+    await swap(req, res);
+  else if (swap && req.url?.startsWith("/api/checkouts")) {
+    res.setHeader("Cache-Control", "no-store");
+    res.end(JSON.stringify({ checkouts: [], liveRefundsEnabled: false }));
+  } else if (
     delivery &&
     (req.url?.startsWith("/api/solana-settlement/") ||
       req.url?.startsWith("/api/checkouts"))

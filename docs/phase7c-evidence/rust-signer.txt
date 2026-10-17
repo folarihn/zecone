@@ -1,0 +1,187 @@
+   Compiling typenum v1.20.1
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.26
+   Compiling cfg-if v1.0.5
+   Compiling rand_core v0.10.1
+   Compiling subtle v2.6.1
+   Compiling cpufeatures v0.3.1
+   Compiling constant_time_eq v0.4.2
+   Compiling radium v0.7.0
+   Compiling arrayvec v0.7.8
+   Compiling memuse v0.2.2
+   Compiling tap v1.0.1
+   Compiling funty v2.0.0
+   Compiling version_check v0.9.5
+   Compiling cmov v0.5.4
+   Compiling crossbeam-utils v0.8.23
+   Compiling getrandom v0.4.3
+   Compiling crossbeam-epoch v0.9.21
+   Compiling blake2b_simd v1.0.5
+   Compiling wyz v0.5.1
+   Compiling ctutils v0.4.3
+   Compiling hex v0.4.3
+   Compiling generic-array v0.14.7
+   Compiling crossbeam-deque v0.8.8
+   Compiling bitvec v1.1.1
+   Compiling hybrid-array v0.4.15
+   Compiling thiserror v2.0.21
+   Compiling serde_core v1.0.229
+   Compiling static_assertions v1.1.0
+   Compiling rayon-core v1.13.0
+   Compiling spin v0.9.9
+   Compiling either v1.19.0
+   Compiling lazy_static v1.5.1
+   Compiling byteorder v1.5.0
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling inout v0.2.2
+   Compiling find-msvc-tools v0.1.14
+   Compiling autocfg v1.5.1
+   Compiling crypto-common v0.1.7
+   Compiling syn v2.0.119
+   Compiling syn v3.0.8
+   Compiling block-buffer v0.10.4
+   Compiling shlex v2.0.1
+   Compiling serde v1.0.229
+   Compiling corez v0.1.1
+   Compiling cipher v0.5.2
+   Compiling digest v0.10.7
+   Compiling num-traits v0.2.19
+   Compiling cc v1.8.0
+   Compiling chacha20 v0.10.2
+   Compiling cpufeatures v0.2.17
+   Compiling digest v0.11.3
+   Compiling once_cell v1.21.4
+   Compiling universal-hash v0.6.1
+   Compiling sha2 v0.10.9
+   Compiling rand v0.10.3
+   Compiling rayon v1.12.0
+   Compiling tracing-core v0.1.36
+   Compiling bech32 v0.11.1
+   Compiling litrs v1.0.0
+   Compiling nonempty v0.11.0
+   Compiling libm v0.2.16
+   Compiling pin-project-lite v0.2.17
+   Compiling crunchy v0.2.4
+   Compiling bs58 v0.5.1
+   Compiling poly1305 v0.9.1
+   Compiling document-features v0.2.12
+   Compiling aead v0.6.1
+   Compiling zcash_spec v0.2.1
+   Compiling equivalent v1.0.2
+   Compiling num-integer v0.1.47
+   Compiling hashbrown v0.17.1
+   Compiling chacha20poly1305 v0.11.0
+   Compiling zcash_encoding v0.5.0
+   Compiling num-bigint v0.5.1
+   Compiling hmac v0.13.0
+   Compiling sha2 v0.11.0
+   Compiling ripemd v0.2.0
+   Compiling cbc v0.2.1
+   Compiling secp256k1-sys v0.14.1
+   Compiling crossbeam-channel v0.5.17
+   Compiling blake2s_simd v1.0.5
+   Compiling indexmap v2.14.2
+   Compiling ff v0.14.0
+   Compiling num_cpus v1.17.0
+   Compiling ident_case v1.0.1
+   Compiling group v0.14.0
+   Compiling cpubits v0.1.1
+   Compiling strsim v0.11.1
+   Compiling log v0.4.34
+   Compiling pairing v0.24.0
+   Compiling maybe-rayon v0.1.1
+   Compiling halo2_legacy_pdqsort v0.1.0
+   Compiling bellman v0.15.0
+   Compiling aes v0.9.3
+   Compiling darling_core v0.24.1
+   Compiling zcash_protocol v0.11.0-pre.0
+   Compiling zcash_note_encryption v0.5.1
+   Compiling uint v0.9.5
+   Compiling sha1 v0.10.7
+   Compiling zeroize_derive v1.5.0
+   Compiling tracing-attributes v0.1.31
+   Compiling getset v0.1.7
+   Compiling ripemd v0.1.3
+   Compiling incrementalmerkletree v0.9.0
+   Compiling f4jumble v0.1.2
+   Compiling bitflags v2.13.2
+   Compiling thiserror-impl v2.0.21
+   Compiling serde_derive v1.0.229
+   Compiling zcash_address v0.14.0-pre.1
+   Compiling groth16 v0.2.0
+   Compiling fpe v0.7.0
+   Compiling zeroize v1.9.1
+   Compiling visibility v0.1.1
+   Compiling pasta_curves v0.6.1
+   Compiling bls12_381 v0.9.0
+   Compiling zip32 v0.3.0
+   Compiling equihash v0.3.0
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.154
+   Compiling anyhow v1.0.104
+   Compiling tracing v0.1.44
+   Compiling jubjub v0.11.1
+   Compiling secrecy v0.8.0
+   Compiling memchr v2.8.3
+   Compiling halo2_poseidon v0.2.0
+   Compiling halo2_proofs v0.4.0
+   Compiling sinsemilla v0.2.0
+   Compiling bounded-vec v0.9.0
+   Compiling cobs v0.3.0
+   Compiling itoa v1.0.18
+   Compiling darling_macro v0.24.1
+   Compiling darling v0.24.1
+   Compiling reddsa v0.6.1
+   Compiling postcard v1.1.3
+   Compiling serde_with_macros v3.24.0
+   Compiling redjubjub v0.9.0
+   Compiling secp256k1 v0.33.1
+   Compiling sapling-crypto v0.9.0
+   Compiling serde_with v3.24.0
+   Compiling bip32 v0.6.0
+   Compiling zcash_script v0.6.0
+   Compiling halo2_gadgets v0.6.0
+   Compiling zcash_transparent v0.11.0-pre.1
+   Compiling orchard v0.16.0
+   Compiling zcash_primitives v0.31.0-pre.1
+   Compiling zcash_keys v0.17.0-pre.1
+   Compiling pczt v0.10.0-pre.1
+   Compiling zecone-refund-signer v0.1.0 (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\refund-signer-native)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 25s
+     Running unittests src\lib.rs (services\refund-signer-native\target\debug\deps\zecone_refund_signer-7d4f57fa7e33a117.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\bin\provision-watch-test.rs (services\refund-signer-native\target\debug\deps\provision_watch_test-3b0df63d6fbb5224.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\main.rs (services\refund-signer-native\target\debug\deps\zecone_refund_signer-0e133e93fdb8491a.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\verification.rs (services\refund-signer-native\target\debug\deps\verification-86c8e637097074f8.exe)
+
+running 5 tests
+test signed_synthetic_pczt_proves_and_extracts_a_native_transaction ... ignored, expensive isolated proof/extraction; run explicitly, never broadcasts
+test encrypted_output_tampering_is_not_accepted_as_a_valid_plaintext_hint ... ok
+test foreign_change_and_missing_effects_are_rejected ... ok
+test genuine_native_signatures_bind_reviewed_synthetic_transaction ... ok
+test substitution_fee_network_age_input_and_amount_checks ... ok
+
+test result: ok. 4 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 2.22s
+
+   Doc-tests zecone_refund_signer
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

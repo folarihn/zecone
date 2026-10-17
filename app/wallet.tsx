@@ -26,6 +26,7 @@ import AccountPanel from "./account-panel";
 import NetworksPanel from "./networks/panel";
 import SolanaPanel from "./solana/panel";
 import SolanaDelivery from "./solana/delivery";
+import SolanaSwap from "./solana/swap";
 import PurchasePanel from "./purchases/panel";
 import SwapPanel from "./swaps/panel";
 import SeaportPanel from "./seaport/panel";
@@ -1417,6 +1418,7 @@ export default function Wallet() {
                 <>
                   <SolanaPanel />
                   <SolanaDelivery />
+                  <SolanaSwap />
                 </>
               )}
               {tab === "Privacy" && (

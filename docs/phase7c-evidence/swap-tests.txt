@@ -1,0 +1,44 @@
+(node:26000) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ swap terms pin one devnet route, decimals, amount, slippage and minimum (1.2478ms)
+✔ canonical swap rejects malicious route bytes, changed recipient and injected instructions (61.9794ms)
+✔ real Ed25519 synthetic swap settles only with exact token effects and rejects duplicate/refund (23.8039ms)
+✔ swap cannot authorize unconfirmed, underpaid, reused or wrong-account Zcash evidence (5.9709ms)
+✔ slippage, quote expiry and simulation failure enter recovery before signing (26.1469ms)
+✔ swap lost submission response remains signature-only after restart (47.1808ms)
+✔ finalized transaction with wrong mint, output or recipient owner cannot settle (52.4373ms)
+✔ raw mint/pool/account decoding rejects unsupported extensions, authorities and program upgrades (6.6231ms)
+✔ privacy projection excludes secret/history/correlation fields and scopes history by session (2.9072ms)
+✔ new age credentials reject wrong passwords/tampering and recover from encrypted backup (7910.7882ms)
+✔ Windows DPAPI round-trip requires explicit unlock without plaintext key storage (2593.2556ms)
+✖ paired swap API rejects unauthorized queries, cross-session correlation and arbitrary spending (44.8807ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 11
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12353.2736
+
+✖ failing tests:
+
+test at tests\solana-swap.test.ts:1:13131
+✖ paired swap API rejects unauthorized queries, cross-session correlation and arbitrary spending (44.8807ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - 'utest1_SYNTHETIC_SWAP_ONLY'
+  
+      at TestContext.<anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\solana-swap.test.ts:573:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'utest1_SYNTHETIC_SWAP_ONLY',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

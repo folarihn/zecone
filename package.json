@@ -6,6 +6,12 @@
     "node": ">=24.12.0 <25"
   },
   "scripts": {
+    "phase7c": "tsx scripts/phase7c.ts",
+    "phase7c:profile": "tsx scripts/phase7c-profile.ts",
+    "phase7c:wallet": "tsx scripts/phase7a-server.ts --phase7c",
+    "phase7c:rehearsal": "tsx scripts/phase7c-rehearsal.ts",
+    "phase7c:preserve": "node scripts/phase7c-preserve.mjs",
+    "test:phase7c": "playwright test -c playwright.phase7c.config.ts",
     "phase7b:wallet": "tsx scripts/phase7a-server.ts --phase7b",
     "phase7b": "tsx scripts/phase7b.ts",
     "phase7b:profile": "tsx scripts/phase7b-profile.ts",
@@ -57,6 +63,7 @@
     "@uniswap/v2-core": "1.0.1",
     "@uniswap/v2-periphery": "1.1.0-beta.0",
     "@wallet-standard/wallet": "1.1.1",
+    "age-encryption": "0.3.1",
     "lucide-react": "1.55.0",
     "next": "16.4.0",
     "postcss": "8.5.29",

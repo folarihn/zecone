@@ -1,8 +1,16 @@
 import { randomBytes } from "node:crypto";
+import { assertReviewCurrent } from "./swap-approval.ts";
 import { Store, type Snapshot } from "../execution/store.ts";
 import { Devnet, GENESIS, SolanaError, publicKey, json } from "./network.ts";
 import { prepare, inspect, digest, type Prepared } from "./transactions.ts";
 import type { SolanaDeliveryIntent } from "./settlement-model.ts";
+import {
+  validateTerms,
+  type CpmmPolicy,
+  type SwapTerms,
+  type SwapPrepared,
+} from "./cpmm.ts";
+type StoredPrepared = Prepared | SwapPrepared;
 import {
   blockhash,
   getSignatureFromTransaction,
@@ -71,6 +79,7 @@ export class SolanaSettlement {
     readonly store: Store,
     readonly network: SettlementNetwork,
     readonly now = clock,
+    readonly swapPolicy?: CpmmPolicy,
   ) {
     store.db.exec(
       `CREATE TABLE IF NOT EXISTS solana_settlement(order_id TEXT PRIMARY KEY REFERENCES orders(id),state TEXT NOT NULL,prepared TEXT,wire TEXT,signature TEXT UNIQUE,claimed INTEGER NOT NULL DEFAULT 0,receipt TEXT); CREATE TABLE IF NOT EXISTS solana_authorizations(order_id TEXT PRIMARY KEY,payment_digest TEXT NOT NULL,verified_at INTEGER NOT NULL);`,
@@ -79,16 +88,22 @@ export class SolanaSettlement {
     store.db.exec(
       "UPDATE solana_settlement SET state='RECOVERY_REQUIRED' WHERE state IN ('PREPARING','SIGNING')",
     );
+    store.db.exec(
+      "CREATE TABLE IF NOT EXISTS solana_exact_approvals(order_id TEXT NOT NULL REFERENCES orders(id),digest TEXT NOT NULL,approved_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,state TEXT NOT NULL,PRIMARY KEY(order_id,digest)); UPDATE solana_settlement SET state='RECOVERY_REQUIRED' WHERE state='VALIDATING'",
+    );
   }
-  quote(input: {
-    profileId: string;
-    requestId: string;
-    recipient: string;
-    relayer: string;
-    lamports: string;
-    account: string;
-    paymentAddress: string;
-  }) {
+  quote(
+    input: {
+      profileId: string;
+      requestId: string;
+      recipient: string;
+      relayer: string;
+      lamports: string;
+      account: string;
+      paymentAddress: string;
+    },
+    swap?: SwapTerms,
+  ) {
     publicKey(input.recipient);
     publicKey(input.relayer);
     if (
@@ -101,22 +116,29 @@ export class SolanaSettlement {
       !input.paymentAddress.startsWith("utest1")
     )
       throw new SolanaError("ISOLATED_SHIELDED_PROFILE_REQUIRED");
+    if (swap) {
+      validateTerms(swap);
+      if (!this.swapPolicy || input.lamports !== swap.amountIn)
+        throw new SolanaError("SWAP_POLICY_REQUIRED");
+    }
     const id =
-      `0x${digest(`phase7b:${input.profileId}:${input.requestId}`)}` as const;
+      `0x${digest(`${swap ? "phase7c" : "phase7b"}:${input.profileId}:${input.requestId}`)}` as const;
     const old = this.store.get(id);
     if (old) {
       const i = this.intent(id);
       if (
         i.recipient !== input.recipient ||
         i.lamports !== input.lamports ||
-        i.relayer !== input.relayer
+        i.relayer !== input.relayer ||
+        json(i.swap) !== json(swap)
       )
         throw new SolanaError("IDEMPOTENCY_CONFLICT");
       return this.view(id);
     }
     const i: SolanaDeliveryIntent = {
       family: "solana",
-      action: "SOLANA_DEVNET_SOL_DELIVERY",
+      action: swap ? "SOLANA_DEVNET_SPL_SWAP" : "SOLANA_DEVNET_SOL_DELIVERY",
+      ...(swap ? { swap } : {}),
       network: "solana:devnet",
       genesis: GENESIS,
       recipient: input.recipient,
@@ -142,11 +164,17 @@ export class SolanaSettlement {
     const i = JSON.parse(o.intent) as SolanaDeliveryIntent;
     if (
       i.family !== "solana" ||
-      i.action !== "SOLANA_DEVNET_SOL_DELIVERY" ||
+      !["SOLANA_DEVNET_SOL_DELIVERY", "SOLANA_DEVNET_SPL_SWAP"].includes(
+        i.action,
+      ) ||
       i.network !== "solana:devnet" ||
       i.genesis !== GENESIS
     )
       throw new SolanaError("WRONG_NETWORK");
+    if (i.action === "SOLANA_DEVNET_SPL_SWAP") {
+      if (!this.swapPolicy) throw new SolanaError("SWAP_POLICY_REQUIRED");
+      validateTerms(i.swap!);
+    }
     return i;
   }
   row(id: string) {
@@ -212,7 +240,7 @@ export class SolanaSettlement {
       .run(id, proof, this.now());
     this.store.db
       .prepare(
-        "UPDATE solana_settlement SET state='AWAITING_SOLANA_AUTHORIZATION' WHERE order_id=? AND claimed=0",
+        "UPDATE solana_settlement SET state='AWAITING_SOLANA_AUTHORIZATION' WHERE order_id=? AND claimed=0 AND state NOT IN ('PREPARING','VALIDATING','RECOVERY_REQUIRED')",
       )
       .run(id);
     this.store.event(
@@ -240,7 +268,7 @@ export class SolanaSettlement {
   async prepare(id: string) {
     const i = this.eligible(id),
       row = this.row(id);
-    if (row.prepared) return JSON.parse(row.prepared) as Prepared;
+    if (row.prepared) return JSON.parse(row.prepared) as StoredPrepared;
     if (
       !this.store.db
         .prepare(
@@ -254,20 +282,22 @@ export class SolanaSettlement {
         balance = await this.network.balance(i.relayer);
       if (balance < required)
         throw new SolanaError("INSUFFICIENT_RELAYER_BALANCE");
-      const p = await prepare(
-        this.network as unknown as Devnet,
-        {
-          family: "solana",
-          network: "solana:devnet",
-          genesis: GENESIS,
-          owner: i.relayer,
-          recipient: i.recipient,
-          amount: i.lamports,
-          asset: { kind: "SOL" },
-          feeCap: i.feeCap,
-        },
-        [i.relayer, i.recipient],
-      );
+      const p = i.swap
+        ? await this.swapPolicy!.prepare(i)
+        : await prepare(
+            this.network as unknown as Devnet,
+            {
+              family: "solana",
+              network: "solana:devnet",
+              genesis: GENESIS,
+              owner: i.relayer,
+              recipient: i.recipient,
+              amount: i.lamports,
+              asset: { kind: "SOL" },
+              feeCap: i.feeCap,
+            },
+            [i.relayer, i.recipient],
+          );
       if (p.simulation.err) throw new SolanaError("SIMULATION_FAILED");
       this.eligible(id);
       this.store.db
@@ -294,7 +324,9 @@ export class SolanaSettlement {
   ) {
     const i = this.eligible(id),
       row = this.row(id);
-    const p: Prepared = row.prepared ? JSON.parse(row.prepared) : undefined;
+    const p: StoredPrepared = row.prepared
+      ? JSON.parse(row.prepared)
+      : undefined;
     if (
       !p ||
       approval.approved !== true ||
@@ -303,92 +335,187 @@ export class SolanaSettlement {
       signer.address !== i.relayer
     )
       throw new SolanaError("EXACT_APPROVAL_REQUIRED");
-    if (!(await this.network.valid(blockhash(p.lifetime.blockhash)))) {
-      this.recover(id, "BLOCKHASH_EXPIRED");
-      throw new SolanaError("BLOCKHASH_EXPIRED");
-    }
-    if (
-      (await this.network.balance(i.relayer)) <
-      BigInt(i.lamports) + BigInt(i.feeCap)
-    )
-      throw new SolanaError("INSUFFICIENT_RELAYER_BALANCE");
-    const tx = await inspect(
-      p.wire,
-      {
-        ...p.action,
-        owner: i.relayer,
-        recipient: i.recipient,
-        amount: i.lamports,
-        feeCap: i.feeCap,
-      },
-      {
-        blockhash: blockhash(p.lifetime.blockhash),
-        lastValidBlockHeight: BigInt(p.lifetime.lastValidBlockHeight),
-      },
-      [i.relayer, i.recipient],
-    );
-    if ((await this.network.simulate(p.wire)).err)
-      throw new SolanaError("SIMULATION_FAILED");
-    const fee = await this.network.fee(
-      Buffer.from(tx.messageBytes).toString("base64"),
-    );
-    if (fee === null || fee > BigInt(i.feeCap))
-      throw new SolanaError("FEE_CAP");
-    this.store.atomic(() => {
-      this.eligible(id);
-      if (
-        !this.store.db
-          .prepare(
-            "UPDATE solana_settlement SET state='SIGNING',claimed=1 WHERE order_id=? AND claimed=0 AND state='AWAITING_SOLANA_AUTHORIZATION'",
-          )
-          .run(id).changes
-      )
-        throw new SolanaError("DUPLICATE_EXECUTION");
-      this.store.event(
-        id,
-        "solana_signing_claimed",
-        { digest: p.digest },
-        this.now(),
-      );
-    });
-    const signed = await signTransaction([signer.keyPair], tx),
-      sig = getSignatureFromTransaction(signed),
-      wire = getBase64EncodedWireTransaction(signed);
-    this.store.atomic(() => {
-      const persisted = this.store.db
-        .prepare(
-          "UPDATE solana_settlement SET state='SUBMISSION_UNCERTAIN',wire=?,signature=? WHERE order_id=? AND state='SIGNING'",
+    // The transaction approval is scoped to this digest. A durable preflight claim
+    // excludes concurrent attempts before any network await or signer access.
+    if (i.swap)
+      this.store.atomic(() => {
+        assertReviewCurrent(p as SwapPrepared, this.now());
+        if (
+          !this.store.db
+            .prepare(
+              "UPDATE solana_settlement SET state='VALIDATING' WHERE order_id=? AND state='AWAITING_SOLANA_AUTHORIZATION' AND claimed=0 AND prepared=? AND signature IS NULL AND wire IS NULL",
+            )
+            .run(id, row.prepared).changes
         )
-        .run(wire, sig, id);
-      if (persisted.changes !== 1)
-        throw new SolanaError("RECOVERY_VETO_BEFORE_BROADCAST");
-      this.store.transition(id, "prepared", this.now(), { signature: sig });
-      this.store.event(
-        id,
-        "solana_broadcast_claimed",
-        { signature: sig },
-        this.now(),
-      );
-    });
-    // One invocation only. Timeout/lost response remains signature-reconciliation-only.
+          throw new SolanaError("CONCURRENT_OR_DUPLICATE_EXECUTION");
+        this.store.db
+          .prepare("INSERT INTO solana_exact_approvals VALUES(?,?,?,?,?)")
+          .run(
+            id,
+            p.digest,
+            this.now(),
+            (p as SwapPrepared).approvalExpiresAt ??
+              (p as SwapPrepared).expiresAt,
+            "VALIDATING",
+          );
+        this.store.event(
+          id,
+          "exact_swap_approval_received",
+          { digest: p.digest },
+          this.now(),
+        );
+      });
     try {
-      const returned = await this.network.send(wire);
-      if (returned !== sig) throw new SolanaError("RPC_SIGNATURE_DISAGREEMENT");
-      this.store.db
-        .prepare(
-          "UPDATE solana_settlement SET state='EXECUTING' WHERE order_id=?",
-        )
-        .run(id);
-      this.store.submitted(id, this.now());
-    } catch {
-      this.store.event(
-        id,
-        "solana_submission_uncertain",
-        { signature: sig, replacementAuthorized: false },
-        this.now(),
+      if (!(await this.network.valid(blockhash(p.lifetime.blockhash)))) {
+        if (!i.swap) this.recover(id, "BLOCKHASH_EXPIRED");
+        throw new SolanaError("BLOCKHASH_EXPIRED");
+      }
+      if (
+        (await this.network.balance(i.relayer)) <
+        BigInt(i.lamports) + BigInt(i.feeCap)
+      )
+        throw new SolanaError("INSUFFICIENT_RELAYER_BALANCE");
+      const tx = i.swap
+        ? await this.swapPolicy!.inspect(i, p as SwapPrepared)
+        : await inspect(
+            p.wire,
+            {
+              ...(p as Prepared).action,
+              owner: i.relayer,
+              recipient: i.recipient,
+              amount: i.lamports,
+              feeCap: i.feeCap,
+            },
+            {
+              blockhash: blockhash(p.lifetime.blockhash),
+              lastValidBlockHeight: BigInt(p.lifetime.lastValidBlockHeight),
+            },
+            [i.relayer, i.recipient],
+          );
+      if ((await this.network.simulate(p.wire)).err)
+        throw new SolanaError("SIMULATION_FAILED");
+      const fee = await this.network.fee(
+        Buffer.from(tx.messageBytes).toString("base64"),
       );
+      if (fee === null || fee > BigInt(i.feeCap))
+        throw new SolanaError("FEE_CAP");
+      if (
+        i.swap &&
+        !(await this.network.valid(blockhash(p.lifetime.blockhash)))
+      )
+        throw new SolanaError("BLOCKHASH_EXPIRED");
+      this.store.atomic(() => {
+        this.eligible(id);
+        if (i.swap) assertReviewCurrent(p as SwapPrepared, this.now());
+        if (
+          !this.store.db
+            .prepare(
+              "UPDATE solana_settlement SET state='SIGNING',claimed=1 WHERE order_id=? AND claimed=0 AND state=?",
+            )
+            .run(id, i.swap ? "VALIDATING" : "AWAITING_SOLANA_AUTHORIZATION")
+            .changes
+        )
+          throw new SolanaError("DUPLICATE_EXECUTION");
+        if (
+          i.swap &&
+          this.store.db
+            .prepare(
+              "UPDATE solana_exact_approvals SET state='CONSUMED' WHERE order_id=? AND digest=? AND state='VALIDATING'",
+            )
+            .run(id, p.digest).changes !== 1
+        )
+          throw new SolanaError("EXACT_APPROVAL_ALREADY_CONSUMED");
+        this.store.event(
+          id,
+          "solana_signing_claimed",
+          { digest: p.digest },
+          this.now(),
+        );
+      });
+      const signed = await signTransaction([signer.keyPair], tx),
+        sig = getSignatureFromTransaction(signed),
+        wire = getBase64EncodedWireTransaction(signed);
+      this.store.atomic(() => {
+        const persisted = this.store.db
+          .prepare(
+            "UPDATE solana_settlement SET state='SUBMISSION_UNCERTAIN',wire=?,signature=? WHERE order_id=? AND state='SIGNING'",
+          )
+          .run(wire, sig, id);
+        if (persisted.changes !== 1)
+          throw new SolanaError("RECOVERY_VETO_BEFORE_BROADCAST");
+        this.store.transition(id, "prepared", this.now(), { signature: sig });
+        this.store.event(
+          id,
+          "solana_broadcast_claimed",
+          { signature: sig },
+          this.now(),
+        );
+      });
+      // One invocation only. Timeout/lost response remains signature-reconciliation-only.
+      try {
+        const returned = await this.network.send(wire);
+        if (returned !== sig)
+          throw new SolanaError("RPC_SIGNATURE_DISAGREEMENT");
+        this.store.db
+          .prepare(
+            "UPDATE solana_settlement SET state='EXECUTING' WHERE order_id=?",
+          )
+          .run(id);
+        this.store.submitted(id, this.now());
+      } catch {
+        this.store.event(
+          id,
+          "solana_submission_uncertain",
+          { signature: sig, replacementAuthorized: false },
+          this.now(),
+        );
+      }
+      return this.view(id);
+    } catch (e) {
+      if (
+        i.swap &&
+        e instanceof SolanaError &&
+        [
+          "BLOCKHASH_EXPIRED",
+          "USER_APPROVAL_EXPIRED",
+          "SWAP_QUOTE_EXPIRED",
+        ].includes(e.code)
+      ) {
+        const current = this.row(id);
+        if (
+          !current.claimed &&
+          !current.signature &&
+          !current.wire &&
+          current.state === "VALIDATING"
+        ) {
+          this.store.atomic(() => {
+            this.store.db
+              .prepare(
+                "UPDATE solana_settlement SET state='AWAITING_SOLANA_AUTHORIZATION' WHERE order_id=? AND state='VALIDATING' AND claimed=0 AND signature IS NULL AND wire IS NULL",
+              )
+              .run(id);
+            this.store.db
+              .prepare(
+                "UPDATE solana_exact_approvals SET state='EXPIRED' WHERE order_id=? AND digest=? AND state='VALIDATING'",
+              )
+              .run(id, p.digest);
+            this.store.event(
+              id,
+              "unsigned_approval_expired_no_signing",
+              { digest: p.digest, reason: e.code },
+              this.now(),
+            );
+          });
+          throw e;
+        }
+      }
+      if (i.swap && this.row(id).state !== "COMPLETED")
+        this.recover(
+          id,
+          e instanceof SolanaError ? e.code : "EXECUTION_FAILED",
+        );
+      throw e;
     }
-    return this.view(id);
   }
   async reconcile(id: string) {
     const row = this.row(id);
@@ -408,14 +535,14 @@ export class SolanaSettlement {
       if (
         receipt.version !== "legacy" ||
         !Array.isArray(keys) ||
-        keys.length !== 3 ||
+        (!i.swap && keys.length !== 3) ||
         keys[0] !== i.relayer ||
-        keys[1] !== i.recipient ||
-        keys[2] !== "11111111111111111111111111111111" ||
+        (!i.swap && keys[1] !== i.recipient) ||
+        (!i.swap && keys[2] !== "11111111111111111111111111111111") ||
         receipt.transaction.signatures?.[0] !== row.signature
       )
         throw new SolanaError("RECEIPT_MISMATCH");
-      const p = JSON.parse(row.prepared!) as Prepared;
+      const p = JSON.parse(row.prepared!) as StoredPrepared;
       // Compare the RPC's complete message with the approved SDK-compiled message.
       const original = getCompiledMessage(p.wire);
       const actual = {
@@ -440,14 +567,21 @@ export class SolanaSettlement {
       if (
         fee > BigInt(i.feeCap) ||
         fee !== BigInt(p.fee) ||
-        m.preBalances.length !== 3 ||
-        m.postBalances.length !== 3 ||
-        BigInt(m.postBalances[1]) - BigInt(m.preBalances[1]) !==
-          BigInt(i.lamports) ||
-        BigInt(m.preBalances[0]) - BigInt(m.postBalances[0]) !==
-          BigInt(i.lamports) + fee
+        m.preBalances.length !== keys.length ||
+        m.postBalances.length !== keys.length ||
+        (!i.swap &&
+          (BigInt(m.postBalances[1]) - BigInt(m.preBalances[1]) !==
+            BigInt(i.lamports) ||
+            BigInt(m.preBalances[0]) - BigInt(m.postBalances[0]) !==
+              BigInt(i.lamports) + fee))
       )
         throw new SolanaError("BALANCE_EFFECT_MISMATCH");
+      const effects = i.swap
+        ? await this.swapPolicy!.verifyEffects(i, receipt)
+        : {
+            recipientDelta: i.lamports,
+            relayerDelta: (BigInt(i.lamports) + fee).toString(),
+          };
       this.store.atomic(() => {
         if (this.row(id).state === "RECOVERY_REQUIRED")
           throw new SolanaError("RECOVERY_VETO");
@@ -459,8 +593,7 @@ export class SolanaSettlement {
         this.store.transition(id, "settled", this.now(), {
           signature: row.signature,
           finalized: true,
-          recipientDelta: i.lamports,
-          relayerDelta: (BigInt(i.lamports) + fee).toString(),
+          ...effects,
           fee: fee.toString(),
         });
       });
@@ -501,9 +634,16 @@ export class SolanaSettlement {
       )
       .get(id);
     const tip = scanRow ? JSON.parse(String(scanRow.detail)).tip : 0;
+    const completion = this.store.db
+      .prepare(
+        "SELECT detail FROM audit WHERE order_id=? AND event LIKE '%->settled' ORDER BY seq DESC LIMIT 1",
+      )
+      .get(id);
     return {
       id,
       kind: "solana",
+      action: i.action,
+      ...(i.swap ? { swap: i.swap } : {}),
       network: "solana:devnet",
       recipient: i.recipient,
       relayer: i.relayer,
@@ -536,6 +676,10 @@ export class SolanaSettlement {
         ? `https://explorer.solana.com/tx/${row.signature}?cluster=devnet`
         : null,
       liveRefundsEnabled: false,
+      deliveredAmount:
+        row.state === "COMPLETED" && completion
+          ? JSON.parse(String(completion.detail)).recipientDelta
+          : null,
       prepared: row.prepared
         ? {
             digest: JSON.parse(row.prepared).digest,

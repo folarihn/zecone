@@ -1,0 +1,17 @@
+
+> test:phase7a
+> playwright test -c playwright.phase7a.config.ts
+
+[WebServer] (node:27056) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:27056) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+
+Running 3 tests using 1 worker
+
+(node:31388) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 1 tests\phase7a\real-api.spec.ts:50:1 › isolated backend displays real devnet balance and real simulation, without a submit control (4.5s)
+  ok 2 tests\phase7a\real-api.spec.ts:72:1 › real isolated Solana mobile view fits and is accessible (1.0s)
+  ok 3 tests\phase7a\real-api.spec.ts:92:1 › isolated HTTP endpoints reject signing, broadcasts, Zcash payment and missing CSRF (431ms)
+
+  3 passed (28.5s)

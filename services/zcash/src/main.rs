@@ -67,6 +67,38 @@ enum Command {
         #[arg(long)] approved_txid: String,
         #[arg(long)] allow_testnet_broadcast: bool,
     },
+    /// Fresh Phase 7C isolated payer only. Does not load historical wallet seeds.
+    PreparePhase7cPayment {
+        #[arg(long)] profile_id: uuid::Uuid,
+        #[arg(long)] request_id: uuid::Uuid,
+        #[arg(long)] birthday: u32,
+    },
+    InspectPhase7cPayment {
+        #[arg(long)] profile_id: uuid::Uuid,
+        #[arg(long)] request_id: uuid::Uuid,
+    },
+    BroadcastPhase7cPayment {
+        #[arg(long)] profile_id: uuid::Uuid,
+        #[arg(long)] request_id: uuid::Uuid,
+        #[arg(long)] approved_txid: String,
+        #[arg(long)] allow_testnet_broadcast: bool,
+    },
+    /// Fresh Phase 7C isolated payer only. Does not load historical wallet seeds.
+    PreparePhase7cFundingPayment {
+        #[arg(long)] profile_id: uuid::Uuid,
+        #[arg(long)] request_id: uuid::Uuid,
+        #[arg(long)] birthday: u32,
+    },
+    InspectPhase7cFundingPayment {
+        #[arg(long)] profile_id: uuid::Uuid,
+        #[arg(long)] request_id: uuid::Uuid,
+    },
+    BroadcastPhase7cFundingPayment {
+        #[arg(long)] profile_id: uuid::Uuid,
+        #[arg(long)] request_id: uuid::Uuid,
+        #[arg(long)] approved_txid: String,
+        #[arg(long)] allow_testnet_broadcast: bool,
+    },
     /// Read public status for the exact new-profile transaction; never resubmit.
     InspectPhase52Payment {
         #[arg(long)]
@@ -613,16 +645,42 @@ async fn run() -> Result<()> {
     let args = Cli::parse();
     match &args.command {
         Command::PreparePhase7bPayment {profile_id,request_id,birthday} => {
-            let v=phase52_payment::prepare_for(&args.wallet,&args.server,*profile_id,*request_id,*birthday,true).await?;
+            let v=phase52_payment::prepare_for(&args.wallet,&args.server,*profile_id,*request_id,*birthday,"phase7b").await?;
             println!("{v}");return Ok(());
         }
         Command::InspectPhase7bPayment {profile_id,request_id} => {
-            let v=phase52_payment::inspect_for(&args.wallet,&args.server,*profile_id,*request_id,true).await?;
+            let v=phase52_payment::inspect_for(&args.wallet,&args.server,*profile_id,*request_id,"phase7b").await?;
             println!("{v}");return Ok(());
         }
         Command::BroadcastPhase7bPayment {profile_id,request_id,approved_txid,allow_testnet_broadcast} => {
             ensure!(*allow_testnet_broadcast,"explicit broadcast approval required");
-            let v=phase52_payment::broadcast_for(&args.wallet,&args.server,*profile_id,*request_id,approved_txid,true).await?;
+            let v=phase52_payment::broadcast_for(&args.wallet,&args.server,*profile_id,*request_id,approved_txid,"phase7b").await?;
+            println!("{v}");return Ok(());
+        }
+        Command::PreparePhase7cPayment {profile_id,request_id,birthday} => {
+            let v=phase52_payment::prepare_for(&args.wallet,&args.server,*profile_id,*request_id,*birthday,"phase7c").await?;
+            println!("{v}");return Ok(());
+        }
+        Command::InspectPhase7cPayment {profile_id,request_id} => {
+            let v=phase52_payment::inspect_for(&args.wallet,&args.server,*profile_id,*request_id,"phase7c").await?;
+            println!("{v}");return Ok(());
+        }
+        Command::BroadcastPhase7cPayment {profile_id,request_id,approved_txid,allow_testnet_broadcast} => {
+            ensure!(*allow_testnet_broadcast,"explicit broadcast approval required");
+            let v=phase52_payment::broadcast_for(&args.wallet,&args.server,*profile_id,*request_id,approved_txid,"phase7c").await?;
+            println!("{v}");return Ok(());
+        }
+        Command::PreparePhase7cFundingPayment {profile_id,request_id,birthday} => {
+            let v=phase52_payment::prepare_for(&args.wallet,&args.server,*profile_id,*request_id,*birthday,"phase7c-funding").await?;
+            println!("{v}");return Ok(());
+        }
+        Command::InspectPhase7cFundingPayment {profile_id,request_id} => {
+            let v=phase52_payment::inspect_for(&args.wallet,&args.server,*profile_id,*request_id,"phase7c-funding").await?;
+            println!("{v}");return Ok(());
+        }
+        Command::BroadcastPhase7cFundingPayment {profile_id,request_id,approved_txid,allow_testnet_broadcast} => {
+            ensure!(*allow_testnet_broadcast,"explicit broadcast approval required");
+            let v=phase52_payment::broadcast_for(&args.wallet,&args.server,*profile_id,*request_id,approved_txid,"phase7c-funding").await?;
             println!("{v}");return Ok(());
         }
         Command::InspectPhase52Payment {

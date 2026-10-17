@@ -5,11 +5,12 @@ const PAYMENT: u64 = 100_000;
 const FEE_CAP: u64 = 10_000;
 #[cfg(test)]
 fn context(path: &Path, profile: uuid::Uuid, request: uuid::Uuid) -> Result<(PathBuf, String)> {
-    context_for(path, profile, request, false)
+    context_for(path, profile, request, "phase52")
 }
-fn context_for(path: &Path, profile: uuid::Uuid, request: uuid::Uuid, phase7b: bool) -> Result<(PathBuf, String)> {
+fn context_for(path: &Path, profile: uuid::Uuid, request: uuid::Uuid, namespace: &str) -> Result<(PathBuf, String)> {
     let root = std::env::current_dir()?;
-    let namespace = if phase7b { "phase7b" } else { "phase52" };
+    ensure!(["phase52", "phase7b", "phase7c", "phase7c-funding"].contains(&namespace), "unsupported payment namespace");
+    let modern = namespace != "phase52";
     let expected = root
         .join(format!(".state/{namespace}"))
         .join(profile.to_string())
@@ -29,27 +30,45 @@ fn context_for(path: &Path, profile: uuid::Uuid, request: uuid::Uuid, phase7b: b
         ancestor = p.parent();
     }
     let config: Value =
-        serde_json::from_slice(&fs::read(root.join(if phase7b { ".state/phase7b/profile.json" } else { ".state/phase52-profile.json" }))?)?;
+        serde_json::from_slice(&fs::read(root.join(if modern { format!(".state/{namespace}/profile.json") } else { ".state/phase52-profile.json".to_string() }))?)?;
     ensure!(
         config["id"] == profile.to_string()
-            && config[if phase7b { "orderId" } else { "paymentRequestId" }] == request.to_string()
+            && config[if modern { "orderId" } else { "paymentRequestId" }] == request.to_string()
             && config["network"] == "zcash-testnet"
             && config["liveRefundsEnabled"] == false,
         "profile binding conflict"
     );
+    if namespace == "phase7c-funding" {
+        let destination: Value = serde_json::from_slice(&fs::read(root.join(".state/phase7c/profile.json"))?)?;
+        let source: Value = serde_json::from_slice(&fs::read(root.join(".state/phase7b/profile.json"))?)?;
+        ensure!(config["sourceProfileId"] == source["id"] && config["destinationProfileId"] == destination["id"] && config["addresses"]["settlement"] == destination["addresses"]["payer"], "funding profile conflict");
+    }
     let m: Value = serde_json::from_slice(&fs::read(
         root.join(format!(".state/{namespace}"))
             .join(profile.to_string())
-            .join(if phase7b { "settlement-watch/watch-only.json" } else { "backend/wallet-b-watch/watch-only.json" }),
+            .join(if modern { "settlement-watch/watch-only.json" } else { "backend/wallet-b-watch/watch-only.json" }),
     )?)?;
+    let m = if namespace == "phase7c-funding" {
+        let destination: Value = serde_json::from_slice(&fs::read(root.join(".state/phase7c/profile.json"))?)?;
+        let target = root.join(".state/phase7c").join(destination["id"].as_str().context("destination profile missing")?).join("payer-watch/watch-only.json");
+        let exact: Value = serde_json::from_slice(&fs::read(target)?)?;
+        ensure!(exact["keyId"] == m["keyId"] && exact["address"] == config["addresses"]["settlement"], "funding receiver ownership conflict");
+        exact
+    } else { m };
     let address = m["address"]
         .as_str()
         .context("settlement address missing")?
         .to_owned();
     validate_shielded_destination(&address)?;
+    let source_namespace = if namespace == "phase7c" && config["payerSourceProfileId"].is_string() {
+        let source: Value = serde_json::from_slice(&fs::read(root.join(".state/phase7b/profile.json"))?)?;
+        ensure!(source["id"] == config["payerSourceProfileId"] && source["network"] == "zcash-testnet" && source["status"] == "READY", "explicit source profile binding conflict");
+        "phase7b"
+    } else { namespace };
+    let source_profile = if source_namespace == "phase7b" && namespace == "phase7c" { config["payerSourceProfileId"].as_str().context("source profile missing")?.to_owned() } else { profile.to_string() };
     let key = root
-        .join(format!(".secrets/{namespace}"))
-        .join(profile.to_string())
+        .join(format!(".secrets/{source_namespace}"))
+        .join(source_profile)
         .join("payer/viewing-key.txt");
     Ok((key, address))
 }
@@ -60,10 +79,10 @@ pub async fn prepare(
     request: uuid::Uuid,
     birthday: u32,
 ) -> Result<Value> {
-    prepare_for(path, server, profile, request, birthday, false).await
+    prepare_for(path, server, profile, request, birthday, "phase52").await
 }
-pub async fn prepare_for(path: &Path, server: &str, profile: uuid::Uuid, request: uuid::Uuid, birthday:u32, phase7b:bool) -> Result<Value> {
-    let (key_file, address) = context_for(path, profile, request, phase7b)?;
+pub async fn prepare_for(path: &Path, server: &str, profile: uuid::Uuid, request: uuid::Uuid, birthday:u32, namespace:&str) -> Result<Value> {
+    let (key_file, address) = context_for(path, profile, request, namespace)?;
     // Bind all spending to A's locally generated viewing key before opening a DB.
     let mut bytes = Vec::new();
     std::io::stdin().take(33).read_to_end(&mut bytes)?;
@@ -131,7 +150,7 @@ pub async fn prepare_for(path: &Path, server: &str, profile: uuid::Uuid, request
         path,
         &id.expose_uuid().to_string(),
         &address,
-        PAYMENT,
+        if namespace == "phase7c-funding" { 200_000 } else { PAYMENT },
         request,
         false,
         Some(FEE_CAP),
@@ -153,10 +172,10 @@ pub async fn inspect(
     profile: uuid::Uuid,
     request: uuid::Uuid,
 ) -> Result<Value> {
-    inspect_for(path,server,profile,request,false).await
+    inspect_for(path,server,profile,request,"phase52").await
 }
-pub async fn inspect_for(path:&Path,server:&str,profile:uuid::Uuid,request:uuid::Uuid,phase7b:bool)->Result<Value>{
-    context_for(path, profile, request, phase7b)?;
+pub async fn inspect_for(path:&Path,server:&str,profile:uuid::Uuid,request:uuid::Uuid,namespace:&str)->Result<Value>{
+    context_for(path, profile, request, namespace)?;
     let raw = fs::read(path.join(format!("request-{request}.raw")))?;
     let tx = zcash_primitives::transaction::Transaction::read(
         raw.as_slice(),
@@ -199,15 +218,15 @@ pub async fn broadcast(
     request: uuid::Uuid,
     approved: &str,
 ) -> Result<Value> {
-    broadcast_for(path,server,profile,request,approved,false).await
+    broadcast_for(path,server,profile,request,approved,"phase52").await
 }
-pub async fn broadcast_for(path:&Path,server:&str,profile:uuid::Uuid,request:uuid::Uuid,approved:&str,phase7b:bool)->Result<Value>{
-    let (_, address) = context_for(path, profile, request, phase7b)?;
+pub async fn broadcast_for(path:&Path,server:&str,profile:uuid::Uuid,request:uuid::Uuid,approved:&str,namespace:&str)->Result<Value>{
+    let (_, address) = context_for(path, profile, request, namespace)?;
     let _lock = lock_wallet(path)?;
     let record: Value =
         serde_json::from_slice(&fs::read(path.join(format!("request-{request}.json")))?)?;
     ensure!(
-        record["recipient"] == address && record["zatoshis"] == PAYMENT.to_string(),
+        record["recipient"] == address && record["zatoshis"] == (if namespace == "phase7c-funding" { 200_000 } else { PAYMENT }).to_string(),
         "payment effects binding conflict"
     );
     let fee = record["feeZatoshis"]
@@ -260,8 +279,16 @@ mod tests {
     fn phase7b_rejects_historical_profile_paths_before_reading_files() {
         let id=uuid::Uuid::new_v4();
         let old=std::env::current_dir().unwrap().join(".state/phase52").join(id.to_string()).join("payer-native");
-        assert!(context_for(&old,id,id,true).is_err());
-        assert!(context_for(Path::new(".secrets/user/zcash"),id,id,true).is_err());
+        assert!(context_for(&old,id,id,"phase7b").is_err());
+        assert!(context_for(Path::new(".secrets/user/zcash"),id,id,"phase7b").is_err());
+    }
+    #[test]
+    fn phase7c_rejects_historical_paths_and_arbitrary_namespaces() {
+        let id=uuid::Uuid::new_v4();
+        let old=std::env::current_dir().unwrap().join(".state/phase7b").join(id.to_string()).join("payer-native");
+        assert!(context_for(&old,id,id,"phase7c").is_err());
+        assert!(context_for(&old,id,id,"../phase7b").is_err());
+        assert!(context_for(Path::new(".secrets/user/zcash"),id,id,"phase7c").is_err());
     }
     #[test]
     fn a_broadcast_claim_survives_restart_and_prevents_duplicate_submission() {
