@@ -27,6 +27,7 @@ import NetworksPanel from "./networks/panel";
 import SolanaPanel from "./solana/panel";
 import SolanaDelivery from "./solana/delivery";
 import SolanaSwap from "./solana/swap";
+import SettlementReviewPanel from "./solana/settlement-review";
 import PurchasePanel from "./purchases/panel";
 import SwapPanel from "./swaps/panel";
 import SeaportPanel from "./seaport/panel";
@@ -1417,6 +1418,7 @@ export default function Wallet() {
               {tab === "Solana" && (
                 <>
                   <SolanaPanel />
+                  <SettlementReviewPanel />
                   <SolanaDelivery />
                   <SolanaSwap />
                 </>

@@ -1,5 +1,11 @@
 # ZecOne progress
 
+## 20 October 2026 — Functional checkpoint: capability audit and economic-review handoff
+
+Rebased delivery priority on shielded-ZEC-funded multichain transactions rather than NFT-first wallet parity. Added a measured capability matrix, functional roadmap, mainnet-readiness plan and a keyless review runtime. `SettlementReview` reuses the existing `SolanaSettlement` order model but cannot pay, prepare, sign, broadcast or refund; financial creation is disabled by default and exercised only against disposable databases. `settlementReads` supplies real devnet genesis, relayer inventory and pinned-pool terms. An optional authenticated local handler pins the profile and recipient allowlist server-side and rechecks the session after asynchronous work. A separate identity-only mainnet reader reports `PRIMARY_ONLY` Base and Solana mainnet identities with spending disabled; Ethereum and Zcash mainnet remain unconfigured. No historical order, credential, payment or completed settlement changed.
+
+**411 Node tests pass** (including 8 new review/readiness cases); both typechecks, lint, wallet build and extension build pass. Preservation: 537 + 91 protected files unchanged, both completed journals completed with single signing/broadcast claims, replay rejected before signer access, refund veto intact, and finalized receipts match saved evidence. This checkpoint remains **review-only**: no ZEC-funded transfer or swap is executable from the wallet yet, and no live payment, signing or broadcast occurred. See `docs/CAPABILITY-MATRIX.md`, `docs/FUNCTIONAL-ROADMAP.md` and `docs/MAINNET-READINESS.md`.
+
 ## 20 October 2026 — Phase 8D.2 intent-to-ZEC checkout rehearsal complete
 
 Continues `8aa6bc1`. Selected the existing Base Sepolia ERC721 marketplace purchase. New read-only mapping reuses the adapter's exact calldata/listing/ownership/approval/simulation and pricing functions. Two explicitly supplied read clients must agree on the canonical block and quote terms; bytecode, executor configuration, recipient, fee caps and inventory are checked. The dApp's price is never authoritative. Quotes bind the original canonical request, scope, terms, configuration and expiry; changed/expired terms require fresh approval.

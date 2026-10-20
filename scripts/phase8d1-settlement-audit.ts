@@ -9,9 +9,11 @@ import {
 } from "../services/solana/settlement.ts";
 import { CpmmPolicy } from "../services/solana/cpmm.ts";
 import { json } from "../services/solana/network.ts";
-const auditPhase = process.argv.includes("--phase8d2")
-  ? "phase8d2"
-  : "phase8d1";
+const auditPhase = process.argv.includes("--functional")
+  ? "functional"
+  : process.argv.includes("--phase8d2")
+    ? "phase8d2"
+    : "phase8d1";
 const report: any = {
   at: new Date().toISOString(),
   method:

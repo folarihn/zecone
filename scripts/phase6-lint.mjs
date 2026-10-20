@@ -2,6 +2,18 @@
 import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 const files = [
+  "tests/ui/functional-review.spec.ts",
+  "app/solana/settlement-review.tsx",
+  "services/wallet/review-backend.ts",
+  "scripts/functional-wallet.ts",
+  "scripts/wallet-review.ts",
+  "scripts/functional-readiness.ts",
+  "services/wallet/settlement-review-api.ts",
+  "services/wallet/mainnet-readiness.ts",
+  "tests/mainnet-readiness.test.ts",
+  "services/wallet/settlement-review.ts",
+  "services/wallet/settlement-reads.ts",
+  "tests/functional-settlement.test.ts",
   "tests/ui/phase8d2-checkout.spec.ts",
   "app/connect/checkout-handoff.tsx",
   "services/wallet/purchase-intent-quote.ts",

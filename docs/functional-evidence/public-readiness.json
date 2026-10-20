@@ -1,0 +1,45 @@
+{
+  "at": "2026-10-20T10:51:14.922Z",
+  "newPayment": false,
+  "signerAccess": false,
+  "broadcast": false,
+  "solana": {
+    "network": "devnet",
+    "poolValidated": true,
+    "input": "1000000",
+    "expectedOut": "75855620",
+    "minimumOut": "75097063",
+    "slippageBps": 100,
+    "confidence": "PRIMARY_ONLY",
+    "scope": "PUBLIC_POOL_ONLY",
+    "transactionSimulated": false
+  },
+  "base": {
+    "network": "base",
+    "results": [
+      "VERIFIED"
+    ],
+    "confidence": "PRIMARY_ONLY",
+    "scope": "NETWORK_IDENTITY_ONLY",
+    "spendingEnabled": false,
+    "productionReady": false
+  },
+  "solanaMainnet": {
+    "network": "solana",
+    "results": [
+      "VERIFIED"
+    ],
+    "confidence": "PRIMARY_ONLY",
+    "scope": "NETWORK_IDENTITY_ONLY",
+    "spendingEnabled": false,
+    "productionReady": false
+  },
+  "ethereum": {
+    "status": "NOT_CONFIGURED",
+    "spendingEnabled": false
+  },
+  "zcash": {
+    "status": "MAINNET_WATCH_BACKEND_NOT_IMPLEMENTED",
+    "spendingEnabled": false
+  }
+}

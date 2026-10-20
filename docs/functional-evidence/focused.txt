@@ -1,0 +1,22 @@
+(node:29260) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ keyless wallet local consent grants no ownership proof or financial methods (8.0342ms)
+✔ local review HTTP handler binds profile, session and CSRF and exposes no execution route (74.3527ms)
+✔ swap handoff preserves reviewed route and economic limits in original engine (6.0561ms)
+✔ changed swap terms require a new review without financial creation (2.8157ms)
+✔ a second review cannot adopt or reopen an existing paid-order identifier (4.0383ms)
+✔ wallet economic review creates no financial order and discloses demo pricing (1.9289ms)
+✔ explicit fixture authorization hands off to original engine once without execution (2.6783ms)
+✔ wrong session, digest, late review and depleted liquidity fail closed (2.8143ms)
+✔ interrupted financial handoff is reconciliation-only after restart (2.0037ms)
+✔ mainnet identity reads never grant execution and use no wallet data (30.603ms)
+✔ provider disagreement and unavailable secondary cannot be corroborated (1.6017ms)
+✔ unsafe endpoints are rejected before fetch and errors redact provider secrets (1.0009ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2922.536

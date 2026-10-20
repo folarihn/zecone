@@ -1,0 +1,5 @@
+
+> extension:build
+> node scripts/build-extension.mjs
+
+Unpacked extension: dist/extension (no credentials included)
