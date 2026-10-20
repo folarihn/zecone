@@ -2,6 +2,9 @@
 (() => {
   "use strict";
   if (window.top !== window || !location.origin.startsWith("https://")) return;
+  const installed = Symbol.for("zecone.eip6963.installed");
+  if (window[installed]) return;
+  Object.defineProperty(window, installed, { value: true });
   const pending = new Map(),
     listeners = new Map();
   const error = (code, message) => Object.assign(new Error(message), { code });

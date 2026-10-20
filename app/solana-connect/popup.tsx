@@ -9,6 +9,8 @@ export default function SolanaConnection() {
     channel = useRef(""),
     csrf = useRef(""),
     seen = useRef(false);
+  const sharing = useRef(false);
+  const alive = useRef(false);
   const send = (
     result?: unknown,
     error?: { code: number; message: string },
@@ -33,6 +35,7 @@ export default function SolanaConnection() {
         "X-ZecOne-CSRF": csrf.current,
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(4000),
     });
     const d = await r.json();
     if (!r.ok) throw Object.assign(Error(d.error), { code: d.code });
@@ -46,6 +49,7 @@ export default function SolanaConnection() {
       return;
     }
     let active = true;
+    alive.current = true;
     const receive = async (e: MessageEvent) => {
       const m = e.data;
       if (
@@ -101,13 +105,58 @@ export default function SolanaConnection() {
         "*",
       );
     ready();
+    let checking = false;
     const timer = setInterval(() => {
       if (!seen.current) ready();
     }, 500);
+    const permissionTimer = setInterval(async () => {
+      if (!sharing.current || checking) return;
+      checking = true;
+      try {
+        const status = await call("connection-status", {
+          origin: bound.current,
+        });
+        if (status.connected) return;
+      } catch {
+        /* An unavailable permission/session check cannot prolong exposure. */
+      } finally {
+        checking = false;
+      }
+      if (!active || !sharing.current) return;
+      sharing.current = false;
+      window.opener?.postMessage(
+        {
+          protocol: "zecone:solana:1",
+          channel: channel.current,
+          kind: "event",
+          event: "disconnect",
+        },
+        bound.current,
+      );
+      setError("Connection ended. Reconnect from the website.");
+    }, 5000);
+    const farewell = () => {
+      alive.current = false;
+      if (!bound.current) return;
+      sharing.current = false;
+      window.opener?.postMessage(
+        {
+          protocol: "zecone:solana:1",
+          channel: channel.current,
+          kind: "event",
+          event: "disconnect",
+        },
+        bound.current,
+      );
+    };
+    window.addEventListener("pagehide", farewell);
     return () => {
       active = false;
+      alive.current = false;
       clearInterval(timer);
+      clearInterval(permissionTimer);
       window.removeEventListener("message", receive);
+      window.removeEventListener("pagehide", farewell);
     };
   }, []);
   async function decide(approved: boolean) {
@@ -115,16 +164,21 @@ export default function SolanaConnection() {
     setBusy(true);
     try {
       const r = await call("approve", { id: review.id, account, approved });
+      if (!alive.current) return;
       send(r);
+      sharing.current = true;
       setReview(null);
-      setError("Connected. You can close this window.");
+      setError(
+        "Connected for public account access only. Keep this window open; closing it ends account exposure.",
+      );
     } catch (e) {
+      if (!alive.current) return;
       const message = e instanceof Error ? e.message : "Request rejected";
       send(undefined, { code: approved ? 4100 : 4001, message });
       setReview(null);
       setError(message);
     } finally {
-      setBusy(false);
+      if (alive.current) setBusy(false);
     }
   }
   return (

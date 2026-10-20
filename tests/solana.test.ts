@@ -31,6 +31,7 @@ import {
 import { decimal, tokenView } from "../services/solana/tokens.ts";
 import { SolanaJournal } from "../services/solana/journal.ts";
 import { SolanaPermissions } from "../services/solana/provider.ts";
+import { solanaApi } from "../services/solana/api.ts";
 import { corroborate } from "../services/solana/confirmation.ts";
 import { exerciseSolanaDestination } from "../services/execution/solana-destination.ts";
 import { signReviewed } from "../services/solana/signing.ts";
@@ -494,11 +495,169 @@ test("Wallet Standard discovery is separate, devnet-only and has no send capabil
       .accounts.length,
     0,
   );
-  await assert.rejects(
-    wallet.features["solana:signMessage"].signMessage({
-      account: {},
-      message: new Uint8Array([1]),
-    }),
-    { code: 4100 },
+  assert.equal(wallet.features["solana:signMessage"], undefined);
+  assert.equal(wallet.features["solana:signTransaction"], undefined);
+});
+test("Wallet Standard connection expires, closes popup and clears accounts", async () => {
+  let wallet: any,
+    receive: Function = () => {},
+    channel = "",
+    closed = false;
+  const popup: any = {
+      closed: false,
+      close() {
+        this.closed = true;
+        closed = true;
+      },
+      postMessage(m: any) {
+        if (m.kind === "request") channel = m.channel;
+      },
+    },
+    w: any = {
+      addEventListener: (n: string, f: Function) => {
+        if (n === "message") receive = f;
+      },
+      removeEventListener: () => {},
+      dispatchEvent: (e: any) =>
+        e.detail({ register: (v: any) => (wallet = v) }),
+      open: (url: string) => {
+        channel = url.split("#")[1] ?? "";
+        return popup;
+      },
+    };
+  w.top = w;
+  const source = readFileSync("extension/solana.js", "utf8").replace(
+      "300000",
+      "40",
+    ),
+    context = {
+      window: w,
+      CustomEvent: class {
+        detail: any;
+        constructor(n: string, v: any) {
+          this.detail = v.detail;
+        }
+      },
+      crypto: { randomUUID },
+      setTimeout,
+      clearTimeout,
+      setInterval,
+      clearInterval,
+      Uint8Array,
+      Date,
+    };
+  runInNewContext(source, context);
+  const connecting = wallet.features["standard:connect"].connect();
+  await new Promise((r) => setTimeout(r, 0));
+  assert.match(channel, /^[a-f0-9-]{36}$/);
+  receive({
+    source: popup,
+    origin: "http://127.0.0.1:3210",
+    data: { protocol: "zecone:solana:1", channel, kind: "ready" },
+  });
+  receive({
+    source: popup,
+    origin: "http://127.0.0.1:3210",
+    data: {
+      protocol: "zecone:solana:1",
+      channel,
+      kind: "response",
+      result: {
+        address: "11111111111111111111111111111111",
+        publicKey: Array(32).fill(0),
+      },
+    },
+  });
+  assert.equal((await connecting).accounts.length, 1);
+  assert.equal(wallet.accounts.length, 1);
+  await new Promise((r) => setTimeout(r, 700));
+  assert.equal(wallet.accounts.length, 0);
+  assert.equal(closed, true);
+  assert.equal(
+    (await wallet.features["standard:connect"].connect({ silent: true }))
+      .accounts.length,
+    0,
+  );
+});
+
+test("Solana connection status reports only the bound origin permission without credentials", async () => {
+  const sessions = new Sessions(new DatabaseSync(":memory:")),
+    { cookie, session } = sessions.pair(sessions.issuePairing());
+  sessions.db
+    .prepare("UPDATE sessions SET connected=1 WHERE id=?")
+    .run(session.id);
+  const permissions = new SolanaPermissions(new DatabaseSync(":memory:"), [
+      owner,
+    ]),
+    review = permissions.request("https://dapp.example", session.id, "connect");
+  permissions.approve(review.id, session.id, owner, true);
+  const api = solanaApi(
+      sessions,
+      new SolanaJournal(new DatabaseSync(":memory:")),
+      permissions,
+    ),
+    call = async (csrf: string, body: unknown) => {
+      const headers: Record<string, string> = {
+          host: "127.0.0.1:3210",
+          origin: "http://127.0.0.1:3210",
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin",
+          cookie: `zecone_session=${cookie}`,
+          "x-zecone-csrf": csrf,
+        },
+        req = {
+          method: "POST",
+          url: "/api/solana/connection-status",
+          headers,
+          async *[Symbol.asyncIterator]() {
+            yield Buffer.from(JSON.stringify(body));
+          },
+        } as any;
+      let status = 200,
+        raw = "",
+        sent: Record<string, string> = {};
+      const res = {
+        setHeader: (k: string, v: string) => (sent[k] = v),
+        end: (v: string) => (raw = v),
+        get statusCode() {
+          return status;
+        },
+        set statusCode(v: number) {
+          status = v;
+        },
+      } as any;
+      await api(req, res);
+      return { status, body: JSON.parse(raw), headers: sent };
+    };
+  assert.deepEqual(
+    (await call(session.csrf, { origin: "https://dapp.example" })).body,
+    { connected: true },
+  );
+  assert.deepEqual(
+    (await call(session.csrf, { origin: "https://other.example" })).body,
+    { connected: false },
+  );
+  const rejected = await call("0".repeat(64), {
+    origin: "https://dapp.example",
+  });
+  assert.equal(rejected.status, 403);
+  assert.equal(rejected.body.connected, undefined);
+  permissions.revoke("https://dapp.example");
+  assert.deepEqual(
+    (await call(session.csrf, { origin: "https://dapp.example" })).body,
+    { connected: false },
+  );
+  sessions.db
+    .prepare("UPDATE sessions SET connected=0 WHERE id=?")
+    .run(session.id);
+  permissions.approve(
+    permissions.request("https://dapp.example", session.id, "connect").id,
+    session.id,
+    owner,
+    true,
+  );
+  assert.deepEqual(
+    (await call(session.csrf, { origin: "https://dapp.example" })).body,
+    { connected: false },
   );
 });

@@ -37,6 +37,18 @@ export function solanaApi(
       }
       const body = raw ? JSON.parse(raw) : {};
       const path = req.url?.split("?")[0];
+      if (req.method === "POST" && path === "/api/solana/connection-status") {
+        // Public permission metadata only; never instantiate/read wallet credentials.
+        res.end(
+          json({
+            connected: Boolean(
+              session.connected &&
+              permissions.account(String(body.origin)) !== null,
+            ),
+          }),
+        );
+        return;
+      }
       const accounts = Accounts.list();
       let result: unknown;
       if (req.method === "GET" && path === "/api/solana/accounts")

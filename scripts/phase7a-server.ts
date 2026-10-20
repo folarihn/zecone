@@ -72,6 +72,7 @@ const server = createServer(async (req, res) => {
     requireLocal(
       req.headers as Record<string, string | undefined>,
       req.method !== "GET",
+      ["/connect", "/solana-connect"].includes(req.url?.split("?")[0] ?? ""),
     );
   } catch {
     res.writeHead(403);

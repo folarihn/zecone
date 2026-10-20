@@ -1,0 +1,58 @@
+✔ extension runtime origin comes from the browser sender, never a payload (2.2108ms)
+✔ extension schema rejects forged authority, oversized data and malformed identity (1.627ms)
+✔ extension denies unimplemented, Zcash, key export and raw signing RPCs (1.495ms)
+✔ extension validates parameter shapes before routing approvals (1.385ms)
+✔ extension blocks mainnet chain selection and transactions before opening approvals (0.3914ms)
+✔ extension package has isolated transport, no secret or broad permission capability (3.1461ms)
+✔ extension accepts only a single public EVM account projection (0.3836ms)
+✔ worker expiry discards late approval responses and prevents request replay (5.2397ms)
+✔ worker rejects unknown response IDs, isolates documents, and removes disconnected state (1.9408ms)
+✔ worker extension UI metadata is unavailable to website senders and contains no params (1.5046ms)
+✔ 8D0 duplicate MAIN-world injection preserves one EVM provider identity and one Solana registration (5.7677ms)
+✔ 8D0 Solana disconnect cancels a resolved-but-not-delivered approval instead of restoring accounts (4.257ms)
+✔ 8D0 Solana public-key byte/address binding agrees with SDK encoding and rejects substitution (5.6009ms)
+✔ 8D0 stale Solana approval is closed and its later response cannot disclose an account (4.4975ms)
+(node:19120) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ RPC outage retries are bounded, concurrent reads are refused, and abort signals reach transport (2300.1093ms)
+✔ confidential Token-2022 balances are unavailable, never a fabricated zero (3.1652ms)
+✔ isolated Ed25519 signing requires exact approval and persists signed bytes without submission (22.5121ms)
+✔ manual EVM backend uses a disposable ownership challenge and disables all settlement entrypoints (59.3537ms)
+✔ devnet identity rejects a mainnet or truncated genesis before any account query (3.1898ms)
+✔ public key and destination allowlist reject invalid/mismatched accounts and caps (1.3328ms)
+✔ token amounts retain integer precision and reject invalid decimals/mints (0.5604ms)
+✔ Token-2022 extensions and frozen accounts are displayed but never transferable (3.1653ms)
+✔ canonical SOL decoding rejects byte edits, extra programs/metas and fee-payer substitution (9.1264ms)
+✔ canonical SPL transfer uses checked decimals and bounded owner ATAs (24.8307ms)
+✔ SPL preflight refuses missing/Token-2022/freezeable mints (0.4309ms)
+✔ simulation failure cannot become approval-ready; expired blockhash and high fees fail (5.4029ms)
+✔ durable idempotency, duplicate signature and submission protections (3.3511ms)
+✔ restart recovery preserves ambiguous signing; recovery and execution exclude each other (50.7438ms)
+✔ origin permissions, session binding, rejection, replay and revoke are enforced (1.4845ms)
+✔ RPC finalization requires agreement; outages/processed are not settled (0.2822ms)
+✔ synthetic verified ZEC authorizes only a nonbroadcast Solana simulation; historical/replayed payments rejected (2.4796ms)
+✔ Wallet Standard discovery is separate, devnet-only and has no send capability (2.0468ms)
+✔ Wallet Standard connection expires, closes popup and clears accounts (716.0701ms)
+✔ Solana connection status reports only the bound origin permission without credentials (4.6543ms)
+(node:16816) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ pairing is one use, cookie is hashed, sessions expire and revoke (7.2908ms)
+✔ Host, Origin, fetch metadata and JSON gate reject cross-site requests (1.0029ms)
+✔ unconnected or unapproved operations never invoke signing (143.2826ms)
+✔ ownership challenge verifies signature, is session-bound and cannot replay (100.8024ms)
+✔ tampered ownership signature fails closed (73.2447ms)
+✔ order creation is idempotent across duplicate and concurrent submissions (72.4572ms)
+✔ stale and other-session fee approvals cannot send; duplicate approvals send once (87.6688ms)
+✔ payment approval passes the exact fee ceiling and predetermined destination to native signer (68.6943ms)
+✔ restarted in-flight actions require review and never silently resend (63.0726ms)
+✔ nine confirmations remain confirming; ten permit settled and later completed states (64.997ms)
+✔ browser projection omits account IDs, receiving addresses, signatures, nonce and raw transaction (55.0688ms)
+✔ HTTP boundary blocks unauthenticated, CSRF and cross-origin signing attempts before dispatch (56.7282ms)
+ℹ tests 46
+ℹ suites 0
+ℹ pass 46
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12340.5787

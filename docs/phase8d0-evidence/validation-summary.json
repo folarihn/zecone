@@ -1,0 +1,18 @@
+{
+  "testsPassed": 490,
+  "node": 358,
+  "extensionBrowser": 20,
+  "ignoredPreExistingProof": 1,
+  "typechecks": "passed",
+  "lint": "passed",
+  "productionBuild": "passed",
+  "extensionBuild": "passed",
+  "protectedFiles": 628,
+  "protectedFilesUnchanged": true,
+  "financialRowsUnchanged": true,
+  "replayRestartRefundVeto": "passed",
+  "realThirdPartyAuthenticatedConnection": false,
+  "liveSigning": false,
+  "liveBroadcast": false,
+  "refundsEnabled": false
+}

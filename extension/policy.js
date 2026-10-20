@@ -53,6 +53,45 @@ export function validateRequest(m) {
     throw Object.assign(Error("Invalid wallet request"), { code: -32602 });
   if (!METHODS.includes(m.method))
     throw Object.assign(Error("Unsupported wallet method"), { code: 4200 });
+  const invalid = () => {
+    throw Object.assign(Error("Invalid method parameters"), { code: -32602 });
+  };
+  if (
+    [
+      "eth_requestAccounts",
+      "eth_accounts",
+      "eth_chainId",
+      "net_version",
+      "eth_blockNumber",
+    ].includes(m.method) &&
+    m.params.length !== 0
+  )
+    invalid();
+  if (
+    [
+      "wallet_switchEthereumChain",
+      "wallet_addEthereumChain",
+      "eth_sendTransaction",
+    ].includes(m.method) &&
+    (m.params.length !== 1 ||
+      !m.params[0] ||
+      typeof m.params[0] !== "object" ||
+      Array.isArray(m.params[0]))
+  )
+    invalid();
+  if (
+    ["wallet_switchEthereumChain", "wallet_addEthereumChain"].includes(
+      m.method,
+    ) &&
+    typeof m.params[0].chainId !== "string"
+  )
+    invalid();
+  if (
+    m.method === "eth_sendTransaction" &&
+    m.params[0].chainId !== undefined &&
+    typeof m.params[0].chainId !== "string"
+  )
+    invalid();
   if (
     ["wallet_switchEthereumChain", "wallet_addEthereumChain"].includes(
       m.method,

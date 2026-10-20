@@ -131,6 +131,26 @@ test("Host, Origin, fetch metadata and JSON gate reject cross-site requests", ()
     { ...h, "content-type": "text/plain" },
   ])
     assert.throws(() => requireLocal(x, true));
+  const navigation = {
+    ...h,
+    origin: undefined,
+    "sec-fetch-site": "cross-site",
+    "sec-fetch-mode": "navigate",
+    "sec-fetch-dest": "document",
+  };
+  assert.throws(() => requireLocal(navigation, false));
+  requireLocal(navigation, false, true);
+  assert.throws(() => requireLocal(navigation, true));
+  assert.throws(() =>
+    requireLocal(
+      {
+        ...navigation,
+        "sec-fetch-site": "same-site",
+        "sec-fetch-mode": "cors",
+      },
+      false,
+    ),
+  );
 });
 test("unconnected or unapproved operations never invoke signing", async () => {
   const f = fixture();

@@ -69,7 +69,7 @@ export class SolanaPermissions {
       address: account,
       publicKey: Array.from(getAddressEncoder().encode(publicKey(account))),
       chains: ["solana:devnet"],
-      features: ["solana:signMessage", "solana:signTransaction"],
+      features: [],
     };
   }
   revoke(origin: string) {

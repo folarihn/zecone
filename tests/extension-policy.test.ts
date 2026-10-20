@@ -75,6 +75,57 @@ test("extension denies unimplemented, Zcash, key export and raw signing RPCs", (
       { code: 4200 },
     );
 });
+test("extension validates parameter shapes before routing approvals", () => {
+  const request = (method: string, params: unknown[]) => ({
+    kind: "request",
+    id: randomUUID(),
+    method,
+    params,
+  });
+  for (const method of [
+    "eth_requestAccounts",
+    "eth_accounts",
+    "eth_chainId",
+    "net_version",
+    "eth_blockNumber",
+  ])
+    assert.throws(() => validateRequest(request(method, [{}])), {
+      code: -32602,
+    });
+  for (const method of [
+    "wallet_switchEthereumChain",
+    "wallet_addEthereumChain",
+    "eth_sendTransaction",
+  ]) {
+    for (const params of [[], [null], ["0x1"], [[]]])
+      assert.throws(() => validateRequest(request(method, params)), {
+        code: -32602,
+      });
+  }
+  for (const method of [
+    "wallet_switchEthereumChain",
+    "wallet_addEthereumChain",
+  ])
+    assert.throws(
+      () => validateRequest(request(method, [{ chainId: 84532 }])),
+      { code: -32602 },
+    );
+  assert.throws(
+    () => validateRequest(request("eth_sendTransaction", [{ chainId: 84532 }])),
+    { code: -32602 },
+  );
+  assert.doesNotThrow(() =>
+    validateRequest(
+      request("wallet_switchEthereumChain", [{ chainId: "0x14A34" }]),
+    ),
+  );
+  assert.doesNotThrow(() =>
+    validateRequest(request("eth_sendTransaction", [{}])),
+  );
+  assert.doesNotThrow(() =>
+    validateRequest(request("eth_sendTransaction", [{ chainId: "0x14a34" }])),
+  );
+});
 test("extension blocks mainnet chain selection and transactions before opening approvals", () => {
   for (const method of [
     "wallet_switchEthereumChain",

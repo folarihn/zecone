@@ -20,6 +20,7 @@ export type Session = {
 export function requireLocal(
   headers: Record<string, string | undefined>,
   mutation: boolean,
+  allowNavigation = false,
 ) {
   if (headers.host !== "127.0.0.1:3210")
     throw new ApiError(403, "Open ZecOne on its local address.");
@@ -27,9 +28,15 @@ export function requireLocal(
     throw new ApiError(403, "Origin not allowed.");
   if (mutation && headers.origin !== ORIGIN)
     throw new ApiError(403, "A local browser origin is required.");
+  const navigation =
+    allowNavigation &&
+    !mutation &&
+    headers["sec-fetch-mode"] === "navigate" &&
+    headers["sec-fetch-dest"] === "document";
   if (
     headers["sec-fetch-site"] &&
-    !["same-origin", "none"].includes(headers["sec-fetch-site"]!)
+    !["same-origin", "none"].includes(headers["sec-fetch-site"]!) &&
+    !(navigation && headers["sec-fetch-site"] === "cross-site")
   )
     throw new ApiError(403, "Cross-site requests are not allowed.");
   if (mutation && headers["content-type"]?.split(";")[0] !== "application/json")

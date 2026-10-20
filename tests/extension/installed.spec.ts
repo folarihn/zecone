@@ -169,12 +169,13 @@ test("request routing binds actual website origin and waits for account approval
   await expect.poll(() => rpc("eth_accounts")).toEqual({ value: [account] });
 });
 test("unauthorized signing and private RPCs cannot open a signer", async () => {
-  for (const method of [
-    "personal_sign",
-    "eth_signTypedData_v4",
-    "eth_sendTransaction",
-  ])
-    expect(await rpc(method)).toEqual({ error: 4100 });
+  const signing: Record<string, any[]> = {
+    personal_sign: ["0x6869", account],
+    eth_signTypedData_v4: [account, { domain: {}, types: {}, message: {} }],
+    eth_sendTransaction: [{}],
+  };
+  for (const [method, params] of Object.entries(signing))
+    expect(await rpc(method, params)).toEqual({ error: 4100 });
   for (const method of [
     "zcash_getBalance",
     "zcash_exportViewingKey",

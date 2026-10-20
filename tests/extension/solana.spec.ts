@@ -36,7 +36,7 @@ test.beforeEach(async () => {
   await context.route(wallet + "/solana-connect**", (r) =>
     r.fulfill({
       contentType: "text/html",
-      body: `<h1>Synthetic Solana approval</h1><button id="approve">Approve fixture</button><button id="reject">Reject</button><script>const channel=location.hash.slice(1);const send=(result,error)=>opener.postMessage({protocol:'zecone:solana:1',channel,kind:'response',result,error},'${origin}');addEventListener('message',e=>{if(e.origin!=='${origin}'||e.source!==opener||e.data.channel!==channel)return;window.method=e.data.method;});document.querySelector('#approve').onclick=()=>send({address:'11111111111111111111111111111111',publicKey:Array(32).fill(0)});document.querySelector('#reject').onclick=()=>send(null,{code:4001,message:'Fixture rejection'});setInterval(()=>opener.postMessage({protocol:'zecone:solana:1',channel,kind:'ready'},'${origin}'),100);</script>`,
+      body: `<h1>Synthetic Solana approval</h1><button id="approve">Approve fixture</button><button id="reject">Reject</button><button id="disconnect">Disconnect fixture</button><script>const channel=location.hash.slice(1);const send=(result,error)=>opener.postMessage({protocol:'zecone:solana:1',channel,kind:'response',result,error},'${origin}');const event=(name)=>opener.postMessage({protocol:'zecone:solana:1',channel,kind:'event',event:name},'${origin}');addEventListener('message',e=>{if(e.origin!=='${origin}'||e.source!==opener||e.data.channel!==channel)return;window.method=e.data.method;});document.querySelector('#approve').onclick=()=>send({address:'11111111111111111111111111111111',publicKey:Array(32).fill(0)});document.querySelector('#reject').onclick=()=>send(null,{code:4001,message:'Fixture rejection'});document.querySelector('#disconnect').onclick=()=>event('disconnect');setInterval(()=>opener.postMessage({protocol:'zecone:solana:1',channel,kind:'ready'},'${origin}'),100);</script>`,
     }),
   );
   page = await context.newPage();
@@ -76,7 +76,7 @@ test("installed Wallet Standard rejection returns 4001 and grants no account", a
     await page.evaluate(() => (window as any).wallet.accounts.length),
   ).toBe(0);
 });
-test("installed Wallet Standard ignores forged website responses and rejects mainnet before popup", async () => {
+test("installed Wallet Standard ignores forged responses and never advertises disabled signing", async () => {
   const popupEvent = context.waitForEvent("page");
   await page.locator("#connect").click();
   const popup = await popupEvent;
@@ -97,17 +97,57 @@ test("installed Wallet Standard ignores forged website responses and rejects mai
   await expect
     .poll(() => page.evaluate(() => (window as any).wallet.accounts.length))
     .toBe(1);
-  const code = await page.evaluate(async () => {
+  const capabilities = await page.evaluate(async () => {
     const w = (window as any).wallet;
-    try {
-      await w.features["solana:signTransaction"].signTransaction({
-        account: w.accounts[0],
-        chain: "solana:mainnet",
-        transaction: new Uint8Array([1]),
-      });
-    } catch (e: any) {
-      return e.code;
-    }
+    return {
+      signing: Object.keys(w.features).filter((k) => k.startsWith("solana:")),
+      accountFeatures: w.accounts[0].features,
+    };
   });
-  expect(code).toBe(4901);
+  expect(capabilities).toEqual({ signing: [], accountFeatures: [] });
+});
+test("installed Wallet Standard disconnect event clears public account exposure", async () => {
+  const popupEvent = context.waitForEvent("page");
+  await page.locator("#connect").click();
+  const popup = await popupEvent;
+  await popup.locator("#approve").click();
+  await expect
+    .poll(() => page.evaluate(() => (window as any).wallet.accounts.length))
+    .toBe(1);
+  const closing = popup.waitForEvent("close");
+  await popup.locator("#disconnect").click();
+  await expect
+    .poll(() => page.evaluate(() => (window as any).wallet.accounts.length))
+    .toBe(0);
+  await closing;
+});
+test("installed Wallet Standard clears accounts when the connected popup closes", async () => {
+  const popupEvent = context.waitForEvent("page");
+  await page.locator("#connect").click();
+  const popup = await popupEvent;
+  await popup.locator("#approve").click();
+  await expect
+    .poll(() => page.evaluate(() => (window as any).wallet.accounts.length))
+    .toBe(1);
+  await popup.close();
+  await expect
+    .poll(() => page.evaluate(() => (window as any).wallet.accounts.length))
+    .toBe(0);
+});
+test("installed Wallet Standard validates connect input and keeps silent connect non-interactive", async () => {
+  const result = await page.evaluate(async () => {
+    const connect = (window as any).wallet.features["standard:connect"].connect;
+    let invalid;
+    try {
+      await connect({ silent: "yes" });
+    } catch (e: any) {
+      invalid = e.code;
+    }
+    return {
+      invalid,
+      silent: (await connect({ silent: true })).accounts.length,
+      leaked: (window as any).wallet.accounts.length,
+    };
+  });
+  expect(result).toEqual({ invalid: -32602, silent: 0, leaked: 0 });
 });

@@ -1,0 +1,61 @@
+{
+  "scope": "Phase 8D.0; operation-specific status; no live account approval/signing/broadcast",
+  "rows": [
+    {
+      "dapp": "OpenSea",
+      "kind": "REAL THIRD-PARTY",
+      "walletDetected": "PARTIAL",
+      "connectApproved": "NOT TESTED",
+      "connectRejected": "BLOCKED",
+      "networkSwitching": "NOT TESTED",
+      "accountUpdates": "NOT TESTED",
+      "messageSigning": "NOT TESTED",
+      "transactionSigning": "NOT TESTED",
+      "broadcast": "NOT TESTED",
+      "accountPrivacy": "PASS",
+      "limitations": "Actual EIP-6963 announcement observed; site loaded; picker/selection automation timed out. No login, profile creation or account approval. See real-sites.json."
+    },
+    {
+      "dapp": "Uniswap",
+      "kind": "REAL THIRD-PARTY",
+      "walletDetected": "PASS",
+      "connectApproved": "NOT TESTED",
+      "connectRejected": "BLOCKED",
+      "networkSwitching": "NOT TESTED",
+      "accountUpdates": "NOT TESTED",
+      "messageSigning": "NOT TESTED",
+      "transactionSigning": "NOT TESTED",
+      "broadcast": "NOT TESTED",
+      "accountPrivacy": "PASS",
+      "limitations": "Actual site lists ZecOne Testnet. Selection/cancellation could not be completed reliably. No authenticated connection or signature."
+    },
+    {
+      "dapp": "EIP-1193 reference fixture",
+      "kind": "SYNTHETIC INSTALLED-EXTENSION FIXTURE",
+      "walletDetected": "PASS",
+      "connectApproved": "PASS",
+      "connectRejected": "PASS",
+      "networkSwitching": "PASS",
+      "accountUpdates": "PARTIAL",
+      "messageSigning": "PARTIAL",
+      "transactionSigning": "PARTIAL",
+      "broadcast": "UNSUPPORTED",
+      "accountPrivacy": "PASS",
+      "limitations": "Approvals, events and transport are fixture-backed. Signing responses are synthetic; not live cryptographic dApp compatibility. Only configured testnets. No broadcast in fixture. Account events cover grant/revoke/session loss; no multi-account selector is implemented."
+    },
+    {
+      "dapp": "Solana Wallet Standard reference fixture",
+      "kind": "SYNTHETIC INSTALLED-EXTENSION FIXTURE",
+      "walletDetected": "PASS",
+      "connectApproved": "PASS",
+      "connectRejected": "PASS",
+      "networkSwitching": "UNSUPPORTED",
+      "accountUpdates": "PARTIAL",
+      "messageSigning": "UNSUPPORTED",
+      "transactionSigning": "UNSUPPORTED",
+      "broadcast": "UNSUPPORTED",
+      "accountPrivacy": "PASS",
+      "limitations": "Devnet connection only. Account clearing/reconnect verified, not seamless active-account switching. standard:connect/disconnect/events; no solana signing features."
+    }
+  ]
+}
