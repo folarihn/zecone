@@ -124,6 +124,130 @@ test("local review HTTP handler binds profile, session and CSRF and exposes no e
   assert.equal(result.data.executionAuthorized, false);
   assert.equal(f.store.all().length, 0);
 });
+test("opt-in wallet creates one reviewed financial order and reveals a payment request without paying", async (t) => {
+  const f = fixture(),
+    sessions = new Sessions(f.store.db);
+  const pair = sessions.pair(sessions.issuePairing());
+  f.store.db
+    .prepare("UPDATE sessions SET connected=1 WHERE id=?")
+    .run(pair.session.id);
+  const server = createServer(
+    settlementReviewApi(sessions, f.review, request, [request.recipient], {
+      financialCreationEnabled: true,
+    }),
+  );
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  t.after(async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    f.store.close();
+  });
+  const call = (method: string, path: string, body?: unknown): Promise<any> =>
+    new Promise((resolve, reject) => {
+      const req = httpRequest(
+        {
+          hostname: "127.0.0.1",
+          port: (server.address() as any).port,
+          path,
+          method,
+          headers: {
+            Host: "127.0.0.1:3210",
+            Origin: "http://127.0.0.1:3210",
+            "Content-Type": "application/json",
+            "X-ZecOne-CSRF": pair.session.csrf,
+            Cookie: `zecone_session=${pair.cookie}`,
+          },
+        },
+        (res) => {
+          let raw = "";
+          res.on("data", (c) => (raw += c));
+          res.on("end", () =>
+            resolve({ status: res.statusCode, data: JSON.parse(raw) }),
+          );
+        },
+      );
+      req.on("error", reject);
+      req.end(body === undefined ? undefined : JSON.stringify(body));
+    });
+  const reviewed = await call("POST", "/api/settlement-review", {
+    recipient: request.recipient,
+    lamports: request.lamports,
+    action: "transfer",
+  });
+  assert.equal(reviewed.status, 200);
+  const authorized = await call("POST", "/api/settlement-review/authorize", {
+    id: reviewed.data.id,
+    digest: reviewed.data.digest,
+    approved: true,
+  });
+  assert.equal(authorized.status, 200);
+  assert.equal(authorized.data.financialOrderCreated, true);
+  assert.equal(authorized.data.executionAuthorized, false);
+  assert.equal(authorized.data.paymentRequest.address, request.paymentAddress);
+  assert.equal(authorized.data.paymentRequest.broadcast, false);
+  const duplicate = await call("POST", "/api/settlement-review/authorize", {
+    id: reviewed.data.id,
+    digest: reviewed.data.digest,
+    approved: true,
+  });
+  assert.equal(duplicate.status, 400);
+  const status = await call("GET", "/api/settlement-review/status");
+  assert.equal(status.status, 200);
+  assert.equal(status.data.reviews.length, 1);
+  assert.equal(status.data.reviews[0].state, "CREATED");
+  assert.equal(f.store.all().length, 1);
+});
+test("financial creation stays closed unless the operator enables it", async (t) => {
+  const f = fixture(),
+    sessions = new Sessions(f.store.db);
+  const pair = sessions.pair(sessions.issuePairing());
+  f.store.db
+    .prepare("UPDATE sessions SET connected=1 WHERE id=?")
+    .run(pair.session.id);
+  const server = createServer(
+    settlementReviewApi(sessions, f.review, request, [request.recipient]),
+  );
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  t.after(async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    f.store.close();
+  });
+  const status = await new Promise<any>((resolve, reject) => {
+    const req = httpRequest(
+      {
+        hostname: "127.0.0.1",
+        port: (server.address() as any).port,
+        path: "/api/settlement-review/authorize",
+        method: "POST",
+        headers: {
+          Host: "127.0.0.1:3210",
+          Origin: "http://127.0.0.1:3210",
+          "Content-Type": "application/json",
+          "X-ZecOne-CSRF": pair.session.csrf,
+          Cookie: `zecone_session=${pair.cookie}`,
+        },
+      },
+      (res) => {
+        let raw = "";
+        res.on("data", (c) => (raw += c));
+        res.on("end", () =>
+          resolve({ status: res.statusCode, data: JSON.parse(raw) }),
+        );
+      },
+    );
+    req.on("error", reject);
+    req.end(
+      JSON.stringify({
+        id: "00000000-0000-4000-8000-000000000000",
+        digest: "0".repeat(64),
+        approved: true,
+      }),
+    );
+  });
+  assert.equal(status.status, 403);
+  assert.equal(f.store.all().length, 0);
+});
 function fixture() {
   const store = new Store(":memory:");
   let time = 1000,

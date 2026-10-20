@@ -8,6 +8,7 @@
   "scripts": {
     "wallet:review-ui": "tsx scripts/functional-wallet.ts",
     "wallet:review": "tsx scripts/wallet-review.ts",
+    "wallet:observe": "tsx scripts/wallet-observe.ts",
     "phase7c": "tsx scripts/phase7c.ts",
     "phase7c:profile": "tsx scripts/phase7c-profile.ts",
     "phase7c:wallet": "tsx scripts/phase7a-server.ts --phase7c",

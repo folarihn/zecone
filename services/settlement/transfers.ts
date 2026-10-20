@@ -1,7 +1,23 @@
 import { createHash, randomBytes } from "node:crypto";
-import { getAddress, zeroAddress, type Address, type Hex } from "viem";
-import { network, type NetworkId } from "../evm/networks.ts";
+import { getAddress, zeroAddress, type Hex } from "viem";
+import { network } from "../evm/networks.ts";
 import { GENESIS, publicKey, SolanaError } from "../solana/network.ts";
+import type {
+  Erc20Asset,
+  EvmTransferIntent,
+  SolanaTransferIntent,
+  SplAsset,
+  TransferIntent,
+  TransferPolicy,
+} from "./transfer-types.ts";
+export type {
+  Erc20Asset,
+  EvmTransferIntent,
+  SolanaTransferIntent,
+  SplAsset,
+  TransferIntent,
+  TransferPolicy,
+};
 export const DEMO_ZATOSHIS = "100000";
 export const TRANSFER_ACTIONS = Object.freeze({
   EVM_NATIVE: "EVM_NATIVE_TRANSFER",
@@ -9,73 +25,7 @@ export const TRANSFER_ACTIONS = Object.freeze({
   SOLANA_SOL: "SOLANA_DEVNET_SOL_DELIVERY",
   SOLANA_SPL: "SOLANA_DEVNET_SPL_DELIVERY",
 } as const);
-export type TransferAction =
-  (typeof TRANSFER_ACTIONS)[keyof typeof TRANSFER_ACTIONS];
-export type Erc20Asset = {
-  kind: "ERC20";
-  address: Address;
-  decimals: number;
-};
-export type SplAsset = {
-  kind: "SPL";
-  mint: string;
-  decimals: number;
-};
-export type EvmTransferIntent = {
-  family: "evm";
-  action:
-    typeof TRANSFER_ACTIONS.EVM_NATIVE | typeof TRANSFER_ACTIONS.EVM_ERC20;
-  version: 1;
-  chainId: NetworkId;
-  relayer: Address;
-  recipient: Address;
-  amount: string;
-  asset: { kind: "native" } | Erc20Asset;
-  feeCapWei: string;
-  quotation: {
-    block: string;
-    calldataHash: Hex;
-    gas: string;
-    feeCapWei: string;
-    at: number;
-    expires: number;
-  };
-  zatoshis: string;
-  nonce: Hex;
-  expiry: number;
-  pricing: "FIXED_TESTNET_DEMO_NOT_EXCHANGE_RATE";
-  profileId: string;
-  requestId: string;
-};
-export type SolanaTransferIntent = {
-  family: "solana";
-  action:
-    typeof TRANSFER_ACTIONS.SOLANA_SOL | typeof TRANSFER_ACTIONS.SOLANA_SPL;
-  version: 1;
-  network: "solana:devnet";
-  genesis: typeof GENESIS;
-  relayer: string;
-  recipient: string;
-  amount: string;
-  asset: { kind: "SOL" } | SplAsset;
-  feeCap: string;
-  zatoshis: string;
-  nonce: Hex;
-  expiry: number;
-  pricing: "FIXED_TESTNET_DEMO_NOT_EXCHANGE_RATE";
-  profileId: string;
-  requestId: string;
-};
-export type TransferIntent = EvmTransferIntent | SolanaTransferIntent;
-export type TransferPolicy = {
-  erc20: Partial<Record<NetworkId, readonly Erc20Asset[]>>;
-  spl: readonly SplAsset[];
-  // Value caps are deliberately small and independent of the demo ZEC price.
-  evmNativeCapWei: bigint;
-  erc20Cap: bigint;
-  solLamportsCap: bigint;
-  splCap: bigint;
-};
+// Value caps are deliberately small and independent of the demo ZEC price.
 export const DEFAULT_TRANSFER_POLICY: TransferPolicy = Object.freeze({
   erc20: Object.freeze({}),
   spl: Object.freeze([]),

@@ -1,6 +1,7 @@
 // Separate non-spending startup. No legacy Engine, phase7 runtime or key loader.
 import { createServer } from "node:http";
 import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { randomUUID, randomBytes } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import nextModule from "next";
@@ -12,9 +13,23 @@ import { SolanaSettlement } from "../services/solana/settlement.ts";
 import { SettlementReview } from "../services/wallet/settlement-review.ts";
 import { settlementReads } from "../services/wallet/settlement-reads.ts";
 import { settlementReviewApi } from "../services/wallet/settlement-review-api.ts";
-const path = process.argv[2];
-if (process.argv.length !== 3 || !path)
-  throw Error("Provide a public review profile JSON path.");
+const args = process.argv.slice(2),
+  financialCreationEnabled = args.includes("--enable-financial-creation"),
+  rest = args.filter((a) => a !== "--enable-financial-creation"),
+  stateIndex = rest.indexOf("--state"),
+  statePath = stateIndex >= 0 ? rest[stateIndex + 1] : undefined,
+  path = rest[0],
+  validShape =
+    !!path &&
+    (stateIndex < 0
+      ? rest.length === 1
+      : rest.length === 3 && rest[1] === "--state" && !!statePath);
+if (!validShape)
+  throw Error(
+    "Usage: functional-wallet <public-profile.json> [--state <dir>] [--enable-financial-creation]",
+  );
+if (financialCreationEnabled && !statePath)
+  throw Error("Financial creation requires an explicit --state directory.");
 const p = JSON.parse(readFileSync(path, "utf8"));
 const profileKeys = [
   "profileId",
@@ -32,12 +47,18 @@ if (
   !p.recipients.length ||
   p.recipients.some((a: unknown) => typeof a !== "string") ||
   !p.profile ||
-  Object.keys(p.profile).length !== profileKeys.length ||
-  profileKeys.some((k) => typeof p.profile[k] !== "string") ||
-  Object.keys(p.profile).some((k) => !profileKeys.includes(k))
+  !profileKeys.every((k) => typeof p.profile[k] === "string") ||
+  Object.keys(p.profile).some((k) => !profileKeys.includes(k) && k !== "spl") ||
+  (p.profile.spl !== undefined &&
+    (!p.profile.spl ||
+      p.profile.spl.kind !== "SPL" ||
+      typeof p.profile.spl.mint !== "string" ||
+      !Number.isInteger(p.profile.spl.decimals)))
 )
   throw Error("Public review profile required; credentials are not accepted.");
-const root = `.state/functional/wallet-${randomUUID()}`;
+const root = statePath
+  ? resolve(statePath)
+  : `.state/functional/wallet-${randomUUID()}`;
 mkdirSync(root, { recursive: true, mode: 0o700 });
 const sessions = new Sessions(new DatabaseSync(`${root}/sessions.sqlite`));
 const backend = reviewBackend(sessions, p.displayEvmAddress);
@@ -52,7 +73,9 @@ const forbidden = new Proxy(
 );
 const service = new SolanaSettlement(store, forbidden as any);
 const review = new SettlementReview(service, settlementReads());
-const local = settlementReviewApi(sessions, review, p.profile, p.recipients);
+const local = settlementReviewApi(sessions, review, p.profile, p.recipients, {
+  financialCreationEnabled,
+});
 const handler = api(sessions, backend);
 const next = nextModule as unknown as typeof import("next").default;
 const app = next({ dev: false, hostname: "127.0.0.1", port: 3210 });
@@ -89,7 +112,9 @@ server.listen(3210, "127.0.0.1", () => {
     { mode: 0o600, flag: "wx" },
   );
   console.log(
-    `Economic review wallet ready on 127.0.0.1:3210. Local pairing file: ${root}/pairing.private.json. No financial workers or keys loaded.`,
+    `Economic wallet ready on 127.0.0.1:3210. Local pairing file: ${root}/pairing.private.json. Financial creation: ${
+      financialCreationEnabled ? "enabled" : "disabled"
+    }. No payment sender, signing keys or broadcast worker loaded.`,
   );
 });
 server.on("error", () => {

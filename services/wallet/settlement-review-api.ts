@@ -6,12 +6,17 @@ import { privacyError } from "./privacy.ts";
 import type { DeliveryRequest, SettlementReview } from "./settlement-review.ts";
 export function settlementReviewApi(
   sessions: Sessions,
-  review: Pick<SettlementReview, "review">,
+  review: Pick<
+    SettlementReview,
+    "review" | "authorize" | "status" | "paymentRequest"
+  >,
   profile: Omit<DeliveryRequest, "recipient" | "lamports">,
   recipients: readonly string[],
+  options: { financialCreationEnabled?: boolean } = {},
 ) {
   const pinned = structuredClone(profile),
-    allowed = new Set(recipients);
+    allowed = new Set(recipients),
+    financialCreationEnabled = options.financialCreationEnabled === true;
   return async (req: IncomingMessage, res: ServerResponse) => {
     res.setHeader("Content-Type", "application/json");
     res.setHeader("Cache-Control", "private, no-store");
@@ -26,13 +31,34 @@ export function settlementReviewApi(
         res.end(
           JSON.stringify({
             recipients: [...allowed],
-            financialCreationEnabled: false,
+            financialCreationEnabled,
+            spl: "spl" in pinned,
             network: "solana:devnet",
+            executionAuthorized: false,
           }),
         );
         return;
       }
-      if (req.method !== "POST" || req.url !== "/api/settlement-review")
+      if (req.method === "GET" && req.url === "/api/settlement-review/status") {
+        const session = sessions.get(req.headers.cookie);
+        if (!session.connected)
+          throw new ApiError(403, "Verify local session.");
+        res.end(
+          JSON.stringify({
+            reviews: review.status(session.id),
+            financialCreationEnabled,
+            executionAuthorized: false,
+          }),
+        );
+        return;
+      }
+      if (
+        ![
+          "/api/settlement-review",
+          "/api/settlement-review/authorize",
+        ].includes(req.url ?? "") ||
+        req.method !== "POST"
+      )
         throw new ApiError(404, "Unavailable operation.");
       const session = sessions.get(req.headers.cookie);
       if (!session.connected) throw new ApiError(403, "Verify local account.");
@@ -43,6 +69,44 @@ export function settlementReviewApi(
         if (raw.length > 2048) throw new ApiError(413, "Request too large.");
       }
       const b = JSON.parse(raw);
+      if (req.url === "/api/settlement-review/authorize") {
+        if (!financialCreationEnabled)
+          throw new ApiError(403, "Financial creation is disabled.");
+        if (
+          !b ||
+          Array.isArray(b) ||
+          Object.keys(b).some(
+            (k) => !["id", "digest", "approved"].includes(k),
+          ) ||
+          typeof b.id !== "string" ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(
+            b.id,
+          ) ||
+          typeof b.digest !== "string" ||
+          !/^[a-f0-9]{64}$/.test(b.digest) ||
+          b.approved !== true
+        )
+          throw new ApiError(400, "Exact review authorization required.");
+        const result = await review.authorize(
+          session.id,
+          b.id,
+          b.digest,
+          true,
+          true,
+        );
+        const current = sessions.get(req.headers.cookie);
+        if (!current.connected || current.id !== session.id)
+          throw new ApiError(403, "Session expired.");
+        res.end(
+          JSON.stringify({
+            ...result,
+            paymentRequest: review.paymentRequest(session.id, result.orderId),
+            notice:
+              "A financial order exists. No payment, signing or broadcast occurred.",
+          }),
+        );
+        return;
+      }
       if (
         !b ||
         Array.isArray(b) ||

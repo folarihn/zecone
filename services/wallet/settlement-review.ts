@@ -6,6 +6,7 @@ import { publicKey } from "../solana/network.ts";
 import { validateTerms } from "../solana/cpmm.ts";
 import type { SolanaSplAsset, SwapTerms } from "../solana/settlement-model.ts";
 import { fingerprint } from "./transaction-intents.ts";
+import { revealPaymentRequest } from "./checkouts.ts";
 import { digest as transactionDigest } from "../solana/transactions.ts";
 
 export type DeliveryRequest = {
@@ -66,7 +67,7 @@ export class SettlementReview {
     )
       throw Error("DELIVERY_POLICY");
     if (spl) publicKey(spl.mint);
-    if (spl && input.spl) delete input.spl;
+    if (!spl && input.spl) delete input.spl;
     const started = this.now();
     await this.reads.check();
     const swap =
@@ -125,6 +126,43 @@ export class SettlementReview {
       financialOrderCreated: false,
       executionAuthorized: false,
     };
+  }
+  status(session: string) {
+    return (
+      this.service.store.db
+        .prepare(
+          "SELECT id,state,order_id,expires FROM wallet_settlement_reviews WHERE session=? ORDER BY expires DESC",
+        )
+        .all(session) as {
+        id: string;
+        state: string;
+        order_id: string | null;
+        expires: number;
+      }[]
+    ).map((r) => ({
+      id: r.id,
+      state: r.state,
+      expires: r.expires,
+      orderId: r.order_id,
+    }));
+  }
+  orderFor(session: string, orderId: string) {
+    const row = this.service.store.db
+      .prepare(
+        "SELECT order_id FROM wallet_settlement_reviews WHERE session=? AND order_id=? AND state='CREATED'",
+      )
+      .get(session, orderId) as { order_id: string } | undefined;
+    if (!row) throw Error("REVIEW_ORDER_NOT_OWNED");
+    return this.service.store.get(orderId)!;
+  }
+  paymentRequest(session: string, orderId: string) {
+    const order = this.orderFor(session, orderId);
+    return revealPaymentRequest(
+      orderId,
+      order,
+      this.service.store.totals(orderId).received,
+      this.now(),
+    );
   }
   async authorize(
     session: string,

@@ -10,7 +10,11 @@ Implemented `SettlementReview`, a durable economic review handoff in the existin
 
 An exact session/digest review can be consumed once only when the trusted caller separately enables financial creation and records explicit approval. Revalidation rejects changed swap terms, expired review, insufficient inventory, lost claims and existing order identifiers. It delegates to `SolanaSettlement.quote`, retaining the existing fixed 0.001 TAZ demonstration cost and eventual verification/execution policies. It never calls payment, prepare, signer, send or refund methods. Interrupted creation becomes reconciliation-only; it cannot automatically adopt an old paid order. Existing per-profile account/address uniqueness remains in force.
 
-`settlementReads` connects review to the real Devnet/CpmmPolicy read layer. The optional authenticated local HTTP handler binds recipient to an operator-supplied allowlist, pins source profile/relayer server-side, rejects extra fields and CSRF failures, and rechecks the session after asynchronous work. It exposes no financial authorization route. It is not mounted in historical wallet startup by this checkpoint.
+`settlementReads` connects review to the real Devnet/CpmmPolicy read layer. The optional authenticated local HTTP handler binds recipient to an operator-supplied allowlist, pins source profile/relayer server-side, rejects extra fields and CSRF failures, and rechecks the session after asynchronous work.
+
+The keyless runtime is now opt-in for financial creation: `npm run wallet:review-ui -- <public-profile.json> --state <dir> --enable-financial-creation`. Without the flag it remains review-only. With it, the local UI/API can consume the exact review once, create one durable order, and reveal the testnet shielded payment request. It still loads no sender, signing key or broadcast worker. A `GET /api/settlement-review/status` route lists only that session's reviews. SPL delivery uses the profile's explicitly configured mint; EVM transfer quotes and settlement live in `services/settlement/evm-transfer.ts` and `services/evm/transfers.ts`, with empty operator allowlists by default.
+
+Payment verification is operator-mediated: `npm run wallet:observe -- <state-dir> <watch-snapshot.json> [--solana-authorize]` applies a real watch-only snapshot to the same durable journal. `--solana-authorize` can mark a funded Solana order ready for separately approved execution; it cannot execute. EVM receipts are reconciled by the existing settlement worker when an executor and read-only network are configured.
 
 The operator can run a non-spending review without starting legacy workers:
 
@@ -19,11 +23,11 @@ npm run wallet:review -- <public-isolated-profile.json> transfer
 npm run wallet:review -- <public-isolated-profile.json> swap
 ```
 
-The input has exactly seven public string fields: `profileId`, `requestId`, `recipient`, `relayer`, `lamports`, `account` (native isolated account identifier), `paymentAddress` (testnet shielded receiver). Never supply a seed/key file. Each invocation uses a new local review journal; it cannot create a financial order. Reviews are operator-local; do not publish output or the journal as a cross-chain activity record. The script accesses only public genesis/pool/inventory reads. Review is not an exact transaction simulation or reserved liquidity.
+The input has exactly seven public string fields: `profileId`, `requestId`, `recipient`, `relayer`, `lamports`, `account` (native isolated account identifier), `paymentAddress` (testnet shielded receiver), plus optional public `spl` `{kind:"SPL",mint,decimals}` in the wallet runtime. Never supply a seed/key file. Reviews are operator-local; do not publish output or the journal as a cross-chain activity record. Review is not an exact transaction simulation or reserved liquidity.
 
-**Remaining implementation, in order:** mount this handler in a keyless opt-in wallet runtime; provision fresh isolated watch profiles per checkout; integrate explicit financial creation with existing history handles and actual reservation policy; bind account ownership/origin to execution authorization; expose the existing watch-only verification and operator approval status; exercise one transfer and one swap through that runtime. Do not connect the dry-run checkout ID to a live worker or reuse completed Phase 7 profiles.
+**Remaining implementation, in order:** provision fresh isolated watch profiles per checkout; bind account ownership/origin to execution authorization; add operator-controlled reservation and executor/receipt-provider configuration; verify the native watch scanner feeds `wallet:observe`; exercise one transfer and one swap through the runtime with an explicitly approved capped plan. Do not connect the dry-run checkout ID to a live worker, recycle completed Phase 7 profiles, or treat the EVM/SPL allowlist defaults as live configuration.
 
-Before live testing, produce a separate exact capped payment/execution plan. Stop for its approval. No funding, credential unlock or financial execution has occurred in this change. This milestone remains **partial**, not blocked solely by funding.
+Before live testing, produce a separate exact capped payment/execution plan. Stop for its approval. No funding, credential unlock, payment, signature or broadcast occurred in this change. This milestone remains **partial**, not blocked solely by funding.
 
 ## Milestone B — third-party execution
 

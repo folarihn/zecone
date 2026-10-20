@@ -6,6 +6,9 @@ export default function SettlementReviewPanel() {
     [recipient, setRecipient] = useState(""),
     [action, setAction] = useState("transfer"),
     [review, setReview] = useState<any>(null),
+    [created, setCreated] = useState<any>(null),
+    [enabled, setEnabled] = useState(false),
+    [supportsSpl, setSupportsSpl] = useState(false),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -14,13 +17,11 @@ export default function SettlementReviewPanel() {
       .then(async (r) => {
         if (!r.ok) return;
         const data = await r.json();
-        if (
-          active &&
-          Array.isArray(data.recipients) &&
-          data.financialCreationEnabled === false
-        ) {
+        if (active && Array.isArray(data.recipients)) {
           setRecipients(data.recipients);
           setRecipient(data.recipients[0] ?? "");
+          setEnabled(data.financialCreationEnabled === true);
+          setSupportsSpl(data.spl === true);
         }
       })
       .catch(() => {});
@@ -36,9 +37,11 @@ export default function SettlementReviewPanel() {
     >
       <h2>ZEC-funded transaction review</h2>
       <p>
-        Solana devnet only. Review terms without paying or signing. Fixed
-        testnet demo pricing; trusted prefunded relayer. Local pairing is not
-        wallet ownership verification.
+        Solana devnet only. Fixed testnet demo pricing; trusted prefunded
+        relayer. Local pairing is not wallet ownership verification.{" "}
+        {enabled
+          ? "Financial creation is enabled; payment and execution are not."
+          : "Review only; financial creation is disabled."}
       </p>
       <label>
         Action
@@ -51,6 +54,11 @@ export default function SettlementReviewPanel() {
           }}
         >
           <option value="transfer">Deliver 0.001 SOL</option>
+          {supportsSpl && (
+            <option value="spl-transfer">
+              Deliver 1 unit of the configured SPL token
+            </option>
+          )}
           <option value="swap">Swap 0.001 WSOL on the supported pool</option>
         </select>
       </label>
@@ -77,6 +85,7 @@ export default function SettlementReviewPanel() {
           setBusy(true);
           setError("");
           setReview(null);
+          setCreated(null);
           try {
             const session = await fetch("/api/session", {
               cache: "no-store",
@@ -106,7 +115,7 @@ export default function SettlementReviewPanel() {
           }
         }}
       >
-        Review economic terms only
+        Review economic terms
       </button>
       {error && <p role="alert">{error}</p>}
       {review && (
@@ -135,6 +144,69 @@ export default function SettlementReviewPanel() {
             No financial order, payment request, signed transaction or
             broadcast. Destination activity would be public; the settlement
             operator can correlate funding and execution.
+          </p>
+          {enabled && (
+            <button
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                setError("");
+                try {
+                  const session = await fetch("/api/session", {
+                    cache: "no-store",
+                  }).then((r) => r.json());
+                  const response = await fetch(
+                    "/api/settlement-review/authorize",
+                    {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        "X-ZecOne-CSRF": session.csrf,
+                      },
+                      body: JSON.stringify({
+                        id: review.id,
+                        digest: review.digest,
+                        approved: true,
+                      }),
+                    },
+                  );
+                  const data = await response.json();
+                  if (!response.ok)
+                    throw Error(data.error || "Authorization unavailable.");
+                  if (
+                    data.executionAuthorized !== false ||
+                    data.financialOrderCreated !== true
+                  )
+                    throw Error("Unexpected financial state.");
+                  setCreated(data);
+                } catch {
+                  setError(
+                    "Financial order not created. No payment was sent or authorized.",
+                  );
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Create financial order and show payment request
+            </button>
+          )}
+        </div>
+      )}
+      {created && (
+        <div role="status" style={{ overflowWrap: "anywhere" }}>
+          <h3>Payment request</h3>
+          <p>Order: {created.orderId}</p>
+          <p>Pay exactly: {created.paymentRequest.zatoshis} zatoshis.</p>
+          <p>To shielded address: {created.paymentRequest.address}</p>
+          <p>
+            Expires:{" "}
+            {new Date(created.paymentRequest.expiry * 1000).toISOString()}.
+          </p>
+          <p>Network: {created.paymentRequest.network}.</p>
+          <p>
+            This screen did not send, sign or broadcast a payment. Paying from
+            another wallet is a separate manual action outside this app.
           </p>
         </div>
       )}
