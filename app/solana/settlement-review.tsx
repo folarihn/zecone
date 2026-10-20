@@ -115,7 +115,7 @@ export default function SettlementReviewPanel() {
           }
         }}
       >
-        Review economic terms
+        Review economic terms only
       </button>
       {error && <p role="alert">{error}</p>}
       {review && (
