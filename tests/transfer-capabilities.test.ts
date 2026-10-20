@@ -167,6 +167,29 @@ test("native and ERC-20 calls are exact and contain no arbitrary calldata", () =
     }),
   );
 });
+test("EVM preview returns the exact call without creating an order", async () => {
+  const store = new Store(":memory:"),
+    service = new EvmTransferSettlement(store, adapter(), () => 1000),
+    preview = await service.preview({
+      profileId: randomUUID(),
+      requestId: randomUUID(),
+      recipient,
+      relayer,
+      amount: "1000",
+      asset: { kind: "native" },
+      feeCapWei: "1000000",
+      account: "a".repeat(64),
+      paymentAddress: "utest1_synthetic",
+    });
+  assert.equal(preview.financialOrderCreated, false);
+  assert.equal(preview.executionAuthorized, false);
+  assert.equal(preview.call.to, recipient);
+  assert.equal(preview.call.value, "1000");
+  assert.equal(preview.call.data, "0x");
+  assert.equal(preview.id, transferOrderId(preview.intent));
+  assert.equal(store.all().length, 0);
+  store.close();
+});
 test("read-only quote revalidates block, fee and relayer liquidity", async () => {
   const quote = await quoteTransfer(
     adapter(),
@@ -306,7 +329,8 @@ test("EVM transfer order reuses payment observation and executes once", async ()
 });
 test("ERC-20 transfer requires operator allowlist before any quote", async () => {
   const store = new Store(":memory:"),
-    service = new EvmTransferSettlement(store, adapter(), () => 100000, policy);
+    service = new EvmTransferSettlement(store, adapter(), () => 100000, policy),
+    blocked = new EvmTransferSettlement(store, adapter(), () => 100000);
   const request = {
     profileId: randomUUID(),
     requestId: randomUUID(),
@@ -318,7 +342,7 @@ test("ERC-20 transfer requires operator allowlist before any quote", async () =>
     account: "a".repeat(64),
     paymentAddress: "utest1_synthetic",
   };
-  await assert.rejects(service.quote(request), /TOKEN_NOT_ALLOWLISTED/);
+  await assert.rejects(blocked.quote(request), /TOKEN_NOT_ALLOWLISTED/);
   assert.equal(store.all().length, 0);
   const view = await service.quote(request, policy);
   assert.equal(view.action, "EVM_ERC20_TRANSFER");

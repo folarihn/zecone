@@ -11,6 +11,7 @@ import {
   DEMO_ZATOSHIS,
   nonce,
   transferOrderId,
+  transferOrderKey,
   validateTransfer,
   type Erc20Asset,
   type EvmTransferIntent,
@@ -35,42 +36,83 @@ export class EvmTransferSettlement {
     readonly now = clock,
     readonly policy: TransferPolicy = DEFAULT_TRANSFER_POLICY,
   ) {}
-  async quote(input: EvmTransferRequest, policy?: TransferPolicy, ttl = 7200) {
+  private async priced(
+    input: EvmTransferRequest,
+    policy?: TransferPolicy,
+    ttl = 7200,
+  ) {
     if (
       !/^[a-f0-9]{64}$/.test(input.account) ||
       !input.paymentAddress.startsWith("utest1")
     )
       throw Error("ISOLATED_SHIELDED_PROFILE_REQUIRED");
-    const draft = {
-      family: "evm" as const,
-      action:
-        input.asset.kind === "native"
-          ? ("EVM_NATIVE_TRANSFER" as const)
-          : ("EVM_ERC20_TRANSFER" as const),
-      version: 1 as const,
-      chainId: this.adapter.chainId as EvmTransferIntent["chainId"],
-      relayer: input.relayer,
-      recipient: input.recipient,
-      amount: input.amount,
-      asset: input.asset,
-      feeCapWei: input.feeCapWei,
-      quotation: {
-        block: "0",
-        calldataHash: `0x${"0".repeat(64)}` as Hex,
-        gas: "1",
-        feeCapWei: "0",
-        at: this.now(),
-        expires: this.now() + 1,
-      },
-      zatoshis: DEMO_ZATOSHIS,
-      nonce: nonce(),
-      expiry: this.now() + ttl,
-      pricing: "FIXED_TESTNET_DEMO_NOT_EXCHANGE_RATE" as const,
-      profileId: input.profileId,
-      requestId: input.requestId,
+    const p = policy ?? this.policy,
+      draft = {
+        family: "evm" as const,
+        action:
+          input.asset.kind === "native"
+            ? ("EVM_NATIVE_TRANSFER" as const)
+            : ("EVM_ERC20_TRANSFER" as const),
+        version: 1 as const,
+        chainId: this.adapter.chainId as EvmTransferIntent["chainId"],
+        relayer: input.relayer,
+        recipient: input.recipient,
+        amount: input.amount,
+        asset: input.asset,
+        feeCapWei: input.feeCapWei,
+        quotation: {
+          block: "0",
+          calldataHash: `0x${"0".repeat(64)}` as Hex,
+          gas: "1",
+          feeCapWei: "0",
+          at: this.now(),
+          expires: this.now() + 1,
+        },
+        zatoshis: DEMO_ZATOSHIS,
+        nonce: nonce(),
+        expiry: this.now() + ttl,
+        pricing: "FIXED_TESTNET_DEMO_NOT_EXCHANGE_RATE" as const,
+        profileId: input.profileId,
+        requestId: input.requestId,
+      };
+    validateTransfer(draft, p, this.now());
+    const quote = await quoteTransfer(
+        this.adapter,
+        draft,
+        input.relayer,
+        p,
+        this.now(),
+      ),
+      intent: EvmTransferIntent = {
+        ...draft,
+        feeCapWei: quote.feeCapWei,
+        quotation: {
+          block: quote.block,
+          calldataHash: quote.calldataHash,
+          gas: quote.gas,
+          feeCapWei: quote.feeCapWei,
+          at: quote.simulatedAt,
+          expires: quote.expires,
+        },
+      };
+    validateTransfer(intent, p, this.now());
+    return { intent, quote };
+  }
+  async preview(input: EvmTransferRequest, policy?: TransferPolicy) {
+    const { intent, quote } = await this.priced(input, policy),
+      call = transferCall(intent);
+    return {
+      id: transferOrderId(intent),
+      intent,
+      quote,
+      call: { ...call, value: call.value.toString() },
+      paymentAddress: input.paymentAddress,
+      financialOrderCreated: false,
+      executionAuthorized: false,
     };
-    validateTransfer(draft, policy ?? this.policy, this.now());
-    const id = transferOrderId(draft),
+  }
+  async quote(input: EvmTransferRequest, policy?: TransferPolicy, ttl = 7200) {
+    const id = transferOrderKey("evm", input.profileId, input.requestId),
       old = this.store.get(id);
     if (old) {
       const previous = JSON.parse(old.intent) as EvmTransferIntent;
@@ -83,26 +125,7 @@ export class EvmTransferSettlement {
         throw Error("IDEMPOTENCY_CONFLICT");
       return this.view(id);
     }
-    const quote = await quoteTransfer(
-      this.adapter,
-      draft,
-      input.relayer,
-      policy,
-      this.now(),
-    );
-    const intent: EvmTransferIntent = {
-      ...draft,
-      feeCapWei: quote.feeCapWei,
-      quotation: {
-        block: quote.block,
-        calldataHash: quote.calldataHash,
-        gas: quote.gas,
-        feeCapWei: quote.feeCapWei,
-        at: quote.simulatedAt,
-        expires: quote.expires,
-      },
-    };
-    validateTransfer(intent, policy ?? this.policy, this.now());
+    const { intent } = await this.priced(input, policy, ttl);
     this.store.create(
       id,
       intent,

@@ -146,10 +146,17 @@ export function validateTransfer(
 export function transferDigest(intent: TransferIntent) {
   return createHash("sha256").update(JSON.stringify(intent)).digest("hex");
 }
-export function transferOrderId(intent: TransferIntent): Hex {
+export function transferOrderKey(
+  family: TransferIntent["family"],
+  profileId: string,
+  requestId: string,
+): Hex {
   return `0x${createHash("sha256")
-    .update(`transfer:${intent.family}:${intent.profileId}:${intent.requestId}`)
+    .update(`transfer:${family}:${profileId}:${requestId}`)
     .digest("hex")}`;
+}
+export function transferOrderId(intent: TransferIntent): Hex {
+  return transferOrderKey(intent.family, intent.profileId, intent.requestId);
 }
 export function nonce() {
   return `0x${randomBytes(32).toString("hex")}` as Hex;

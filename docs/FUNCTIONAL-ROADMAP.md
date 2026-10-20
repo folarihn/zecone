@@ -16,6 +16,14 @@ The keyless runtime is now opt-in for financial creation: `npm run wallet:review
 
 Payment verification is operator-mediated: `npm run wallet:observe -- <state-dir> <watch-snapshot.json> [--solana-authorize]` applies a real watch-only snapshot to the same durable journal. `--solana-authorize` can mark a funded Solana order ready for separately approved execution; it cannot execute. EVM receipts are reconciled by the existing settlement worker when an executor and read-only network are configured.
 
+EVM transfer review is available without creating an order:
+
+```powershell
+npm run wallet:evm-review -- <public-evm-request.json> [--policy <policy.json>]
+```
+
+The request contains only public profile, recipient, relayer, amount, asset, fee cap and shielded payment address; the operator policy file supplies explicit ERC-20/SPL allowlists and value caps. The command quotes against the real testnet RPC, prints the exact call and returns `financialOrderCreated:false`. It cannot pay, sign or broadcast. Creating the reviewed order still requires a separate explicit operator action.
+
 The operator can run a non-spending review without starting legacy workers:
 
 ```powershell

@@ -18,6 +18,7 @@ const files = [
   "services/settlement/transfer-types.ts",
   "services/settlement/evm-transfer.ts",
   "scripts/wallet-observe.ts",
+  "scripts/wallet-evm-review.ts",
   "services/evm/transfers.ts",
   "tests/transfer-capabilities.test.ts",
   "tests/ui/phase8d2-checkout.spec.ts",
