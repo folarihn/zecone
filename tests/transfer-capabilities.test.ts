@@ -287,20 +287,17 @@ test("EVM transfer order reuses payment observation and executes once", async ()
       account,
       paymentAddress: `utest1_${randomUUID()}`,
     };
-  const view = await service.quote(request, policy);
+  const view = await service.quote(request);
   assert.equal(view.orderState, "awaiting_payment");
   assert.equal(view.asset.kind, "native");
   assert.equal(store.all().length, 1);
   const intent = service.intent(view.id);
   assert.equal(view.id, transferOrderId(intent));
   await assert.rejects(
-    service.quote(
-      {
-        ...request,
-        recipient: getAddress("0x4444444444444444444444444444444444444444"),
-      },
-      policy,
-    ),
+    service.quote({
+      ...request,
+      recipient: getAddress("0x4444444444444444444444444444444444444444"),
+    }),
     /DELIVERY_POLICY|invalid|RECIPIENT|IDEMPOTENCY/,
   );
   store.observe(snapshot(intent, account), 100000);
@@ -344,7 +341,7 @@ test("ERC-20 transfer requires operator allowlist before any quote", async () =>
   };
   await assert.rejects(blocked.quote(request), /TOKEN_NOT_ALLOWLISTED/);
   assert.equal(store.all().length, 0);
-  const view = await service.quote(request, policy);
+  const view = await service.quote(request);
   assert.equal(view.action, "EVM_ERC20_TRANSFER");
   assert.equal(view.call.to, token);
   store.close();

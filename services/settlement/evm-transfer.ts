@@ -36,17 +36,13 @@ export class EvmTransferSettlement {
     readonly now = clock,
     readonly policy: TransferPolicy = DEFAULT_TRANSFER_POLICY,
   ) {}
-  private async priced(
-    input: EvmTransferRequest,
-    policy?: TransferPolicy,
-    ttl = 7200,
-  ) {
+  private async priced(input: EvmTransferRequest, ttl = 7200) {
     if (
       !/^[a-f0-9]{64}$/.test(input.account) ||
       !input.paymentAddress.startsWith("utest1")
     )
       throw Error("ISOLATED_SHIELDED_PROFILE_REQUIRED");
-    const p = policy ?? this.policy,
+    const p = this.policy,
       draft = {
         family: "evm" as const,
         action:
@@ -98,8 +94,8 @@ export class EvmTransferSettlement {
     validateTransfer(intent, p, this.now());
     return { intent, quote };
   }
-  async preview(input: EvmTransferRequest, policy?: TransferPolicy) {
-    const { intent, quote } = await this.priced(input, policy),
+  async preview(input: EvmTransferRequest) {
+    const { intent, quote } = await this.priced(input),
       call = transferCall(intent);
     return {
       id: transferOrderId(intent),
@@ -111,12 +107,13 @@ export class EvmTransferSettlement {
       executionAuthorized: false,
     };
   }
-  async quote(input: EvmTransferRequest, policy?: TransferPolicy, ttl = 7200) {
+  async quote(input: EvmTransferRequest, ttl = 7200) {
     const id = transferOrderKey("evm", input.profileId, input.requestId),
       old = this.store.get(id);
     if (old) {
       const previous = JSON.parse(old.intent) as EvmTransferIntent;
       if (
+        previous.chainId !== this.adapter.chainId ||
         getAddress(previous.recipient) !== getAddress(input.recipient) ||
         getAddress(previous.relayer) !== getAddress(input.relayer) ||
         previous.amount !== input.amount ||
@@ -125,7 +122,7 @@ export class EvmTransferSettlement {
         throw Error("IDEMPOTENCY_CONFLICT");
       return this.view(id);
     }
-    const { intent } = await this.priced(input, policy, ttl);
+    const { intent } = await this.priced(input, ttl);
     this.store.create(
       id,
       intent,

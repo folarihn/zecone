@@ -68,7 +68,7 @@ const store = new Store(":memory:"),
     policy,
   );
 try {
-  const preview = await service.preview(request, policy);
+  const preview = await service.preview(request);
   console.log(
     JSON.stringify(
       {
