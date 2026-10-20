@@ -163,6 +163,34 @@ export class Dapps {
       };
     };
   }
+  nativeTransferContext(source: CheckoutSession, id: string): IntentContext {
+    return () => {
+      const s = typeof source === "function" ? source() : source;
+      requireApproval(s, true);
+      const r = this.row(uuid(id));
+      if (
+        !this.policy.signingDisabled ||
+        !this.policy.intents ||
+        !r ||
+        r.session !== s.id ||
+        r.method !== "eth_sendTransaction" ||
+        r.state !== "rejected" ||
+        r.expires <= Date.now()
+      )
+        throw new RpcError(4100, "Explicit preview consent required");
+      const review = JSON.parse(r.review);
+      if (
+        review.intent?.approval !== "consented-preview-only" ||
+        digest(review) !== r.review_hash
+      )
+        throw new RpcError(4100, "Exact preview consent required");
+      return {
+        scope: this.intentScope(s, r),
+        intent: review.intent,
+        params: JSON.parse(r.params),
+      };
+    };
+  }
   quoteIntent(s: CheckoutSession, id: string) {
     if (!this.policy.checkoutPreview)
       throw new RpcError(4200, "Checkout preview unavailable");

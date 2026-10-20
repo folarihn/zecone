@@ -27,6 +27,7 @@ import NetworksPanel from "./networks/panel";
 import SolanaPanel from "./solana/panel";
 import SolanaDelivery from "./solana/delivery";
 import SolanaSwap from "./solana/swap";
+import NativeTransferPanel from "./native-transfer";
 import SettlementReviewPanel from "./solana/settlement-review";
 import PurchasePanel from "./purchases/panel";
 import SwapPanel from "./swaps/panel";
@@ -672,7 +673,10 @@ export default function Wallet() {
           ) : (
             <>
               {tab === "Send / Receive" && (
-                <AccountPanel address={data.address} />
+                <>
+                  <NativeTransferPanel connected={!!session?.connected} />
+                  <AccountPanel address={data.address} />
+                </>
               )}
               {tab === "Settings" && (
                 <section className="panel account-panel">

@@ -8,7 +8,7 @@ export function settlementReviewApi(
   sessions: Sessions,
   review: Pick<
     SettlementReview,
-    "review" | "authorize" | "status" | "paymentRequest"
+    "review" | "authorize" | "status" | "paymentRequest" | "financialAction"
   >,
   profile: Omit<DeliveryRequest, "recipient" | "lamports">,
   recipients: readonly string[],
@@ -87,6 +87,11 @@ export function settlementReviewApi(
           b.approved !== true
         )
           throw new ApiError(400, "Exact review authorization required.");
+        if (review.financialAction(session.id, b.id) !== "transfer")
+          throw new ApiError(
+            400,
+            "This review is not a validated SOL delivery.",
+          );
         const result = await review.authorize(
           session.id,
           b.id,
@@ -117,6 +122,12 @@ export function settlementReviewApi(
         !["transfer", "spl-transfer", "swap"].includes(b.action)
       )
         throw new ApiError(400, "Unsupported settlement review.");
+      // Dedicated historical swap adapters retain their separate policies.
+      if (financialCreationEnabled && b.action !== "transfer")
+        throw new ApiError(
+          400,
+          "Only validated SOL delivery is enabled in this runtime.",
+        );
       const result = await review.review(
         session.id,
         { ...pinned, recipient: b.recipient, lamports: b.lamports },

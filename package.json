@@ -6,6 +6,7 @@
     "node": ">=24.12.0 <25"
   },
   "scripts": {
+    "wallet:transfer-status": "tsx scripts/wallet-transfer-status.ts",
     "wallet:review-ui": "tsx scripts/functional-wallet.ts",
     "wallet:review": "tsx scripts/wallet-review.ts",
     "wallet:observe": "tsx scripts/wallet-observe.ts",

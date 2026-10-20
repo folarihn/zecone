@@ -15,6 +15,14 @@ export type SplAsset = {
   decimals: number;
 };
 export type EvmTransferIntent = {
+  fundingBinding?: string;
+  source?: {
+    id: string;
+    origin: string;
+    account: string;
+    digest: string;
+    scope: string;
+  };
   family: "evm";
   action: "EVM_NATIVE_TRANSFER" | "EVM_ERC20_TRANSFER";
   version: 1;

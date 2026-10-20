@@ -1,17 +1,15 @@
 import {
-  createWalletClient,
   decodeEventLog,
   encodeFunctionData,
   getAddress,
-  http,
   keccak256,
   parseAbi,
   parseTransaction,
+  recoverTransactionAddress,
   type Account,
   type Address,
   type Hex,
 } from "viem";
-import { chainFor } from "./networks.ts";
 import type { EvmAdapter } from "./adapter.ts";
 import type { Order } from "../execution/store.ts";
 import type { Executor, Result } from "../execution/worker.ts";
@@ -127,23 +125,13 @@ export async function quoteTransfer(
 }
 // Signing is injected explicitly; this module never loads a key file.
 export class EvmTransferExecutor implements Executor {
-  readonly wallet;
   constructor(
     readonly adapter: EvmAdapter,
     readonly account: Account,
     readonly confirmations = 3,
     readonly now = () => Math.floor(Date.now() / 1000),
-  ) {
-    this.wallet = createWalletClient({
-      chain: chainFor(adapter.chainId),
-      account,
-      transport: http(adapter.policy.rpc, {
-        timeout: 30000,
-        retryCount: 0,
-      }),
-    });
-  }
-  private intent(order: Order) {
+  ) {}
+  private intent(order: Order, receiptOnly = false) {
     const i = JSON.parse(order.intent) as EvmTransferIntent;
     if (
       i.family !== "evm" ||
@@ -151,7 +139,11 @@ export class EvmTransferExecutor implements Executor {
       getAddress(i.relayer) !== getAddress(this.account.address)
     )
       throw Error("TRANSFER_INTENT_MISMATCH");
-    validateTransfer(i, undefined, this.now());
+    validateTransfer(
+      i,
+      undefined,
+      receiptOnly ? Math.min(this.now(), i.expiry - 1) : this.now(),
+    );
     return i;
   }
   async prepare(order: Order) {
@@ -165,20 +157,49 @@ export class EvmTransferExecutor implements Executor {
       );
     if (BigInt(quote.feeCapWei) > BigInt(i.feeCapWei))
       throw Error("GAS_BUDGET_EXCEEDED");
-    const raw = await this.wallet.signTransaction({
-      account: this.account,
-      chain: this.wallet.chain,
+    const nonce = await this.adapter.client.getTransactionCount({
+      address: this.account.address,
+      blockTag: "pending",
+    });
+    if (i.asset.kind === "native") {
+      const code = await this.adapter.client.getBytecode({
+        address: i.recipient,
+      });
+      if (code && code !== "0x") throw Error("EOA_RECIPIENT_REQUIRED");
+    }
+    if (quote.expires <= this.now()) throw Error("QUOTE_EXPIRED");
+    if (!this.account.signTransaction) throw Error("LOCAL_SIGNER_REQUIRED");
+    const raw = await this.account.signTransaction({
+      type: "eip1559",
+      chainId: this.adapter.chainId,
       to: quote.call.to,
       data: quote.call.data,
       value: BigInt(quote.call.value),
-      nonce: await this.adapter.client.getTransactionCount({
-        address: this.account.address,
-        blockTag: "pending",
-      }),
+      nonce,
       gas: BigInt(quote.gas),
       maxFeePerGas: BigInt(quote.maxFeePerGas),
       maxPriorityFeePerGas: BigInt(quote.maxPriorityFeePerGas),
     });
+    const tx = parseTransaction(raw);
+    if (
+      tx.chainId !== this.adapter.chainId ||
+      tx.type !== "eip1559" ||
+      !tx.to ||
+      getAddress(tx.to) !== getAddress(quote.call.to) ||
+      (tx.data ?? "0x").toLowerCase() !== quote.call.data.toLowerCase() ||
+      tx.value !== BigInt(quote.call.value) ||
+      tx.nonce !== nonce ||
+      tx.gas !== BigInt(quote.gas) ||
+      tx.maxFeePerGas !== BigInt(quote.maxFeePerGas) ||
+      tx.maxPriorityFeePerGas !== BigInt(quote.maxPriorityFeePerGas) ||
+      (tx.accessList?.length ?? 0) !== 0 ||
+      getAddress(
+        await recoverTransactionAddress({
+          serializedTransaction: raw as `0x02${string}`,
+        }),
+      ) !== getAddress(this.account.address)
+    )
+      throw Error("SIGNED_TRANSFER_POLICY_MISMATCH");
     return { raw, hash: keccak256(raw) };
   }
   async broadcast(raw: Hex) {
@@ -190,7 +211,7 @@ export class EvmTransferExecutor implements Executor {
     const receipt = await this.adapter.receipt(order.tx_hash!);
     if (!receipt) return { status: "pending" };
     if (receipt.status !== "success") return { status: "reverted" };
-    const i = this.intent(order),
+    const i = this.intent(order, true),
       call = transferCall(i),
       tx = await this.adapter.client.getTransaction({ hash: order.tx_hash! });
     if (

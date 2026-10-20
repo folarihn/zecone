@@ -2,6 +2,16 @@
 import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 const files = [
+  "scripts/transfer-wallet-readonly-qa.ts",
+  "scripts/wallet-transfer-status.ts",
+  "services/settlement/source-bindings.ts",
+  "tests/ui/native-transfer.spec.ts",
+  "tests/native-transfer-flow.test.ts",
+  "services/wallet/native-intent-handoff.ts",
+  "scripts/transfer-readiness.ts",
+  "services/settlement/native-transfer-flow.ts",
+  "services/wallet/native-transfer-api.ts",
+  "app/native-transfer.tsx",
   "tests/ui/functional-review.spec.ts",
   "app/solana/settlement-review.tsx",
   "services/wallet/review-backend.ts",

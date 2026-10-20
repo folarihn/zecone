@@ -92,6 +92,7 @@ export class EvmTransferSettlement {
         },
       };
     validateTransfer(intent, p, this.now());
+    if (quote.expires <= this.now()) throw Error("QUOTE_EXPIRED");
     return { intent, quote };
   }
   async preview(input: EvmTransferRequest) {

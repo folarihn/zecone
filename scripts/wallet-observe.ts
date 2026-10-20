@@ -1,76 +1,112 @@
+// Native watch-only scanning only. JSON files are not payment evidence.
 import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { resolve, join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { Store } from "../services/execution/store.ts";
+import { WatchOnlyZcash } from "../services/signer/watch-evidence.ts";
 import { SolanaSettlement } from "../services/solana/settlement.ts";
-
-const args = process.argv.slice(2),
-  state = args[0],
-  snapshotPath = args[1],
-  authorize = args.includes("--solana-authorize"),
-  unknown = args.filter(
-    (a, i) => a.startsWith("--") && a !== "--solana-authorize",
-  );
+import { EvmTransferSettlement } from "../services/settlement/evm-transfer.ts";
+import { NativeTransferFlow } from "../services/settlement/native-transfer-flow.ts";
+import { adapterFor } from "../services/evm/adapter.ts";
+import { getAddress } from "viem";
+const [state, flag, watchPath, orderFlag, id] = process.argv.slice(2);
 if (
+  process.argv.length !== 7 ||
   !state ||
-  !snapshotPath ||
-  args.length > 3 ||
-  unknown.length ||
-  (args.length === 3 && !authorize)
+  flag !== "--watch-wallet" ||
+  !watchPath ||
+  orderFlag !== "--order" ||
+  !/^0x[0-9a-f]{64}$/.test(id ?? "")
 )
   throw Error(
-    "Usage: wallet-observe <state-dir> <snapshot.json> [--solana-authorize]",
+    "Usage: wallet-observe <state-dir> --watch-wallet <native-watch-dir> --order <order-id>. Snapshot-file imports are disabled.",
   );
-const dir = resolve(state),
-  dbPath = resolve(dir, "review.sqlite");
-if (!existsSync(dbPath))
-  throw Error("No review wallet database in that state directory.");
-const snapshot = JSON.parse(readFileSync(resolve(snapshotPath), "utf8"));
-if (!snapshot || Array.isArray(snapshot) || typeof snapshot !== "object")
-  throw Error("A single watch snapshot object is required.");
-const store = new Store(dbPath),
-  forbidden = new Proxy(
-    {},
-    {
-      get() {
-        throw Error("EXECUTION_DISABLED");
-      },
-    },
-  ),
-  service = new SolanaSettlement(store, forbidden as any);
+const dbPath = resolve(state, "review.sqlite");
+if (!existsSync(dbPath)) throw Error("Fresh isolated wallet state required.");
+const inspect = new DatabaseSync(dbPath, { readOnly: true });
+let intent: any;
+let authorizer: string | undefined;
 try {
-  const now = Math.floor(Date.now() / 1000);
-  store.observe(snapshot, now);
-  if (authorize)
-    for (const o of store.all()) {
-      const intent = JSON.parse(o.intent) as { family?: string };
-      if (intent.family === "solana") service.authorize(o.id, snapshot);
-    }
-  console.log(
-    JSON.stringify(
+  const orders = inspect
+    .prepare("SELECT id,account,address,intent,state FROM orders")
+    .all();
+  if (
+    orders.length !== 1 ||
+    orders[0].id !== id ||
+    ["settled", "recovery", "failed", "expired"].includes(
+      String(orders[0].state),
+    )
+  )
+    throw Error("ONE_OPEN_AUTHORIZED_CHECKOUT_REQUIRED");
+  intent = JSON.parse(String(orders[0].intent));
+  const table =
+    intent.family === "evm"
+      ? "native_transfer_reviews"
+      : "wallet_settlement_reviews";
+  const authorized = inspect
+    .prepare(
+      `SELECT order_id FROM ${table} WHERE order_id=? AND state='CREATED'`,
+    )
+    .get(id);
+  if (!authorized) throw Error("FINANCIAL_REVIEW_REQUIRED");
+  if (intent.family === "evm")
+    authorizer = String(
+      inspect
+        .prepare(
+          "SELECT authorizer FROM native_transfer_authority WHERE order_id=?",
+        )
+        .get(id)?.authorizer ?? "",
+    );
+  const manifest = JSON.parse(
+    readFileSync(join(resolve(watchPath), "watch-only.json"), "utf8"),
+  );
+  if (
+    manifest.network !== "zcash-testnet" ||
+    manifest.keyId !== orders[0].account ||
+    manifest.address !== orders[0].address
+  )
+    throw Error("WATCH_PROFILE_MISMATCH");
+} finally {
+  inspect.close();
+}
+const store = new Store(dbPath),
+  scanner = new WatchOnlyZcash(resolve(watchPath));
+try {
+  let result: unknown;
+  if (intent.family === "evm") {
+    const flow = new NativeTransferFlow(
+      new EvmTransferSettlement(store, adapterFor(intent.chainId)),
+      getAddress(authorizer!),
+    );
+    result = await flow.observe(id, scanner);
+  } else if (
+    intent.family === "solana" &&
+    intent.action === "SOLANA_DEVNET_SOL_DELIVERY"
+  ) {
+    const forbidden = new Proxy(
+      {},
       {
-        executionAuthorized: false,
-        signing: false,
-        broadcast: false,
-        observedAt: snapshot.observedAt,
-        orders: store.all().map((o) => {
-          const intent = JSON.parse(o.intent) as {
-            family?: string;
-            zatoshis?: string;
-          };
-          const totals = store.totals(o.id);
-          return {
-            id: o.id,
-            family: intent.family ?? "evm",
-            state: o.state,
-            requiredZatoshis: intent.zatoshis ?? null,
-            receivedZatoshis: totals.received.toString(),
-            confirmedZatoshis: totals.confirmed.toString(),
-          };
-        }),
+        get() {
+          throw Error("EXECUTION_DISABLED");
+        },
       },
-      null,
-      2,
-    ),
+    );
+    const service = new SolanaSettlement(store, forbidden as any);
+    const view = service.authorize(id, await scanner.observe());
+    result = {
+      state: view.state,
+      receivedZatoshis: view.receivedZatoshis,
+      confirmations: view.confirmations,
+      requiredConfirmations: 10,
+    };
+  } else throw Error("UNSUPPORTED_OBSERVER_ACTION");
+  console.log(
+    JSON.stringify({
+      result,
+      signing: false,
+      broadcast: false,
+      liveRefundsEnabled: false,
+    }),
   );
 } finally {
   store.close();

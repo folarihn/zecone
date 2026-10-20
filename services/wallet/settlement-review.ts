@@ -8,6 +8,7 @@ import type { SolanaSplAsset, SwapTerms } from "../solana/settlement-model.ts";
 import { fingerprint } from "./transaction-intents.ts";
 import { revealPaymentRequest } from "./checkouts.ts";
 import { digest as transactionDigest } from "../solana/transactions.ts";
+import type { SourceBinding } from "../settlement/source-bindings.ts";
 
 export type DeliveryRequest = {
   profileId: string;
@@ -32,6 +33,7 @@ export class SettlementReview {
     readonly service: Pick<SolanaSettlement, "store" | "quote">,
     readonly reads: ReviewReads,
     readonly now = () => Math.floor(Date.now() / 1000),
+    readonly sourceBinding?: SourceBinding,
   ) {
     service.store.db.exec(`CREATE TABLE IF NOT EXISTS wallet_settlement_reviews(
       id TEXT PRIMARY KEY, session TEXT NOT NULL, digest TEXT NOT NULL,
@@ -47,6 +49,8 @@ export class SettlementReview {
   ) {
     // Copy before await: caller mutation cannot alter the approved destination.
     const input = structuredClone(request);
+    if (action === "spl-transfer" && !input.spl)
+      throw Error("SPL_ASSET_REQUIRED");
     if (!session || !["transfer", "spl-transfer", "swap"].includes(action))
       throw Error("INVALID_REVIEW");
     publicKey(input.recipient);
@@ -155,6 +159,16 @@ export class SettlementReview {
     if (!row) throw Error("REVIEW_ORDER_NOT_OWNED");
     return this.service.store.get(orderId)!;
   }
+  financialAction(session: string, reviewId: string) {
+    const row = this.service.store.db
+      .prepare(
+        "SELECT payload FROM wallet_settlement_reviews WHERE id=? AND session=?",
+      )
+      .get(reviewId, session);
+    if (!row) throw Error("SCOPED_REVIEW_REQUIRED");
+    const p = JSON.parse(String(row.payload));
+    return p.spl ? "spl-transfer" : p.swap ? "swap" : "transfer";
+  }
   paymentRequest(session: string, orderId: string) {
     const order = this.orderFor(session, orderId);
     return revealPaymentRequest(
@@ -217,6 +231,11 @@ export class SettlementReview {
         .prepare("SELECT state FROM wallet_settlement_reviews WHERE id=?")
         .get(id);
       if (current?.state !== "CREATING") throw Error("REVIEW_CLAIM_LOST");
+      this.sourceBinding?.claim(
+        p.input.account,
+        p.input.paymentAddress,
+        orderId,
+      );
       const view = this.service.quote(p.input, p.swap, p.spl);
       db.prepare(
         "UPDATE wallet_settlement_reviews SET state='CREATED',order_id=? WHERE id=? AND state='CREATING'",
