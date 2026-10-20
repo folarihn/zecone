@@ -1,6 +1,6 @@
 # Mainnet readiness — spending disabled
 
-20 October 2026. **NO-GO for mainnet payments or execution.** The new module is isolated from testnet execution registries and exposes network identity reads only. It has no keys, addresses, generic RPC method, calldata, transaction submission or refund interface. `config/mainnet-readonly.example.json` is a disabled planning template, not an activated deployment.
+20 October 2026. **NO-GO for mainnet payments or execution.** The new module is isolated from testnet execution registries and exposes network identity reads only. It has no keys, addresses, generic RPC method, calldata, transaction submission or refund interface. `config/mainnet-readonly.example.json` is a disabled planning template, not an activated deployment. New strict testnet EVM/SPL transfer adapters and the opt-in financial handoff do not change this: they reject mainnet chain IDs, use demo ZEC pricing and cannot execute without separately provisioned testnet relayer credentials and an explicit capped approval.
 
 ## Configuration and evidence
 
