@@ -12,6 +12,8 @@ import { SeaportPurchases } from "../seaport/service.ts";
 import { OpenSeaPreviews } from "../opensea/service.ts";
 import { readJson } from "../execution/io.ts";
 import { getAddress } from "viem";
+import { readOnlyIntentReviews } from "./intent-rpc.ts";
+import type { EvmRoute } from "./transaction-intents.ts";
 const dev = process.argv.includes("--dev");
 process.env.NEXT_TELEMETRY_DISABLED = "1";
 // Next's CommonJS runtime is callable; its NodeNext declaration wraps the default.
@@ -23,7 +25,10 @@ const engine = new Engine(),
   purchases = new Purchases(),
   swaps = new Swaps(),
   seaport = new SeaportPurchases(),
-  dapps = new Dapps(engine.address, ".state/dapps.sqlite", purchases),
+  dapps = new Dapps(engine.address, ".state/dapps.sqlite", purchases, process.argv.includes("--intent-previews") ? {
+    signingDisabled: true,
+    intents: readOnlyIntentReviews(engine.address, process.env.ZECONE_INTENT_ROUTES ? readJson<EvmRoute[]>(process.env.ZECONE_INTENT_ROUTES) : []),
+  } : {}),
   opensea = new OpenSeaPreviews(engine.address, getAddress(readJson<{base:{relayer:string}}>("docs/PUBLIC_WALLETS.json").base.relayer)),
   handler = api(sessions, engine, dapps, purchases, swaps, seaport, opensea),
   nextHandler = app.getRequestHandler();

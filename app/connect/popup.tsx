@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import PurchasePanel from "../purchases/panel";
+import IntentPreview from "./intent-preview";
+import type { Intent } from "../../services/wallet/intent-model";
 type Review = {
   done?: boolean;
   id?: string;
@@ -244,7 +246,7 @@ export default function Connection() {
               : current.method === "eth_requestAccounts"
                 ? "Share your public EVM address with this exact website? Your Zcash balance and history remain private to the local wallet."
                 : current.method === "eth_sendTransaction"
-                  ? "Review the exact public transaction on the selected testnet. A successful simulation is not a safety guarantee."
+                  ? r.intent ? "Review this non-executing intent. Consent cannot create a payment, sign a transaction or authorize settlement." : "Review the exact public transaction on the selected testnet. A successful simulation is not a safety guarantee."
                   : "The website is asking your local user wallet to sign. Public EVM activity can be linked to this address."}
           </p>
           <p>
@@ -284,6 +286,8 @@ export default function Connection() {
                   </div>
                 ))}
               </>
+            ) : current.method === "eth_sendTransaction" && r.intent ? (
+              <IntentPreview intent={r.intent as Intent} />
             ) : current.method === "eth_sendTransaction" ? (
               <>
                 <div>
@@ -380,7 +384,9 @@ export default function Connection() {
               >
                 {busy
                   ? "Processing…"
-                  : current.method === "zecone_payWithZec"
+                  : r.intent
+                    ? "Record preview consent"
+                    : current.method === "zecone_payWithZec"
                     ? "Approve purchase quote"
                     : "Approve request"}
               </button>

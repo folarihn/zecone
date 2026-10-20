@@ -23,6 +23,7 @@ import { baseSepolia } from "viem/chains";
 import { exclusiveJson, readJson } from "../execution/io.ts";
 import { type Session, ApiError } from "./security.ts";
 import type { Purchases } from "../marketplace/service.ts";
+import type { IntentReviews, Scope } from "./transaction-intents.ts";
 import { uuid, requireApproval } from "./engine.ts";
 import {
   DAPP_CHAIN,
@@ -68,7 +69,10 @@ export class Dapps {
     readonly user: Address,
     path = ".state/dapps.sqlite",
     readonly purchases?: Purchases,
-    readonly policy: { signingDisabled?: boolean } = {},
+    readonly policy: {
+      signingDisabled?: boolean;
+      intents?: IntentReviews;
+    } = {},
   ) {
     mkdirSync(".state", { recursive: true });
     this.db = new DatabaseSync(path);
@@ -108,6 +112,17 @@ export class Dapps {
       .prepare("SELECT origin FROM permissions WHERE origin=?")
       .get(origin);
   }
+  intentScope(s: Session, r: Pick<Row, "channel" | "origin">): Scope {
+    return {
+      session: s.id,
+      channel: r.channel,
+      origin: r.origin,
+      account: this.user,
+      chainId: this.selected(r.origin),
+      permitted: this.permitted(r.origin),
+      expires: s.expires,
+    };
+  }
   list() {
     return {
       networks: this.db
@@ -118,7 +133,9 @@ export class Dapps {
         .all(),
       requests: (
         this.db
-          .prepare("SELECT * FROM requests ORDER BY created DESC LIMIT 100")
+          .prepare(
+            "SELECT * FROM requests WHERE json_extract(review,'$.intent') IS NULL ORDER BY created DESC LIMIT 100",
+          )
           .all() as Row[]
       ).map((r) => ({
         id: r.id,
@@ -340,6 +357,17 @@ export class Dapps {
       };
     if (method === "eth_sendTransaction")
       review = { ...review, ...transaction(p, this.user, chainId) };
+    if (method === "eth_sendTransaction" && this.policy.intents)
+      review = {
+        ...review,
+        intent: await this.policy.intents.prepare(
+          this.intentScope(s, { channel, origin }),
+          id,
+          p,
+        ),
+        warning:
+          "Non-executing intent preview. Consent cannot sign, pay or broadcast.",
+      };
     const expires = Date.now() + 300000;
     this.db
       .prepare("INSERT INTO requests VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
@@ -353,14 +381,16 @@ export class Dapps {
         fingerprint,
         JSON.stringify(review),
         digest(review),
-        method === "eth_sendTransaction" ? "preparing" : "pending",
+        method === "eth_sendTransaction" && !review.intent
+          ? "preparing"
+          : "pending",
         null,
         null,
         expires,
         null,
         Date.now(),
       );
-    if (method === "eth_sendTransaction") {
+    if (method === "eth_sendTransaction" && !review.intent) {
       try {
         const client = this.client(chainId);
         if ((await client.getChainId()) !== chainId) throw Error("Wrong chain");
@@ -421,6 +451,25 @@ export class Dapps {
     if (!r || r.session !== s.id)
       throw new RpcError(4100, "Request session mismatch");
     if (approved === false) {
+      const review = JSON.parse(r.review);
+      if (review.intent && r.state === "pending") {
+        try {
+          this.policy.intents?.consent(
+            this.intentScope(s, r),
+            id,
+            review.intent.requestDigest,
+            false,
+          );
+        } catch {
+          /* Expired/restarted previews still permit cancellation, never execution. */
+        }
+        review.intent.approval = "cancelled";
+        this.db
+          .prepare(
+            "UPDATE requests SET review=?,review_hash=? WHERE id=? AND state='pending'",
+          )
+          .run(JSON.stringify(review), digest(review), id);
+      }
       if (r.method === "zecone_payWithZec" && r.state === "pending")
         this.purchases?.cancelDraft(id);
       this.db
@@ -440,6 +489,34 @@ export class Dapps {
     if (r.method !== "eth_requestAccounts" && !this.permitted(r.origin))
       throw new RpcError(4100, "Connection revoked");
     if (r.state !== "pending") return this.status(s, id);
+    // Persisted preview marker remains non-executing even after restart without
+    // the opt-in policy. Never return intent JSON as an EIP-1193 transaction hash.
+    if (JSON.parse(r.review).intent) {
+      if (!this.policy.intents)
+        throw new RpcError(
+          4001,
+          "Preview session ended; request a new preview",
+        );
+      const review = JSON.parse(r.review),
+        preview = review.intent;
+      review.intent = this.policy.intents.consent(
+        this.intentScope(s, r),
+        id,
+        preview.requestDigest,
+        true,
+      );
+      review.previewConsent = {
+        reviewHash: r.review_hash,
+        at: Date.now(),
+        scope: "preview-only",
+      };
+      this.db
+        .prepare(
+          "UPDATE requests SET review=?,review_hash=?,state='rejected',error='Preview consent recorded; execution is unavailable. No transaction was signed.' WHERE id=? AND state='pending'",
+        )
+        .run(JSON.stringify(review), digest(review), id);
+      return this.status(s, id);
+    }
     if (
       this.policy.signingDisabled &&
       [
