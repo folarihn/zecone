@@ -124,6 +124,27 @@ test("local review HTTP handler binds profile, session and CSRF and exposes no e
   assert.equal(result.data.executionAuthorized, false);
   assert.equal(f.store.all().length, 0);
 });
+test("SPL delivery reviews the pinned mint and stays non-financial until exact approval", async () => {
+  const f = fixture(),
+    spl = {
+      kind: "SPL" as const,
+      mint: "So11111111111111111111111111111111111111112",
+      decimals: 9,
+    },
+    reviewed = await f.review.review(
+      "session",
+      { ...request, lamports: "1000000", spl },
+      "spl-transfer",
+    );
+  assert.equal(reviewed.financialOrderCreated, false);
+  assert.equal(reviewed.executionAuthorized, false);
+  assert.equal(f.store.all().length, 0);
+  await assert.rejects(
+    f.review.authorize("session", reviewed.id, reviewed.digest, true),
+    /FINANCIAL_AUTHORIZATION_REQUIRED/,
+  );
+  assert.equal(f.store.all().length, 0);
+});
 test("opt-in wallet creates one reviewed financial order and reveals a payment request without paying", async (t) => {
   const f = fixture(),
     sessions = new Sessions(f.store.db);
@@ -267,6 +288,7 @@ function fixture() {
       checks++;
     },
     balance: async () => liquidity,
+    tokenBalance: async () => 1000000n,
     terms: async (): Promise<never> => {
       throw Error("NO_SWAP_FIXTURE");
     },
