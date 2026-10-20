@@ -2,6 +2,11 @@
 import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 const files = [
+  "tests/ui/phase8d2-checkout.spec.ts",
+  "app/connect/checkout-handoff.tsx",
+  "services/wallet/purchase-intent-quote.ts",
+  "services/wallet/intent-checkout.ts",
+  "tests/phase8d2-checkout.test.ts",
   "services/wallet/intent-model.ts",
   "tests/ui/phase8d1-intents.spec.ts",
   "app/connect/intent-preview.tsx",

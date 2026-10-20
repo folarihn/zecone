@@ -9,6 +9,9 @@ import {
 } from "../services/solana/settlement.ts";
 import { CpmmPolicy } from "../services/solana/cpmm.ts";
 import { json } from "../services/solana/network.ts";
+const auditPhase = process.argv.includes("--phase8d2")
+  ? "phase8d2"
+  : "phase8d1";
 const report: any = {
   at: new Date().toISOString(),
   method:
@@ -20,7 +23,7 @@ for (const phase of ["phase7b", "phase7c"]) {
   const source = new DatabaseSync(`.state/${phase}/${p.id}/settlement.sqlite`, {
     readOnly: true,
   });
-  const copy = `.state/phase8d1/${phase}-audit-${Date.now()}.sqlite`;
+  const copy = `.state/${auditPhase}/${phase}-audit-${Date.now()}.sqlite`;
   await backup(source, copy);
   source.close();
   const store = new Store(copy),
@@ -130,7 +133,7 @@ assert.equal(inventoryEntries, 628);
 assert.equal(changedInventories, 0);
 report.inventory = { entries: inventoryEntries, changedInventories };
 writeFileSync(
-  "docs/phase8d1-evidence/completed-order-audit.json",
+  `docs/${auditPhase}-evidence/completed-order-audit.json`,
   json(report),
 );
 console.log(json(report));

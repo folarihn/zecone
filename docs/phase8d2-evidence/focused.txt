@@ -1,0 +1,63 @@
+(node:29448) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ origin policy accepts exact HTTPS and loopback origins and rejects spoofed or unsafe origins (1.3079ms)
+✔ EIP-1193 array and object parameter forms normalize without losing transaction fields (0.801ms)
+✔ address access is opt-in, request approval is idempotent, and revocation is origin-bound (62.2835ms)
+✔ channel binding prevents origin and local-session substitution (20.3425ms)
+✔ unapproved signature/transaction and unsupported RPC methods fail before signing (23.1473ms)
+✔ selected-chain request rejects wrong networks and malformed transaction fields (24.4448ms)
+✔ EIP-1193 read methods expose only chain id and the public EVM address (21.8165ms)
+✔ network switching requires approval and wallet_addEthereumChain rejects RPC substitution (31.7028ms)
+(node:2996) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ supported pinned EVM purchase, mint and swap produce non-executing structured intents (7.2443ms)
+✔ decoded unknown contracts, NFT mint targets and routers never gain adapter support (3.0204ms)
+✔ malformed calldata, extra trailing bytes and hidden source fields fail closed (1.2084ms)
+✔ origin, session, network, recipient and expiry are bound (1.7492ms)
+✔ ERC20 transfer and bounded/unlimited approvals are decoded but never supported (1.1169ms)
+✔ registry rejects mainnet, unbounded inputs, duplicate routes and foreign swap networks (0.7193ms)
+✔ swap input and token route limits cannot be expanded by calldata (0.7944ms)
+✔ simulation facts are scoped to exact request, pinned code, chain and fee budget (3.859ms)
+✔ duplicate IDs, cross-origin/session/channel/chain access and mutable returned objects cannot alter consent (2.5092ms)
+✔ concurrent preparation is reserved and no consent is possible before simulation completes (1.4434ms)
+✔ late consent and restart fail closed without authorizing financial execution (0.7556ms)
+✔ existing provider boundary records preview consent but never returns a fake transaction hash or calls legacy signer (24.2578ms)
+✔ persisted preview cannot fall through to legacy signing after restart without preview mode (25.7132ms)
+✔ provider denies unconnected origins and exact preview cancellation never signs (2.3096ms)
+✔ Solana canonical unsigned SOL delivery exposes verified payer, programs and account metas only (10.256ms)
+✔ Solana malformed, substituted program/instruction/account bytes and signed payloads are rejected (3.3005ms)
+✔ Solana unknown program substitution and versioned/lookup-table transactions are rejected (2.041ms)
+✔ Solana chain, route facts, expiry, simulation, fee and blockhash checks fail closed (3.6661ms)
+✔ pinned Raydium route validates mint decimals, ATA creation and every canonical instruction (37.2249ms)
+✔ private payment facts never enter destination callbacks or preview output (2.4002ms)
+✔ preview modules have no financial store, vault, signing or broadcast dependencies; completed settlement replay guards remain present (2.7275ms)
+(node:29684) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ connection and preview are insufficient; quote requires distinct exact intent consent (17.7326ms)
+✔ exact quote review is separate from explicit dry-run checkout creation (10.6578ms)
+✔ expired quote, stale digest and cancelled review never create handoffs (6.5653ms)
+✔ fresh quote supersedes earlier approval without overwriting history (9.541ms)
+✔ dApp supplied price is checked against fresh listing and cannot set ZEC cost (4.2329ms)
+✔ price or fee changes after quote review fail closed and retain recovery evidence (14.1538ms)
+✔ provider disagreement and wrong chain cannot produce approved quotes (5.6079ms)
+✔ unknown mapping, mainnet, excessive fees and relayer-as-recipient are rejected (5.6738ms)
+✔ code changes, seller ownership, approvals, sold listing and simulation failures reject (21.1466ms)
+✔ purchase permits zero slippage only and rejects swap/ambiguous calldata (3.5684ms)
+✔ wrong recipient and changed request bytes cannot reuse canonical intent (3.1537ms)
+✔ origin, session, chain, permission and session loss invalidate quote consent (4.9723ms)
+✔ concurrent quotes and checkout creation each have one durable claim (8.1782ms)
+✔ duplicate authorization and completed handoff replay are rejected (6.349ms)
+✔ restart preserves completed preview but never promotes it to financial authority (40.0613ms)
+✔ interrupted creation and preparation fail closed after restart without automatic resume (71.4222ms)
+✔ an unrelated or historical SQLite database is not opened for writes (11.1327ms)
+✔ session revocation during async preparation cannot finalize a quote or handoff (3.7284ms)
+✔ source payment facts never enter read calls, quote or checkout output (6.7449ms)
+✔ authenticated local HTTP handoff enforces CSRF and never calls live checkout (69.2777ms)
+ℹ tests 49
+ℹ suites 0
+ℹ pass 49
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3842.4708

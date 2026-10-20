@@ -2,8 +2,10 @@
 import { useEffect, useRef, useState } from "react";
 import PurchasePanel from "../purchases/panel";
 import IntentPreview from "./intent-preview";
+import CheckoutHandoff from "./checkout-handoff";
 import type { Intent } from "../../services/wallet/intent-model";
 type Review = {
+  previewConsentRecorded?: boolean;
   done?: boolean;
   id?: string;
   origin?: string;
@@ -17,6 +19,7 @@ type Review = {
 };
 export default function Connection() {
   const [current, setCurrent] = useState<Review | null>(null),
+    [checkoutPreview,setCheckoutPreview] = useState<{id:string;origin:string}|null>(null),
     [error, setError] = useState(""),
     [ready, setReady] = useState(false),
     [busy, setBusy] = useState(false),
@@ -43,6 +46,7 @@ export default function Connection() {
       body: body ? JSON.stringify(body) : undefined,
     });
     const data = await res.json();
+    if (res.status === 401 || res.status === 403) setCheckoutPreview(null);
     if (!res.ok)
       throw Object.assign(new Error(data.error || "Wallet unavailable"), {
         code: data.code || 4100,
@@ -164,14 +168,17 @@ export default function Connection() {
         if (previous?.length && !accounts.length)
           send({ kind: "event", event: "accountsChanged", value: [] });
         previous = accounts;
+        if (!accounts.length) setCheckoutPreview(null);
         const chain = `0x${Number(list.networks?.find((n: any) => n.origin === bound.current)?.chainId ?? 84532).toString(16)}`;
         if (chain !== selectedChain.current) {
+          setCheckoutPreview(null);
           selectedChain.current = chain;
           send({ kind: "event", event: "chainChanged", value: chain });
         }
       } catch (e: any) {
         setError(e.message);
         if (e.status === 401 || e.status === 403) {
+          setCheckoutPreview(null);
           send({
             kind: "event",
             event: "disconnect",
@@ -192,14 +199,13 @@ export default function Connection() {
     if (!current?.id) return;
     setBusy(true);
     try {
-      receive(
-        current.id,
-        await api("dapps/approve", {
+      const decision=await api("dapps/approve", {
           id: current.id,
           reviewHash: current.reviewHash,
           approved,
-        }),
-      );
+        });
+      if(approved&&decision.previewConsentRecorded===true)setCheckoutPreview({id:current.id,origin:current.origin??site});
+      receive(current.id,decision);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -399,6 +405,8 @@ export default function Connection() {
             </p>
           )}
         </section>
+      ) : checkoutPreview ? (
+        <CheckoutHandoff key={checkoutPreview.id} requestId={checkoutPreview.id} origin={checkoutPreview.origin} invoke={api}/>
       ) : purchaseId ? (
         <PurchasePanel id={purchaseId} />
       ) : (

@@ -24,6 +24,7 @@ import { exclusiveJson, readJson } from "../execution/io.ts";
 import { type Session, ApiError } from "./security.ts";
 import type { Purchases } from "../marketplace/service.ts";
 import type { IntentReviews, Scope } from "./transaction-intents.ts";
+import type { IntentCheckout, IntentContext } from "./intent-checkout.ts";
 import { uuid, requireApproval } from "./engine.ts";
 import {
   DAPP_CHAIN,
@@ -55,6 +56,7 @@ type Row = {
   tx_hash: Hex | null;
   created: number;
 };
+type CheckoutSession = Session | (() => Session);
 export class Dapps {
   db: DatabaseSync;
   public = createPublicClient({
@@ -72,8 +74,19 @@ export class Dapps {
     readonly policy: {
       signingDisabled?: boolean;
       intents?: IntentReviews;
+      checkoutPreview?: IntentCheckout;
     } = {},
   ) {
+    if (
+      policy.checkoutPreview &&
+      (!policy.intents ||
+        policy.signingDisabled !== true ||
+        purchases !== undefined)
+    )
+      throw new RpcError(
+        4200,
+        "Dry-run checkout requires intent interception, disabled signing and no financial purchase service",
+      );
     mkdirSync(".state", { recursive: true });
     this.db = new DatabaseSync(path);
     this.db
@@ -123,6 +136,75 @@ export class Dapps {
       expires: s.expires,
     };
   }
+  checkoutContext(source: CheckoutSession, id: string): IntentContext {
+    return () => {
+      const s = typeof source === "function" ? source() : source;
+      requireApproval(s, true);
+      const r = this.row(uuid(id));
+      if (
+        !r ||
+        r.session !== s.id ||
+        r.method !== "eth_sendTransaction" ||
+        r.state !== "rejected"
+      )
+        throw new RpcError(4100, "Consented preview required");
+      const review = JSON.parse(r.review);
+      if (
+        !this.policy.checkoutPreview ||
+        review.previewConsent?.scope !== "preview-only" ||
+        review.intent?.approval !== "consented-preview-only" ||
+        digest(review) !== r.review_hash
+      )
+        throw new RpcError(4100, "Exact preview consent required");
+      return {
+        scope: this.intentScope(s, r),
+        intent: review.intent,
+        params: JSON.parse(r.params),
+      };
+    };
+  }
+  quoteIntent(s: CheckoutSession, id: string) {
+    if (!this.policy.checkoutPreview)
+      throw new RpcError(4200, "Checkout preview unavailable");
+    return this.policy.checkoutPreview.quote(this.checkoutContext(s, id));
+  }
+  reviewIntentQuote(
+    s: CheckoutSession,
+    id: string,
+    quoteId: string,
+    quoteDigest: string,
+    approved: unknown,
+  ) {
+    if (!this.policy.checkoutPreview)
+      throw new RpcError(4200, "Checkout preview unavailable");
+    return this.policy.checkoutPreview.review(
+      this.checkoutContext(s, id),
+      uuid(quoteId),
+      quoteDigest,
+      approved,
+    );
+  }
+  createIntentCheckoutPreview(
+    s: CheckoutSession,
+    id: string,
+    quoteId: string,
+    quoteDigest: string,
+    approved: unknown,
+  ) {
+    if (!this.policy.checkoutPreview)
+      throw new RpcError(4200, "Checkout preview unavailable");
+    return this.policy.checkoutPreview.create(
+      this.checkoutContext(s, id),
+      uuid(quoteId),
+      quoteDigest,
+      approved,
+    );
+  }
+  intentCheckoutStatus(s: CheckoutSession, id: string) {
+    if (!this.policy.checkoutPreview)
+      throw new RpcError(4200, "Checkout preview unavailable");
+    return this.policy.checkoutPreview.status(this.checkoutContext(s, id));
+  }
   list() {
     return {
       networks: this.db
@@ -158,6 +240,13 @@ export class Dapps {
       .all(origin))
       this.purchases?.cancelDraft(String(r.id));
     this.db.prepare("DELETE FROM permissions WHERE origin=?").run(origin);
+    // Reconnection is account permission only; it cannot revive old preview or
+    // quote consent. This touches preview records, never financial orders.
+    this.db
+      .prepare(
+        "UPDATE requests SET review=json_set(review,'$.intent.approval','cancelled'),state='rejected',error='Connection revoked; request fresh intent consent' WHERE origin=? AND json_type(review,'$.intent')='object'",
+      )
+      .run(origin);
     this.db
       .prepare(
         "UPDATE requests SET state='rejected',error='Connection revoked' WHERE origin=? AND state IN ('pending','preparing')",
@@ -180,14 +269,27 @@ export class Dapps {
   response(r: Row) {
     if (r.state === "done")
       return { done: true, result: JSON.parse(r.result!) };
-    if (["rejected", "error", "expired"].includes(r.state))
+    if (["rejected", "error", "expired"].includes(r.state)) {
+      const intent = JSON.parse(r.review).intent;
+      const config = this.policy.checkoutPreview?.adapter.config;
+      const checkoutCandidate =
+        config &&
+        r.origin === config.market.origin &&
+        intent?.approval === "consented-preview-only" &&
+        intent?.operation === "nft-purchase" &&
+        intent.support?.recognized === true &&
+        intent.destination?.chainId === "eip155:84532" &&
+        typeof intent.target === "string" &&
+        intent.target.toLowerCase() === config.market.marketplace.toLowerCase();
       return {
+        ...(checkoutCandidate ? { previewConsentRecorded: true } : {}),
         done: true,
         error: {
           code: r.state === "rejected" ? 4001 : -32603,
           message: r.error ?? "Request expired",
         },
       };
+    }
     return {
       done: false,
       id: r.id,
@@ -223,6 +325,16 @@ export class Dapps {
     const method = input.method;
     if (typeof method !== "string" || method.length > 80)
       throw new RpcError(-32600, "Invalid method");
+    if (
+      this.policy.checkoutPreview &&
+      ["personal_sign", "eth_signTypedData_v4", "zecone_payWithZec"].includes(
+        method,
+      )
+    )
+      throw new RpcError(
+        4200,
+        "Signing and financial purchase methods are unavailable in checkout rehearsal mode",
+      );
     const p = rpcParams(input.params ?? []),
       fingerprint = digest({ channel, origin, method, p });
     const old = this.row(id);

@@ -391,7 +391,56 @@ export function api(
       if (path?.startsWith("/api/dapps/") && dapps) {
         if (!session.connected)
           throw new ApiError(403, "Verify wallet ownership first.");
+        if (
+          [
+            "/api/dapps/intent-quote",
+            "/api/dapps/intent-quote-review",
+            "/api/dapps/intent-checkout-preview",
+            "/api/dapps/intent-checkout-status",
+          ].includes(path)
+        ) {
+          const allowed =
+            path.endsWith("intent-quote") ||
+            path.endsWith("intent-checkout-status")
+              ? ["id"]
+              : ["id", "quoteId", "digest", "approved"];
+          if (
+            req.url?.includes("?") ||
+            Object.keys(body).some((k) => !allowed.includes(k))
+          )
+            throw new ApiError(400, "Exact local preview fields required.");
+        }
         switch (`${method} ${path}`) {
+          case "POST /api/dapps/intent-quote":
+            data = await dapps.quoteIntent(
+              () => sessions.get(req.headers.cookie),
+              uuid(body.id),
+            );
+            break;
+          case "POST /api/dapps/intent-quote-review":
+            data = dapps.reviewIntentQuote(
+              () => sessions.get(req.headers.cookie),
+              uuid(body.id),
+              uuid(body.quoteId),
+              String(body.digest),
+              body.approved,
+            );
+            break;
+          case "POST /api/dapps/intent-checkout-preview":
+            data = await dapps.createIntentCheckoutPreview(
+              () => sessions.get(req.headers.cookie),
+              uuid(body.id),
+              uuid(body.quoteId),
+              String(body.digest),
+              body.approved,
+            );
+            break;
+          case "POST /api/dapps/intent-checkout-status":
+            data = dapps.intentCheckoutStatus(
+              () => sessions.get(req.headers.cookie),
+              uuid(body.id),
+            );
+            break;
           case "GET /api/dapps/list":
             data = dapps.list();
             break;
