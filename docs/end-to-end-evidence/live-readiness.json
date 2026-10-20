@@ -1,0 +1,40 @@
+{
+  "legacyReservationsPresent": false,
+  "at": "2026-10-20T14:26:23.511Z",
+  "sourcePaymentQueried": false,
+  "financialOrderCreated": false,
+  "newPayment": false,
+  "liveKeyAccess": false,
+  "results": [
+    {
+      "chainId": 84532,
+      "network": "Base Sepolia",
+      "simulation": "PASSED",
+      "amountWei": "1000000000000",
+      "gas": "25201",
+      "feeCapWei": "40176407000000",
+      "maxFeePerGas": "7000000",
+      "relayerLiquiditySufficient": true,
+      "relayerHasPendingTransactions": false,
+      "confidence": "PRIMARY_ONLY",
+      "recipientEOA": true,
+      "signing": false,
+      "broadcast": false
+    },
+    {
+      "chainId": 11155111,
+      "network": "Ethereum Sepolia",
+      "simulation": "PASSED",
+      "amountWei": "1000000000000",
+      "gas": "248870",
+      "feeCapWei": "6221750",
+      "maxFeePerGas": "25",
+      "relayerLiquiditySufficient": true,
+      "relayerHasPendingTransactions": false,
+      "confidence": "PRIMARY_ONLY",
+      "recipientEOA": true,
+      "signing": false,
+      "broadcast": false
+    }
+  ]
+}

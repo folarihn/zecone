@@ -1,0 +1,3 @@
+(node:22344) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"at":"2026-10-20T14:26:50.257Z","syntheticProfile":true,"realDestinationRpc":true,"financialCreationEnabled":false,"liveKeyAccess":false,"broadcast":false,"publicConnectorNavigation":"PASSED","crossSiteApiBlocked":true,"status":"PASSED","liveRpcSimulation":"PASSED","ordersCreated":0,"paymentsVerified":0,"signaturesCreated":0,"confidence":"PRIMARY_ONLY"}

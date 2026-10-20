@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-20T14:26:50.257Z",
+  "syntheticProfile": true,
+  "realDestinationRpc": true,
+  "financialCreationEnabled": false,
+  "liveKeyAccess": false,
+  "broadcast": false,
+  "publicConnectorNavigation": "PASSED",
+  "crossSiteApiBlocked": true,
+  "status": "PASSED",
+  "liveRpcSimulation": "PASSED",
+  "ordersCreated": 0,
+  "paymentsVerified": 0,
+  "signaturesCreated": 0,
+  "confidence": "PRIMARY_ONLY"
+}

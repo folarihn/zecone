@@ -4,6 +4,8 @@
 
 ## Milestone A — one transfer and one swap through the wallet
 
+Current transfer integration continues `7edd423`: the keyless wallet now mounts native EVM review, user-signed financial authorization, explicit payment reveal and lifecycle status; it can run the real native watch observer without loading spending keys. The existing worker/executor is connected through durable one-attempt authority and submission guards. Base/Ethereum Sepolia read-only simulations passed. See [current implementation, limits and live approval boundary](TRANSFER-END-TO-END.md). No fresh live transfer has been executed through this new path.
+
 Use the existing Solana delivery and pinned CPMM swap first: they already have real completed settlement evidence. Do not add a second payment or execution engine.
 
 Implemented `SettlementReview`, a durable economic review handoff in the existing settlement Store. It checks the bounded amount, recipient/relayer separation, testnet shielded profile shape, fresh devnet reads, pinned swap terms and available inventory. Reviews expire after 90 seconds and contain no recent blockhash: economic review does not consume chain transaction lifetime. Review does not create a financial order or return its receiving address.
@@ -12,9 +14,9 @@ An exact session/digest review can be consumed once only when the trusted caller
 
 `settlementReads` connects review to the real Devnet/CpmmPolicy read layer. The optional authenticated local HTTP handler binds recipient to an operator-supplied allowlist, pins source profile/relayer server-side, rejects extra fields and CSRF failures, and rechecks the session after asynchronous work.
 
-The keyless runtime is now opt-in for financial creation: `npm run wallet:review-ui -- <public-profile.json> --state <dir> --enable-financial-creation`. Without the flag it remains review-only. With it, the local UI/API can consume the exact review once, create one durable order, and reveal the testnet shielded payment request. It still loads no sender, signing key or broadcast worker. A `GET /api/settlement-review/status` route lists only that session's reviews. SPL delivery uses the profile's explicitly configured mint; EVM transfer quotes and settlement live in `services/settlement/evm-transfer.ts` and `services/evm/transfers.ts`, with empty operator allowlists by default.
+The keyless runtime is opt-in for financial creation: `npm run wallet:review-ui -- <public-profile.json> --state <dir> --enable-financial-creation --watch-wallet <native-watch-dir>`. Without the flag it remains review-only. With it, the local UI/API can consume an exact review once, create one durable order, and reveal the shielded payment request. It loads no sender, signing key or broadcast worker. SPL financial checkout is disabled pending individual asset validation; ERC20 cannot enter the new native path. Existing token builders remain fixture-tested only. EVM transfer quotes and settlement reuse `services/settlement/evm-transfer.ts` and `services/evm/transfers.ts`.
 
-Payment verification is operator-mediated: `npm run wallet:observe -- <state-dir> <watch-snapshot.json> [--solana-authorize]` applies a real watch-only snapshot to the same durable journal. `--solana-authorize` can mark a funded Solana order ready for separately approved execution; it cannot execute. EVM receipts are reconciled by the existing settlement worker when an executor and read-only network are configured.
+Payment verification now invokes the native scanner: `npm run wallet:observe -- <state-dir> --watch-wallet <native-watch-dir> --order <id>`. JSON snapshot imports are disabled. Financial wallet startup requires the matching native watch directory and a checksum-valid shielded testnet receiver; its non-spending observer runs every 30 seconds. Destination execution remains separately operator-approved. `wallet:transfer-status -- <state-dir> --reconcile` reconciles an existing native EVM hash without a key or submission attempt.
 
 EVM transfer review is available without creating an order:
 
@@ -33,7 +35,7 @@ npm run wallet:review -- <public-isolated-profile.json> swap
 
 The input has exactly seven public string fields: `profileId`, `requestId`, `recipient`, `relayer`, `lamports`, `account` (native isolated account identifier), `paymentAddress` (testnet shielded receiver), plus optional public `spl` `{kind:"SPL",mint,decimals}` in the wallet runtime. Never supply a seed/key file. Reviews are operator-local; do not publish output or the journal as a cross-chain activity record. Review is not an exact transaction simulation or reserved liquidity.
 
-**Remaining implementation, in order:** provision fresh isolated watch profiles per checkout; bind account ownership/origin to execution authorization; add operator-controlled reservation and executor/receipt-provider configuration; verify the native watch scanner feeds `wallet:observe`; exercise one transfer and one swap through the runtime with an explicitly approved capped plan. Do not connect the dry-run checkout ID to a live worker, recycle completed Phase 7 profiles, or treat the EVM/SPL allowlist defaults as live configuration.
+**Next live gate:** configure a fresh isolated native watch/payer profile and dedicated relayer, verify recipient ownership, approve a capped testnet payment/local signer plan, then validate real finalized transfer effects. Generalized fresh-account provisioning, distributed reservation, independent provider configuration and production custody remain incomplete. Do not recycle completed Phase 7 profiles or treat the token adapter defaults as validated live assets.
 
 Before live testing, produce a separate exact capped payment/execution plan. Stop for its approval. No funding, credential unlock, payment, signature or broadcast occurred in this change. This milestone remains **partial**, not blocked solely by funding.
 

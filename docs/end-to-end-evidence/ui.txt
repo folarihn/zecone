@@ -1,0 +1,48 @@
+
+> test:ui
+> playwright test
+
+[WebServer] (node:14420) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 35 tests using 1 worker
+
+(node:25304) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 tests\ui\extension.spec.ts:5:1 › provider browser harness authenticates a separate-origin popup and disconnects (1.5s)
+  ok  2 tests\ui\functional-review.spec.ts:3:1 › wallet economic review exposes bounded terms and no payment authorization (663ms)
+  ok  3 tests\ui\native-transfer.spec.ts:3:1 › wallet separates review, signed order consent, private payment reveal and confirmation (11.1s)
+  ok  4 tests\ui\phase6.spec.ts:75:1 › eight primary destinations have real views and URL refresh recovery (1.1s)
+  ok  5 tests\ui\phase6.spec.ts:102:1 › checkout recovery survives refresh without payment calls or fabricated refunds (985ms)
+  ok  6 tests\ui\phase6.spec.ts:125:1 › dashboard uses supplied balances and unknown EVM balance remains unavailable (789ms)
+  ok  7 tests\ui\phase6.spec.ts:146:1 › receive network selection is independent of website approvals and unsupported Zcash sends are disabled (461ms)
+  ok  8 tests\ui\phase6.spec.ts:159:1 › failed checkout reads show an actionable error with no fabricated empty success (573ms)
+  ok  9 tests\ui\phase6.spec.ts:171:1 › mobile layout and keyboard focus remain accessible (1.9s)
+  ok 10 tests\ui\phase6.spec.ts:196:1 › unavailable swap adapters show no executable fake quote (651ms)
+  ok 11 tests\ui\phase6.spec.ts:211:1 › expired swap reviews cannot authorize payment or an execution intent (747ms)
+  ok 12 tests\ui\phase8-privacy.spec.ts:67:1 › Phase 8A clears old persistent selection and stores only scoped expiring handles (762ms)
+  ok 13 tests\ui\phase8-privacy.spec.ts:91:1 › Phase 8A private reference appears only after explicit inspection and clears on refresh (794ms)
+  ok 14 tests\ui\phase8-privacy.spec.ts:117:1 › Phase 8A session denial clears checkout data and browser selection (6.0s)
+  ok 15 tests\ui\phase8-privacy.spec.ts:134:1 › Phase 8A known session deadline clears private data even before another server response (788ms)
+  ok 16 tests\ui\phase8d1-intents.spec.ts:11:3 › intent review cancellation discloses execution boundary and sends only exact review consent (882ms)
+  ok 17 tests\ui\phase8d1-intents.spec.ts:11:3 › intent review consent discloses execution boundary and sends only exact review consent (747ms)
+  ok 18 tests\ui\phase8d2-checkout.spec.ts:10:3 › checkout rehearsal requires distinct quote and checkout gestures (665ms)
+  ok 19 tests\ui\phase8d2-checkout.spec.ts:10:3 › checkout rehearsal rejects expired review (747ms)
+  ok 20 tests\ui\purchase-popup.spec.ts:3:1 › marketplace popup shows exact quote approval then the separate payment panel (956ms)
+  ok 21 tests\ui\solana-delivery.spec.ts:16:1 › ZEC-funded Solana checkout shows exact demo terms and awaiting approval without completion (1.3s)
+  ok 22 tests\ui\solana-swap.spec.ts:5:1 › swap checkout explains public ownership, binds fresh recipient and hides cross-chain records (1.5s)
+  ok 23 tests\ui\solana.spec.ts:59:3 › Solana panel at 1440px has truthful balances, simulation and accessible controls (1.5s)
+  ok 24 tests\ui\solana.spec.ts:59:3 › Solana panel at 390px has truthful balances, simulation and accessible controls (1.4s)
+  ok 25 tests\ui\solana.spec.ts:90:1 › Solana account switching clears stale balance and RPC failure never displays zero (626ms)
+  ok 26 tests\ui\wallet.spec.ts:45:1 › marketplace payment needs a separate native-fee approval and preserves recovery details (805ms)
+  ok 27 tests\ui\wallet.spec.ts:158:1 › malformed network data shows an error without crashing the wallet (705ms)
+  ok 28 tests\ui\wallet.spec.ts:171:1 › token swap requires exact intent approval and a separate native payment approval (871ms)
+  ok 29 tests\ui\wallet.spec.ts:269:1 › Seaport purchase labels controlled origin and separates intent from shielded payment approval (859ms)
+  ok 30 tests\ui\wallet.spec.ts:374:1 › desktop wallet is accessible and has no horizontal overflow (1.4s)
+  ok 31 tests\ui\wallet.spec.ts:392:1 › mobile navigation, checkout review and focus-trapped approval are accessible (1.6s)
+  ok 32 tests\ui\wallet.spec.ts:438:1 › no signing happens merely by visiting checkout or opening an approval (706ms)
+  ok 33 tests\ui\wallet.spec.ts:456:1 › sponsor screen displays fixed terms before its explicit approval (708ms)
+  ok 34 tests\ui\wallet.spec.ts:479:1 › apps page names exact origins and lets the user revoke a connection (725ms)
+  ok 35 tests\ui\wallet.spec.ts:498:1 › OpenSea preview is non-executing, recipient-bound and expires visibly (3.6s)
+
+  35 passed (57.7s)
