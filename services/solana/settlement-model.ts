@@ -1,8 +1,13 @@
 import type { Hex } from "viem";
+export type SolanaSplAsset = { kind: "SPL"; mint: string; decimals: number };
 export type SolanaDeliveryIntent = {
   family: "solana";
-  action: "SOLANA_DEVNET_SOL_DELIVERY" | "SOLANA_DEVNET_SPL_SWAP";
+  action:
+    | "SOLANA_DEVNET_SOL_DELIVERY"
+    | "SOLANA_DEVNET_SPL_DELIVERY"
+    | "SOLANA_DEVNET_SPL_SWAP";
   swap?: SwapTerms;
+  spl?: SolanaSplAsset;
   network: "solana:devnet";
   genesis: string;
   recipient: string;

@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import type { SolanaSettlement } from "../solana/settlement.ts";
 import { publicKey } from "../solana/network.ts";
 import { validateTerms } from "../solana/cpmm.ts";
-import type { SwapTerms } from "../solana/settlement-model.ts";
+import type { SolanaSplAsset, SwapTerms } from "../solana/settlement-model.ts";
 import { fingerprint } from "./transaction-intents.ts";
 import { digest as transactionDigest } from "../solana/transactions.ts";
 
@@ -16,11 +16,14 @@ export type DeliveryRequest = {
   lamports: string;
   account: string;
   paymentAddress: string;
+  // Operator-supplied allowlisted token; never accepted from the dApp.
+  spl?: SolanaSplAsset;
 };
 export type ReviewReads = {
   // Must verify devnet genesis before returning any account data.
   check(): Promise<void>;
   balance(address: string): Promise<bigint>;
+  tokenBalance?(address: string, mint: string): Promise<bigint>;
   terms(): Promise<SwapTerms>;
 };
 export class SettlementReview {
@@ -39,21 +42,31 @@ export class SettlementReview {
   async review(
     session: string,
     request: DeliveryRequest,
-    action: "transfer" | "swap",
+    action: "transfer" | "spl-transfer" | "swap",
   ) {
     // Copy before await: caller mutation cannot alter the approved destination.
     const input = structuredClone(request);
-    if (!session || !["transfer", "swap"].includes(action))
+    if (!session || !["transfer", "spl-transfer", "swap"].includes(action))
       throw Error("INVALID_REVIEW");
     publicKey(input.recipient);
     publicKey(input.relayer);
+    const spl = action === "spl-transfer" ? structuredClone(input.spl) : null;
     if (
       input.recipient === input.relayer ||
-      !["1000000", "2000000", "5000000"].includes(input.lamports) ||
+      (spl
+        ? !/^[1-9]\d{0,17}$/.test(input.lamports) ||
+          !spl ||
+          spl.kind !== "SPL" ||
+          !Number.isInteger(spl.decimals) ||
+          spl.decimals < 0 ||
+          spl.decimals > 255
+        : !["1000000", "2000000", "5000000"].includes(input.lamports)) ||
       !/^[a-f0-9]{64}$/.test(input.account) ||
       !input.paymentAddress.startsWith("utest1")
     )
       throw Error("DELIVERY_POLICY");
+    if (spl) publicKey(spl.mint);
+    if (spl && input.spl) delete input.spl;
     const started = this.now();
     await this.reads.check();
     const swap =
@@ -62,13 +75,23 @@ export class SettlementReview {
       validateTerms(swap);
       if (input.lamports !== swap.amountIn) throw Error("SWAP_INPUT_MISMATCH");
     }
-    const debitCap = BigInt(input.lamports) + 10000n + (swap ? 6000000n : 0n);
+    const debitCap = spl
+      ? 10000n
+      : BigInt(input.lamports) + 10000n + (swap ? 6000000n : 0n);
     if ((await this.reads.balance(input.relayer)) < debitCap)
       throw Error("INSUFFICIENT_LIQUIDITY");
+    if (
+      spl &&
+      (!this.reads.tokenBalance ||
+        (await this.reads.tokenBalance(input.relayer, spl.mint)) <
+          BigInt(input.lamports))
+    )
+      throw Error("INSUFFICIENT_TOKEN_LIQUIDITY");
     if (this.now() - started > 30) throw Error("STALE_REVIEW");
     const payload = {
       input,
       ...(swap ? { swap } : {}),
+      ...(spl ? { spl } : {}),
       network: "solana:devnet",
       zatoshis: "100000",
       pricing: "FIXED_TESTNET_DEMO_NOT_EXCHANGE_RATE",
@@ -92,7 +115,8 @@ export class SettlementReview {
       network: payload.network,
       recipient: input.recipient,
       lamports: input.lamports,
-      swap,
+      ...(swap ? { swap } : {}),
+      ...(spl ? { spl } : {}),
       zatoshis: payload.zatoshis,
       pricing: payload.pricing,
       feeCap: payload.feeCap,
@@ -140,15 +164,22 @@ export class SettlementReview {
         throw Error("REQUOTE_REQUIRED");
       if ((await this.reads.balance(p.input.relayer)) < BigInt(p.debitCap))
         throw Error("INSUFFICIENT_LIQUIDITY");
+      if (
+        p.spl &&
+        (!this.reads.tokenBalance ||
+          (await this.reads.tokenBalance(p.input.relayer, p.spl.mint)) <
+            BigInt(p.input.lamports))
+      )
+        throw Error("INSUFFICIENT_TOKEN_LIQUIDITY");
       if (Number(row.expires) <= this.now()) throw Error("REVIEW_EXPIRED");
-      const orderId = `0x${transactionDigest(`${p.swap ? "phase7c" : "phase7b"}:${p.input.profileId}:${p.input.requestId}`)}`;
+      const orderId = `0x${transactionDigest(`${p.swap ? "phase7c" : p.spl ? "spl-delivery" : "phase7b"}:${p.input.profileId}:${p.input.requestId}`)}`;
       if (this.service.store.get(orderId))
         throw Error("EXISTING_ORDER_REQUIRES_RECONCILIATION");
       const current = db
         .prepare("SELECT state FROM wallet_settlement_reviews WHERE id=?")
         .get(id);
       if (current?.state !== "CREATING") throw Error("REVIEW_CLAIM_LOST");
-      const view = this.service.quote(p.input, p.swap);
+      const view = this.service.quote(p.input, p.swap, p.spl);
       db.prepare(
         "UPDATE wallet_settlement_reviews SET state='CREATED',order_id=? WHERE id=? AND state='CREATING'",
       ).run(view.id, id);

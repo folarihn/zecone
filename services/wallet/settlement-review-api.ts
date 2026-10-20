@@ -50,7 +50,7 @@ export function settlementReviewApi(
           (k) => !["recipient", "lamports", "action"].includes(k),
         ) ||
         !allowed.has(b.recipient) ||
-        !["transfer", "swap"].includes(b.action)
+        !["transfer", "spl-transfer", "swap"].includes(b.action)
       )
         throw new ApiError(400, "Unsupported settlement review.");
       const result = await review.review(

@@ -11,7 +11,10 @@ import { ata } from "./transactions.ts";
 import { Store, type Snapshot } from "../execution/store.ts";
 import { Devnet, GENESIS, SolanaError, publicKey, json } from "./network.ts";
 import { prepare, inspect, digest, type Prepared } from "./transactions.ts";
-import type { SolanaDeliveryIntent } from "./settlement-model.ts";
+import type {
+  SolanaDeliveryIntent,
+  SolanaSplAsset,
+} from "./settlement-model.ts";
 import {
   validateTerms,
   type CpmmPolicy,
@@ -40,6 +43,10 @@ import {
   type WatchSnapshot,
 } from "../signer/watch-evidence.ts";
 export const clock = () => Math.floor(Date.now() / 1000);
+export const deliveryAsset = (i: SolanaDeliveryIntent) =>
+  i.spl
+    ? { kind: "SPL" as const, mint: i.spl.mint, decimals: i.spl.decimals }
+    : { kind: "SOL" as const };
 type Execution = {
   order_id: string;
   state: string;
@@ -136,6 +143,48 @@ export class SolanaSettlementNetwork implements SettlementNetwork {
     );
   }
 }
+async function splDeliveryEffects(
+  i: SolanaDeliveryIntent,
+  receipt: any,
+  keys: string[],
+) {
+  if (!i.spl) throw new SolanaError("SPL_ASSET");
+  const mint = i.spl.mint,
+    recipientAta = String(await ata(i.recipient, mint)),
+    relayerAta = String(await ata(i.relayer, mint)),
+    recipientIndex = keys.indexOf(recipientAta),
+    relayerIndex = keys.indexOf(relayerAta);
+  if (recipientIndex < 0 || relayerIndex < 0)
+    throw new SolanaError("SPL_ACCOUNT_MISSING");
+  const total = (balances: any[], index: number, owner: string): bigint => {
+    const rows = balances.filter(
+      (b) => b.accountIndex === index && b.mint === mint && b.owner === owner,
+    );
+    if (!rows.length) throw new SolanaError("SPL_BALANCE_MISSING");
+    return rows.reduce(
+      (sum: bigint, b: any) => sum + BigInt(b.uiTokenAmount.amount),
+      0n,
+    );
+  };
+  const pre = receipt.meta?.preTokenBalances,
+    post = receipt.meta?.postTokenBalances;
+  if (!Array.isArray(pre) || !Array.isArray(post))
+    throw new SolanaError("SPL_BALANCE_MISSING");
+  const amount = BigInt(i.lamports),
+    recipientDelta =
+      total(post, recipientIndex, i.recipient) -
+      total(pre, recipientIndex, i.recipient),
+    relayerDelta =
+      total(pre, relayerIndex, i.relayer) -
+      total(post, relayerIndex, i.relayer);
+  if (recipientDelta !== amount || relayerDelta !== amount)
+    throw new SolanaError("SPL_BALANCE_EFFECT_MISMATCH");
+  return {
+    recipientDelta: recipientDelta.toString(),
+    relayerDelta: relayerDelta.toString(),
+    mint,
+  };
+}
 export class SolanaSettlement {
   constructor(
     readonly store: Store,
@@ -166,12 +215,16 @@ export class SolanaSettlement {
       paymentAddress: string;
     },
     swap?: SwapTerms,
+    spl?: SolanaSplAsset,
   ) {
     publicKey(input.recipient);
     publicKey(input.relayer);
+    if (swap && spl) throw new SolanaError("AMBIGUOUS_DELIVERY_ASSET");
     if (
       input.recipient === input.relayer ||
-      !["1000000", "2000000", "5000000"].includes(input.lamports)
+      (spl
+        ? !/^[1-9]\d{0,17}$/.test(input.lamports)
+        : !["1000000", "2000000", "5000000"].includes(input.lamports))
     )
       throw new SolanaError("DELIVERY_POLICY");
     if (
@@ -179,13 +232,24 @@ export class SolanaSettlement {
       !input.paymentAddress.startsWith("utest1")
     )
       throw new SolanaError("ISOLATED_SHIELDED_PROFILE_REQUIRED");
+    if (spl) {
+      if (
+        spl.kind !== "SPL" ||
+        !Number.isInteger(spl.decimals) ||
+        spl.decimals < 0 ||
+        spl.decimals > 255 ||
+        BigInt(input.lamports) > 1_000_000_000_000n
+      )
+        throw new SolanaError("UNSUPPORTED_SPL_ASSET");
+      publicKey(spl.mint);
+    }
     if (swap) {
       validateTerms(swap);
       if (!this.swapPolicy || input.lamports !== swap.amountIn)
         throw new SolanaError("SWAP_POLICY_REQUIRED");
     }
     const id =
-      `0x${digest(`${swap ? "phase7c" : "phase7b"}:${input.profileId}:${input.requestId}`)}` as const;
+      `0x${digest(`${swap ? "phase7c" : spl ? "spl-delivery" : "phase7b"}:${input.profileId}:${input.requestId}`)}` as const;
     const old = this.store.get(id);
     if (old) {
       const i = this.intent(id);
@@ -193,15 +257,21 @@ export class SolanaSettlement {
         i.recipient !== input.recipient ||
         i.lamports !== input.lamports ||
         i.relayer !== input.relayer ||
-        json(i.swap) !== json(swap)
+        json(i.swap) !== json(swap) ||
+        json(i.spl) !== json(spl)
       )
         throw new SolanaError("IDEMPOTENCY_CONFLICT");
       return this.view(id);
     }
     const i: SolanaDeliveryIntent = {
       family: "solana",
-      action: swap ? "SOLANA_DEVNET_SPL_SWAP" : "SOLANA_DEVNET_SOL_DELIVERY",
+      action: swap
+        ? "SOLANA_DEVNET_SPL_SWAP"
+        : spl
+          ? "SOLANA_DEVNET_SPL_DELIVERY"
+          : "SOLANA_DEVNET_SOL_DELIVERY",
       ...(swap ? { swap } : {}),
+      ...(spl ? { spl } : {}),
       network: "solana:devnet",
       genesis: GENESIS,
       recipient: input.recipient,
@@ -227,9 +297,11 @@ export class SolanaSettlement {
     const i = JSON.parse(o.intent) as SolanaDeliveryIntent;
     if (
       i.family !== "solana" ||
-      !["SOLANA_DEVNET_SOL_DELIVERY", "SOLANA_DEVNET_SPL_SWAP"].includes(
-        i.action,
-      ) ||
+      ![
+        "SOLANA_DEVNET_SOL_DELIVERY",
+        "SOLANA_DEVNET_SPL_DELIVERY",
+        "SOLANA_DEVNET_SPL_SWAP",
+      ].includes(i.action) ||
       i.network !== "solana:devnet" ||
       i.genesis !== GENESIS
     )
@@ -237,6 +309,10 @@ export class SolanaSettlement {
     if (i.action === "SOLANA_DEVNET_SPL_SWAP") {
       if (!this.swapPolicy) throw new SolanaError("SWAP_POLICY_REQUIRED");
       validateTerms(i.swap!);
+    }
+    if (i.action === "SOLANA_DEVNET_SPL_DELIVERY") {
+      if (!i.spl || i.spl.kind !== "SPL") throw new SolanaError("SPL_ASSET");
+      publicKey(i.spl.mint);
     }
     return i;
   }
@@ -374,9 +450,19 @@ export class SolanaSettlement {
     )
       throw new SolanaError("DUPLICATE_EXECUTION");
     try {
-      const required = BigInt(i.lamports) + BigInt(i.feeCap),
-        balance = await this.network.balance(i.relayer);
-      if (balance < required)
+      const balance = await this.network.balance(i.relayer);
+      if (i.spl) {
+        if (balance < BigInt(i.feeCap))
+          throw new SolanaError("INSUFFICIENT_RELAYER_BALANCE");
+        const account: any = await (this.network as unknown as Devnet).account(
+          await ata(i.relayer, i.spl.mint),
+        );
+        if (
+          BigInt(account?.data?.parsed?.info?.tokenAmount?.amount ?? 0) <
+          BigInt(i.lamports)
+        )
+          throw new SolanaError("INSUFFICIENT_RELAYER_TOKENS");
+      } else if (balance < BigInt(i.lamports) + BigInt(i.feeCap))
         throw new SolanaError("INSUFFICIENT_RELAYER_BALANCE");
       const p = i.swap
         ? await this.swapPolicy!.prepare(i, this.preparationDeadline(id))
@@ -389,7 +475,7 @@ export class SolanaSettlement {
               owner: i.relayer,
               recipient: i.recipient,
               amount: i.lamports,
-              asset: { kind: "SOL" },
+              asset: deliveryAsset(i),
               feeCap: i.feeCap,
             },
             [i.relayer, i.recipient],
@@ -506,10 +592,19 @@ export class SolanaSettlement {
         if (!i.swap) this.recover(id, "BLOCKHASH_EXPIRED");
         throw new SolanaError("BLOCKHASH_EXPIRED");
       }
-      if (
-        (await this.network.balance(i.relayer)) <
-        BigInt(i.lamports) + BigInt(i.feeCap)
-      )
+      const relayerBalance = await this.network.balance(i.relayer);
+      if (i.spl) {
+        if (relayerBalance < BigInt(i.feeCap))
+          throw new SolanaError("INSUFFICIENT_RELAYER_BALANCE");
+        const account: any = await (this.network as unknown as Devnet).account(
+          await ata(i.relayer, i.spl.mint),
+        );
+        if (
+          BigInt(account?.data?.parsed?.info?.tokenAmount?.amount ?? 0) <
+          BigInt(i.lamports)
+        )
+          throw new SolanaError("INSUFFICIENT_RELAYER_TOKENS");
+      } else if (relayerBalance < BigInt(i.lamports) + BigInt(i.feeCap))
         throw new SolanaError("INSUFFICIENT_RELAYER_BALANCE");
       const tx = i.swap
         ? await this.swapPolicy!.inspect(i, p as SwapPrepared)
@@ -520,6 +615,7 @@ export class SolanaSettlement {
               owner: i.relayer,
               recipient: i.recipient,
               amount: i.lamports,
+              asset: deliveryAsset(i),
               feeCap: i.feeCap,
             },
             {
@@ -672,10 +768,10 @@ export class SolanaSettlement {
       if (
         receipt.version !== "legacy" ||
         !Array.isArray(keys) ||
-        (!i.swap && keys.length !== 3) ||
+        (!i.swap && !i.spl && keys.length !== 3) ||
         keys[0] !== i.relayer ||
-        (!i.swap && keys[1] !== i.recipient) ||
-        (!i.swap && keys[2] !== "11111111111111111111111111111111") ||
+        (!i.swap && !i.spl && keys[1] !== i.recipient) ||
+        (!i.swap && !i.spl && keys[2] !== "11111111111111111111111111111111") ||
         receipt.transaction.signatures?.[0] !== row.signature
       )
         throw new SolanaError("RECEIPT_MISMATCH");
@@ -707,6 +803,7 @@ export class SolanaSettlement {
         m.preBalances.length !== keys.length ||
         m.postBalances.length !== keys.length ||
         (!i.swap &&
+          !i.spl &&
           (BigInt(m.postBalances[1]) - BigInt(m.preBalances[1]) !==
             BigInt(i.lamports) ||
             BigInt(m.preBalances[0]) - BigInt(m.postBalances[0]) !==
@@ -715,10 +812,12 @@ export class SolanaSettlement {
         throw new SolanaError("BALANCE_EFFECT_MISMATCH");
       const effects = i.swap
         ? await this.swapPolicy!.verifyEffects(i, receipt)
-        : {
-            recipientDelta: i.lamports,
-            relayerDelta: (BigInt(i.lamports) + fee).toString(),
-          };
+        : i.spl
+          ? splDeliveryEffects(i, receipt, keys)
+          : {
+              recipientDelta: i.lamports,
+              relayerDelta: (BigInt(i.lamports) + fee).toString(),
+            };
       this.store.atomic(() => {
         if (this.row(id).state === "RECOVERY_REQUIRED")
           throw new SolanaError("RECOVERY_VETO");
@@ -781,6 +880,8 @@ export class SolanaSettlement {
       kind: "solana",
       action: i.action,
       ...(i.swap ? { swap: i.swap } : {}),
+      ...(i.spl ? { spl: i.spl } : {}),
+      asset: deliveryAsset(i),
       network: "solana:devnet",
       recipient: i.recipient,
       relayer: i.relayer,
