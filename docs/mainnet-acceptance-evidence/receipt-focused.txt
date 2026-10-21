@@ -1,0 +1,17 @@
+(node:19192) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Base receipt uses standard transaction value and canonical finalized block, not receipt.value (31.8428ms)
+✔ Base rejects wrong chain, noncanonical blocks, missing fee evidence and conflicting providers (22.223ms)
+✔ Solana finality requires exact native transfer instruction and balance effects (19.8703ms)
+✔ Solana status alone, wrong recipient effects, wrong genesis and conflicting message cannot finalize (7.2955ms)
+✔ journal preserves case-sensitive Solana IDs, custom order ID and uncertain restart claims (144.2568ms)
+✔ failed unsubmitted orders never free their historical source payment for reuse (2.1473ms)
+✔ mainnet broadcast capability remains absent despite apparently complete metadata (0.264ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5781.5066

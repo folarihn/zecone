@@ -1,6 +1,53 @@
 # Mainnet readiness — spending disabled
 
-20 October 2026. **NO-GO for mainnet payments or execution.** The new module is isolated from testnet execution registries and exposes network identity reads only. It has no keys, addresses, generic RPC method, calldata, transaction submission or refund interface. `config/mainnet-readonly.example.json` is a disabled planning template, not an activated deployment. New strict testnet EVM/SPL transfer adapters and the opt-in financial handoff do not change this: they reject mainnet chain IDs, use demo ZEC pricing and cannot execute without separately provisioned testnet relayer credentials and an explicit capped approval.
+> Acceptance update (21 October 2026): [MAINNET-ACCEPTANCE.md](MAINNET-ACCEPTANCE.md) is authoritative. The metadata-based mainnet scanner is FAIL and disabled; provisioning is tested only with disposable credentials; genuine pricing/providers and an activated mainnet signer/broadcast handoff are still missing. Mainnet remains NO-GO.
+
+20 October 2026. **NO-GO for mainnet payments or execution.** The mainnet module
+is isolated from testnet execution registries and exposes read-only identity
+probes, exact unsigned transfer preparation and offline signed-bundle
+verification. It does not generate addresses, load keys, sign, submit or refund.
+`config/mainnet-profiles.example.json` is a disabled planning template, not an
+activated deployment. New strict testnet EVM/SPL transfer adapters and the
+opt-in financial handoff do not change this: they reject mainnet chain IDs, use
+demo ZEC pricing and cannot execute without separately provisioned testnet
+relayer credentials and an explicit capped approval.
+
+## Exact planning and offline-verification boundary
+
+Added after the prior readiness report:
+
+- **No generated mainnet accounts.** Destination and relayer addresses are
+  operator-supplied. A recipient proves control by signing an EIP-191 or
+  Ed25519 ownership challenge; the service stores only the public binding.
+- **Signer/relayer binding.** The offline signer public key must derive to the
+  configured relayer. Base requires secp256k1; Solana requires Ed25519.
+- **Exact unsigned preparation.** Base legacy EIP-155 construction reads
+  finalized block, recipient EOA, relayer nonce/balance, gas and gas price from
+  two independent providers. Solana constructs and simulates a legacy SOL
+  transfer against the full mainnet genesis, a finalized anchor, both
+  providers' fees and a shared recent blockhash.
+- **Offline signed-bundle verification.** Base rejects any field mismatch,
+  recovers the relayer signature and checks the canonical Base GasPriceOracle
+  L1 fee on both providers. Solana verifies canonical wire encoding, exact
+  message bytes, the single expected signer and the Ed25519 signature.
+- **No submission.** `submitMainnetTransfer()` deliberately throws. The
+  verified bundle stops at the live execution boundary.
+
+Commands and file formats: [mainnet transfer preparation](MAINNET-TRANSFER.md).
+
+This does **not** change the readiness verdict. The remaining blockers are
+operator and infrastructure work, not missing transfer encoding:
+
+1. No fresh Zcash mainnet watch scanner or independently corroborated owned-note
+   evidence exists. The native scanner is testnet-only.
+2. No dedicated live relayer accounts, destination ownership proofs, RPC
+   operators or offline signing device are provisioned in this repository.
+3. No production price feeds are configured; signed-feed verification exists,
+   but no live feeds or margin policy were supplied.
+4. No audited live submitter, durable signed-bytes write-ahead path, finalized
+   receipt verifier or uncertainty reconciliation is installed.
+5. No emergency pause runbook, independent monitoring or separately approved
+   capped live plan exists.
 
 ## Configuration and evidence
 

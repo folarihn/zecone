@@ -1,0 +1,17 @@
+{
+  "at": "2026-10-21T12:56:41.482Z",
+  "method": "SOURCE_INSPECTION_AND_DISPOSABLE_FAIL_CLOSED_TESTS",
+  "backend": "zcash_client_backend 0.25.0-pre.1",
+  "walletDb": "zcash_client_sqlite 0.23.0-pre.1",
+  "orchard": "0.16.0",
+  "legitimateSdkSyncCallPresent": true,
+  "exportReverifiesNoteDecryptionAndMerklePath": false,
+  "sqlMetadataIsOwnershipProof": false,
+  "authenticatedMainnetNoteFixtureAvailable": false,
+  "mainnetObservationEnabled": false,
+  "launchStatus": "FAIL",
+  "sourceHashes": {
+    "nativeWatch": "ddfbd2e09be6464ef40f33150626288a751938c8fa1f13f93208c2384f541867",
+    "watchBoundary": "b0843deead0f3380e0660e7b356fb6491ab2f98c3c8d066e26e9756fd735ab06"
+  }
+}

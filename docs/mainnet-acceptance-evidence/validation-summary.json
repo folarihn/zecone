@@ -1,0 +1,75 @@
+{
+  "at": "2026-10-21T13:00:20.812Z",
+  "launchDecision": "NO_GO",
+  "tests": {
+    "node": 484,
+    "walletBrowser": 35,
+    "extensionBrowser": 20,
+    "historicalWalletBrowser": 6,
+    "isolatedSolanaBrowser": 3,
+    "completedSwapBrowser": 3,
+    "contracts": 52,
+    "rustWallet": 10,
+    "rustWatch": 8,
+    "rustSigner": 4,
+    "totalPassed": 625,
+    "preExistingIgnoredRustProof": 1
+  },
+  "checks": {
+    "typescript": "PASS",
+    "webTypescript": "PASS",
+    "lint": "PASS",
+    "walletBuild": "PASS",
+    "extensionBuild": "PASS",
+    "protectedFilesUnchanged": 628,
+    "historicalCompletedSettlementsUnchanged": 2
+  },
+  "components": {
+    "zcashOwnership": {
+      "status": "FAIL",
+      "reason": "Mutable SQL metadata lacks independently verified per-note decryption/inclusion; all mainnet ownership gates disabled"
+    },
+    "provisioning": {
+      "status": "PASS",
+      "scope": "DISPOSABLE_LOCAL_CRYPTO_AND_ENCRYPTED_BACKUP_ONLY"
+    },
+    "pricing": {
+      "status": "BLOCKED",
+      "reason": "No genuine authorized production feed; pinned network/context verification fixture-tested"
+    },
+    "baseExecution": {
+      "status": "FAIL",
+      "reason": "No activated signer/broadcast pipeline; bookkeeping is not submission"
+    },
+    "solanaExecution": {
+      "status": "FAIL",
+      "reason": "No activated signer/broadcast pipeline; bookkeeping is not submission"
+    },
+    "independentProviders": {
+      "status": "BLOCKED",
+      "confidence": "PRIMARY_ONLY_FOR_AVAILABLE_PUBLIC_ENDPOINTS"
+    },
+    "productionSignerIsolation": {
+      "status": "BLOCKED"
+    },
+    "productionReservationDeployment": {
+      "status": "BLOCKED"
+    }
+  },
+  "productionActions": {
+    "provisioning": false,
+    "credentialUnlock": false,
+    "payment": false,
+    "signing": false,
+    "broadcast": false,
+    "refund": false
+  },
+  "limitations": [
+    "No authenticated mainnet owned-note fixture or controlled payment was available.",
+    "Receipt validation and recovery tests use explicit synthetic provider responses.",
+    "Public network identity checks are not independent production corroboration.",
+    "Earlier mismatched receipt fixture and historical browser-mode failure logs retained.",
+    "Protected file contents were read opaquely for preservation hashes, not loaded as signing credentials."
+  ],
+  "implementationCommit": "8906258"
+}

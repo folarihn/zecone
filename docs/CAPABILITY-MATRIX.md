@@ -1,5 +1,7 @@
 # Functional capability matrix
 
+> Acceptance update (21 October 2026): [MAINNET-ACCEPTANCE.md](MAINNET-ACCEPTANCE.md) is authoritative. The metadata-based mainnet scanner is FAIL and disabled; provisioning is tested only with disposable credentials; genuine pricing/providers and an activated mainnet signer/broadcast handoff are still missing. Mainnet remains NO-GO.
+
 Continues `7edd423`, updated 20 October 2026. Status describes the complete path, not just a decoder or balance screen. Current integration/runbook: [transfer flow](TRANSFER-END-TO-END.md).
 
 - **Working end-to-end, historical bounded testnet demonstration:** shielded testnet ZEC → SOL delivery; shielded testnet ZEC → the pinned Raydium devnet WSOL/test-token swap. Both completed journals, finalized receipts, signed evidence and duplicate/refund vetoes were rechecked using read-only originals and disposable backups. These are operator-mediated profile workflows, not a general-purpose unified-wallet flow.
@@ -9,11 +11,11 @@ Continues `7edd423`, updated 20 October 2026. Status describes the complete path
 - **Connected and fixture-tested native transfer pipeline:** wallet selection → fresh EVM quote → EOA-signed bounded order → source-account replay binding → native watch evidence → original Store/worker/executor → canonical destination receipt. The new wallet UI and optional distinct dApp handoff use this path. Native watch scanning is automatic only in explicitly configured financial mode and can also be invoked manually; no signer/broadcast worker is started.
 - **Native payment verification:** `wallet:observe <state> --watch-wallet <dir> --order <id>` invokes the existing native UFVK scanner directly. JSON snapshot imports are disabled. Validated owned notes and ten confirmations gate the EVM executor; failed scans, overlapping claims, changed evidence, excess payments and reorgs cannot authorize signing. Desktop replay bindings exclude known historical accounts and prevent reuse across new state directories.
 - **Dry-run only:** imported EVM intent → explicit preview consent → Base Sepolia purchase quote → quote review → dry-run checkout. Its IDs and approval flags are not financial authorization. Two synthetic read clients are not independent live providers.
-- **Dry-run/read-only:** restricted local Solana transaction inspection; public pool validation; Base and Solana mainnet identity reads. No new exact transaction simulation was performed by the public pool probe.
+- **Dry-run/read-only:** restricted local Solana transaction inspection; public pool validation; Base and Solana mainnet identity reads and exact unsigned transfer simulation through two configured providers. Offline signed bundles can be verified against those exact terms, but no submission function exists.
 - **Verified read-only live configuration:** Base Sepolia and Ethereum Sepolia native transfer construction/simulation passed with adequate relayer balance and no pending transaction at observation; PRIMARY_ONLY. This is not a new shielded payment or destination transfer.
 - **Missing/blocked:** fresh live native checkout/watch profile, separately authorized payment and local relayer signer, actual live effects through this new wallet path, independently corroborated execution evidence, automatic fresh-account provisioning and generalized multi-order/reservation infrastructure. The keyless runtime is opt-in; legacy eager startup is unchanged. ERC20/SPL remain blocked in the new native flow pending individual validation/configuration.
 - **Blocked by configuration/authorization:** new testnet proof through that integrated path needs a fresh watch-only checkout profile, appropriate inventory, a selected locally controlled recipient, and separately approved payment/signing plan. Existing historical orders remain closed. No such new payment or transaction was authorized in this task.
-- **Not implemented/disabled:** mainnet shielded payment verification and settlement; production signer isolation; general dApp arbitrary execution; live refunds without separate-device validation.
+- **Not implemented/disabled:** mainnet shielded payment verification, live submission and settlement; production signer isolation/attestation; general dApp arbitrary execution; live refunds without separate-device validation.
 
 ## Actual dApp compatibility
 

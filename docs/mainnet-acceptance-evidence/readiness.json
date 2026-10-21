@@ -1,0 +1,160 @@
+{
+  "at": "2026-10-21T12:44:21.666Z",
+  "scope": "READ_ONLY_NO_KEYS_NO_ORDERS",
+  "mainnetExecutionEnabled": false,
+  "results": [
+    {
+      "network": "zcash",
+      "enabled": false,
+      "spendingEnabled": false,
+      "productionReady": false,
+      "confidence": "UNAVAILABLE",
+      "checks": {
+        "providerConfiguration": {
+          "status": "BLOCKED",
+          "reason": "TWO_ACKNOWLEDGED_INDEPENDENT_OPERATORS_REQUIRED"
+        },
+        "shieldedObservation": {
+          "status": "FAIL",
+          "reason": "SQL_METADATA_IS_NOT_CRYPTOGRAPHIC_OWNERSHIP_PROOF_MAINNET_OBSERVE_DISABLED"
+        },
+        "pricing": {
+          "status": "BLOCKED",
+          "reason": "SIGNED_PRODUCTION_PRICE_FEEDS_NOT_CONFIGURED"
+        },
+        "signerIsolation": {
+          "status": "BLOCKED",
+          "reason": "CONFIGURATION_IS_NOT_INDEPENDENT_DEVICE_VALIDATION"
+        },
+        "reservationDeployment": {
+          "status": "BLOCKED",
+          "reason": "SINGLE_WRITER_SHARED_LOCAL_DATABASE_DEPLOYMENT_NOT_VALIDATED"
+        },
+        "identity": {
+          "status": "BLOCKED",
+          "reason": "NO_MAINNET_PROVIDER_CONFIGURED"
+        },
+        "finalizedState": {
+          "status": "BLOCKED",
+          "reason": "NO_MAINNET_PROVIDER_CONFIGURED"
+        },
+        "independentAgreement": {
+          "status": "BLOCKED",
+          "reason": "NO_MAINNET_PROVIDER_CONFIGURED"
+        }
+      }
+    },
+    {
+      "network": "base",
+      "enabled": false,
+      "spendingEnabled": false,
+      "productionReady": false,
+      "confidence": "PRIMARY_ONLY",
+      "checks": {
+        "providerConfiguration": {
+          "status": "BLOCKED",
+          "reason": "TWO_ACKNOWLEDGED_INDEPENDENT_OPERATORS_REQUIRED"
+        },
+        "shieldedObservation": {
+          "status": "FAIL",
+          "reason": "SQL_METADATA_IS_NOT_CRYPTOGRAPHIC_OWNERSHIP_PROOF_MAINNET_OBSERVE_DISABLED"
+        },
+        "pricing": {
+          "status": "BLOCKED",
+          "reason": "SIGNED_PRODUCTION_PRICE_FEEDS_NOT_CONFIGURED"
+        },
+        "signerIsolation": {
+          "status": "BLOCKED",
+          "reason": "CONFIGURATION_IS_NOT_INDEPENDENT_DEVICE_VALIDATION"
+        },
+        "reservationDeployment": {
+          "status": "BLOCKED",
+          "reason": "SINGLE_WRITER_SHARED_LOCAL_DATABASE_DEPLOYMENT_NOT_VALIDATED"
+        },
+        "identity": {
+          "status": "PASS",
+          "evidence": {
+            "providersVerified": 1,
+            "expected": "0x2105"
+          }
+        },
+        "finalizedState": {
+          "status": "PASS",
+          "evidence": {
+            "height": 52898088,
+            "providersVerified": 1,
+            "anchorDigest": "58407d302fa46eb446306976f47a3febd99e8981599b4370bd4e3edc5a3bf46b"
+          }
+        },
+        "independentAgreement": {
+          "status": "BLOCKED",
+          "reason": "PRIMARY_ONLY_NOT_PRODUCTION_VERIFIED"
+        },
+        "liquidity": {
+          "status": "BLOCKED",
+          "reason": "DEDICATED_MAINNET_RELAYER_AND_EXACT_RECIPIENT_NOT_CONFIGURED"
+        },
+        "simulation": {
+          "status": "BLOCKED",
+          "reason": "EXACT_MAINNET_DESTINATION_NOT_CONFIGURED"
+        }
+      }
+    },
+    {
+      "network": "solana",
+      "enabled": false,
+      "spendingEnabled": false,
+      "productionReady": false,
+      "confidence": "PRIMARY_ONLY",
+      "checks": {
+        "providerConfiguration": {
+          "status": "BLOCKED",
+          "reason": "TWO_ACKNOWLEDGED_INDEPENDENT_OPERATORS_REQUIRED"
+        },
+        "shieldedObservation": {
+          "status": "FAIL",
+          "reason": "SQL_METADATA_IS_NOT_CRYPTOGRAPHIC_OWNERSHIP_PROOF_MAINNET_OBSERVE_DISABLED"
+        },
+        "pricing": {
+          "status": "BLOCKED",
+          "reason": "SIGNED_PRODUCTION_PRICE_FEEDS_NOT_CONFIGURED"
+        },
+        "signerIsolation": {
+          "status": "BLOCKED",
+          "reason": "CONFIGURATION_IS_NOT_INDEPENDENT_DEVICE_VALIDATION"
+        },
+        "reservationDeployment": {
+          "status": "BLOCKED",
+          "reason": "SINGLE_WRITER_SHARED_LOCAL_DATABASE_DEPLOYMENT_NOT_VALIDATED"
+        },
+        "identity": {
+          "status": "PASS",
+          "evidence": {
+            "providersVerified": 1,
+            "expected": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d"
+          }
+        },
+        "finalizedState": {
+          "status": "PASS",
+          "evidence": {
+            "height": 459633529,
+            "providersVerified": 1,
+            "anchorDigest": "3dca72d9a03574347a513620cfc6068f8a5d8fc11b80974b703f11874a444ce1"
+          }
+        },
+        "independentAgreement": {
+          "status": "BLOCKED",
+          "reason": "PRIMARY_ONLY_NOT_PRODUCTION_VERIFIED"
+        },
+        "liquidity": {
+          "status": "BLOCKED",
+          "reason": "DEDICATED_MAINNET_RELAYER_AND_EXACT_RECIPIENT_NOT_CONFIGURED"
+        },
+        "simulation": {
+          "status": "BLOCKED",
+          "reason": "EXACT_MAINNET_DESTINATION_NOT_CONFIGURED"
+        }
+      }
+    }
+  ]
+}

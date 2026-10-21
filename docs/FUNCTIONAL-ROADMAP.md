@@ -1,5 +1,7 @@
 # Functional completion roadmap
 
+> Acceptance update (21 October 2026): [MAINNET-ACCEPTANCE.md](MAINNET-ACCEPTANCE.md) is authoritative. The metadata-based mainnet scanner is FAIL and disabled; provisioning is tested only with disposable credentials; genuine pricing/providers and an activated mainnet signer/broadcast handoff are still missing. Mainnet remains NO-GO.
+
 20 October 2026. Starting commit `57e3b5d`. The product is shielded-ZEC-funded multichain transactions. NFT features remain supported but are not the primary integration target. This is an implementation checkpoint, not a claim of functional completion.
 
 ## Milestone A — one transfer and one swap through the wallet
@@ -45,7 +47,7 @@ Connection and preview consent grant no financial authority. Preserve original r
 
 ## Milestone C — mainnet preparation
 
-Implemented a separate identity-only reader and disabled example configuration. Base and Solana public identity probes were successful; confidence is PRIMARY_ONLY. Ethereum needs a configured provider; Zcash needs a mainnet watch implementation. Neither this configuration nor an identity match installs a destination execution adapter. See MAINNET-READINESS.md.
+Implemented a separate identity/readiness probe, disabled example configuration, exact unsigned Base and Solana mainnet transfer construction, recipient ownership challenges, signer-to-relayer binding and offline signed-bundle verification. No key generation, signing or submission exists. Base and Solana public identity probes were successful; confidence is PRIMARY_ONLY. Ethereum needs a configured provider; Zcash needs a mainnet watch implementation. Verification stops at `submitMainnetTransfer()`, which always throws. See MAINNET-READINESS.md and MAINNET-TRANSFER.md.
 
 ## Milestone D — interface
 

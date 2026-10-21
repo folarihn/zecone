@@ -1,0 +1,37 @@
+(node:15604) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Base receipt uses standard transaction value and canonical finalized block, not receipt.value (35.215ms)
+✔ Base rejects wrong chain, noncanonical blocks, missing fee evidence and conflicting providers (17.1227ms)
+✔ Solana finality requires exact native transfer instruction and balance effects (11.6791ms)
+✔ Solana status alone, wrong recipient effects, wrong genesis and conflicting message cannot finalize (14.0286ms)
+✔ journal preserves case-sensitive Solana IDs, custom order ID and uncertain restart claims (264.0525ms)
+✔ failed unsubmitted orders never free their historical source payment for reuse (2.3937ms)
+✔ mainnet broadcast capability remains absent despite apparently complete metadata (0.2469ms)
+✔ disposable Base/Solana derivation matches independent public-key derivation and roles stay separate (118.7758ms)
+✔ disposable encrypted persistence, backup and recovery reveal no plaintext and refuse overwrite (2111.7715ms)
+✔ disposable credential passwords, network/purpose substitution and tampering fail closed (3215.1412ms)
+✔ production quote binds signed price, fees and exact source spend (25.6572ms)
+✔ quote rejects over-cap fees, disabled profiles and wrong networks (9.349ms)
+✔ production quotes reject self-selected feed keys, wrong network and replayed contexts (12.0681ms)
+(node:16448) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ bookkeeping claims metadata once and rejects caller-created finality evidence (9.1843ms)
+✔ submitter rejects replayed source payments, wrong broadcast ids and pauses (7.4813ms)
+✔ submitter enforces per-transaction and daily limits (2.8975ms)
+✔ Base bookkeeping refuses raw receipt metadata even when depth and recipient match (5.4124ms)
+(node:8736) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ mainnet snapshot validation rejects testnet, stale and inconsistent scans (3.1395ms)
+✔ journal rejects metadata-only ownership while retaining attribution and reorg diagnostics (7.8128ms)
+✔ matching metadata never proves cryptographic ownership (1.7416ms)
+✔ payments are bound to one order and a reorg is detected against the checkpoint (3.9867ms)
+✔ order binding is immutable and payment digest does not expose the nullifier (3.993ms)
+✔ mutable SQLite status cannot turn metadata into an owned mainnet payment (4.1329ms)
+ℹ tests 23
+ℹ suites 0
+ℹ pass 23
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10414.506
