@@ -22,6 +22,12 @@ export type ProductionProfile = {
     separateDeviceValidated: boolean;
     attestationReference: string;
   };
+  executionAuthority?: {
+    identity: string;
+    publicKey: string;
+    separateDeviceValidated: boolean;
+    attestationReference: string;
+  };
 };
 const integer = (v: string) => {
   if (typeof v !== "string" || !/^[1-9]\d{0,30}$/.test(v))

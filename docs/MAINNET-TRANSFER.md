@@ -1,12 +1,15 @@
 # Mainnet transfer preparation and offline verification
 
-> Acceptance update (21 October 2026): [MAINNET-ACCEPTANCE.md](MAINNET-ACCEPTANCE.md) is authoritative. The metadata-based mainnet scanner is FAIL and disabled; provisioning is tested only with disposable credentials; genuine pricing/providers and an activated mainnet signer/broadcast handoff are still missing. Mainnet remains NO-GO.
+> Acceptance update (21 October 2026): [MAINNET-ACCEPTANCE.md](MAINNET-ACCEPTANCE.md) is authoritative. Full-transaction UFVK decryption is implemented, but no authenticated mainnet scan config or owned-note fixture exists. Provisioning is tested only with disposable credentials; genuine pricing/providers and an activated operator signer/broadcast path are still missing. Mainnet remains NO-GO.
 
 Status: **NO-GO for live execution.** This workflow constructs exact unsigned
 Base and Solana mainnet transfers, verifies separately produced signatures and
-fails closed before any submission. It has no key loader, no signing function
-and no broadcast path. `submitMainnetTransfer()` always throws
+fails closed before any submission. It has no key loader or signing function.
+The legacy `submitMainnetTransfer()` always throws
 `MAINNET_LIVE_EXECUTION_NOT_ACTIVATED_SEPARATE_AUDIT_AND_OPERATOR_APPROVAL_REQUIRED`.
+A separate library-only `executeMainnetTransfer()` exists and is fixture-tested,
+but no operator command, production credentials, or live submission is
+activated.
 
 ## What is implemented
 
@@ -46,8 +49,10 @@ Nothing below is generated or invented by this repository.
 4. Two fresh, independently signed production price feeds. Demo/testnet prices
    and unsigned price files are rejected.
 5. A Zcash mainnet shielded source-payment commitment and independently
-   corroborated owned-note evidence. The native mainnet watch scanner is still
-   not integrated, so a real source payment cannot be authorized here.
+   corroborated owned-note evidence from an authenticated watch profile. The
+   native scanner now trial-decrypts provider-corroborated full transactions,
+   but no production providers/UFVK pair or owned-note acceptance run is
+   configured, so a real source payment cannot be authorized here.
 
 ## Commands
 
@@ -132,14 +137,17 @@ Solana message bytes.
 
 ## Remaining live boundary
 
-A verified bundle still cannot be submitted. Before any live activation, a
-separate audited change must install all of the following:
+A verified bundle has no activated operator submission path. The library-only
+executor already implements the durable claim, write-ahead signed-bytes
+persistence, one-shot adapter, two-provider finality readers, and uncertainty
+reconciliation in disposable fixtures. Before any live activation, a separate
+audited change and operator run must still supply:
 
-- durable single-writer claim and write-ahead signed-bytes persistence;
-- a submission adapter restricted to exactly one transaction identity;
-- independent finalized receipt and destination-effect verification;
-- uncertainty reconciliation that never auto-replaces or refunds;
-- emergency pause and a separately approved operator runbook;
-- a fresh Zcash mainnet watch scanner and owned-note evidence path.
+- an operator command wired to `executeMainnetTransfer()` and its authorization;
+- production profiles, independent providers, funded relayers, and isolated
+  signer/execution-authority credentials;
+- a demonstrated single-writer deployment and emergency pause runbook;
+- an authenticated Zcash mainnet scan and controlled owned-note acceptance run,
+  including an inclusion/consensus review beyond provider corroboration.
 
 No mainnet payment, signature, submission or broadcast has occurred.

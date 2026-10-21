@@ -1,6 +1,6 @@
 # Mainnet readiness — spending disabled
 
-> Acceptance update (21 October 2026): [MAINNET-ACCEPTANCE.md](MAINNET-ACCEPTANCE.md) is authoritative. The metadata-based mainnet scanner is FAIL and disabled; provisioning is tested only with disposable credentials; genuine pricing/providers and an activated mainnet signer/broadcast handoff are still missing. Mainnet remains NO-GO.
+> Acceptance update (21 October 2026): [MAINNET-ACCEPTANCE.md](MAINNET-ACCEPTANCE.md) is authoritative. Full-transaction UFVK decryption is implemented, but no authenticated mainnet scan config or owned-note fixture exists. Provisioning is tested only with disposable credentials; genuine pricing/providers and an activated operator signer/broadcast path are still missing. Mainnet remains NO-GO.
 
 20 October 2026. **NO-GO for mainnet payments or execution.** The mainnet module
 is isolated from testnet execution registries and exposes read-only identity
@@ -30,28 +30,34 @@ Added after the prior readiness report:
   recovers the relayer signature and checks the canonical Base GasPriceOracle
   L1 fee on both providers. Solana verifies canonical wire encoding, exact
   message bytes, the single expected signer and the Ed25519 signature.
-- **No submission.** `submitMainnetTransfer()` deliberately throws. The
-  verified bundle stops at the live execution boundary.
+- **Library-only submission boundary.** `submitMainnetTransfer()` deliberately
+  throws. `executeMainnetTransfer()` verifies fresh source authorization, exact
+  signed bytes, a pinned Ed25519 execution authorization, current two-provider
+  state, one-shot persistence, and no-retry uncertain handling in disposable
+  fixtures. No operator CLI, production credentials, or live submission is
+  activated.
 
 Commands and file formats: [mainnet transfer preparation](MAINNET-TRANSFER.md).
 
 This does **not** change the readiness verdict. The remaining blockers are
 operator and infrastructure work, not missing transfer encoding:
 
-1. No fresh Zcash mainnet watch scanner or independently corroborated owned-note
-   evidence exists. The native scanner is testnet-only.
+1. No authenticated Zcash mainnet watch profile/UFVK, two configured independent
+   providers, controlled owned-note run, or independent Merkle/consensus
+   inclusion evidence exists. Full-transaction trial decryption is implemented.
 2. No dedicated live relayer accounts, destination ownership proofs, RPC
    operators or offline signing device are provisioned in this repository.
 3. No production price feeds are configured; signed-feed verification exists,
    but no live feeds or margin policy were supplied.
-4. No audited live submitter, durable signed-bytes write-ahead path, finalized
-   receipt verifier or uncertainty reconciliation is installed.
+4. The one-shot executor, durable signed-bytes write-ahead, finalized receipt
+   readers and uncertainty reconciliation are fixture-tested but not wired to
+   an operator command or validated in the intended single-writer deployment.
 5. No emergency pause runbook, independent monitoring or separately approved
    capped live plan exists.
 
 ## Configuration and evidence
 
-- Zcash: network mainnet reserved in the template, no provider or watch backend activated. Existing native testnet code must not be relabeled mainnet. Require verified network/upgrade identity, TLS lightwalletd and independently verified chain evidence before implementing owned-note mainnet payment verification. No viewing keys are sent to a service.
+- Zcash: network mainnet reserved in the template; full-transaction UFVK trial decryption and two-provider transaction/block corroboration are implemented, but no production providers, watch profile, or authenticated owned-note acceptance run is activated. Require verified network/upgrade identity, TLS lightwalletd, and independent inclusion/consensus review before live payment verification. No viewing keys are sent to a service.
 - Ethereum: chain ID 1 pinned. No production endpoint supplied or tested. Operator must select primary/secondary providers; no paid account or upgrade was purchased.
 - Base: chain ID 8453 pinned; public `https://mainnet.base.org` identity checked successfully. PRIMARY_ONLY, identity scope only. Not a production endpoint SLA, listing verification, finality proof or liquidity check.
 - Solana: full mainnet genesis hash pinned and public mainnet RPC identity checked successfully. PRIMARY_ONLY, identity scope only. The first development probe rejected a truncated genesis identifier; the implementation was corrected to the full hash and rechecked. Never accept a CAIP abbreviated identifier as the full RPC hash.

@@ -1,5 +1,15 @@
 # ZecOne progress
 
+## 21 October 2026 — Mainnet scanner and one-shot executor defects fixed; live launch remains BLOCKED
+
+Continued the acceptance audit after `a79dba7`. The Rust mainnet observer now re-fetches each candidate's full transaction from both lightwalletd providers, requires identical bytes/height and block-hash agreement, parses it under the mainnet consensus branch, and trial-decrypts the exact output with the imported UFVK. Account, pool, output index, incoming type, value, and unified receiver must match. SQLite, nullifiers, caller JSON, copied observations, and manually edited confirmation status cannot grant execution. A restart requires a fresh native scan.
+
+Added a separate one-shot Base/Solana mainnet executor. It binds a fresh verified source payment to exact terms, externally signed transaction bytes, a pinned Ed25519 operator authorization, expiry, nonce, and maximum debit. It revalidates both providers immediately before submission, persists signed evidence, makes at most one RPC send, marks uncertain responses for reconciliation, and uses the existing canonical two-provider finality readers. Transaction private keys remain outside the service. The legacy metadata-facing submission facade remains closed.
+
+Validation: **497 Node tests**, including **19 focused watch/executor tests** with **7 executor cases**, and **9 Rust watch tests**. Both TypeScript checks, lint, wallet build, extension build, and Cargo clippy/build pass. Preservation confirms **537 + 91 protected files unchanged**, both historical settlements complete, fresh finalized receipts match saved evidence, replay rejected before signer/broadcast access, refunds disabled, and financial rows unchanged. No production credential was created or unlocked; no payment, signature, broadcast, or refund occurred.
+
+The narrow implementation defects are fixed, but both controlled mainnet transfers remain **BLOCKED** pending two independent providers per network, an authenticated Zcash mainnet owned-note run, two real signed price feeds, fresh recipient/relayer identities, funded relayers, separately validated offline signer and execution authority, Base fee-rule validation, and a demonstrated single-writer deployment. Details: [acceptance continuation](docs/MAINNET-ACCEPTANCE-CONTINUATION.md).
+
 ## 21 October 2026 — Mainnet integration acceptance: NO-GO
 
 Inspected the uncommitted scanner, provisioning, production quote and mainnet bookkeeping implementations against committed checkpoint `6b1ccfa`. The native scanner genuinely invokes SDK sync/trial decryption but exports mutable SQL metadata without independently authenticated per-note decryption/inclusion evidence. Rust and TypeScript mainnet observation now fail closed; metadata/nullifiers and edited SQLite statuses cannot grant ownership. This is a contained implementation defect, not a completed cryptographic scanner. No authenticated mainnet owned-note fixture was available.

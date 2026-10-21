@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-21",
+  "mode": "non-spending",
+  "mainnetExecutionEnabled": false,
+  "liveCredentialsAccessed": false,
+  "paymentsSent": false,
+  "transactionsSigned": false,
+  "transactionsBroadcast": false,
+  "refundsEnabled": false,
+  "results": {
+    "node": { "passed": 497, "failed": 0 },
+    "focusedWatchExecutor": { "passed": 19, "failed": 0, "executor": 7 },
+    "rustZcashWatch": { "passed": 9, "failed": 0 },
+    "cargoFmt": "PASS",
+    "cargoClippy": "PASS",
+    "cargoBuild": "PASS",
+    "typecheck": "PASS",
+    "webTypecheck": "PASS",
+    "lint": "PASS",
+    "walletBuild": "PASS",
+    "extensionBuild": "PASS",
+    "protectedHistoricalFiles": { "phase6To8": 537, "phase7b": 91, "changed": 0 },
+    "historicalSettlements": {
+      "phase7b": "PRESERVED_COMPLETED",
+      "phase7c": "PRESERVED_COMPLETED",
+      "financialRowsUnchanged": true,
+      "liveReceiptRecheck": "VERIFIED_READ_ONLY"
+    }
+  },
+  "decisions": {
+    "zcashScannerImplementation": "PASS",
+    "zcashLiveAcceptance": "BLOCKED",
+    "baseExecutorFixture": "PASS",
+    "baseLiveAcceptance": "BLOCKED",
+    "solanaExecutorFixture": "PASS",
+    "solanaLiveAcceptance": "BLOCKED",
+    "productionPricing": "BLOCKED",
+    "singleWriterDeployment": "BLOCKED"
+  }
+}

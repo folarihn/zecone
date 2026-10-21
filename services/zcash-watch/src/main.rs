@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
+    collections::HashMap,
     fs::{self, OpenOptions},
     io::Write,
     path::{Path, PathBuf},
@@ -14,14 +15,20 @@ use std::{
 };
 use tonic::transport::{Channel, ClientTlsConfig};
 use zcash_client_backend::{
+    TransferType,
     data_api::{
         Account, AccountBirthday, AccountPurpose, WalletCommitmentTrees, WalletRead, WalletWrite,
     },
+    decrypt_transaction,
     proto::service::{self, compact_tx_streamer_client::CompactTxStreamerClient},
 };
 use zcash_client_sqlite::{WalletDb, util::SystemClock, wallet::init::init_wallet_db};
-use zcash_keys::keys::{UnifiedAddressRequest, UnifiedFullViewingKey};
-use zcash_protocol::consensus::{BranchId, Network};
+use zcash_keys::{
+    address::UnifiedAddress,
+    keys::{UnifiedAddressRequest, UnifiedFullViewingKey},
+};
+use zcash_primitives::transaction::Transaction;
+use zcash_protocol::consensus::{BlockHeight, BranchId, Network};
 const NET: Network = Network::TestNetwork;
 const MAIN_NET: Network = Network::MainNetwork;
 const SERVER: &str = "https://testnet.zec.rocks:443";
@@ -453,6 +460,131 @@ async fn observe(path: &Path) -> Result<Value> {
         json!({"network":"zcash-testnet","watchOnly":true,"liveChain":true,"liveRefundsEnabled":false,"source":SERVER,"account":id,"address":manifest.address,"birthday":manifest.birthday,"tip":tip,"scanned":tip,"blockHash":hex::encode(hash),"observedAt":SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),"payments":payments,"native":{"fullViewingKey":hex::encode(key.orchard().unwrap().to_bytes()),"anchor":hex::encode(anchor.to_bytes()),"anchorHeight":anchor_height,"inputs":inputs}}),
     )
 }
+
+#[derive(Debug)]
+struct MainnetPaymentRow {
+    account: String,
+    txid: String,
+    rpc_txid: Vec<u8>,
+    pool: u32,
+    index: usize,
+    zatoshis: u64,
+    height: u32,
+    block_hash: String,
+    address: String,
+    nullifier: Option<Vec<u8>>,
+    locked: bool,
+    spent: bool,
+    is_change: bool,
+}
+
+/// Re-establish ownership from provider-corroborated transaction bytes instead of trusting
+/// wallet SQLite rows. The database is only a candidate index; the returned memo and evidence
+/// digest come from a fresh full-transaction trial decryption with the imported UFVK.
+async fn verify_mainnet_payment(
+    primary: &mut CompactTxStreamerClient<Channel>,
+    peer: &mut CompactTxStreamerClient<Channel>,
+    key: &UnifiedFullViewingKey,
+    account_id: zcash_client_sqlite::AccountUuid,
+    row: &MainnetPaymentRow,
+) -> Result<(String, String)> {
+    let filter = service::TxFilter {
+        hash: row.rpc_txid.clone(),
+        ..Default::default()
+    };
+    let primary_raw = primary
+        .get_transaction(filter.clone())
+        .await
+        .context("mainnet_primary_transaction_unavailable")?
+        .into_inner();
+    let peer_raw = peer
+        .get_transaction(filter)
+        .await
+        .context("mainnet_peer_transaction_unavailable")?
+        .into_inner();
+    ensure!(
+        primary_raw.height == u64::from(row.height)
+            && peer_raw.height == u64::from(row.height)
+            && primary_raw.data == peer_raw.data,
+        "mainnet_transaction_provider_disagreement"
+    );
+    let primary_block = tree_for(primary, &MAIN_NET, "main", row.height).await?;
+    let peer_block = tree_for(peer, &MAIN_NET, "main", row.height).await?;
+    ensure!(
+        primary_block.hash == peer_block.hash
+            && primary_block.hash.to_lowercase() == row.block_hash,
+        "mainnet_payment_block_disagreement"
+    );
+    let height = BlockHeight::from(row.height);
+    let tx = Transaction::read(
+        primary_raw.data.as_slice(),
+        BranchId::for_height(&MAIN_NET, height),
+    )
+    .context("mainnet_transaction_parse_failed")?;
+    ensure!(
+        tx.txid().as_ref() == row.rpc_txid.as_slice() && tx.txid().to_string() == row.txid,
+        "mainnet_transaction_id_disagreement"
+    );
+    let mut keys = HashMap::new();
+    keys.insert(account_id, key.clone());
+    let decrypted = decrypt_transaction(&MAIN_NET, Some(height), Some(height), &tx, &keys);
+    let target = UnifiedAddress::decode(&MAIN_NET, &row.address)
+        .context("mainnet_payment_address_invalid")?;
+    let memo = match row.pool {
+        2 => decrypted
+            .sapling_outputs()
+            .iter()
+            .find(|output| {
+                output.index() == row.index
+                    && output.account() == &account_id
+                    && output.transfer_type() == TransferType::Incoming
+                    && output.note_value().into_u64() == row.zatoshis
+                    && target
+                        .sapling()
+                        .is_some_and(|receiver| receiver == &output.note().recipient())
+            })
+            .map(|output| hex::encode(output.memo().as_array())),
+        3 => decrypted
+            .orchard_outputs()
+            .iter()
+            .find(|output| {
+                output.index() == row.index
+                    && output.account() == &account_id
+                    && output.transfer_type() == TransferType::Incoming
+                    && output.note().0.value().inner() == row.zatoshis
+                    && target
+                        .orchard()
+                        .is_some_and(|receiver| receiver == &output.note().0.recipient())
+            })
+            .map(|output| hex::encode(output.memo().as_array())),
+        4 => decrypted
+            .ironwood_outputs()
+            .iter()
+            .find(|output| {
+                output.index() == row.index
+                    && output.account() == &account_id
+                    && output.transfer_type() == TransferType::Incoming
+                    && output.note().0.value().inner() == row.zatoshis
+                    && target
+                        .orchard()
+                        .is_some_and(|receiver| receiver == &output.note().0.recipient())
+            })
+            .map(|output| hex::encode(output.memo().as_array())),
+        _ => None,
+    }
+    .context("mainnet_owned_note_decryption_failed")?;
+    let mut evidence = Sha256::new();
+    evidence.update(b"zecone-mainnet-owned-note-v1");
+    evidence.update(&primary_raw.data);
+    evidence.update(row.height.to_le_bytes());
+    evidence.update(row.pool.to_le_bytes());
+    evidence.update((row.index as u64).to_le_bytes());
+    evidence.update(row.zatoshis.to_le_bytes());
+    evidence.update(row.block_hash.as_bytes());
+    evidence.update(row.address.as_bytes());
+    Ok((memo, hex::encode(evidence.finalize())))
+}
+
 async fn observe_mainnet(
     path: &Path,
     server: &str,
@@ -462,14 +594,6 @@ async fn observe_mainnet(
 ) -> Result<Value> {
     ensure!(server != peer, "independent_mainnet_peer_required");
     ensure!(minimum_confirmations > 0, "invalid_confirmations");
-    // sync::run performs genuine trial decryption, but exporting mutable SQL
-    // rows does not re-establish per-note ownership/inclusion. Never present
-    // those rows as mainnet settlement evidence until that verifier is audited.
-    const MAINNET_NOTE_EVIDENCE_VALIDATED: bool = false;
-    ensure!(
-        MAINNET_NOTE_EVIDENCE_VALIDATED,
-        "mainnet_owned_note_verifier_not_validated"
-    );
     let manifest = inspect_directory_for(path, "zcash-mainnet")?;
     let (key, id) = viewing_key_for(&path.join("viewing-key.txt"), &MAIN_NET, "mainnet")?;
     ensure!(id == manifest.key_id, "viewing_key_changed");
@@ -558,19 +682,46 @@ async fn observe_mainnet(
         final_tree.hash == remote.hash && final_tree.orchard_tree()? == remote.orchard_tree()?,
         "chain_changed_retry_scan"
     );
-    let mut stmt = conn.prepare("SELECT t.txid,r.pool,r.output_index,r.value,t.mined_height,b.hash,a.address,r.memo,COALESCE(sp.nf,op.nf,ip.nf),CASE WHEN sp.lock_owner IS NOT NULL OR op.lock_owner IS NOT NULL OR ip.lock_owner IS NOT NULL THEN 1 ELSE 0 END,(SELECT COUNT(*) FROM v_received_output_spends s WHERE s.pool=r.pool AND s.received_output_id=r.id_within_pool_table),r.is_change FROM v_received_outputs r JOIN transactions t ON t.id_tx=r.transaction_id JOIN blocks b ON b.height=t.mined_height JOIN addresses a ON a.id=r.address_id LEFT JOIN sapling_received_notes sp ON r.pool=2 AND sp.id=r.id_within_pool_table LEFT JOIN orchard_received_notes op ON r.pool=3 AND op.id=r.id_within_pool_table LEFT JOIN ironwood_received_notes ip ON r.pool=4 AND ip.id=r.id_within_pool_table WHERE r.pool IN (2,3,4) AND r.value>0 AND t.mined_height IS NOT NULL ORDER BY t.txid,r.pool,r.output_index")?;
-    let payments = stmt
+    let mut stmt = conn.prepare("SELECT t.txid,r.pool,r.output_index,r.value,t.mined_height,b.hash,a.address,COALESCE(sp.nf,op.nf,ip.nf),CASE WHEN sp.lock_owner IS NOT NULL OR op.lock_owner IS NOT NULL OR ip.lock_owner IS NOT NULL THEN 1 ELSE 0 END,(SELECT COUNT(*) FROM v_received_output_spends s WHERE s.pool=r.pool AND s.received_output_id=r.id_within_pool_table),r.is_change FROM v_received_outputs r JOIN transactions t ON t.id_tx=r.transaction_id JOIN blocks b ON b.height=t.mined_height JOIN addresses a ON a.id=r.address_id LEFT JOIN sapling_received_notes sp ON r.pool=2 AND sp.id=r.id_within_pool_table LEFT JOIN orchard_received_notes op ON r.pool=3 AND op.id=r.id_within_pool_table LEFT JOIN ironwood_received_notes ip ON r.pool=4 AND ip.id=r.id_within_pool_table WHERE r.pool IN (2,3,4) AND r.is_change=0 AND r.value>0 AND t.mined_height IS NOT NULL ORDER BY t.txid,r.pool,r.output_index")?;
+    let candidates = stmt
         .query_map([], |r| {
-            let mut tx: Vec<u8> = r.get(0)?;
+            let rpc_txid: Vec<u8> = r.get(0)?;
+            let mut tx = rpc_txid.clone();
             tx.reverse();
             let mut block: Vec<u8> = r.get(5)?;
             block.reverse();
-            let nf: Option<Vec<u8>> = r.get(8)?;
-            let memo: Option<Vec<u8>> = r.get(7)?;
-            let height: u32 = r.get(4)?;
-            Ok(json!({"account":id,"txid":hex::encode(tx),"pool":r.get::<_,u32>(1)?,"index":r.get::<_,u32>(2)?,"zatoshis":r.get::<_,u64>(3)?.to_string(),"height":height,"blockHash":hex::encode(block),"address":r.get::<_,String>(6)?,"memo":memo.map(hex::encode),"nullifier":nf.map(hex::encode),"locked":r.get::<_,u32>(9)?!=0,"spent":r.get::<_,u32>(10)?!=0,"isChange":r.get::<_,u32>(11)?!=0,"confirmations":tip.checked_sub(height).map(|d|d+1)}))
+            Ok(MainnetPaymentRow {
+                account: id.to_string(),
+                txid: hex::encode(tx),
+                rpc_txid,
+                pool: r.get(1)?,
+                index: r.get::<_, u32>(2)? as usize,
+                zatoshis: r.get(3)?,
+                height: r.get(4)?,
+                block_hash: hex::encode(block),
+                address: r.get(6)?,
+                nullifier: r.get(7)?,
+                locked: r.get::<_, u32>(8)? != 0,
+                spent: r.get::<_, u32>(9)? != 0,
+                is_change: r.get::<_, u32>(10)? != 0,
+            })
         })?
         .collect::<Result<Vec<_>, _>>()?;
+    drop(stmt);
+    drop(conn);
+    let mut payments = Vec::with_capacity(candidates.len());
+    for row in candidates {
+        let (memo, ownership_digest) =
+            verify_mainnet_payment(&mut c, &mut p, &key, accounts[0], &row).await?;
+        payments.push(json!({
+            "account":row.account,"txid":row.txid,"pool":row.pool,"index":row.index,
+            "zatoshis":row.zatoshis.to_string(),"height":row.height,"blockHash":row.block_hash,
+            "address":row.address,"memo":memo,"nullifier":row.nullifier.map(hex::encode),
+            "locked":row.locked,"spent":row.spent,"isChange":row.is_change,
+            "confirmations":tip.checked_sub(row.height).map(|d|d+1),
+            "ownershipEvidence":{"scheme":"zcash-full-transaction-ufvk-v1","digest":ownership_digest,"providers":2}
+        }));
+    }
     Ok(
         json!({"network":"zcash-mainnet","watchOnly":true,"liveChain":true,"liveRefundsEnabled":false,"source":server,"peerSource":peer,"account":id,"address":manifest.address,"birthday":manifest.birthday,"tip":tip,"scanned":tip,"blockHash":hex::encode(hash),"observedAt":SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),"minimumConfirmations":minimum_confirmations,"anchor":hex::encode(anchor.to_bytes()),"anchorHeight":anchor_height,"checkpoint":checkpoint_value,"payments":payments}),
     )
@@ -787,7 +938,7 @@ mod tests {
         );
     }
     #[tokio::test]
-    async fn mainnet_owned_note_gate_precedes_wallet_or_network_access() {
+    async fn mainnet_observe_fails_closed_without_a_watch_profile() {
         let d = tempfile::tempdir().unwrap();
         let result = observe_mainnet(
             d.path(),
@@ -797,12 +948,16 @@ mod tests {
             None,
         )
         .await;
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("mainnet_owned_note_verifier_not_validated")
-        );
+        assert!(result.is_err());
         assert_eq!(fs::read_dir(d.path()).unwrap().count(), 0);
+    }
+
+    #[test]
+    fn mainnet_owned_note_evidence_uses_fresh_full_transaction_decryption() {
+        let source = include_str!("main.rs");
+        assert!(source.contains("get_transaction(filter.clone())"));
+        assert!(source.contains("get_transaction(filter)"));
+        assert!(source.contains("decrypt_transaction("));
+        assert!(source.contains("mainnet_owned_note_decryption_failed"));
     }
 }

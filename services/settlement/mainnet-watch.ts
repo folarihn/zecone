@@ -12,6 +12,9 @@ export const MAINNET_WATCH_NETWORK = "zcash-mainnet" as const;
 const HEX64 = /^[a-f0-9]{64}$/;
 const ORDER_ID = /^(?:0x)?[a-f0-9]{64}$/;
 const UNIFIED = /^u1[0-9a-z]{20,220}$/;
+const nativeSnapshots = new WeakSet<object>();
+const nativePayments = new WeakSet<object>();
+const authorizedObservations = new WeakMap<object, () => boolean>();
 
 export type MainnetWatchPayment = {
   account: string;
@@ -28,6 +31,11 @@ export type MainnetWatchPayment = {
   spent: boolean;
   isChange: boolean;
   confirmations: number;
+  ownershipEvidence: {
+    scheme: "zcash-full-transaction-ufvk-v1";
+    digest: string;
+    providers: 2;
+  };
 };
 
 export type MainnetWatchCheckpoint = {
@@ -161,7 +169,10 @@ export function validateMainnetWatchSnapshot(
       (p.nullifier !== null && !HEX64.test(p.nullifier)) ||
       typeof p.locked !== "boolean" ||
       typeof p.spent !== "boolean" ||
-      typeof p.isChange !== "boolean"
+      typeof p.isChange !== "boolean" ||
+      p.ownershipEvidence?.scheme !== "zcash-full-transaction-ufvk-v1" ||
+      !HEX64.test(p.ownershipEvidence?.digest ?? "") ||
+      p.ownershipEvidence?.providers !== 2
     )
       throw Error("INVALID_MAINNET_PAYMENT");
     const key = `${p.txid}:${p.pool}:${p.index}`;
@@ -184,21 +195,42 @@ export function verifyOwnedNote(
 } {
   const memo = binding.memoHex;
   if (
+    !nativeSnapshots.has(s) ||
+    !nativePayments.has(payment) ||
+    !s.payments.includes(payment)
+  )
+    throw Error("MAINNET_OWNED_NOTE_CRYPTOGRAPHIC_VERIFIER_REQUIRED");
+  if (
     payment.account !== s.account ||
     binding.account !== s.account ||
     payment.address !== binding.address ||
     payment.isChange ||
     payment.spent ||
     payment.locked ||
-    !payment.nullifier ||
     payment.height > s.anchorHeight ||
     payment.zatoshis !== binding.zatoshis ||
     (memo !== undefined && payment.memo !== memo)
   )
     throw Error("OWNED_NOTE_REQUIREMENTS_NOT_MET");
-  // Neither a non-null nullifier nor matching metadata proves decryption or
-  // commitment inclusion. No JSON/SQLite field can opt into ownership authority.
-  throw Error("MAINNET_OWNED_NOTE_CRYPTOGRAPHIC_VERIFIER_REQUIRED");
+  return {
+    paymentKey: `${payment.txid}:${payment.pool}:${payment.index}`,
+    amount: payment.zatoshis,
+    pool: payment.pool,
+    confirmations: payment.confirmations,
+    anchorHeight: s.anchorHeight,
+    paymentDigest: digest({
+      network: s.network,
+      account: s.account,
+      address: payment.address,
+      txid: payment.txid,
+      pool: payment.pool,
+      index: payment.index,
+      zatoshis: payment.zatoshis,
+      height: payment.height,
+      blockHash: payment.blockHash,
+      ownershipEvidence: payment.ownershipEvidence,
+    }),
+  };
 }
 
 export class MainnetWatchScanner {
@@ -209,13 +241,10 @@ export class MainnetWatchScanner {
     readonly executable = resolve(
       `target/debug/zecone-zcash-watch${process.platform === "win32" ? ".exe" : ""}`,
     ),
+    readonly executableArgsPrefix: string[] = [],
   ) {}
 
   async observe(checkpointHeight?: number): Promise<MainnetWatchSnapshot> {
-    // Also veto stale/replaced native executables that still export metadata.
-    const ownershipReady: boolean = false;
-    if (!ownershipReady)
-      throw Error("MAINNET_OWNED_NOTE_CRYPTOGRAPHIC_VERIFIER_REQUIRED");
     if (!https(this.source) || !https(this.peer) || this.source === this.peer)
       throw Error("INVALID_MAINNET_WATCH_PROVIDERS");
     const args = [
@@ -235,11 +264,15 @@ export class MainnetWatchScanner {
     }
     let stdout: string;
     try {
-      ({ stdout } = await exec(this.executable, args, {
-        windowsHide: true,
-        timeout: 900_000,
-        maxBuffer: 32 * 1024 * 1024,
-      }));
+      ({ stdout } = await exec(
+        this.executable,
+        [...this.executableArgsPrefix, ...args],
+        {
+          windowsHide: true,
+          timeout: 900_000,
+          maxBuffer: 32 * 1024 * 1024,
+        },
+      ));
     } catch (e) {
       const detail = String((e as { stderr?: string }).stderr ?? "");
       throw Error(
@@ -250,6 +283,15 @@ export class MainnetWatchScanner {
     }
     const snapshot = JSON.parse(stdout) as MainnetWatchSnapshot;
     validateMainnetWatchSnapshot(snapshot);
+    if (snapshot.checkpoint) Object.freeze(snapshot.checkpoint);
+    for (const payment of snapshot.payments) {
+      Object.freeze(payment.ownershipEvidence);
+      Object.freeze(payment);
+      nativePayments.add(payment);
+    }
+    Object.freeze(snapshot.payments);
+    Object.freeze(snapshot);
+    nativeSnapshots.add(snapshot);
     return snapshot;
   }
 }
@@ -274,6 +316,11 @@ type PaymentRow = {
 
 export class MainnetWatchJournal {
   readonly db: DatabaseSync;
+  private readonly verifiedOrders = new Set<string>();
+  private readonly activeObservations = new Map<
+    string,
+    MainnetWatchObservation
+  >();
   constructor(
     path: string,
     readonly now = () => Math.floor(Date.now() / 1000),
@@ -288,6 +335,8 @@ export class MainnetWatchJournal {
       CREATE INDEX IF NOT EXISTS mainnet_watch_payments_order ON mainnet_watch_payments(order_id, active);`);
   }
   close() {
+    this.verifiedOrders.clear();
+    this.activeObservations.clear();
     this.db.close();
   }
   atomic<T>(fn: () => T): T {
@@ -356,6 +405,8 @@ export class MainnetWatchJournal {
     binding: MainnetOrderBinding,
     s: MainnetWatchSnapshot,
   ): MainnetWatchObservation {
+    this.verifiedOrders.delete(binding.orderId);
+    this.activeObservations.delete(binding.orderId);
     validateMainnetWatchSnapshot(s, this.now());
     const now = this.now();
     if (binding.account !== s.account || binding.address !== s.address)
@@ -419,7 +470,11 @@ export class MainnetWatchJournal {
       status = "observed";
       reason = "PAYMENT_AMOUNT_OR_ATTRIBUTION_MISMATCH";
     }
-    return this.atomic(() => {
+    if (reorgDetected) {
+      status = "invalid";
+      reason = "MAINNET_CHAIN_REORGANIZATION";
+    }
+    const observation = this.atomic(() => {
       if (reorgDetected) {
         this.db
           .prepare(
@@ -502,7 +557,7 @@ export class MainnetWatchJournal {
           s.peerSource,
           s.observedAt,
         );
-      return {
+      return Object.freeze({
         orderId: binding.orderId,
         status,
         reason,
@@ -516,8 +571,26 @@ export class MainnetWatchJournal {
           .toString(),
         paymentDigest,
         reorgDetected,
-      };
+      }) as MainnetWatchObservation;
     });
+    if (
+      observation.status === "confirmed" &&
+      observation.paymentDigest &&
+      !observation.reorgDetected
+    ) {
+      this.verifiedOrders.add(binding.orderId);
+      this.activeObservations.set(binding.orderId, observation);
+      authorizedObservations.set(
+        observation,
+        () =>
+          this.verifiedOrders.has(binding.orderId) &&
+          this.activeObservations.get(binding.orderId) === observation,
+      );
+    } else {
+      this.verifiedOrders.delete(binding.orderId);
+      this.activeObservations.delete(binding.orderId);
+    }
+    return observation;
   }
   status(orderId: string) {
     const order = this.db
@@ -526,7 +599,7 @@ export class MainnetWatchJournal {
     if (!order) throw Error("UNKNOWN_MAINNET_ORDER");
     return {
       ...order,
-      ownershipVerified: false,
+      ownershipVerified: this.verifiedOrders.has(orderId),
       payments: (
         this.db
           .prepare(
@@ -541,9 +614,38 @@ export class MainnetWatchJournal {
         }[]
       ).map(({ payment_key, ...p }) => ({
         ...p,
-        status: p.status === "confirmed" ? "invalid" : p.status,
+        status:
+          p.status === "confirmed" && !this.verifiedOrders.has(orderId)
+            ? "verification-required"
+            : p.status,
         paymentRef: createHash("sha256").update(payment_key).digest("hex"),
       })),
     };
   }
+}
+
+export function assertMainnetPaymentAuthorization(
+  observation: MainnetWatchObservation,
+  expected: {
+    orderId: string;
+    paymentDigest: string;
+    zatoshis: string;
+  },
+  now = Math.floor(Date.now() / 1000),
+) {
+  const active = authorizedObservations.get(observation);
+  if (
+    !active?.() ||
+    observation.status !== "confirmed" ||
+    observation.orderId !== expected.orderId ||
+    observation.paymentDigest !== expected.paymentDigest ||
+    observation.receivedZatoshis !== expected.zatoshis ||
+    observation.confirmations < observation.minimumConfirmations ||
+    observation.reorgDetected ||
+    !Number.isSafeInteger(observation.observedAt) ||
+    observation.observedAt > now + 5 ||
+    now - observation.observedAt > 120
+  )
+    throw Error("VERIFIED_MAINNET_PAYMENT_AUTHORIZATION_REQUIRED");
+  return true;
 }

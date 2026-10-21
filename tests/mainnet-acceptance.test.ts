@@ -320,7 +320,7 @@ test("failed unsubmitted orders never free their historical source payment for r
     j.close();
   }
 });
-test("mainnet broadcast capability remains absent despite apparently complete metadata", () => {
+test("legacy metadata facade remains closed while authenticated executor is separate", () => {
   assert.throws(submitMainnetTransfer, /MAINNET_LIVE_EXECUTION_NOT_ACTIVATED/);
 });
 

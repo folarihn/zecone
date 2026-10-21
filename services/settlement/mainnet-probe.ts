@@ -119,9 +119,9 @@ export async function probeMainnet(
     };
   }
   checks.shieldedObservation = {
-    status: "FAIL",
+    status: "BLOCKED",
     reason:
-      "SQL_METADATA_IS_NOT_CRYPTOGRAPHIC_OWNERSHIP_PROOF_MAINNET_OBSERVE_DISABLED",
+      "FULL_TRANSACTION_UFVK_DECRYPTION_IMPLEMENTED_BUT_NO_AUTHENTICATED_MAINNET_SCAN_CONFIGURED",
   };
   checks.pricing = {
     status: "BLOCKED",
