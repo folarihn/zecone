@@ -360,7 +360,9 @@ export async function executeMainnetTransfer(
   authorization: MainnetExecutionAuthorization,
   fetcher: typeof fetch = fetch,
   now = Math.floor(Date.now() / 1000),
+  guard: () => void = () => {},
 ) {
+  guard();
   if (!profile.enabled || terms.expires <= now)
     throw Error("MAINNET_EXECUTION_NOT_AUTHORIZED");
   const expectedPayment = {
@@ -392,9 +394,11 @@ export async function executeMainnetTransfer(
     expectedPayment,
     Math.max(now, Math.floor(Date.now() / 1000)),
   );
+  guard();
   journal.prepare(terms, verified, authorization.orderId);
   const claim = journal.claim(authorization.orderId);
   try {
+    guard();
     if (!known) await sendOnce(profile, verified, fetcher);
     journal.markBroadcast(authorization.orderId, claim.transactionId);
     return Object.freeze({
@@ -419,29 +423,49 @@ export async function reconcileMainnetTransfer(
   terms: MainnetTransferTerms,
   orderId: string,
   fetcher: typeof fetch = fetch,
+  guard: () => void = () => {},
 ) {
-  const state = journal.status(orderId);
-  if (!state || !["broadcast", "uncertain"].includes(String(state.state)))
+  guard();
+  const state = journal.status(orderId),
+    prior = String(state?.state);
+  if (!state || !["claimed", "broadcast", "uncertain"].includes(prior))
     throw Error("MAINNET_RECONCILIATION_NOT_REQUIRED");
   const transactionId = String(state.transaction_id);
-  if (terms.network === "base") {
-    if (!BASE_TX.test(transactionId.toLowerCase()))
-      throw Error("INVALID_BASE_TRANSACTION_ID");
-    const receipt = await readBaseFinalizedReceipt(
-      profile,
-      terms,
-      transactionId,
-      fetcher,
-    );
-    journal.finalizeBase(orderId, receipt, terms);
-  } else {
-    const receipt = await readSolanaFinalizedReceipt(
-      profile,
-      terms,
-      transactionId,
-      fetcher,
-    );
-    journal.finalizeSolana(orderId, receipt, terms);
+  try {
+    if (terms.network === "base") {
+      if (!BASE_TX.test(transactionId.toLowerCase()))
+        throw Error("INVALID_BASE_TRANSACTION_ID");
+      const receipt = await readBaseFinalizedReceipt(
+        profile,
+        terms,
+        transactionId,
+        fetcher,
+      );
+      guard();
+      if (prior === "claimed") journal.markBroadcast(orderId, transactionId);
+      journal.finalizeBase(orderId, receipt, terms);
+    } else {
+      const receipt = await readSolanaFinalizedReceipt(
+        profile,
+        terms,
+        transactionId,
+        fetcher,
+      );
+      guard();
+      if (prior === "claimed") journal.markBroadcast(orderId, transactionId);
+      journal.finalizeSolana(orderId, receipt, terms);
+    }
+  } catch (e) {
+    if (
+      prior === "claimed" &&
+      e instanceof Error &&
+      e.message === "MAINNET_RECEIPT_NOT_FOUND"
+    ) {
+      guard();
+      journal.markUncertain(orderId, "CLAIMED_WITHOUT_BROADCAST_PROOF");
+      return journal.status(orderId);
+    }
+    throw e;
   }
   return journal.status(orderId);
 }

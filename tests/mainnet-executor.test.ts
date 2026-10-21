@@ -19,6 +19,7 @@ import { keccak256 } from "viem";
 import {
   executeMainnetTransfer,
   executionAuthorizationPayload,
+  reconcileMainnetTransfer,
   type MainnetExecutionAuthorization,
 } from "../services/settlement/mainnet-executor.ts";
 import {
@@ -371,6 +372,62 @@ test("independently authorized exact bytes persist before one Base submission", 
   }
 });
 
+test("single-writer guard stops before journal preparation and again before sending", async () => {
+  const f = await fixture(),
+    journal = new MainnetSubmissionJournal(
+      ":memory:",
+      { perTransaction: "1000000", daily: "2000000", confirmations: 1 },
+      () => now,
+    );
+  try {
+    journal.resume();
+    await assert.rejects(
+      executeMainnetTransfer(
+        journal,
+        f.payment,
+        f.profile,
+        f.terms,
+        f.prepared,
+        f.bundle,
+        f.authorization,
+        f.fetcher,
+        now,
+        () => {
+          throw Error("MAINNET_OPERATOR_PAUSED");
+        },
+      ),
+      /MAINNET_OPERATOR_PAUSED/,
+    );
+    assert.equal(f.sends(), 0);
+    assert.throws(() => journal.status(f.payment.orderId), /UNKNOWN/);
+    let guards = 0;
+    await assert.rejects(
+      executeMainnetTransfer(
+        journal,
+        f.payment,
+        f.profile,
+        f.terms,
+        f.prepared,
+        f.bundle,
+        f.authorization,
+        f.fetcher,
+        now,
+        () => {
+          guards++;
+          if (guards === 3) throw Error("MAINNET_EXECUTION_LEASE_LOST");
+        },
+      ),
+      /MAINNET_EXECUTION_LEASE_LOST/,
+    );
+    assert.equal(guards, 3);
+    assert.equal(f.sends(), 0);
+    assert.equal(journal.status(f.payment.orderId).state, "uncertain");
+  } finally {
+    journal.close();
+    f.watch.close();
+  }
+});
+
 test("lost broadcast response is uncertain and can never submit a replacement", async () => {
   const f = await fixture(true),
     journal = new MainnetSubmissionJournal(
@@ -411,6 +468,71 @@ test("lost broadcast response is uncertain and can never submit a replacement", 
       /NOT_CLAIMABLE/,
     );
     assert.equal(f.sends(), 1);
+  } finally {
+    journal.close();
+    f.watch.close();
+  }
+});
+
+test("claimed submission without broadcast proof reconciles to uncertain without resend", async () => {
+  const f = await fixture(),
+    journal = new MainnetSubmissionJournal(
+      ":memory:",
+      { perTransaction: "1000000", daily: "2000000", confirmations: 1 },
+      () => now,
+    ),
+    missingReceipt: typeof fetch = async (_url, init) => {
+      const request = JSON.parse(String(init?.body));
+      if (request.method === "eth_chainId")
+        return new Response(
+          JSON.stringify({ jsonrpc: "2.0", id: 1, result: "0x2105" }),
+        );
+      if (
+        request.method === "eth_getTransactionReceipt" ||
+        request.method === "eth_getTransactionByHash" ||
+        request.method === "eth_getBlockByNumber"
+      )
+        return new Response(
+          JSON.stringify({ jsonrpc: "2.0", id: 1, result: null }),
+        );
+      throw Error(`unexpected synthetic method ${request.method}`);
+    };
+  try {
+    journal.resume();
+    const verified = await verifyMainnetSignedBundle(
+      f.profile,
+      f.terms,
+      f.prepared,
+      f.bundle,
+      f.fetcher,
+      now,
+    );
+    journal.prepare(f.terms, verified, f.payment.orderId);
+    journal.claim(f.payment.orderId);
+    const state = await reconcileMainnetTransfer(
+      journal,
+      f.profile,
+      f.terms,
+      f.payment.orderId,
+      missingReceipt,
+    );
+    assert.equal(state.state, "uncertain");
+    assert.equal(f.sends(), 0);
+    await assert.rejects(
+      executeMainnetTransfer(
+        journal,
+        f.payment,
+        f.profile,
+        f.terms,
+        f.prepared,
+        f.bundle,
+        f.authorization,
+        f.fetcher,
+        now,
+      ),
+      /NOT_CLAIMABLE/,
+    );
+    assert.equal(f.sends(), 0);
   } finally {
     journal.close();
     f.watch.close();

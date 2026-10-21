@@ -16,6 +16,7 @@ import {
   type MainnetTransferTerms,
   type VerifiedMainnetBundle,
 } from "../services/settlement/mainnet-transfer.ts";
+import { reconcileMainnetTransfer } from "../services/settlement/mainnet-executor.ts";
 import type { ProductionProfile } from "../services/settlement/production-safety.ts";
 const providers = [
   { endpoint: "https://one.invalid", operator: "one" },
@@ -234,6 +235,32 @@ test("Solana finality requires exact native transfer instruction and balance eff
     j.close();
   }
 });
+test("reconciliation finalizes a claimed submission once chain evidence proves broadcast", async () => {
+  const t = terms(),
+    b = bundle(),
+    j = new MainnetSubmissionJournal(":memory:", {
+      perTransaction: "2000000",
+      daily: "4000000",
+      confirmations: 1,
+    });
+  try {
+    j.resume();
+    j.prepare(t, b);
+    j.claim(b.termsDigest);
+    const state = await reconcileMainnetTransfer(
+      j,
+      profile("solana"),
+      t,
+      b.termsDigest,
+      solanaRpc(),
+    );
+    assert.equal(state.state, "finalized");
+    assert.equal(state.broadcast_txid, b.transactionId);
+  } finally {
+    j.close();
+  }
+});
+
 test("Solana status alone, wrong recipient effects, wrong genesis and conflicting message cannot finalize", async () => {
   for (const bad of ["status", "effect", "chain", "conflict"]) {
     await assert.rejects(

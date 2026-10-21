@@ -1,6 +1,6 @@
 # Mainnet readiness — spending disabled
 
-> Acceptance update (21 October 2026): [MAINNET-ACCEPTANCE.md](MAINNET-ACCEPTANCE.md) is authoritative. Full-transaction UFVK decryption is implemented, but no authenticated mainnet scan config or owned-note fixture exists. Provisioning is tested only with disposable credentials; genuine pricing/providers and an activated operator signer/broadcast path are still missing. Mainnet remains NO-GO.
+> Acceptance update (21 October 2026): [MAINNET-ACCEPTANCE.md](MAINNET-ACCEPTANCE.md) is authoritative and [MAINNET-OPERATOR.md](MAINNET-OPERATOR.md) records the new operator boundary. Full-transaction UFVK decryption is implemented, but no authenticated mainnet scan config or owned-note fixture exists. The operator CLI, isolated signer and fenced single-writer lease are implemented and fixture-tested; provisioning is tested only with disposable credentials. Genuine pricing/providers, production signer isolation and live acceptance are still missing. Mainnet remains NO-GO, and execution is disabled by default.
 
 20 October 2026. **NO-GO for mainnet payments or execution.** The mainnet module
 is isolated from testnet execution registries and exposes read-only identity
@@ -30,12 +30,13 @@ Added after the prior readiness report:
   recovers the relayer signature and checks the canonical Base GasPriceOracle
   L1 fee on both providers. Solana verifies canonical wire encoding, exact
   message bytes, the single expected signer and the Ed25519 signature.
-- **Library-only submission boundary.** `submitMainnetTransfer()` deliberately
+- **Operator-gated submission boundary.** `submitMainnetTransfer()` deliberately
   throws. `executeMainnetTransfer()` verifies fresh source authorization, exact
   signed bytes, a pinned Ed25519 execution authorization, current two-provider
   state, one-shot persistence, and no-retry uncertain handling in disposable
-  fixtures. No operator CLI, production credentials, or live submission is
-  activated.
+  fixtures. The operator CLI adds exact confirmation, signer approvals, a
+  revocation-capable signer ledger and a fenced single-writer lease. No
+  production credentials or live submission is activated.
 
 Commands and file formats: [mainnet transfer preparation](MAINNET-TRANSFER.md).
 
@@ -49,11 +50,11 @@ operator and infrastructure work, not missing transfer encoding:
    operators or offline signing device are provisioned in this repository.
 3. No production price feeds are configured; signed-feed verification exists,
    but no live feeds or margin policy were supplied.
-4. The one-shot executor, durable signed-bytes write-ahead, finalized receipt
-   readers and uncertainty reconciliation are fixture-tested but not wired to
-   an operator command or validated in the intended single-writer deployment.
-5. No emergency pause runbook, independent monitoring or separately approved
-   capped live plan exists.
+4. The operator CLI, one-shot executor, durable signed-bytes write-ahead,
+   finalized receipt readers and uncertainty reconciliation are fixture-tested
+   but the intended production single-writer deployment has not been validated.
+5. No production emergency runbook, independent monitoring or separately
+   approved capped live plan exists.
 
 ## Configuration and evidence
 
@@ -76,7 +77,7 @@ Official references: [Base chain IDs](https://docs.base.org/base-chain/api-refer
 6. Verified watch-only source payment authorization, unique note/payment binding, adequate network confirmations and no payment reuse. Seed/spending keys stay local to isolated signers.
 7. Audited destination adapters, recipient ownership/proof and exact output verification, durable signed bytes before send, single submission claims, uncertainty reconciliation and duplicate vetoes. No arbitrary execution fallback.
 8. Failed-delivery recovery and separately approved refunds with execution/refund mutual exclusion. Live refunds remain disabled pending separate-device validation.
-9. Monitoring for stuck/expired/uncertain orders, provider divergence, liquidity exhaustion and fee spikes; operator shutdown must stop new claims without erasing signed-attempt evidence. An emergency switch is not yet installed for a production runtime.
+9. Monitoring for stuck/expired/uncertain orders, provider divergence, liquidity exhaustion and fee spikes; operator shutdown must stop new claims without erasing signed-attempt evidence. A durable emergency pause and signer revocation exist, but production monitoring and on-call wiring are not installed.
 10. Separately authorized capped testnet end-to-end wallet runs and security review before any explicit mainnet activation decision.
 
 No provider purchase, production credential provisioning, mainnet payment request, signing or broadcast occurred. Solana recipient activity remains public; the trusted settlement operator can correlate funding/execution. No anonymity or trustless-bridge claim is made.

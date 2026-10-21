@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
 import {
   MainnetSubmissionJournal,
+  pauseMainnetSubmissionJournal,
   type BaseFinalizedReceipt,
   type MainnetSubmitLimits,
 } from "../services/settlement/mainnet-submitter.ts";
@@ -65,6 +70,39 @@ const receipt = (t = terms()) => ({
   slot: 123,
   confirmationStatus: "finalized" as const,
   err: null,
+});
+
+test("emergency pause persists without a production profile and blocks claims", () => {
+  const file = join(
+      mkdtempSync(join(tmpdir(), "zecone-mainnet-pause-")),
+      "submitter.sqlite",
+    ),
+    j = journal(file, limits, () => now);
+  try {
+    const other = join(dirname(file), "other.sqlite"),
+      otherDb = new DatabaseSync(other);
+    otherDb.exec("CREATE TABLE unrelated(id INTEGER)");
+    otherDb.close();
+    assert.throws(
+      () => pauseMainnetSubmissionJournal(other, "operator emergency", now),
+      /INVALID_MAINNET_SUBMITTER_JOURNAL/,
+    );
+    assert.throws(
+      () =>
+        pauseMainnetSubmissionJournal(
+          join(dirname(file), "missing.sqlite"),
+          "operator emergency",
+          now,
+        ),
+      /MAINNET_SUBMITTER_JOURNAL_NOT_FOUND/,
+    );
+    pauseMainnetSubmissionJournal(file, "operator emergency", now);
+    assert.equal(j.isPaused, true);
+    j.resume();
+    assert.equal(j.isPaused, false);
+  } finally {
+    j.close();
+  }
 });
 
 test("bookkeeping claims metadata once and rejects caller-created finality evidence", () => {

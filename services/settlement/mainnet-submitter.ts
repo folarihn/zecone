@@ -4,7 +4,7 @@
 import { getBase58Encoder } from "@solana/kit";
 import { encodeFunctionData, parseAbi } from "viem";
 import { createHash } from "node:crypto";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import {
@@ -319,6 +319,41 @@ export async function readSolanaFinalizedReceipt(
   acceptedReceipts.set(result, digest(terms));
   return result;
 }
+// Emergency pause must not depend on loading a production profile or limits.
+// This is intentionally narrow: it creates/opens only the control row and never
+// claims, finalizes or changes a submission.
+export function pauseMainnetSubmissionJournal(
+  path: string,
+  reason: string,
+  now = Math.floor(Date.now() / 1000),
+) {
+  if (!reason.trim() || reason.length > 256)
+    throw Error("PAUSE_REASON_REQUIRED");
+  if (path === ":memory:") throw Error("DURABLE_SUBMITTER_JOURNAL_REQUIRED");
+  if (!existsSync(path)) throw Error("MAINNET_SUBMITTER_JOURNAL_NOT_FOUND");
+  mkdirSync(dirname(path), { recursive: true });
+  const db = new DatabaseSync(path);
+  try {
+    db.exec("PRAGMA busy_timeout=5000");
+    if (
+      !db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='mainnet_submissions'",
+        )
+        .get()
+    )
+      throw Error("INVALID_MAINNET_SUBMITTER_JOURNAL");
+    db.exec(`PRAGMA busy_timeout=5000;
+      CREATE TABLE IF NOT EXISTS mainnet_submitter_control(id INTEGER PRIMARY KEY CHECK(id=1), paused INTEGER NOT NULL, reason TEXT, changed INTEGER NOT NULL);
+      INSERT OR IGNORE INTO mainnet_submitter_control(id,paused,reason,changed) VALUES(1,1,'DEFAULT_PAUSED',0);`);
+    db.prepare(
+      "UPDATE mainnet_submitter_control SET paused=1,reason=?,changed=? WHERE id=1",
+    ).run(reason.trim(), now);
+  } finally {
+    db.close();
+  }
+}
+
 export class MainnetSubmissionJournal {
   readonly db: DatabaseSync;
   constructor(

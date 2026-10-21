@@ -243,6 +243,95 @@ export function preparedDigest(prepared: MainnetPrepared) {
   return hash(prepared);
 }
 
+export function assertPreparedMainnetTransfer(
+  terms: MainnetTransferTerms,
+  prepared: MainnetPrepared,
+) {
+  if (
+    prepared.termsDigest !== termsDigest(terms) ||
+    prepared.maximumDestinationDebit !== terms.maximumDestinationDebit
+  )
+    throw Error("PREPARED_TERMS_MISMATCH");
+  if (prepared.kind === "base-unsigned") {
+    if (
+      terms.network !== "base" ||
+      prepared.chainId !== BASE_MAINNET_CHAIN_ID ||
+      prepared.tx.chainId !== BASE_MAINNET_CHAIN_ID ||
+      prepared.tx.type !== "legacy" ||
+      getAddress(prepared.tx.to) !== getAddress(terms.recipient) ||
+      prepared.tx.value !== terms.amount ||
+      prepared.tx.data.toLowerCase() !== "0x" ||
+      !Number.isSafeInteger(prepared.tx.nonce) ||
+      prepared.tx.nonce < 0 ||
+      prepared.l1DataFeeBound !== terms.l1DataFeeBound
+    )
+      throw Error("PREPARED_TRANSFER_POLICY_MISMATCH");
+    const gas = integer(prepared.tx.gas, "PREPARED_GAS"),
+      gasPrice = integer(prepared.tx.gasPrice, "PREPARED_GAS_PRICE"),
+      gasFee = integer(prepared.gasFee, "PREPARED_GAS_FEE");
+    if (
+      gas * gasPrice !== gasFee ||
+      gasFee > BigInt(terms.feeCap) ||
+      gasFee > BigInt(terms.maximumDestinationDebit)
+    )
+      throw Error("PREPARED_TRANSFER_POLICY_MISMATCH");
+    return;
+  }
+  if (terms.network !== "solana" || prepared.genesis !== SOLANA_MAINNET_GENESIS)
+    throw Error("PREPARED_TRANSFER_POLICY_MISMATCH");
+  const lastValidBlockHeight = integer(
+      prepared.lastValidBlockHeight,
+      "SOLANA_BLOCK_HEIGHT",
+    ),
+    fee = nonNegative(prepared.fee, "SOLANA_FEE");
+  if (
+    lastValidBlockHeight > BigInt(Number.MAX_SAFE_INTEGER) ||
+    fee > BigInt(terms.feeCap)
+  )
+    throw Error("PREPARED_TRANSFER_POLICY_MISMATCH");
+  const bytes = Buffer.from(prepared.unsignedWire, "base64");
+  if (bytes.length === 0 || bytes.toString("base64") !== prepared.unsignedWire)
+    throw Error("PREPARED_TRANSFER_POLICY_MISMATCH");
+  const tx = getTransactionDecoder().decode(bytes),
+    signatures = Object.values(tx.signatures) as (Uint8Array | null)[];
+  if (
+    signatures.some((signature) => signature !== null) ||
+    !Buffer.from(getTransactionEncoder().encode(tx)).equals(bytes)
+  )
+    throw Error("PREPARED_TRANSFER_POLICY_MISMATCH");
+  const expected = compileTransaction(
+    pipe(
+      createTransactionMessage({ version: "legacy" }),
+      (m) => setTransactionMessageFeePayer(address(terms.relayer), m),
+      (m) =>
+        setTransactionMessageLifetimeUsingBlockhash(
+          {
+            blockhash: blockhash(prepared.blockhash),
+            lastValidBlockHeight,
+          },
+          m,
+        ),
+      (m) =>
+        appendTransactionMessageInstructions(
+          [
+            getTransferSolInstruction({
+              source: createNoopSigner(address(terms.relayer)),
+              destination: address(terms.recipient),
+              amount: BigInt(terms.amount),
+            }),
+          ],
+          m,
+        ),
+    ),
+  );
+  if (
+    !Buffer.from(tx.messageBytes).equals(Buffer.from(expected.messageBytes)) ||
+    prepared.messageBase64 !==
+      Buffer.from(expected.messageBytes).toString("base64")
+  )
+    throw Error("PREPARED_TRANSFER_POLICY_MISMATCH");
+}
+
 function assertTerms(
   profile: ProductionProfile,
   terms: MainnetTransferTerms,
@@ -674,6 +763,7 @@ export async function verifyMainnetSignedBundle(
   now = Math.floor(Date.now() / 1000),
 ): Promise<VerifiedMainnetBundle> {
   assertTerms(profile, terms, now);
+  assertPreparedMainnetTransfer(terms, prepared);
   const expectedTerms = termsDigest(terms),
     expectedPrepared = preparedDigest(prepared);
   if (

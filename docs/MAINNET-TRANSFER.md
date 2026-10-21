@@ -7,9 +7,9 @@ Base and Solana mainnet transfers, verifies separately produced signatures and
 fails closed before any submission. It has no key loader or signing function.
 The legacy `submitMainnetTransfer()` always throws
 `MAINNET_LIVE_EXECUTION_NOT_ACTIVATED_SEPARATE_AUDIT_AND_OPERATOR_APPROVAL_REQUIRED`.
-A separate library-only `executeMainnetTransfer()` exists and is fixture-tested,
-but no operator command, production credentials, or live submission is
-activated.
+A separate `executeMainnetTransfer()` exists and is fixture-tested. The operator
+CLI invokes it only behind exact-order, signer and fenced-lease gates, but no
+production credentials or live submission is activated.
 
 ## What is implemented
 
@@ -137,17 +137,21 @@ Solana message bytes.
 
 ## Remaining live boundary
 
-A verified bundle has no activated operator submission path. The library-only
-executor already implements the durable claim, write-ahead signed-bytes
-persistence, one-shot adapter, two-provider finality readers, and uncertainty
-reconciliation in disposable fixtures. Before any live activation, a separate
-audited change and operator run must still supply:
+`scripts/mainnet-operator.ts` now wires the exact executor path to
+`mainnet:execute`, with an isolated purpose-bound signer, a fenced single-writer
+lease, an independent pause control, and explicit exact-order confirm/arm/resume
+strings. It also supplies `status`, `prepare`, `simulate`, `reconcile` and
+`pause`. The library-only executor still provides the durable claim,
+write-ahead signed-bytes persistence, one-shot adapter, two-provider finality
+readers, and uncertainty reconciliation.
 
-- an operator command wired to `executeMainnetTransfer()` and its authorization;
-- production profiles, independent providers, funded relayers, and isolated
-  signer/execution-authority credentials;
-- a demonstrated single-writer deployment and emergency pause runbook;
+The operator path is fixture-tested, but live activation remains blocked by:
+
+- production profiles with independent providers and funded relayers;
+- a separately validated offline signer and execution-authority key;
+- genuine signed production prices;
+- a demonstrated production single-writer deployment and emergency runbook;
 - an authenticated Zcash mainnet scan and controlled owned-note acceptance run,
   including an inclusion/consensus review beyond provider corroboration.
 
-No mainnet payment, signature, submission or broadcast has occurred.
+No mainnet payment, production signature, submission or broadcast has occurred.
