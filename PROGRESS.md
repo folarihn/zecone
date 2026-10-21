@@ -1,5 +1,13 @@
 # ZecOne progress
 
+## 21 October 2026 — Production configuration inspection added; live launch remains BLOCKED
+
+Added `mainnet:config-check`, a non-spending inspection command for the three production profiles and the read-only provider/key configuration. It checks independent provider hostnames and operators, financial limits, confirmations, exact recipient/relayer addresses, signer-to-relayer derivation, signer/execution-authority key types and separation, pinned price authorities, Zcash mainnet read-only providers and every spending switch. It always reports `executionAvailable: false`; `--probe` additionally performs the closed identity/finality RPC checks only against real configured endpoints.
+
+The disabled production template fails closed with placeholder providers, disabled profiles and missing operator inputs. Fresh public read-only checks passed Base chain identity/finalized block (`52915941`) and Solana genesis/finalized slot (`459800766`), but each was **PRIMARY_ONLY** with no production relayer, recipient, signer, price feed or independent agreement. No Zcash provider is configured. No key was opened, no order was created, and no signature or broadcast occurred.
+
+Validation: **508 Node tests pass** (4 new configuration cases), both TypeScript checks and lint pass. New code is [configuration inspection](services/settlement/mainnet-config-validation.ts), [CLI](scripts/mainnet-config-check.ts) and [tests](tests/mainnet-config-validation.test.ts).
+
 ## 21 October 2026 — Mainnet operator CLI, isolated signer and fenced lease implemented; live launch remains BLOCKED
 
 Added the operator boundary that was missing from the prior acceptance pass. `scripts/mainnet-operator.ts` now exposes `status`, `prepare`, `simulate`, `execute`, `reconcile`, `pause` and `revoke-signer`. Execution requires the exact terms digest, `ARM_MAINNET_EXECUTION`, `RESUME_MAINNET_SUBMITTER`, fresh native payment evidence, a durable fenced lease and a separately approved signer action. `status` is explicitly local-only.

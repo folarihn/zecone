@@ -13,6 +13,8 @@ providers. None of them prints private keys, passphrases or signed bytes.
 
 ```powershell
 npm run mainnet:status -- --profiles config/mainnet-profiles.example.json
+npm run mainnet:config-check -- --profiles config/mainnet-profiles.production.example.json --readonly config/mainnet-readonly.example.json
+npm run mainnet:config-check -- --profiles <profiles.json> --readonly <readonly.json> --probe
 npm run mainnet:prepare -- --network base --profiles <profiles.json> --request <request.json> --pricing <pricing.json> --quote <quote.json> --ownership-proof <proof.json> --out <plan.json>
 npm run mainnet:simulate -- --profiles <profiles.json> --plan <plan.json>
 npm run mainnet:simulate -- --profiles <profiles.json> --plan <plan.json> --bundle <signed-bundle.json>
@@ -21,6 +23,16 @@ npm run mainnet:reconcile -- ... --order <order-id> --arm ARM_MAINNET_EXECUTION
 npm run mainnet:pause -- --journal <journal.sqlite> --lease <lease.sqlite> --reason "operator emergency"
 npm run mainnet:revoke-signer -- --signer-ledger <signer-ledger.sqlite> --reason "operator revocation"
 ```
+
+`mainnet:config-check` is non-spending and always reports
+`executionAvailable: false`. It checks the three profile networks, independent
+HTTPS providers, limits, confirmations, exact destination/relayer addresses,
+signer and execution-authority key types, price-authority pins and the
+disabled read-only switches. `--probe` additionally runs the closed read-only
+identity/finality RPC surface only for real configured endpoints; `.invalid`
+and local placeholders are never contacted. A complete profile check does not
+verify provider independence, device attestation, ownership of a UFVK or
+production activation.
 
 The exact execute inputs are:
 

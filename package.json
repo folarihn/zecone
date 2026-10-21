@@ -7,6 +7,7 @@
   },
   "scripts": {
     "mainnet:readiness": "tsx scripts/mainnet-critical-readiness.ts",
+    "mainnet:config-check": "tsx scripts/mainnet-config-check.ts",
     "mainnet:watch": "tsx scripts/mainnet-watch.ts",
     "mainnet:quote": "tsx scripts/mainnet-quote.ts",
     "mainnet:transfer": "tsx scripts/mainnet-transfer.ts",
