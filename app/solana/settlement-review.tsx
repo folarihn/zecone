@@ -11,6 +11,9 @@ export default function SettlementReviewPanel() {
     [supportsSpl, setSupportsSpl] = useState(false),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
+  const [signature, setSignature] = useState("");
+  const [signatureRequired, setSignatureRequired] = useState(false);
+  const [settlement, setSettlement] = useState<any>(null);
   useEffect(() => {
     let active = true;
     void fetch("/api/settlement-review/config", { cache: "no-store" })
@@ -22,6 +25,7 @@ export default function SettlementReviewPanel() {
           setRecipient(data.recipients[0] ?? "");
           setEnabled(data.financialCreationEnabled === true);
           setSupportsSpl(data.spl === true);
+          setSignatureRequired(data.userSignatureRequired === true);
         }
       })
       .catch(() => {});
@@ -29,6 +33,33 @@ export default function SettlementReviewPanel() {
       active = false;
     };
   }, []);
+  useEffect(() => {
+    if (!created) return;
+    let active = true;
+    const poll = async () => {
+      try {
+        const r = await fetch("/api/settlement-review/status", {
+          cache: "no-store",
+        });
+        if (!r.ok) {
+          if (active) {
+            setCreated(null);
+            setSettlement(null);
+          }
+          return;
+        }
+        const s = await r.json();
+        const row = s.reviews?.find((v: any) => v.orderId === created.orderId);
+        if (active && row?.settlement) setSettlement(row.settlement);
+      } catch {}
+    };
+    void poll();
+    const t = setInterval(() => void poll(), 5000);
+    return () => {
+      active = false;
+      clearInterval(t);
+    };
+  }, [created]);
   if (!recipients.length) return null;
   return (
     <section
@@ -146,50 +177,69 @@ export default function SettlementReviewPanel() {
             operator can correlate funding and execution.
           </p>
           {enabled && (
-            <button
-              disabled={busy}
-              onClick={async () => {
-                setBusy(true);
-                setError("");
-                try {
-                  const session = await fetch("/api/session", {
-                    cache: "no-store",
-                  }).then((r) => r.json());
-                  const response = await fetch(
-                    "/api/settlement-review/authorize",
-                    {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                        "X-ZecOne-CSRF": session.csrf,
-                      },
-                      body: JSON.stringify({
-                        id: review.id,
-                        digest: review.digest,
-                        approved: true,
-                      }),
-                    },
-                  );
-                  const data = await response.json();
-                  if (!response.ok)
-                    throw Error(data.error || "Authorization unavailable.");
-                  if (
-                    data.executionAuthorized !== false ||
-                    data.financialOrderCreated !== true
-                  )
-                    throw Error("Unexpected financial state.");
-                  setCreated(data);
-                } catch {
-                  setError(
-                    "Financial order not created. No payment was sent or authorized.",
-                  );
-                } finally {
-                  setBusy(false);
+            <>
+              {signatureRequired && (
+                <label>
+                  Authorize these terms with your configured user EOA (public
+                  signature only)
+                  <pre style={{ whiteSpace: "pre-wrap" }}>{review.message}</pre>
+                  <input
+                    aria-label="SOL checkout public signature"
+                    value={signature}
+                    onChange={(e) => setSignature(e.target.value)}
+                    autoComplete="off"
+                  />
+                </label>
+              )}
+              <button
+                disabled={
+                  busy ||
+                  (signatureRequired && !/^0x[a-fA-F0-9]{130}$/.test(signature))
                 }
-              }}
-            >
-              Create financial order and show payment request
-            </button>
+                onClick={async () => {
+                  setBusy(true);
+                  setError("");
+                  try {
+                    const session = await fetch("/api/session", {
+                      cache: "no-store",
+                    }).then((r) => r.json());
+                    const response = await fetch(
+                      "/api/settlement-review/authorize",
+                      {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          "X-ZecOne-CSRF": session.csrf,
+                        },
+                        body: JSON.stringify({
+                          id: review.id,
+                          digest: review.digest,
+                          approved: true,
+                          ...(signatureRequired ? { signature } : {}),
+                        }),
+                      },
+                    );
+                    const data = await response.json();
+                    if (!response.ok)
+                      throw Error(data.error || "Authorization unavailable.");
+                    if (
+                      data.executionAuthorized !== false ||
+                      data.financialOrderCreated !== true
+                    )
+                      throw Error("Unexpected financial state.");
+                    setCreated(data);
+                  } catch {
+                    setError(
+                      "Financial order not created. No payment was sent or authorized.",
+                    );
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                Create financial order and show payment request
+              </button>
+            </>
           )}
         </div>
       )}
@@ -198,7 +248,20 @@ export default function SettlementReviewPanel() {
           <h3>Payment request</h3>
           <p>Order: {created.orderId}</p>
           <p>Pay exactly: {created.paymentRequest.zatoshis} zatoshis.</p>
-          <p>To shielded address: {created.paymentRequest.address}</p>
+          {(!settlement || settlement.state === "PAYMENT_PENDING") && (
+            <p>To shielded address: {created.paymentRequest.address}</p>
+          )}
+          {settlement && (
+            <>
+              <p>
+                State: {settlement.state}. Confirmations:{" "}
+                {settlement.confirmations}/10.
+              </p>
+              {settlement.signature && (
+                <p>Destination signature: {settlement.signature}</p>
+              )}
+            </>
+          )}
           <p>
             Expires:{" "}
             {new Date(created.paymentRequest.expiry * 1000).toISOString()}.

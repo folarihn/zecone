@@ -4,6 +4,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { ApiError, requireLocal, type Sessions } from "./security.ts";
 import { privacyError } from "./privacy.ts";
 import type { DeliveryRequest, SettlementReview } from "./settlement-review.ts";
+import type { SolanaTransferFlow } from "../settlement/solana-transfer-flow.ts";
+import type { Hex } from "viem";
 export function settlementReviewApi(
   sessions: Sessions,
   review: Pick<
@@ -12,7 +14,10 @@ export function settlementReviewApi(
   >,
   profile: Omit<DeliveryRequest, "recipient" | "lamports">,
   recipients: readonly string[],
-  options: { financialCreationEnabled?: boolean } = {},
+  options: {
+    financialCreationEnabled?: boolean;
+    flow?: SolanaTransferFlow;
+  } = {},
 ) {
   const pinned = structuredClone(profile),
     allowed = new Set(recipients),
@@ -35,6 +40,7 @@ export function settlementReviewApi(
             spl: "spl" in pinned,
             network: "solana:devnet",
             executionAuthorized: false,
+            userSignatureRequired: !!options.flow,
           }),
         );
         return;
@@ -45,7 +51,14 @@ export function settlementReviewApi(
           throw new ApiError(403, "Verify local session.");
         res.end(
           JSON.stringify({
-            reviews: review.status(session.id),
+            reviews: review.status(session.id).map((r) => ({
+              ...r,
+              ...(options.flow && r.orderId && r.state === "CREATED"
+                ? {
+                    settlement: options.flow.scopedState(session.id, r.orderId),
+                  }
+                : {}),
+            })),
             financialCreationEnabled,
             executionAuthorized: false,
           }),
@@ -76,7 +89,13 @@ export function settlementReviewApi(
           !b ||
           Array.isArray(b) ||
           Object.keys(b).some(
-            (k) => !["id", "digest", "approved"].includes(k),
+            (k) =>
+              ![
+                "id",
+                "digest",
+                "approved",
+                ...(options.flow ? ["signature"] : []),
+              ].includes(k),
           ) ||
           typeof b.id !== "string" ||
           !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(
@@ -92,13 +111,33 @@ export function settlementReviewApi(
             400,
             "This review is not a validated SOL delivery.",
           );
-        const result = await review.authorize(
-          session.id,
-          b.id,
-          b.digest,
-          true,
-          true,
-        );
+        const assertContext = () => {
+          const current = sessions.get(req.headers.cookie);
+          if (!current.connected || current.id !== session.id)
+            throw new ApiError(403, "Session expired.");
+        };
+        if (
+          options.flow &&
+          (typeof b.signature !== "string" ||
+            !/^0x[a-fA-F0-9]{130}$/.test(b.signature))
+        )
+          throw new ApiError(400, "Public authorization signature required.");
+        const result = options.flow
+          ? await options.flow.authorizeSigned(
+              session.id,
+              b.id,
+              b.digest,
+              b.signature as Hex,
+              assertContext,
+            )
+          : await review.authorize(
+              session.id,
+              b.id,
+              b.digest,
+              true,
+              true,
+              assertContext,
+            );
         const current = sessions.get(req.headers.cookie);
         if (!current.connected || current.id !== session.id)
           throw new ApiError(403, "Session expired.");
@@ -128,7 +167,7 @@ export function settlementReviewApi(
           400,
           "Only validated SOL delivery is enabled in this runtime.",
         );
-      const result = await review.review(
+      const result = await (options.flow ?? review).review(
         session.id,
         { ...pinned, recipient: b.recipient, lamports: b.lamports },
         b.action,

@@ -103,6 +103,7 @@ export class SettlementReview {
       feeCap: "10000",
       rentCap: swap ? "6000000" : "0",
       debitCap: debitCap.toString(),
+      orderDeadline: started + 7200,
     };
     const id = randomUUID(),
       expires = started + 90;
@@ -184,6 +185,7 @@ export class SettlementReview {
     digest: string,
     approved: boolean,
     financialCreationEnabled = false,
+    assertContext: () => void = () => {},
   ) {
     if (!approved || !financialCreationEnabled)
       throw Error("FINANCIAL_AUTHORIZATION_REQUIRED");
@@ -231,12 +233,22 @@ export class SettlementReview {
         .prepare("SELECT state FROM wallet_settlement_reviews WHERE id=?")
         .get(id);
       if (current?.state !== "CREATING") throw Error("REVIEW_CLAIM_LOST");
+      assertContext();
       this.sourceBinding?.claim(
         p.input.account,
         p.input.paymentAddress,
         orderId,
       );
       const view = this.service.quote(p.input, p.swap, p.spl);
+      if (p.orderDeadline) {
+        const order = this.service.store.get(view.id)!;
+        const intent = JSON.parse(order.intent);
+        intent.expiry = Math.min(intent.expiry, p.orderDeadline);
+        db.prepare("UPDATE orders SET intent=? WHERE id=?").run(
+          JSON.stringify(intent),
+          view.id,
+        );
+      }
       db.prepare(
         "UPDATE wallet_settlement_reviews SET state='CREATED',order_id=? WHERE id=? AND state='CREATING'",
       ).run(view.id, id);

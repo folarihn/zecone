@@ -6,6 +6,14 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 export interface SourceBinding {
   claim(account: string, address: string, orderId: string): void;
+  reserveRelayer?(
+    network: string,
+    relayer: string,
+    orderId: string,
+    debit: bigint,
+    balance: bigint,
+  ): void;
+  completeRelayer?(orderId: string): void;
 }
 const hash = (s: string) => createHash("sha256").update(s).digest("hex");
 export class SourceBindings implements SourceBinding {
@@ -17,6 +25,54 @@ export class SourceBindings implements SourceBinding {
     db.exec(
       "PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS source_bindings(account TEXT PRIMARY KEY,address TEXT NOT NULL UNIQUE,order_id TEXT NOT NULL UNIQUE,owner TEXT NOT NULL)",
     );
+    db.exec(
+      "CREATE TABLE IF NOT EXISTS relayer_reservations(network TEXT NOT NULL,relayer TEXT NOT NULL,order_id TEXT NOT NULL UNIQUE,owner TEXT NOT NULL,debit TEXT NOT NULL,state TEXT NOT NULL,PRIMARY KEY(network,relayer));",
+    );
+  }
+  // One outstanding isolated transfer per dedicated relayer. Claims never expire.
+  reserveRelayer(
+    network: string,
+    relayer: string,
+    orderId: string,
+    debit: bigint,
+    balance: bigint,
+  ) {
+    if (network !== "solana:devnet" || debit <= 0n || debit > balance)
+      throw Error("RELAYER_RESERVATION_POLICY");
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const key = hash(relayer),
+        owner = hash(this.owner),
+        old = this.db
+          .prepare(
+            "SELECT * FROM relayer_reservations WHERE network=? AND relayer=?",
+          )
+          .get(network, key);
+      if (
+        old &&
+        (old.order_id !== orderId ||
+          old.owner !== owner ||
+          old.debit !== debit.toString() ||
+          old.state !== "HELD")
+      )
+        throw Error("RELAYER_ALREADY_RESERVED");
+      if (!old)
+        this.db
+          .prepare("INSERT INTO relayer_reservations VALUES(?,?,?,?,?,'HELD')")
+          .run(network, key, orderId, owner, debit.toString());
+      this.db.exec("COMMIT");
+    } catch (e) {
+      this.db.exec("ROLLBACK");
+      throw e;
+    }
+  }
+  completeRelayer(orderId: string) {
+    // Only called after the original executor validates finalized exact effects.
+    this.db
+      .prepare(
+        "DELETE FROM relayer_reservations WHERE order_id=? AND owner=? AND state='HELD'",
+      )
+      .run(orderId, hash(this.owner));
   }
   claim(account: string, address: string, orderId: string) {
     if (this.historical().includes(account))

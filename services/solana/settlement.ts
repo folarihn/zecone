@@ -543,6 +543,7 @@ export class SolanaSettlement {
     id: string,
     approval: { orderId: string; digest: string; approved: true },
     signer: KeyPairSigner | LeasedSigner,
+    beforeSign?: () => Promise<void>,
   ) {
     const i = this.eligible(id),
       row = this.row(id);
@@ -631,11 +632,9 @@ export class SolanaSettlement {
       );
       if (fee === null || fee > BigInt(i.feeCap))
         throw new SolanaError("FEE_CAP");
-      if (
-        i.swap &&
-        !(await this.network.valid(blockhash(p.lifetime.blockhash)))
-      )
+      if (!(await this.network.valid(blockhash(p.lifetime.blockhash))))
         throw new SolanaError("BLOCKHASH_EXPIRED");
+      await beforeSign?.();
       this.store.atomic(() => {
         this.eligible(id);
         if (i.swap) assertReviewCurrent(p as SwapPrepared, this.now());

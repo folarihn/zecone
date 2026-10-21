@@ -4,6 +4,9 @@ import { resolve, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { Store } from "../services/execution/store.ts";
 import { WatchOnlyZcash } from "../services/signer/watch-evidence.ts";
+import { SolanaTransferFlow } from "../services/settlement/solana-transfer-flow.ts";
+import { SettlementReview } from "../services/wallet/settlement-review.ts";
+import { settlementReads } from "../services/wallet/settlement-reads.ts";
 import { SolanaSettlement } from "../services/solana/settlement.ts";
 import { EvmTransferSettlement } from "../services/settlement/evm-transfer.ts";
 import { NativeTransferFlow } from "../services/settlement/native-transfer-flow.ts";
@@ -92,7 +95,16 @@ try {
       },
     );
     const service = new SolanaSettlement(store, forbidden as any);
-    const view = service.authorize(id, await scanner.observe());
+    const grant = store.db
+      .prepare("SELECT authorizer FROM solana_wallet_grants WHERE order_id=?")
+      .get(id);
+    if (!grant) throw Error("SIGNED_WALLET_GRANT_REQUIRED");
+    const flow = new SolanaTransferFlow(
+      new SettlementReview(service, settlementReads()),
+      service,
+      getAddress(String(grant.authorizer)),
+    );
+    const view = await flow.observe(id, scanner);
     result = {
       state: view.state,
       receivedZatoshis: view.receivedZatoshis,

@@ -1,0 +1,549 @@
+// Mainnet shielded payment observation. The Rust watcher holds only a UFVK;
+// this module never imports a seed, spending key, signer or broadcast function.
+import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
+import { mkdirSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { promisify } from "node:util";
+import { DatabaseSync } from "node:sqlite";
+
+const exec = promisify(execFile);
+export const MAINNET_WATCH_NETWORK = "zcash-mainnet" as const;
+const HEX64 = /^[a-f0-9]{64}$/;
+const ORDER_ID = /^(?:0x)?[a-f0-9]{64}$/;
+const UNIFIED = /^u1[0-9a-z]{20,220}$/;
+
+export type MainnetWatchPayment = {
+  account: string;
+  txid: string;
+  pool: 2 | 3 | 4;
+  index: number;
+  zatoshis: string;
+  height: number;
+  blockHash: string;
+  address: string;
+  memo: string | null;
+  nullifier: string | null;
+  locked: boolean;
+  spent: boolean;
+  isChange: boolean;
+  confirmations: number;
+};
+
+export type MainnetWatchCheckpoint = {
+  height: number;
+  hash: string;
+  orchardRoot: string;
+};
+
+export type MainnetWatchSnapshot = {
+  network: typeof MAINNET_WATCH_NETWORK;
+  watchOnly: true;
+  liveChain: true;
+  liveRefundsEnabled: false;
+  source: string;
+  peerSource: string;
+  account: string;
+  address: string;
+  birthday: number;
+  tip: number;
+  scanned: number;
+  blockHash: string;
+  observedAt: number;
+  minimumConfirmations: number;
+  anchor: string;
+  anchorHeight: number;
+  checkpoint: MainnetWatchCheckpoint | null;
+  payments: MainnetWatchPayment[];
+};
+
+export type MainnetOrderBinding = {
+  orderId: string;
+  account: string;
+  address: string;
+  zatoshis: string;
+  expires: number;
+  memoHex?: string;
+};
+
+export type MainnetWatchStatus =
+  "awaiting" | "observed" | "confirmed" | "ambiguous" | "invalid";
+
+export type MainnetWatchObservation = {
+  orderId: string;
+  status: MainnetWatchStatus;
+  reason: string;
+  tip: number;
+  blockHash: string;
+  observedAt: number;
+  minimumConfirmations: number;
+  confirmations: number;
+  receivedZatoshis: string;
+  paymentDigest: string | null;
+  reorgDetected: boolean;
+};
+
+const digest = (value: unknown) =>
+  createHash("sha256").update(JSON.stringify(value)).digest("hex");
+const positive = (value: unknown): value is number =>
+  Number.isSafeInteger(value) && (value as number) > 0;
+const amountOk = (value: unknown) =>
+  typeof value === "string" &&
+  /^[0-9]{1,20}$/.test(value) &&
+  BigInt(value) > 0n &&
+  BigInt(value) <= 2_100_000_000_000_000n;
+const https = (value: unknown) =>
+  typeof value === "string" &&
+  value.startsWith("https://") &&
+  value.length <= 220 &&
+  !value.includes("@") &&
+  !value.toLowerCase().includes("test");
+
+export function validateMainnetWatchSnapshot(
+  s: MainnetWatchSnapshot,
+  now = Math.floor(Date.now() / 1000),
+) {
+  if (
+    s?.network !== MAINNET_WATCH_NETWORK ||
+    s.watchOnly !== true ||
+    s.liveChain !== true ||
+    s.liveRefundsEnabled !== false ||
+    !https(s.source) ||
+    !https(s.peerSource) ||
+    s.source === s.peerSource ||
+    !HEX64.test(s.account) ||
+    !UNIFIED.test(s.address) ||
+    !positive(s.birthday) ||
+    !positive(s.tip) ||
+    s.scanned !== s.tip ||
+    s.birthday >= s.tip ||
+    !HEX64.test(s.blockHash) ||
+    !Number.isSafeInteger(s.observedAt) ||
+    s.observedAt > now + 5 ||
+    now - s.observedAt > 120 ||
+    !Number.isSafeInteger(s.minimumConfirmations) ||
+    s.minimumConfirmations < 1 ||
+    s.minimumConfirmations > 100 ||
+    !HEX64.test(s.anchor) ||
+    !positive(s.anchorHeight) ||
+    s.anchorHeight < s.birthday ||
+    s.anchorHeight > s.tip - 9 ||
+    !Array.isArray(s.payments)
+  )
+    throw Error("INVALID_MAINNET_WATCH_SNAPSHOT");
+  if (s.checkpoint !== null) {
+    if (
+      !s.checkpoint ||
+      !positive(s.checkpoint.height) ||
+      s.checkpoint.height > s.tip ||
+      !HEX64.test(s.checkpoint.hash) ||
+      !HEX64.test(s.checkpoint.orchardRoot)
+    )
+      throw Error("INVALID_MAINNET_CHECKPOINT");
+  }
+  const seen = new Set<string>();
+  for (const p of s.payments) {
+    if (
+      p.account !== s.account ||
+      !HEX64.test(p.txid) ||
+      ![2, 3, 4].includes(p.pool) ||
+      !Number.isSafeInteger(p.index) ||
+      p.index < 0 ||
+      !amountOk(p.zatoshis) ||
+      !positive(p.height) ||
+      p.height < s.birthday ||
+      p.height > s.tip ||
+      !HEX64.test(p.blockHash) ||
+      p.confirmations !== s.tip - p.height + 1 ||
+      typeof p.address !== "string" ||
+      !UNIFIED.test(p.address) ||
+      (p.memo !== null && !/^(?:[a-f0-9]{2})+$/.test(p.memo)) ||
+      (p.nullifier !== null && !HEX64.test(p.nullifier)) ||
+      typeof p.locked !== "boolean" ||
+      typeof p.spent !== "boolean" ||
+      typeof p.isChange !== "boolean"
+    )
+      throw Error("INVALID_MAINNET_PAYMENT");
+    const key = `${p.txid}:${p.pool}:${p.index}`;
+    if (seen.has(key)) throw Error("DUPLICATE_MAINNET_PAYMENT");
+    seen.add(key);
+  }
+}
+
+export function verifyOwnedNote(
+  s: MainnetWatchSnapshot,
+  binding: MainnetOrderBinding,
+  payment: MainnetWatchPayment,
+): {
+  paymentKey: string;
+  amount: string;
+  pool: number;
+  confirmations: number;
+  anchorHeight: number;
+  paymentDigest: string;
+} {
+  const memo = binding.memoHex;
+  if (
+    payment.account !== s.account ||
+    binding.account !== s.account ||
+    payment.address !== binding.address ||
+    payment.isChange ||
+    payment.spent ||
+    payment.locked ||
+    !payment.nullifier ||
+    payment.height > s.anchorHeight ||
+    payment.zatoshis !== binding.zatoshis ||
+    (memo !== undefined && payment.memo !== memo)
+  )
+    throw Error("OWNED_NOTE_REQUIREMENTS_NOT_MET");
+  // Neither a non-null nullifier nor matching metadata proves decryption or
+  // commitment inclusion. No JSON/SQLite field can opt into ownership authority.
+  throw Error("MAINNET_OWNED_NOTE_CRYPTOGRAPHIC_VERIFIER_REQUIRED");
+}
+
+export class MainnetWatchScanner {
+  constructor(
+    readonly wallet: string,
+    readonly source: string,
+    readonly peer: string,
+    readonly executable = resolve(
+      `target/debug/zecone-zcash-watch${process.platform === "win32" ? ".exe" : ""}`,
+    ),
+  ) {}
+
+  async observe(checkpointHeight?: number): Promise<MainnetWatchSnapshot> {
+    // Also veto stale/replaced native executables that still export metadata.
+    const ownershipReady: boolean = false;
+    if (!ownershipReady)
+      throw Error("MAINNET_OWNED_NOTE_CRYPTOGRAPHIC_VERIFIER_REQUIRED");
+    if (!https(this.source) || !https(this.peer) || this.source === this.peer)
+      throw Error("INVALID_MAINNET_WATCH_PROVIDERS");
+    const args = [
+      "--wallet",
+      resolve(this.wallet),
+      "observe-mainnet",
+      "--server",
+      this.source,
+      "--peer",
+      this.peer,
+      "--minimum-confirmations",
+      "10",
+    ];
+    if (checkpointHeight !== undefined) {
+      if (!positive(checkpointHeight)) throw Error("INVALID_CHECKPOINT_HEIGHT");
+      args.push("--checkpoint-height", String(checkpointHeight));
+    }
+    let stdout: string;
+    try {
+      ({ stdout } = await exec(this.executable, args, {
+        windowsHide: true,
+        timeout: 900_000,
+        maxBuffer: 32 * 1024 * 1024,
+      }));
+    } catch (e) {
+      const detail = String((e as { stderr?: string }).stderr ?? "");
+      throw Error(
+        detail.includes("checkpoint_above_tip")
+          ? "MAINNET_CHECKPOINT_ABOVE_TIP"
+          : "mainnet_watch_scan_failed",
+      );
+    }
+    const snapshot = JSON.parse(stdout) as MainnetWatchSnapshot;
+    validateMainnetWatchSnapshot(snapshot);
+    return snapshot;
+  }
+}
+
+type CheckpointRow = {
+  tip: number;
+  block_hash: string;
+  anchor: string;
+  anchor_height: number;
+  source: string;
+  peer_source: string;
+  observed_at: number;
+};
+
+type PaymentRow = {
+  payment_key: string;
+  order_id: string;
+  status: string;
+  active: number;
+  nullifier: string | null;
+};
+
+export class MainnetWatchJournal {
+  readonly db: DatabaseSync;
+  constructor(
+    path: string,
+    readonly now = () => Math.floor(Date.now() / 1000),
+  ) {
+    if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
+    this.db = new DatabaseSync(path);
+    this.db
+      .exec(`PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;
+      CREATE TABLE IF NOT EXISTS mainnet_watch_checkpoint(id INTEGER PRIMARY KEY CHECK(id=1), tip INTEGER NOT NULL, block_hash TEXT NOT NULL, anchor TEXT NOT NULL, anchor_height INTEGER NOT NULL, source TEXT NOT NULL, peer_source TEXT NOT NULL, observed_at INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS mainnet_watch_orders(order_id TEXT PRIMARY KEY, account TEXT NOT NULL, address TEXT NOT NULL, zatoshis TEXT NOT NULL, expires INTEGER NOT NULL, memo_hex TEXT, binding_digest TEXT NOT NULL, created INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS mainnet_watch_payments(payment_key TEXT PRIMARY KEY, order_id TEXT NOT NULL REFERENCES mainnet_watch_orders(order_id), txid TEXT NOT NULL, pool INTEGER NOT NULL, output_index INTEGER NOT NULL, zatoshis TEXT NOT NULL, height INTEGER NOT NULL, block_hash TEXT NOT NULL, address TEXT NOT NULL, nullifier TEXT, memo_hex TEXT, status TEXT NOT NULL, active INTEGER NOT NULL, first_seen INTEGER NOT NULL, last_seen INTEGER NOT NULL);
+      CREATE INDEX IF NOT EXISTS mainnet_watch_payments_order ON mainnet_watch_payments(order_id, active);`);
+  }
+  close() {
+    this.db.close();
+  }
+  atomic<T>(fn: () => T): T {
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const value = fn();
+      this.db.exec("COMMIT");
+      return value;
+    } catch (e) {
+      this.db.exec("ROLLBACK");
+      throw e;
+    }
+  }
+  bind(binding: MainnetOrderBinding) {
+    const body = {
+        orderId: binding.orderId,
+        account: binding.account,
+        address: binding.address,
+        zatoshis: binding.zatoshis,
+        expires: binding.expires,
+        ...(binding.memoHex === undefined ? {} : { memoHex: binding.memoHex }),
+      },
+      digestValue = digest(body);
+    if (
+      !ORDER_ID.test(binding.orderId) ||
+      !HEX64.test(binding.account) ||
+      !UNIFIED.test(binding.address) ||
+      !amountOk(binding.zatoshis) ||
+      !Number.isSafeInteger(binding.expires) ||
+      binding.expires <= this.now() ||
+      (binding.memoHex !== undefined &&
+        !/^(?:[a-f0-9]{2})+$/.test(binding.memoHex))
+    )
+      throw Error("INVALID_MAINNET_ORDER_BINDING");
+    const old = this.db
+      .prepare(
+        "SELECT binding_digest FROM mainnet_watch_orders WHERE order_id=?",
+      )
+      .get(binding.orderId) as { binding_digest: string } | undefined;
+    if (old) {
+      if (old.binding_digest !== digestValue)
+        throw Error("IMMUTABLE_MAINNET_ORDER_BINDING");
+      return;
+    }
+    this.db
+      .prepare(
+        "INSERT INTO mainnet_watch_orders(order_id,account,address,zatoshis,expires,memo_hex,binding_digest,created) VALUES(?,?,?,?,?,?,?,?)",
+      )
+      .run(
+        binding.orderId,
+        binding.account,
+        binding.address,
+        binding.zatoshis,
+        binding.expires,
+        binding.memoHex ?? null,
+        digestValue,
+        this.now(),
+      );
+  }
+  private checkpoint() {
+    return this.db
+      .prepare("SELECT * FROM mainnet_watch_checkpoint WHERE id=1")
+      .get() as CheckpointRow | undefined;
+  }
+  observe(
+    binding: MainnetOrderBinding,
+    s: MainnetWatchSnapshot,
+  ): MainnetWatchObservation {
+    validateMainnetWatchSnapshot(s, this.now());
+    const now = this.now();
+    if (binding.account !== s.account || binding.address !== s.address)
+      throw Error("MAINNET_ORDER_WATCH_ACCOUNT_MISMATCH");
+    this.bind(binding);
+    const old = this.checkpoint();
+    let reorgDetected = false;
+    if (old) {
+      if (s.tip < old.tip) {
+        reorgDetected = true;
+      } else if (s.checkpoint === null) {
+        if (s.tip !== old.tip || s.blockHash !== old.block_hash)
+          throw Error("MAINNET_WATCH_CHECKPOINT_MISSING");
+      } else if (s.checkpoint.height !== old.tip) {
+        throw Error("MAINNET_WATCH_CHECKPOINT_MISSING");
+      } else if (s.checkpoint.hash !== old.block_hash) {
+        reorgDetected = true;
+      } else if (s.tip === old.tip && s.blockHash !== old.block_hash) {
+        reorgDetected = true;
+      }
+    } else if (s.checkpoint !== null) {
+      throw Error("MAINNET_WATCH_UNEXPECTED_CHECKPOINT");
+    }
+    const candidates = s.payments.filter(
+      (p) =>
+        p.account === binding.account &&
+        p.address === binding.address &&
+        !p.isChange,
+    );
+    const memoOk = (p: MainnetWatchPayment) =>
+      binding.memoHex === undefined || p.memo === binding.memoHex;
+    const exact = candidates.filter(
+      (p) => p.zatoshis === binding.zatoshis && memoOk(p),
+    );
+    let status: MainnetWatchStatus = "awaiting",
+      reason = "NO_MATCHING_PAYMENT";
+    if (candidates.some((p) => p.spent || p.locked)) {
+      status = "invalid";
+      reason = "NOTE_SPENT_OR_LOCKED";
+    }
+    if (exact.length > 1) {
+      status = "ambiguous";
+      reason = "MULTIPLE_MATCHING_PAYMENTS";
+    } else if (exact.length === 1) {
+      try {
+        const owned = verifyOwnedNote(s, binding, exact[0]);
+        status =
+          exact[0].confirmations >= s.minimumConfirmations
+            ? "confirmed"
+            : "observed";
+        reason =
+          status === "confirmed"
+            ? "OWNED_NOTE_CONFIRMED"
+            : "OWNED_NOTE_AWAITING_CONFIRMATIONS";
+        void owned;
+      } catch {
+        status = "invalid";
+        reason = "OWNED_NOTE_REQUIREMENTS_NOT_MET";
+      }
+    } else if (candidates.length) {
+      status = "observed";
+      reason = "PAYMENT_AMOUNT_OR_ATTRIBUTION_MISMATCH";
+    }
+    return this.atomic(() => {
+      if (reorgDetected) {
+        this.db
+          .prepare(
+            "UPDATE mainnet_watch_payments SET active=0,status='reorged',last_seen=? WHERE order_id=? AND active=1",
+          )
+          .run(now, binding.orderId);
+      }
+      const activeKeys = new Set<string>();
+      for (const p of candidates) {
+        const key = `${p.txid}:${p.pool}:${p.index}`;
+        const prior = this.db
+          .prepare(
+            "SELECT payment_key,order_id,status,active,nullifier FROM mainnet_watch_payments WHERE payment_key=?",
+          )
+          .get(key) as PaymentRow | undefined;
+        if (prior && prior.order_id !== binding.orderId)
+          throw Error("MAINNET_PAYMENT_REUSE_ACROSS_ORDERS");
+        if (
+          prior &&
+          prior.nullifier !== null &&
+          prior.nullifier !== p.nullifier
+        )
+          throw Error("MAINNET_PAYMENT_NULLIFIER_CHANGED");
+        const isExact = exact.includes(p);
+        const rowStatus =
+          isExact && exact.length === 1
+            ? status === "invalid" || p.spent || p.locked
+              ? "invalid"
+              : p.confirmations >= s.minimumConfirmations
+                ? "confirmed"
+                : "observed"
+            : "ambiguous";
+        this.db
+          .prepare(
+            "INSERT INTO mainnet_watch_payments(payment_key,order_id,txid,pool,output_index,zatoshis,height,block_hash,address,nullifier,memo_hex,status,active,first_seen,last_seen) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,1,?,?) ON CONFLICT(payment_key) DO UPDATE SET zatoshis=excluded.zatoshis,height=excluded.height,block_hash=excluded.block_hash,address=excluded.address,nullifier=excluded.nullifier,memo_hex=excluded.memo_hex,status=excluded.status,active=1,last_seen=excluded.last_seen",
+          )
+          .run(
+            key,
+            binding.orderId,
+            p.txid,
+            p.pool,
+            p.index,
+            p.zatoshis,
+            p.height,
+            p.blockHash,
+            p.address,
+            p.nullifier,
+            p.memo,
+            rowStatus,
+            now,
+            now,
+          );
+        activeKeys.add(key);
+      }
+      for (const row of this.db
+        .prepare(
+          "SELECT payment_key FROM mainnet_watch_payments WHERE order_id=? AND active=1",
+        )
+        .all(binding.orderId) as { payment_key: string }[])
+        if (!activeKeys.has(row.payment_key))
+          this.db
+            .prepare(
+              "UPDATE mainnet_watch_payments SET active=0,status=? ,last_seen=? WHERE payment_key=?",
+            )
+            .run(reorgDetected ? "reorged" : "invalid", now, row.payment_key);
+      const paymentDigest =
+        exact.length === 1 && status !== "invalid"
+          ? verifyOwnedNote(s, binding, exact[0]).paymentDigest
+          : null;
+      this.db
+        .prepare(
+          "INSERT INTO mainnet_watch_checkpoint(id,tip,block_hash,anchor,anchor_height,source,peer_source,observed_at) VALUES(1,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET tip=excluded.tip,block_hash=excluded.block_hash,anchor=excluded.anchor,anchor_height=excluded.anchor_height,source=excluded.source,peer_source=excluded.peer_source,observed_at=excluded.observed_at",
+        )
+        .run(
+          s.tip,
+          s.blockHash,
+          s.anchor,
+          s.anchorHeight,
+          s.source,
+          s.peerSource,
+          s.observedAt,
+        );
+      return {
+        orderId: binding.orderId,
+        status,
+        reason,
+        tip: s.tip,
+        blockHash: s.blockHash,
+        observedAt: s.observedAt,
+        minimumConfirmations: s.minimumConfirmations,
+        confirmations: exact.length === 1 ? exact[0].confirmations : 0,
+        receivedZatoshis: candidates
+          .reduce((a, p) => a + BigInt(p.zatoshis), 0n)
+          .toString(),
+        paymentDigest,
+        reorgDetected,
+      };
+    });
+  }
+  status(orderId: string) {
+    const order = this.db
+      .prepare("SELECT * FROM mainnet_watch_orders WHERE order_id=?")
+      .get(orderId) as Record<string, unknown> | undefined;
+    if (!order) throw Error("UNKNOWN_MAINNET_ORDER");
+    return {
+      ...order,
+      ownershipVerified: false,
+      payments: (
+        this.db
+          .prepare(
+            "SELECT status,active,zatoshis,height,payment_key FROM mainnet_watch_payments WHERE order_id=? ORDER BY first_seen",
+          )
+          .all(orderId) as {
+          status: string;
+          active: number;
+          zatoshis: string;
+          height: number;
+          payment_key: string;
+        }[]
+      ).map(({ payment_key, ...p }) => ({
+        ...p,
+        status: p.status === "confirmed" ? "invalid" : p.status,
+        paymentRef: createHash("sha256").update(payment_key).digest("hex"),
+      })),
+    };
+  }
+}

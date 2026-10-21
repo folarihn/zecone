@@ -2,21 +2,25 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
-const phase = process.argv.includes("--end-to-end")
-  ? "end-to-end"
-  : process.argv.includes("--functional")
-    ? "functional"
-    : process.argv.includes("--phase8d2")
-      ? "phase8d2"
-      : process.argv.includes("--phase8d1")
-        ? "phase8d1"
-        : process.argv.includes("--phase8d0")
-          ? "phase8d0"
-          : process.argv.includes("--phase8c")
-            ? "phase8c"
-            : process.argv.includes("--phase8b")
-              ? "phase8b"
-              : "phase8a";
+const phase = process.argv.includes("--mainnet-acceptance")
+  ? "mainnet-acceptance"
+  : process.argv.includes("--mainnet-critical")
+    ? "mainnet-critical"
+    : process.argv.includes("--end-to-end")
+      ? "end-to-end"
+      : process.argv.includes("--functional")
+        ? "functional"
+        : process.argv.includes("--phase8d2")
+          ? "phase8d2"
+          : process.argv.includes("--phase8d1")
+            ? "phase8d1"
+            : process.argv.includes("--phase8d0")
+              ? "phase8d0"
+              : process.argv.includes("--phase8c")
+                ? "phase8c"
+                : process.argv.includes("--phase8b")
+                  ? "phase8b"
+                  : "phase8a";
 const root = `.state/${phase}`,
   output = `docs/${phase}-evidence/preservation.json`;
 mkdirSync(root, { recursive: true });

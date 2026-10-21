@@ -10,6 +10,8 @@ import { reviewBackend } from "../services/wallet/review-backend.ts";
 import { api } from "../services/wallet/api.ts";
 import { Store } from "../services/execution/store.ts";
 import { SolanaSettlement } from "../services/solana/settlement.ts";
+import { SolanaSettlementNetwork } from "../services/solana/settlement.ts";
+import { SolanaTransferFlow } from "../services/settlement/solana-transfer-flow.ts";
 import { SettlementReview } from "../services/wallet/settlement-review.ts";
 import { settlementReads } from "../services/wallet/settlement-reads.ts";
 import { settlementReviewApi } from "../services/wallet/settlement-review-api.ts";
@@ -73,7 +75,13 @@ async function main() {
     !p ||
     Object.keys(p).some(
       (k) =>
-        !["displayEvmAddress", "recipients", "profile", "native"].includes(k),
+        ![
+          "displayEvmAddress",
+          "recipients",
+          "profile",
+          "native",
+          "solana",
+        ].includes(k),
     ) ||
     !Array.isArray(p.recipients) ||
     !p.recipients.length ||
@@ -110,7 +118,18 @@ async function main() {
   )
     throw Error("Invalid origin allowlist.");
   if (p.native) for (const origin of p.native.origins ?? []) originOf(origin);
+  if (
+    p.solana &&
+    (p.native ||
+      Object.keys(p.solana).some((k) => k !== "authorizer") ||
+      getAddress(p.solana.authorizer) !== getAddress(p.displayEvmAddress))
+  )
+    throw Error("Invalid Solana authorization profile.");
   if (financialCreationEnabled) {
+    if (!p.native && !p.solana)
+      throw Error(
+        "Signed Solana authorization profile required for financial creation.",
+      );
     const legacyRelayer = p.native
       ? getAddress(
           JSON.parse(readFileSync("docs/PUBLIC_WALLETS.json", "utf8")).base
@@ -193,13 +212,21 @@ async function main() {
   );
   const service = p.native
     ? undefined
-    : new SolanaSettlement(store, forbidden as any);
+    : new SolanaSettlement(
+        store,
+        p.solana ? new SolanaSettlementNetwork() : (forbidden as any),
+      );
   const review = service
     ? new SettlementReview(service, settlementReads(), undefined, bindings)
     : undefined;
+  const solanaFlow =
+    p.solana && service && review
+      ? new SolanaTransferFlow(review, service, getAddress(p.solana.authorizer))
+      : undefined;
   const local = review
     ? settlementReviewApi(sessions, review, p.profile, p.recipients, {
         financialCreationEnabled,
+        flow: solanaFlow,
       })
     : undefined;
   const nativeFlow = p.native
@@ -245,8 +272,10 @@ async function main() {
       else if (
         service &&
         JSON.parse(order.intent).action === "SOLANA_DEVNET_SOL_DELIVERY"
-      )
-        service.authorize(order.id, await scanner.observe());
+      ) {
+        if (!solanaFlow) throw Error("Signed SOL checkout required.");
+        await solanaFlow.observe(order.id, scanner);
+      }
     } catch {
       console.warn(
         "Native payment observation unavailable; no execution attempted. Inspect local state.",

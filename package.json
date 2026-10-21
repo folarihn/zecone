@@ -6,6 +6,11 @@
     "node": ">=24.12.0 <25"
   },
   "scripts": {
+    "mainnet:readiness": "tsx scripts/mainnet-critical-readiness.ts",
+    "mainnet:watch": "tsx scripts/mainnet-watch.ts",
+    "mainnet:quote": "tsx scripts/mainnet-quote.ts",
+    "mainnet:transfer": "tsx scripts/mainnet-transfer.ts",
+    "wallet:solana-status": "tsx scripts/solana-transfer-status.ts",
     "wallet:transfer-status": "tsx scripts/wallet-transfer-status.ts",
     "wallet:review-ui": "tsx scripts/functional-wallet.ts",
     "wallet:review": "tsx scripts/wallet-review.ts",
