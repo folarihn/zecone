@@ -1,4 +1,5 @@
-FROM rust:1.88-bookworm AS zcash-watch-builder
+FROM rust:1.89-bookworm AS zcash-watch-builder
+ENV CARGO_BUILD_JOBS=2
 WORKDIR /src
 COPY services/zcash-watch/Cargo.toml services/zcash-watch/Cargo.lock ./services/zcash-watch/
 COPY services/zcash-watch/src ./services/zcash-watch/src

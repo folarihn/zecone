@@ -42,13 +42,34 @@ const state = resolve(process.env.ZECONE_STATE ?? "/var/lib/zecone"),
   minimumFree = BigInt(
     integer(process.env.ZECONE_MIN_FREE_BYTES, 5 * 1024 * 1024 * 1024),
   ),
+  requiredStateFsUuid = process.env.ZECONE_REQUIRED_STATE_FS_UUID?.trim(),
+  filesystemMarker = join(state, ".zecone-filesystem-uuid"),
   marker = join(state, ".zecone-readonly-v1"),
   profilesFile = join(config, "mainnet-profiles.json"),
   readOnlyFile = join(config, "mainnet-readonly.json");
 
+if (requiredStateFsUuid) {
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      requiredStateFsUuid,
+    )
+  )
+    throw Error("INVALID_REQUIRED_STATE_FILESYSTEM_UUID");
+  if (
+    !existsSync(filesystemMarker) ||
+    readFileSync(filesystemMarker, "utf8") !==
+      `ZECONE_STATE_FS_UUID=${requiredStateFsUuid}\n`
+  )
+    throw Error("REQUIRED_STATE_FILESYSTEM_NOT_MOUNTED");
+}
 mkdirSync(state, { recursive: true, mode: 0o700 });
 if (!existsSync(marker)) {
-  const existing = readdirSync(state).filter((name) => name !== ".keep");
+  const existing = readdirSync(state).filter(
+    (name) =>
+      name !== ".keep" &&
+      name !== ".zecone-filesystem-uuid" &&
+      name !== "lost+found",
+  );
   if (existing.length) throw Error("NONEMPTY_UNINITIALIZED_STATE_REFUSED");
   writeFileSync(marker, "ZECONE_VPS_READ_ONLY_V1\n", {
     flag: "wx",

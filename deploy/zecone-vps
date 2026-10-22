@@ -3,6 +3,22 @@ set -Eeuo pipefail
 umask 077
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+ENV_FILE="$ROOT/deploy/.env"
+if [[ -f "$ENV_FILE" ]]; then
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    [[ "$line" =~ ^(ZECONE_[A-Z0-9_]+)=(.*)$ ]] || {
+      printf '%s\n' "invalid deployment environment entry" >&2
+      exit 1
+    }
+    key="${BASH_REMATCH[1]}"
+    value="${BASH_REMATCH[2]}"
+    if [[ ! -v "$key" ]]; then
+      printf -v "$key" '%s' "$value"
+      export "$key"
+    fi
+  done < "$ENV_FILE"
+fi
 COMPOSE=(docker compose --project-directory "$ROOT/deploy" -f "$ROOT/deploy/compose.yaml")
 RUNTIME="$ROOT/deploy/runtime"
 STATE="${ZECONE_STATE_DIR:-$RUNTIME/state}"
@@ -13,9 +29,22 @@ CONTAINER_GID="${ZECONE_CONTAINER_GID:-10001}"
 
 fail() { printf '%s\n' "$1" >&2; exit 1; }
 require_file() { [[ -f "$1" ]] || fail "missing required file: $1"; }
+require_state_filesystem() {
+  local required="${ZECONE_REQUIRED_STATE_FS_UUID:-}"
+  [[ -n "$required" ]] || return 0
+  mountpoint -q "$STATE" || fail "required ZecOne state filesystem is not mounted"
+  local source actual marker
+  source="$(findmnt -n -o SOURCE --mountpoint "$STATE")"
+  actual="$(blkid -s UUID -o value "$source")"
+  [[ "$actual" == "$required" ]] || fail "mounted ZecOne state filesystem UUID mismatch"
+  marker="$STATE/.zecone-filesystem-uuid"
+  require_file "$marker"
+  [[ "$(cat "$marker")" == "ZECONE_STATE_FS_UUID=$required" ]] || fail "ZecOne state filesystem marker mismatch"
+}
 
 case "${1:-}" in
   init)
+    require_state_filesystem
     install -d -o "$CONTAINER_UID" -g "$CONTAINER_GID" -m 0700 "$STATE" "$LOGS"
     install -d -o root -g "$CONTAINER_GID" -m 0750 "$CONFIG"
     [[ -e "$CONFIG/mainnet-profiles.json" ]] || install -o root -g "$CONTAINER_GID" -m 0640 "$ROOT/deploy/config/mainnet-profiles.json" "$CONFIG/mainnet-profiles.json"
@@ -38,6 +67,7 @@ case "${1:-}" in
     ;;
   start-readonly)
     [[ "${ZECONE_ALLOW_EXECUTION:-0}" == "0" ]] || fail "execution flag must remain disabled"
+    require_state_filesystem
     "${COMPOSE[@]}" up -d --no-deps readonly
     ;;
   health)
@@ -48,6 +78,7 @@ case "${1:-}" in
     "${COMPOSE[@]}" logs --tail "${ZECONE_LOG_LINES:-200}" readonly
     ;;
   pause)
+    require_state_filesystem
     reason="${2:-OPERATOR_EMERGENCY_PAUSE}"
     [[ "$reason" =~ ^[A-Z0-9_]{3,96}$ ]] || fail "pause reason must be a finite uppercase code"
     for network in base solana; do
@@ -58,6 +89,7 @@ case "${1:-}" in
     done
     ;;
   backup)
+    require_state_filesystem
     command -v age >/dev/null || fail "age is required"
     command -v sqlite3 >/dev/null || fail "sqlite3 is required"
     recipient_file="${ZECONE_BACKUP_RECIPIENT_FILE:-}"

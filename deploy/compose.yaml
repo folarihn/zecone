@@ -24,6 +24,7 @@ services:
       ZECONE_STATE: /var/lib/zecone
       ZECONE_CONFIG: /etc/zecone
       ZECONE_MIN_FREE_BYTES: ${ZECONE_MIN_FREE_BYTES:-5368709120}
+      ZECONE_REQUIRED_STATE_FS_UUID: ${ZECONE_REQUIRED_STATE_FS_UUID:-}
     ports:
       - "127.0.0.1:${ZECONE_HEALTH_PORT:-3410}:3410"
     volumes:

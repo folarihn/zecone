@@ -29,7 +29,7 @@ Host packages:
 - `ca-certificates`, `curl`, `sqlite3`, `age`, `jq`, `ufw`, and `unattended-upgrades`.
 - `openssh-server`, configured for keys only.
 
-Node.js and Rust are not needed on the host. The image pins Node 24.12.0 and builds the watcher with Rust 1.88, matching the repository requirements.
+Node.js and Rust are not needed on the host. The image pins Node 24.12.0 and builds the watcher with Rust 1.89, the minimum version accepted by the current locked dependency graph.
 
 ## Network and firewall
 
@@ -104,7 +104,19 @@ deploy/zecone-vps restore-test /path/to/zecone-backup.tar.age
 
 Restore testing checks every SQLite database with `PRAGMA integrity_check` and never writes active state. A real restore requires a stopped service, an empty new state directory, operator review, and reconciliation of every claimed/signed/uncertain submission before execution can ever be armed.
 
-## Current validation limits
+## Current validation status — 2026-10-22
 
-Compose schema validation passes locally. The disposable service starts, remains paused, exposes health only, persists journals across restart, and rejects POST/admin paths. The local Docker CLI is installed but its Linux daemon is not running, so the image build and container start are **BLOCKED in this workstation run**. The October 22, 2026 read-only VPS inspection is recorded in `VPS-INSPECTION-2026-10-22.md`; no VPS change or deployment occurred.
+Compose schema validation passes locally. The disposable service starts, remains paused, exposes health only, persists journals across restart, and rejects POST/admin paths.
+
+On the shared Contabo VPS, the isolated image build and disposable container test now **PASS**:
+
+- `zecone-readonly:stage1-1.89` was built with Rust 1.89 inside a 2 CPU / 4 GiB systemd scope. The Rust release build took 5m25s and peaked at 2.1 GiB. The 1.56 GB image ID is `sha256:b31c0c1c59c1306768929557ac62feb410c02ada55fd5831a664972a323a6270`.
+- The isolated daemon had no bridge, forwarding, masquerading, or iptables management. It was stopped afterward; no isolated socket, container, build process, or daemon remains, and normal `docker`/`containerd` remain inactive.
+- A temporary container ran read-only, non-root, capability-free, network-isolated, and resource-capped. Health reported `READ_ONLY` with all execution/signing/broadcast/refund controls false, operator paused, and disk `PASS`. POST health and operator paths were rejected, journals survived restart, and missing-mount/non-empty-state cases failed closed.
+- A disposable encrypted `age` backup restored with SQLite integrity checks. No production backup identity, recipient, or off-host destination was created.
+- The dedicated 49 GiB `/var/lib/zecone` mount, UUID, marker, ownership, and missing-mount rejection were validated. No listener was opened on 3410, and existing Nginx, Redis, Hermes, PM2, and UFW state was preserved.
+
+The workstation Docker daemon remains unavailable, so this validation used the VPS only. No production ZecOne container, provider configuration, or production journal was created. A production read-only deployment still requires explicit approval, provider/UFVK configuration, and an approved public backup recipient plus off-host destination. Mainnet execution remains disabled.
+
+The October 22, 2026 initial read-only inspection and its validation update are recorded in `VPS-INSPECTION-2026-10-22.md`.
 
