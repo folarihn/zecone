@@ -5,6 +5,7 @@ import { promisify } from "node:util";
 import {
   MainnetWatchJournal,
   MainnetWatchScanner,
+  observeMainnetWatch,
   type MainnetOrderBinding,
 } from "../services/settlement/mainnet-watch.ts";
 
@@ -90,24 +91,8 @@ async function execute() {
       required(values, "server"),
       required(values, "peer"),
     );
-    const prior = journal.db
-      .prepare("SELECT tip FROM mainnet_watch_checkpoint WHERE id=1")
-      .get() as { tip: number } | undefined;
-    let snapshot;
-    try {
-      snapshot = await scanner.observe(prior?.tip);
-    } catch (e) {
-      if (
-        !prior ||
-        !(e instanceof Error) ||
-        e.message !== "MAINNET_CHECKPOINT_ABOVE_TIP"
-      )
-        throw e;
-      snapshot = await scanner.observe();
-    }
-    process.stdout.write(
-      JSON.stringify(journal.observe(order, snapshot), null, 2) + "\n",
-    );
+    const observation = await observeMainnetWatch(journal, scanner, order);
+    process.stdout.write(JSON.stringify(observation, null, 2) + "\n");
   } finally {
     journal.close();
   }

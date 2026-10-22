@@ -20,6 +20,17 @@ export type MainnetQuoteInput = {
   maximumSpreadBps?: number;
 };
 
+export type MainnetQuoteContextInput = Pick<
+  MainnetQuoteInput,
+  | "network"
+  | "profile"
+  | "pair"
+  | "destinationUnits"
+  | "networkFee"
+  | "l1DataFee"
+  | "serviceFee"
+>;
+
 export type MainnetQuote = {
   version: 1;
   network: "base" | "solana";
@@ -44,7 +55,7 @@ export type MainnetQuote = {
 
 const digest = (value: unknown) =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex");
-export function mainnetQuoteContext(input: MainnetQuoteInput) {
+export function mainnetQuoteContext(input: MainnetQuoteContextInput) {
   return digest({
     network: input.network,
     pair: input.pair,

@@ -401,6 +401,9 @@ export class MainnetWatchJournal {
       .prepare("SELECT * FROM mainnet_watch_checkpoint WHERE id=1")
       .get() as CheckpointRow | undefined;
   }
+  checkpointHeight() {
+    return this.checkpoint()?.tip;
+  }
   observe(
     binding: MainnetOrderBinding,
     s: MainnetWatchSnapshot,
@@ -622,6 +625,27 @@ export class MainnetWatchJournal {
       })),
     };
   }
+}
+
+export async function observeMainnetWatch(
+  journal: MainnetWatchJournal,
+  scanner: MainnetWatchScanner,
+  binding: MainnetOrderBinding,
+) {
+  const prior = journal.checkpointHeight();
+  let snapshot: MainnetWatchSnapshot;
+  try {
+    snapshot = await scanner.observe(prior);
+  } catch (e) {
+    if (
+      !prior ||
+      !(e instanceof Error) ||
+      e.message !== "MAINNET_CHECKPOINT_ABOVE_TIP"
+    )
+      throw e;
+    snapshot = await scanner.observe();
+  }
+  return journal.observe(binding, snapshot);
 }
 
 export function assertMainnetPaymentAuthorization(

@@ -8,6 +8,7 @@ import {
   MainnetWatchJournal,
   MainnetWatchScanner,
   assertMainnetPaymentAuthorization,
+  observeMainnetWatch,
   validateMainnetWatchSnapshot,
   verifyOwnedNote,
   type MainnetOrderBinding,
@@ -84,7 +85,7 @@ const binding = (
 
 const liveNow = () => Math.floor(Date.now() / 1000);
 
-async function nativeScan(s: MainnetWatchSnapshot) {
+function nativeScanner(s: MainnetWatchSnapshot) {
   const directory = mkdtempSync(join(tmpdir(), "zecone-mainnet-watch-")),
     script = join(directory, "snapshot.mjs");
   writeFileSync(
@@ -97,7 +98,11 @@ async function nativeScan(s: MainnetWatchSnapshot) {
     s.peerSource,
     process.execPath,
     [script],
-  ).observe();
+  );
+}
+
+async function nativeScan(s: MainnetWatchSnapshot) {
+  return nativeScanner(s).observe();
 }
 
 function authorization(observation: MainnetWatchObservation) {
@@ -120,6 +125,26 @@ test("mainnet snapshot validation rejects testnet, stale and inconsistent scans"
     snapshot({ payments: [payment({ confirmations: 10 })] }),
   ])
     assert.throws(() => validateMainnetWatchSnapshot(bad, now));
+});
+
+test("native execute handoff scans against the journal checkpoint", async () => {
+  const t = liveNow(),
+    b = binding({ expires: t + 600 }),
+    j = new MainnetWatchJournal(":memory:", () => t);
+  const first = await observeMainnetWatch(
+    j,
+    nativeScanner(snapshot({ observedAt: t, payments: [payment()] })),
+    b,
+  );
+  assert.equal(first.status, "confirmed");
+  assert.equal(j.checkpointHeight(), tip);
+  const second = await observeMainnetWatch(
+    j,
+    nativeScanner(snapshot({ observedAt: t })),
+    b,
+  );
+  assert.equal(second.status, "awaiting");
+  assert.equal(second.reorgDetected, false);
 });
 
 test("journal rejects metadata-only ownership while retaining attribution and reorg diagnostics", () => {

@@ -15,6 +15,8 @@ providers. None of them prints private keys, passphrases or signed bytes.
 npm run mainnet:status -- --profiles config/mainnet-profiles.example.json
 npm run mainnet:config-check -- --profiles config/mainnet-profiles.production.example.json --readonly config/mainnet-readonly.example.json
 npm run mainnet:config-check -- --profiles <profiles.json> --readonly <readonly.json> --probe
+npm run mainnet:quote -- context --profiles <profiles.json> --network base --pair ETH/ZEC --amount <units> --network-fee <wei> --l1-data-fee <wei> --service-fee 0 --out <context.json>
+npm run mainnet:quote -- quote --profiles <profiles.json> --pricing <pricing.json> --network base --amount <units> --out <quote.json>
 npm run mainnet:prepare -- --network base --profiles <profiles.json> --request <request.json> --pricing <pricing.json> --quote <quote.json> --ownership-proof <proof.json> --out <plan.json>
 npm run mainnet:simulate -- --profiles <profiles.json> --plan <plan.json>
 npm run mainnet:simulate -- --profiles <profiles.json> --plan <plan.json> --bundle <signed-bundle.json>
@@ -30,9 +32,15 @@ HTTPS providers, limits, confirmations, exact destination/relayer addresses,
 signer and execution-authority key types, price-authority pins and the
 disabled read-only switches. `--probe` additionally runs the closed read-only
 identity/finality RPC surface only for real configured endpoints; `.invalid`
-and local placeholders are never contacted. A complete profile check does not
-verify provider independence, device attestation, ownership of a UFVK or
-production activation.
+and local placeholders are never contacted. Zcash lightwalletd endpoints are
+not probed with JSON-RPC; they return an explicit blocked finding because the
+transport is gRPC. A complete profile check does not verify provider
+independence, device attestation, ownership of a UFVK or production activation.
+
+`mainnet:quote context` produces the exact context that both price authorities
+must bind into their signed statements. `mainnet:quote quote` verifies the
+authorized keys, network, context, freshness, spread and caps. Neither command
+signs or broadcasts.
 
 The exact execute inputs are:
 
@@ -42,12 +50,19 @@ npm run mainnet:execute -- `
   --confirm <termsDigest> --lease-owner <operator-id> `
   --lease <lease.sqlite> --journal <submitter.sqlite> `
   --watch-journal <watch.sqlite> --watch-binding <binding.json> `
-  --snapshot <fresh-native-snapshot.json> `
+  --watch-wallet <native-watch-dir> --watch-server <https-primary> `
+  --watch-peer <https-peer> `
   --execution-authorization <execution-authorization.json> `
   --keystore <relayer.keystore.json> --passphrase-file <external-passphrase> `
   --approval <exact-signing-approval.json> --signer-ledger <signer-ledger.sqlite> `
   --arm ARM_MAINNET_EXECUTION --resume-submitter RESUME_MAINNET_SUBMITTER
 ```
+
+`execute` runs `MainnetWatchScanner` in-process immediately before signing and
+does not accept a JSON snapshot file. It derives the scan checkpoint from the
+watch journal. The scanner must produce a fresh confirmed owned note in the
+current observation window; a copied, older or caller-supplied snapshot is
+never accepted.
 
 The exact signing approval is:
 
@@ -64,9 +79,9 @@ The exact signing approval is:
 Use `--bundle <signed-bundle.json>` instead of the keystore/passphrase/approval
 arguments when a separately operated signer produced the bundle. Inline signing
 requires a durable `--signer-ledger` path; `:memory:` is rejected so spending
-limits and revocation survive a restart. The native
-snapshot must come from the trusted scanner in the current observation window;
-a copied or older JSON snapshot is rejected. An expired lease needs
+limits and revocation survive a restart. The owned-note evidence must come from
+the in-process trusted scanner in the current observation window; a copied or
+older snapshot is never accepted. An expired lease needs
 `--recover-expired-lease true` only after the operator has stopped the old
 process and reviewed its transaction identity.
 

@@ -246,6 +246,23 @@ test("readiness never upgrades single-provider or fixture evidence to production
   assert.equal(r.spendingEnabled, false);
   assert.equal(r.checks.independentAgreement.status, "BLOCKED");
 });
+test("zcash lightwalletd is never probed with JSON-RPC", async () => {
+  let calls = 0;
+  const r = await probeMainnet({ ...profile(), network: "zcash" }, async () => {
+    calls++;
+    throw Error("NETWORK_FORBIDDEN");
+  });
+  assert.equal(calls, 0);
+  assert.equal(r.confidence, "UNAVAILABLE");
+  assert.equal(r.spendingEnabled, false);
+  assert.equal(r.productionReady, false);
+  assert.equal(
+    r.checks.identity.reason,
+    "ZCASH_LIGHTWALLETD_GRPC_PROBE_NOT_IMPLEMENTED",
+  );
+  assert.equal(r.checks.independentAgreement.status, "BLOCKED");
+});
+
 test("provider disagreement and wrong genesis fail closed", async () => {
   for (const wrong of [true, false]) {
     const rpc: typeof fetch = async (u, init) => {

@@ -2,6 +2,8 @@
 
 > Acceptance update (21 October 2026): [MAINNET-ACCEPTANCE.md](MAINNET-ACCEPTANCE.md) is authoritative and [MAINNET-OPERATOR.md](MAINNET-OPERATOR.md) records the new operator boundary. Full-transaction UFVK decryption is implemented, but no authenticated mainnet scan config or owned-note fixture exists. The operator CLI, isolated signer and fenced single-writer lease are implemented and fixture-tested; provisioning is tested only with disposable credentials. Genuine pricing/providers, production signer isolation and live acceptance are still missing. Mainnet remains NO-GO, and execution is disabled by default.
 
+22 October 2026. [The controlled pilot](MAINNET-PILOT-PLAN.md), [public-launch plan](MAINNET-PUBLIC-LAUNCH.md) and [setup guide](MAINNET-SETUP-GUIDE.md) now define the cheapest safe two-transfer acceptance path and the launch-grade topology. They do not authorize spending. `mainnet:operator execute` now invokes the native scanner in-process and no longer accepts a JSON snapshot; that handoff defect is closed, but independent providers, genuine signed prices, funded relayers, a controlled owned-note run and the remaining gates are still absent.
+
 20 October 2026. **NO-GO for mainnet payments or execution.** The mainnet module
 is isolated from testnet execution registries and exposes read-only identity
 probes, exact unsigned transfer preparation and offline signed-bundle

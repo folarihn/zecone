@@ -1,5 +1,17 @@
 # ZecOne progress
 
+## 22 October 2026 - Controlled pilot and public-launch plans added; live launch remains BLOCKED
+
+Documented the cheapest safe mainnet acceptance path. [The controlled pilot](docs/MAINNET-PILOT-PLAN.md) is two operator-supervised transfers, Base first and Solana second, each funded by a distinct confirmed shielded-ZEC note. [The public-launch plan](docs/MAINNET-PUBLIC-LAUNCH.md) separates free-tier pilot infrastructure from launch-grade independent nodes and estimates about **$150-300/month** excluding audits/support. [The setup guide](docs/MAINNET-SETUP-GUIDE.md) gives exact private paths, provider choices, key provisioning, profile templates, funding limits, Zcash import/observe, price signing, quote, prepare and simulate commands.
+
+Pilot caps were corrected to **0.02 ZEC (`2000000` zats)** per transfer and **0.04 ZEC daily**, because the previous 0.001 ZEC cap could not fund a roughly $0.30 ETH transfer at an illustrative 30 USD/ZEC. Base is capped at 0.0001 ETH; Solana at 0.00101 SOL. Suggested transfers are 0.00009 ETH and 0.001 SOL with explicit fee budgets. These are source-spend and destination-debit caps, not dollar guarantees; quotes must be recomputed and never raised to fit stale prices.
+
+`mainnet:quote context` now produces the exact profile-, network-, pair-, amount- and fee-bound context that both price authorities must sign. `mainnet:quote quote` verifies pinned authority keys and operators, the context, freshness, spread and caps. The Zcash probe now returns `ZCASH_LIGHTWALLETD_GRPC_PROBE_NOT_IMPLEMENTED` without contacting the endpoint, because lightwalletd is gRPC and must not receive JSON-RPC.
+
+The execute handoff defect is closed. `mainnet:operator execute` now invokes `MainnetWatchScanner` in-process, derives its checkpoint from the watch journal and explicitly rejects `--snapshot`, so the owned-note verifier receives the native object it requires. The production template still fails closed with `executionAvailable: false`; the pilot remains blocked by missing independent providers, genuine signed prices, funded relayers, a controlled owned-note run, signer/device evidence and the remaining gates.
+
+Validation: **510 Node tests pass**, including the new native execute handoff, no-JSON-RPC Zcash probe and refined quote-context cases. Both TypeScript checks and lint pass. No provider account was created, no credential was generated or unlocked, no key was funded, and no order, signature, submission or broadcast occurred. Zcash remains **NO-GO** without independent Merkle-inclusion/proof-of-work verification. See [operator commands](docs/MAINNET-OPERATOR.md).
+
 ## 21 October 2026 — Production configuration inspection added; live launch remains BLOCKED
 
 Added `mainnet:config-check`, a non-spending inspection command for the three production profiles and the read-only provider/key configuration. It checks independent provider hostnames and operators, financial limits, confirmations, exact recipient/relayer addresses, signer-to-relayer derivation, signer/execution-authority key types and separation, pinned price authorities, Zcash mainnet read-only providers and every spending switch. It always reports `executionAvailable: false`; `--probe` additionally performs the closed identity/finality RPC checks only against real configured endpoints.

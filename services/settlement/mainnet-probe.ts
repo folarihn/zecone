@@ -135,6 +135,30 @@ export async function probeMainnet(
     status: "BLOCKED",
     reason: "SINGLE_WRITER_SHARED_LOCAL_DATABASE_DEPLOYMENT_NOT_VALIDATED",
   };
+  // Lightwalletd is gRPC, not the closed JSON-RPC read surface below. Do not
+  // send a misleading JSON-RPC probe to a Zcash lightwalletd endpoint.
+  if (profile.network === "zcash") {
+    checks.identity = {
+      status: "BLOCKED",
+      reason: "ZCASH_LIGHTWALLETD_GRPC_PROBE_NOT_IMPLEMENTED",
+    };
+    checks.finalizedState = {
+      status: "BLOCKED",
+      reason: "ZCASH_INDEPENDENT_NODE_PROBE_NOT_CONFIGURED",
+    };
+    checks.independentAgreement = {
+      status: "BLOCKED",
+      reason: "ZCASH_READ_ONLY_PROBE_UNAVAILABLE",
+    };
+    return {
+      network: profile.network,
+      enabled: profile.enabled,
+      spendingEnabled: false,
+      productionReady: false,
+      confidence: "UNAVAILABLE",
+      checks,
+    };
+  }
   const providers = profile.providers.slice(0, 2),
     identity: any[] = [],
     states: any[] = [];
@@ -169,37 +193,25 @@ export async function probeMainnet(
   try {
     if (!providers.length) throw Error("NO_PROVIDER");
     for (const p of providers) {
-      if (profile.network === "zcash") {
-        const info = await rpc(p, "getblockchaininfo");
+      const id = await rpc(
+        p,
+        profile.network === "base" ? "eth_chainId" : "getGenesisHash",
+      );
+      if (id !== expected) throw Error("WRONG_NETWORK");
+      identity.push(id);
+      const head =
+        profile.network === "base"
+          ? await rpc(p, "eth_getBlockByNumber", ["finalized", false])
+          : await rpc(p, "getSlot", [{ commitment: "finalized" }]);
+      if (profile.network === "base") {
         if (
-          info.chain !== "main" ||
-          info.initialblockdownload !== false ||
-          asInt(info.blocks) < 20
+          !head?.hash ||
+          now - Number(BigInt(head.timestamp)) > 1800 ||
+          Number(BigInt(head.timestamp)) > now + 30
         )
-          throw Error("WRONG_OR_STALE_NETWORK");
-        identity.push("main");
-        states.push(info.blocks - 20);
-      } else {
-        const id = await rpc(
-          p,
-          profile.network === "base" ? "eth_chainId" : "getGenesisHash",
-        );
-        if (id !== expected) throw Error("WRONG_NETWORK");
-        identity.push(id);
-        const head =
-          profile.network === "base"
-            ? await rpc(p, "eth_getBlockByNumber", ["finalized", false])
-            : await rpc(p, "getSlot", [{ commitment: "finalized" }]);
-        if (profile.network === "base") {
-          if (
-            !head?.hash ||
-            now - Number(BigInt(head.timestamp)) > 1800 ||
-            Number(BigInt(head.timestamp)) > now + 30
-          )
-            throw Error("STALE_FINALIZED_HEAD");
-          states.push(Number(BigInt(head.number)));
-        } else states.push(asInt(head));
-      }
+          throw Error("STALE_FINALIZED_HEAD");
+        states.push(Number(BigInt(head.number)));
+      } else states.push(asInt(head));
     }
     checks.identity = {
       status: "PASS",
@@ -211,23 +223,17 @@ export async function probeMainnet(
       const anchor =
         profile.network === "base"
           ? await rpc(p, "eth_getBlockByNumber", [hex(BigInt(common)), false])
-          : profile.network === "solana"
-            ? await rpc(p, "getBlock", [
-                common,
-                {
-                  commitment: "finalized",
-                  transactionDetails: "none",
-                  rewards: false,
-                  maxSupportedTransactionVersion: 0,
-                },
-              ])
-            : await rpc(p, "getblockhash", [common]);
+          : await rpc(p, "getBlock", [
+              common,
+              {
+                commitment: "finalized",
+                transactionDetails: "none",
+                rewards: false,
+                maxSupportedTransactionVersion: 0,
+              },
+            ]);
       const value =
-        profile.network === "zcash"
-          ? anchor
-          : profile.network === "base"
-            ? anchor?.hash
-            : anchor?.blockhash;
+        profile.network === "base" ? anchor?.hash : anchor?.blockhash;
       if (typeof value !== "string" || !value || /^0x0+$/.test(value))
         throw Error("ANCHOR_UNAVAILABLE");
       if (
@@ -252,182 +258,176 @@ export async function probeMainnet(
     checks.independentAgreement = independent
       ? { status: "PASS" }
       : { status: "BLOCKED", reason: "PRIMARY_ONLY_NOT_PRODUCTION_VERIFIED" };
-    if (profile.network !== "zcash") {
-      if (!profile.relayer || profile.recipients.length !== 1) {
-        checks.liquidity = {
-          status: "BLOCKED",
-          reason:
-            "DEDICATED_MAINNET_RELAYER_AND_EXACT_RECIPIENT_NOT_CONFIGURED",
-        };
-        checks.simulation = {
-          status: "BLOCKED",
-          reason: "EXACT_MAINNET_DESTINATION_NOT_CONFIGURED",
-        };
-      } else {
-        const recipient = profile.recipients[0],
-          amount = BigInt(profile.perTransaction) - BigInt(profile.feeCap);
-        if (amount <= 0n) throw Error("FINANCIAL_LIMIT");
-        const balances: bigint[] = [];
-        for (const p of providers) {
-          if (profile.network === "base") {
-            const owner = getAddress(profile.relayer),
-              to = getAddress(recipient);
-            if (owner === to) throw Error("SELF_TRANSFER");
-            if (
-              (await rpc(p, "eth_getCode", [to, hex(BigInt(common))])) !== "0x"
-            )
-              throw Error("EOA_REQUIRED");
-            const b = BigInt(
-              await rpc(p, "eth_getBalance", [owner, hex(BigInt(common))]),
-            );
-            balances.push(b);
-          } else {
-            address(profile.relayer);
-            address(recipient);
-            if (profile.relayer === recipient) throw Error("SELF_TRANSFER");
-            const b = await rpc(p, "getBalance", [
-              profile.relayer,
-              { commitment: "finalized", minContextSlot: common },
-            ]);
-            if (asInt(b.context?.slot) < common)
-              throw Error("STALE_ACCOUNT_STATE");
-            balances.push(BigInt(asInt(b.value)));
-          }
+    if (!profile.relayer || profile.recipients.length !== 1) {
+      checks.liquidity = {
+        status: "BLOCKED",
+        reason: "DEDICATED_MAINNET_RELAYER_AND_EXACT_RECIPIENT_NOT_CONFIGURED",
+      };
+      checks.simulation = {
+        status: "BLOCKED",
+        reason: "EXACT_MAINNET_DESTINATION_NOT_CONFIGURED",
+      };
+    } else {
+      const recipient = profile.recipients[0],
+        amount = BigInt(profile.perTransaction) - BigInt(profile.feeCap);
+      if (amount <= 0n) throw Error("FINANCIAL_LIMIT");
+      const balances: bigint[] = [];
+      for (const p of providers) {
+        if (profile.network === "base") {
+          const owner = getAddress(profile.relayer),
+            to = getAddress(recipient);
+          if (owner === to) throw Error("SELF_TRANSFER");
+          if ((await rpc(p, "eth_getCode", [to, hex(BigInt(common))])) !== "0x")
+            throw Error("EOA_REQUIRED");
+          const b = BigInt(
+            await rpc(p, "eth_getBalance", [owner, hex(BigInt(common))]),
+          );
+          balances.push(b);
+        } else {
+          address(profile.relayer);
+          address(recipient);
+          if (profile.relayer === recipient) throw Error("SELF_TRANSFER");
+          const b = await rpc(p, "getBalance", [
+            profile.relayer,
+            { commitment: "finalized", minContextSlot: common },
+          ]);
+          if (asInt(b.context?.slot) < common)
+            throw Error("STALE_ACCOUNT_STATE");
+          balances.push(BigInt(asInt(b.value)));
         }
-        if (balances.some((b) => b !== balances[0]))
-          throw Error("PROVIDER_DISAGREEMENT");
-        checks.liquidity = {
-          status:
-            balances[0] >= BigInt(profile.perTransaction) ? "PASS" : "FAIL",
+      }
+      if (balances.some((b) => b !== balances[0]))
+        throw Error("PROVIDER_DISAGREEMENT");
+      checks.liquidity = {
+        status: balances[0] >= BigInt(profile.perTransaction) ? "PASS" : "FAIL",
+        evidence: {
+          required: profile.perTransaction,
+          sufficient: balances[0] >= BigInt(profile.perTransaction),
+        },
+      };
+      if (profile.network === "base") {
+        const call = {
+            from: profile.relayer,
+            to: recipient,
+            value: hex(amount),
+            data: "0x",
+          },
+          gas: bigint[] = [];
+        for (const p of providers) {
+          await rpc(p, "eth_call", [call, hex(BigInt(common))]);
+          gas.push(
+            BigInt(
+              await rpc(p, "eth_estimateGas", [call, hex(BigInt(common))]),
+            ),
+          );
+        }
+        checks.simulation = {
+          status: "PASS",
           evidence: {
-            required: profile.perTransaction,
-            sufficient: balances[0] >= BigInt(profile.perTransaction),
+            unsigned: true,
+            gas: gas.map(String),
+            amount: amount.toString(),
+            stateHeight: common,
           },
         };
-        if (profile.network === "base") {
-          const call = {
-              from: profile.relayer,
-              to: recipient,
-              value: hex(amount),
-              data: "0x",
-            },
-            gas: bigint[] = [];
-          for (const p of providers) {
-            await rpc(p, "eth_call", [call, hex(BigInt(common))]);
-            gas.push(
-              BigInt(
-                await rpc(p, "eth_estimateGas", [call, hex(BigInt(common))]),
-              ),
-            );
-          }
-          checks.simulation = {
-            status: "PASS",
-            evidence: {
-              unsigned: true,
-              gas: gas.map(String),
-              amount: amount.toString(),
-              stateHeight: common,
-            },
-          };
-          checks.totalFeeCap = {
-            status: "BLOCKED",
-            reason:
-              "BASE_L1_DATA_AND_OPERATOR_FEES_REQUIRE_SIGNER_POLICY_AND_FRESH_BOUND",
-          };
-        } else {
-          for (const p of providers)
-            for (const key of [profile.relayer, recipient]) {
-              const a = await rpc(p, "getAccountInfo", [
-                key,
-                {
-                  encoding: "base64",
-                  commitment: "finalized",
-                  minContextSlot: common,
-                },
-              ]);
-              if (
-                a.value &&
-                (a.value.executable ||
-                  a.value.owner !== "11111111111111111111111111111111")
-              )
-                throw Error("SYSTEM_ACCOUNT_REQUIRED");
-            }
-          const life = await rpc(providers[0], "getLatestBlockhash", [
-            { commitment: "finalized" },
-          ]);
-          const signer = createNoopSigner(address(profile.relayer)),
-            tx = compileTransaction(
-              pipe(
-                createTransactionMessage({ version: "legacy" }),
-                (m) => setTransactionMessageFeePayer(signer.address, m),
-                (m) =>
-                  setTransactionMessageLifetimeUsingBlockhash(
-                    {
-                      blockhash: blockhash(life.value.blockhash),
-                      lastValidBlockHeight: BigInt(
-                        asInt(life.value.lastValidBlockHeight),
-                      ),
-                    },
-                    m,
-                  ),
-                (m) =>
-                  appendTransactionMessageInstructions(
-                    [
-                      getTransferSolInstruction({
-                        source: signer,
-                        destination: address(recipient),
-                        amount,
-                      }),
-                    ],
-                    m,
-                  ),
-              ),
-            );
-          const wire = getBase64EncodedWireTransaction(tx),
-            fees: bigint[] = [];
-          for (const p of providers) {
-            if (
-              (
-                await rpc(p, "isBlockhashValid", [
-                  life.value.blockhash,
-                  { commitment: "finalized" },
-                ])
-              ).value !== true
-            )
-              throw Error("BLOCKHASH_UNAVAILABLE");
-            const sim = await rpc(p, "simulateTransaction", [
-              wire,
+        checks.totalFeeCap = {
+          status: "BLOCKED",
+          reason:
+            "BASE_L1_DATA_AND_OPERATOR_FEES_REQUIRE_SIGNER_POLICY_AND_FRESH_BOUND",
+        };
+      } else {
+        for (const p of providers)
+          for (const key of [profile.relayer, recipient]) {
+            const a = await rpc(p, "getAccountInfo", [
+              key,
               {
                 encoding: "base64",
-                sigVerify: false,
-                replaceRecentBlockhash: false,
                 commitment: "finalized",
                 minContextSlot: common,
               },
             ]);
-            if (!sim?.value || sim.value.err) throw Error("SIMULATION_FAILED");
-            const fee = await rpc(p, "getFeeForMessage", [
-              Buffer.from(tx.messageBytes).toString("base64"),
-              { commitment: "finalized" },
-            ]);
-            fees.push(BigInt(asInt(fee.value)));
+            if (
+              a.value &&
+              (a.value.executable ||
+                a.value.owner !== "11111111111111111111111111111111")
+            )
+              throw Error("SYSTEM_ACCOUNT_REQUIRED");
           }
-          if (fees.some((f) => f !== fees[0] || f > BigInt(profile.feeCap)))
-            throw Error("FEE_CAP_OR_DISAGREEMENT");
-          checks.simulation = {
-            status: "PASS",
-            evidence: {
-              unsigned: true,
-              digest: createHash("sha256")
-                .update(Buffer.from(wire, "base64"))
-                .digest("hex"),
-              fee: fees[0].toString(),
-              amount: amount.toString(),
-              lastValidBlockHeight: life.value.lastValidBlockHeight,
-              approvalGranted: false,
+        const life = await rpc(providers[0], "getLatestBlockhash", [
+          { commitment: "finalized" },
+        ]);
+        const signer = createNoopSigner(address(profile.relayer)),
+          tx = compileTransaction(
+            pipe(
+              createTransactionMessage({ version: "legacy" }),
+              (m) => setTransactionMessageFeePayer(signer.address, m),
+              (m) =>
+                setTransactionMessageLifetimeUsingBlockhash(
+                  {
+                    blockhash: blockhash(life.value.blockhash),
+                    lastValidBlockHeight: BigInt(
+                      asInt(life.value.lastValidBlockHeight),
+                    ),
+                  },
+                  m,
+                ),
+              (m) =>
+                appendTransactionMessageInstructions(
+                  [
+                    getTransferSolInstruction({
+                      source: signer,
+                      destination: address(recipient),
+                      amount,
+                    }),
+                  ],
+                  m,
+                ),
+            ),
+          );
+        const wire = getBase64EncodedWireTransaction(tx),
+          fees: bigint[] = [];
+        for (const p of providers) {
+          if (
+            (
+              await rpc(p, "isBlockhashValid", [
+                life.value.blockhash,
+                { commitment: "finalized" },
+              ])
+            ).value !== true
+          )
+            throw Error("BLOCKHASH_UNAVAILABLE");
+          const sim = await rpc(p, "simulateTransaction", [
+            wire,
+            {
+              encoding: "base64",
+              sigVerify: false,
+              replaceRecentBlockhash: false,
+              commitment: "finalized",
+              minContextSlot: common,
             },
-          };
+          ]);
+          if (!sim?.value || sim.value.err) throw Error("SIMULATION_FAILED");
+          const fee = await rpc(p, "getFeeForMessage", [
+            Buffer.from(tx.messageBytes).toString("base64"),
+            { commitment: "finalized" },
+          ]);
+          fees.push(BigInt(asInt(fee.value)));
         }
+        if (fees.some((f) => f !== fees[0] || f > BigInt(profile.feeCap)))
+          throw Error("FEE_CAP_OR_DISAGREEMENT");
+        checks.simulation = {
+          status: "PASS",
+          evidence: {
+            unsigned: true,
+            digest: createHash("sha256")
+              .update(Buffer.from(wire, "base64"))
+              .digest("hex"),
+            fee: fees[0].toString(),
+            amount: amount.toString(),
+            lastValidBlockHeight: life.value.lastValidBlockHeight,
+            approvalGranted: false,
+          },
+        };
       }
     }
   } catch (e) {

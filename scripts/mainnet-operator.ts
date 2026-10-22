@@ -41,6 +41,8 @@ import {
 } from "../services/settlement/mainnet-transfer.ts";
 import {
   MainnetWatchJournal,
+  MainnetWatchScanner,
+  observeMainnetWatch,
   type MainnetOrderBinding,
 } from "../services/settlement/mainnet-watch.ts";
 import {
@@ -414,7 +416,6 @@ async function execute(values: Map<string, string>) {
     journalFile = required(values, "journal"),
     watchJournalFile = required(values, "watch-journal"),
     bindingFile = required(values, "watch-binding"),
-    snapshotFile = required(values, "snapshot"),
     executionAuth = readJson<MainnetExecutionAuthorization>(
       required(values, "execution-authorization"),
     ),
@@ -426,6 +427,8 @@ async function execute(values: Map<string, string>) {
     token: string | null = null,
     timer: NodeJS.Timeout | null = null;
   try {
+    if (values.has("snapshot"))
+      throw Error("NATIVE_SNAPSHOT_HANDOFF_REQUIRED");
     if (confirm !== plan.termsDigest)
       throw Error("EXACT_ORDER_CONFIRMATION_REQUIRED");
     if (values.get("arm") !== "ARM_MAINNET_EXECUTION")
@@ -439,6 +442,24 @@ async function execute(values: Map<string, string>) {
     });
     token = acquired.token;
     lease.arm("ARM_MAINNET_EXECUTION");
+    timer = setInterval(() => {
+      try {
+        if (token) lease.heartbeat(token);
+      } catch {
+        // The next guarded financial step fails closed.
+      }
+    }, 60_000);
+    timer.unref();
+    const binding = readJson<WatchBindingFile>(resolve(bindingFile)),
+      scanner = new MainnetWatchScanner(
+        required(values, "watch-wallet"),
+        required(values, "watch-server"),
+        required(values, "watch-peer"),
+      ),
+      payment = await observeMainnetWatch(watch, scanner, binding);
+    if (payment.orderId !== executionAuth.orderId)
+      throw Error("WATCH_ORDER_AUTHORIZATION_MISMATCH");
+    lease.assertOwned(token);
     if (!bundleFile)
       signer = await MainnetOfflineSigner.open({
         profile: p,
@@ -450,19 +471,6 @@ async function execute(values: Map<string, string>) {
         } as MainnetSignerLimits,
         ledgerPath: required(values, "signer-ledger"),
       });
-    timer = setInterval(() => {
-      try {
-        if (token) lease.heartbeat(token);
-      } catch {
-        // The next guarded financial step fails closed.
-      }
-    }, 60_000);
-    timer.unref();
-    const binding = readJson<WatchBindingFile>(resolve(bindingFile)),
-      snapshot = readJson<unknown>(resolve(snapshotFile)),
-      payment = watch.observe(binding, snapshot as never);
-    if (payment.orderId !== executionAuth.orderId)
-      throw Error("WATCH_ORDER_AUTHORIZATION_MISMATCH");
     let bundle: MainnetSignedBundle;
     if (bundleFile) {
       bundle = readJson<MainnetSignedBundle>(resolve(bundleFile));
