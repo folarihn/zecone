@@ -8,10 +8,20 @@
       "endpoint": "https://zcash-mainnet-zebrad.gateway.tatum.io",
       "operator": "tatum"
     },
-    "rawBlock": {
-      "endpoint": "https://api.blockchair.com/zcash/raw/block",
-      "operator": "blockchair"
-    }
+    "rawBlocks": [
+      {
+        "endpoint": "https://zcash-mainnet-zebrad.gateway.tatum.io",
+        "operator": "tatum",
+        "protocol": "zcash-json-rpc",
+        "authHeader": "x-api-key",
+        "authEnv": "ZECONE_TATUM_API_KEY"
+      },
+      {
+        "endpoint": "https://api.blockchair.com/zcash/raw/block",
+        "operator": "blockchair",
+        "protocol": "blockchair-rest"
+      }
+    ]
   },
   "base": [
     { "endpoint": "https://mainnet.base.org", "operator": "coinbase" },

@@ -6,6 +6,13 @@ production credentials, independent providers, signed prices or authenticated
 Zcash mainnet observation have been supplied. Do not treat local validation or
 fixtures as authorization for a real transfer.
 
+Stage 4B validated the public read-only Zcash path. Before wallet provisioning,
+follow [STAGE4B-VALIDATION.md](STAGE4B-VALIDATION.md) and
+[STAGE4B-BACKUP.md](STAGE4B-BACKUP.md): configure an operator-owned authenticated
+raw-block source, pass a representative dual-source export, decide the
+ZIP-244/full-node trust boundary, and complete a real off-host encrypted backup
+and restore drill. Public probe success does not lift the mainnet pause.
+
 ## Commands
 
 All commands are local-only unless the step explicitly reads the configured
@@ -183,21 +190,21 @@ must remain **NO-GO** rather than treating two RPC responses as consensus.
 
 ## Acceptance status
 
-| Area                                   | Status                      | Evidence / remaining blocker                                                                                               |
-| -------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Operator CLI surface                   | PASS                        | Seven operator subcommands exist; all accept exact local files.                                                            |
-| Execution disabled by default          | PASS                        | Journal and operator control start paused; exact confirm/arm/resume strings required.                                      |
-| Exact order binding                    | PASS in fixtures            | Terms, prepared, signed, transaction, network, recipient, cap and expiry are rechecked at the boundary.                    |
-| Isolated Base/Solana signer            | PASS in disposable tests    | Purpose-bound keystore, exact digest approval, local signature verification, limits, revocation and signer ledger.         |
-| Single-writer lease                    | PASS in disposable tests    | Token/fence lease, expiry recovery, stale guard, pause and release are covered.                                            |
-| One-shot submission and reconciliation | PASS in fixtures            | Tests cover duplicate, uncertain, crash-left claimed, finalized and no-resend paths.                                       |
-| Production profile template            | PASS as a disabled template | `config/mainnet-profiles.production.example.json` has two placeholder providers per network and cannot validate as active. |
-| Production pricing                     | BLOCKED                     | No genuine independently signed price feeds or pinned operator keys are configured.                                        |
+| Area                                   | Status                      | Evidence / remaining blocker                                                                                                                                                                           |
+| -------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Operator CLI surface                   | PASS                        | Seven operator subcommands exist; all accept exact local files.                                                                                                                                        |
+| Execution disabled by default          | PASS                        | Journal and operator control start paused; exact confirm/arm/resume strings required.                                                                                                                  |
+| Exact order binding                    | PASS in fixtures            | Terms, prepared, signed, transaction, network, recipient, cap and expiry are rechecked at the boundary.                                                                                                |
+| Isolated Base/Solana signer            | PASS in disposable tests    | Purpose-bound keystore, exact digest approval, local signature verification, limits, revocation and signer ledger.                                                                                     |
+| Single-writer lease                    | PASS in disposable tests    | Token/fence lease, expiry recovery, stale guard, pause and release are covered.                                                                                                                        |
+| One-shot submission and reconciliation | PASS in fixtures            | Tests cover duplicate, uncertain, crash-left claimed, finalized and no-resend paths.                                                                                                                   |
+| Production profile template            | PASS as a disabled template | `config/mainnet-profiles.production.example.json` has two placeholder providers per network and cannot validate as active.                                                                             |
+| Production pricing                     | BLOCKED                     | No genuine independently signed price feeds or pinned operator keys are configured.                                                                                                                    |
 | Zcash authenticated observation        | BLOCKED                     | Implementation verifies raw-block inclusion and bounded PoW continuity; no approved raw-block source, independent mainnet lightwalletd pair, produced UFVK or controlled owned-note run is configured. |
-| Base live acceptance                   | BLOCKED                     | No production RPC operators, relayer funding, signer attestation, fee-fork validation or rehearsal.                        |
-| Solana live acceptance                 | BLOCKED                     | No production RPC operators, funded relayer, signer attestation or rehearsal.                                              |
-| Production single-writer deployment    | BLOCKED                     | Lease behavior is fixture-tested; the intended host/volume topology and emergency runbook have not been exercised.         |
-| Real transaction safety                | BLOCKED                     | No real payment, production unlock, signature, broadcast or refund has occurred.                                           |
+| Base live acceptance                   | BLOCKED                     | No production RPC operators, relayer funding, signer attestation, fee-fork validation or rehearsal.                                                                                                    |
+| Solana live acceptance                 | BLOCKED                     | No production RPC operators, funded relayer, signer attestation or rehearsal.                                                                                                                          |
+| Production single-writer deployment    | BLOCKED                     | Lease behavior is fixture-tested; the intended host/volume topology and emergency runbook have not been exercised.                                                                                     |
+| Real transaction safety                | BLOCKED                     | No real payment, production unlock, signature, broadcast or refund has occurred.                                                                                                                       |
 
 ## First-transaction prerequisites
 

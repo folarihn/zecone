@@ -8,14 +8,20 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import {
+  assertRawBlockProviders,
+  fetchCorroboratedRawBlock,
+  type RawBlockProvider,
+} from "../services/settlement/mainnet-block-source.ts";
 
 type Provider = { endpoint: string; operator: string };
 type ProbeConfig = {
   zcash: {
     lightwalletd: Provider[];
     headerRpc: Provider;
-    rawBlock: Provider;
+    rawBlocks: RawBlockProvider[];
   };
   base: Provider[];
   solana: Provider[];
@@ -26,6 +32,7 @@ const configPath =
   "deploy/config/mainnet-public-probes.json";
 const outputDir = resolve(process.argv[2] ?? "docs/stage3-evidence");
 const timeout = 30_000;
+const MAX_RESPONSE_BYTES = 4 * 1024 * 1024;
 
 function assertProviders(label: string, providers: Provider[]) {
   if (!Array.isArray(providers) || providers.length !== 2) {
@@ -36,15 +43,19 @@ function assertProviders(label: string, providers: Provider[]) {
   for (const provider of providers) {
     const url = new URL(provider.endpoint);
     if (url.protocol !== "https:") throw new Error(`${label}_https_required`);
-    if (url.username || url.password) throw new Error(`${label}_credentials_forbidden`);
-    if (/example|localhost|127\.0\.0\.1|\.invalid|replace/i.test(url.hostname)) {
+    if (url.username || url.password)
+      throw new Error(`${label}_credentials_forbidden`);
+    if (
+      /example|localhost|127\.0\.0\.1|\.invalid|replace/i.test(url.hostname)
+    ) {
       throw new Error(`${label}_placeholder_forbidden`);
     }
     hosts.add(url.host);
     operators.add(provider.operator);
   }
   if (hosts.size !== 2) throw new Error(`${label}_hosts_must_be_distinct`);
-  if (operators.size !== 2) throw new Error(`${label}_operators_must_be_distinct`);
+  if (operators.size !== 2)
+    throw new Error(`${label}_operators_must_be_distinct`);
 }
 
 function loadConfig(): ProbeConfig {
@@ -52,9 +63,9 @@ function loadConfig(): ProbeConfig {
   assertProviders("zcash_lightwalletd", config.zcash?.lightwalletd);
   assertProviders("base", config.base);
   assertProviders("solana", config.solana);
+  assertRawBlockProviders(config.zcash.rawBlocks);
   for (const [label, provider] of [
     ["zcash_header_rpc", config.zcash.headerRpc],
-    ["zcash_raw_block", config.zcash.rawBlock],
   ] as const) {
     const url = new URL(provider.endpoint);
     if (url.protocol !== "https:" || url.username || url.password) {
@@ -69,10 +80,13 @@ async function postJson(label: string, url: string, body: unknown) {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
+    redirect: "error",
     signal: AbortSignal.timeout(timeout),
   });
   const text = await response.text();
   if (!response.ok) throw new Error(`${label}_http_${response.status}`);
+  if (text.length > MAX_RESPONSE_BYTES)
+    throw new Error(`${label}_response_too_large`);
   try {
     return JSON.parse(text) as Record<string, unknown>;
   } catch {
@@ -80,22 +94,23 @@ async function postJson(label: string, url: string, body: unknown) {
   }
 }
 
-async function rpc(label: string, url: string, method: string, params: unknown[]) {
+async function rpc(
+  label: string,
+  url: string,
+  method: string,
+  params: unknown[],
+) {
   const id = 1;
-  const body = await postJson(label, url, { jsonrpc: "2.0", id, method, params });
+  const body = await postJson(label, url, {
+    jsonrpc: "2.0",
+    id,
+    method,
+    params,
+  });
   if (body.id !== id) throw new Error(`${label}_id_mismatch`);
   if (body.error) throw new Error(`${label}_rpc_error`);
   if (!("result" in body)) throw new Error(`${label}_missing_result`);
   return body.result;
-}
-
-async function fetchJson(label: string, url: string) {
-  const response = await fetch(url, {
-    headers: { accept: "application/json" },
-    signal: AbortSignal.timeout(timeout),
-  });
-  if (!response.ok) throw new Error(`${label}_http_${response.status}`);
-  return (await response.json()) as Record<string, unknown>;
 }
 
 function watchBinary() {
@@ -103,8 +118,12 @@ function watchBinary() {
     process.platform === "win32"
       ? "zecone-zcash-watch.exe"
       : "zecone-zcash-watch";
+  const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
   const candidates = [
     process.env.ZECONE_WATCH_BIN,
+    join(projectRoot, "services", "zcash-watch", "target", "debug", name),
+    join(projectRoot, "target", "debug", name),
+    join(process.cwd(), "services", "zcash-watch", "target", "debug", name),
     join(process.cwd(), "target", "debug", name),
     join("/usr/local/bin", name),
   ].filter((value): value is string => Boolean(value));
@@ -170,11 +189,14 @@ async function probeBase(providers: Provider[]) {
     providers.map(async (provider) => {
       const chainId = await rpc("base", provider.endpoint, "eth_chainId", []);
       if (chainId !== "0x2105") throw new Error("base_wrong_chain");
-      const block = (await rpc("base", provider.endpoint, "eth_getBlockByNumber", [
-        "finalized",
-        false,
-      ])) as { number?: string; hash?: string; timestamp?: string } | null;
-      if (!block?.number || !block.hash) throw new Error("base_missing_finalized_block");
+      const block = (await rpc(
+        "base",
+        provider.endpoint,
+        "eth_getBlockByNumber",
+        ["finalized", false],
+      )) as { number?: string; hash?: string; timestamp?: string } | null;
+      if (!block?.number || !block.hash)
+        throw new Error("base_missing_finalized_block");
       return {
         operator: provider.operator,
         endpoint: provider.endpoint,
@@ -188,10 +210,12 @@ async function probeBase(providers: Provider[]) {
   const common = Math.min(...observed.map((item) => item.number));
   const agreed = await Promise.all(
     providers.map(async (provider) => {
-      const block = (await rpc("base", provider.endpoint, "eth_getBlockByNumber", [
-        `0x${common.toString(16)}`,
-        false,
-      ])) as { hash?: string; timestamp?: string } | null;
+      const block = (await rpc(
+        "base",
+        provider.endpoint,
+        "eth_getBlockByNumber",
+        [`0x${common.toString(16)}`, false],
+      )) as { hash?: string; timestamp?: string } | null;
       if (!block?.hash) throw new Error("base_missing_common_block");
       return {
         operator: provider.operator,
@@ -236,7 +260,12 @@ async function probeSolana(providers: Provider[]) {
   assertProviders("solana", providers);
   const observed = await Promise.all(
     providers.map(async (provider) => {
-      const genesis = await rpc("solana", provider.endpoint, "getGenesisHash", []);
+      const genesis = await rpc(
+        "solana",
+        provider.endpoint,
+        "getGenesisHash",
+        [],
+      );
       if (genesis !== "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d") {
         throw new Error("solana_wrong_genesis");
       }
@@ -290,7 +319,9 @@ async function probeZcash(config: ProbeConfig["zcash"]) {
   const mainnet = probeMainnet(primary.endpoint, peer.endpoint);
   const height = mainnet.height;
   const blockHash = String(
-    await rpc("zcash_header", config.headerRpc.endpoint, "getblockhash", [height]),
+    await rpc("zcash_header", config.headerRpc.endpoint, "getblockhash", [
+      height,
+    ]),
   );
   same("zcash_lightwalletd_tatum_hash", mainnet.blockHash, blockHash);
   const headerHex = String(
@@ -302,20 +333,13 @@ async function probeZcash(config: ProbeConfig["zcash"]) {
   if (!/^[0-9a-f]+$/i.test(headerHex) || headerHex.length % 2 !== 0) {
     throw new Error("zcash_header_invalid");
   }
-  const rawBlock = await fetchJson(
-    "zcash_raw_block",
-    `${config.rawBlock.endpoint.replace(/\/$/, "")}/${blockHash}`,
-  );
-  const entry = (rawBlock.data as Record<string, { raw_block?: string }>)?.[blockHash];
-  if (!entry?.raw_block || !/^[0-9a-f]+$/i.test(entry.raw_block)) {
-    throw new Error("zcash_raw_block_missing");
-  }
+  const rawBlock = await fetchCorroboratedRawBlock(config.rawBlocks, blockHash);
   const temp = mkdtempSync(join(tmpdir(), "zecone-mainnet-"));
   try {
     const headerFile = join(temp, "header.bin");
     const blockFile = join(temp, "block.bin");
     writeFileSync(headerFile, Buffer.from(headerHex, "hex"));
-    writeFileSync(blockFile, Buffer.from(entry.raw_block, "hex"));
+    writeFileSync(blockFile, rawBlock.bytes);
     const header = rust([
       "verify-header",
       "--header-file",
@@ -333,7 +357,11 @@ async function probeZcash(config: ProbeConfig["zcash"]) {
       String(height),
     ]);
     same("zcash_header_hash", header.hash, blockHash);
-    same("zcash_block_header_hash", (block.header as { hash?: string })?.hash, blockHash);
+    same(
+      "zcash_block_header_hash",
+      (block.header as { hash?: string })?.hash,
+      blockHash,
+    );
     same(
       "zcash_header_merkle_root",
       header.merkleRoot,
@@ -342,7 +370,8 @@ async function probeZcash(config: ProbeConfig["zcash"]) {
     if (block.transactionMerkleRootMatchesHeader !== true) {
       throw new Error("zcash_transaction_merkle_root_disagreement");
     }
-    if (header.proofOfWork !== "PASS") throw new Error("zcash_proof_of_work_failed");
+    if (header.proofOfWork !== "PASS")
+      throw new Error("zcash_proof_of_work_failed");
     return {
       status: "PASS",
       height,
@@ -357,7 +386,10 @@ async function probeZcash(config: ProbeConfig["zcash"]) {
       transactionMerkleRootMatchesHeader: true,
       proofOfWork: "PASS",
       headerSource: config.headerRpc.operator,
-      blockSource: config.rawBlock.operator,
+      rawBlockSources: rawBlock.operators,
+      rawBlockSha256: rawBlock.sha256,
+      rawBlockExactByteAgreement: rawBlock.exactByteAgreement,
+      authorizingDataCommitment: "NOT_LOCALLY_RECOMPUTED",
       readOnly: true,
     };
   } finally {

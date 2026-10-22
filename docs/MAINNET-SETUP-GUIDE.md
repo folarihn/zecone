@@ -5,6 +5,12 @@ and [MAINNET-PUBLIC-LAUNCH.md](MAINNET-PUBLIC-LAUNCH.md). It describes the
 cheapest safe controlled-pilot setup. It does **not** authorize a live transfer.
 Mainnet execution remains disabled by the repository.
 
+Stage 4B provider and backup prerequisites are recorded in
+[STAGE4B-INFRASTRUCTURE.md](STAGE4B-INFRASTRUCTURE.md) and
+[STAGE4B-BACKUP.md](STAGE4B-BACKUP.md). Complete their operator gates before
+creating a production wallet. The anonymous public endpoints used for live
+evidence are not approved production infrastructure.
+
 Read the whole guide before creating accounts or keys. Stop at every review
 gate. If a step does not match the reviewed plan, stop instead of improvising.
 
@@ -74,13 +80,13 @@ All three must be `True` before provisioning.
 Create accounts in a browser profile that is not used for production keys. Store
 credentials in a password manager. Do not save them in the repository.
 
-| Provider | What to create | Copy into the private config |
-| --- | --- | --- |
-| Alchemy | Base Mainnet app and Solana Mainnet app | HTTPS RPC URLs including the API key |
-| Infura | Base Mainnet API key | `https://base-mainnet.infura.io/v3/<KEY>` |
-| Helius | Solana Mainnet API key | `https://mainnet.helius-rpc.com/?api-key=<KEY>` |
-| `zec.rocks` | No account; public endpoint | `https://zec.rocks:443` |
-| Stardust | No account; public endpoint | `https://us.zec.stardust.rest:443` or the EU endpoint |
+| Provider    | What to create                          | Copy into the private config                          |
+| ----------- | --------------------------------------- | ----------------------------------------------------- |
+| Alchemy     | Base Mainnet app and Solana Mainnet app | HTTPS RPC URLs including the API key                  |
+| Infura      | Base Mainnet API key                    | `https://base-mainnet.infura.io/v3/<KEY>`             |
+| Helius      | Solana Mainnet API key                  | `https://mainnet.helius-rpc.com/?api-key=<KEY>`       |
+| `zec.rocks` | No account; public endpoint             | `https://zec.rocks:443`                               |
+| Stardust    | No account; public endpoint             | `https://us.zec.stardust.rest:443` or the EU endpoint |
 
 Before using an endpoint, confirm it is the intended network and operator. Do
 not use two regional `zec.rocks` URLs as a pair. Do not use a one-month

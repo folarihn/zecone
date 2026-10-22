@@ -1,5 +1,39 @@
 # ZecOne progress
 
+## 22 October 2026 - Stage 4B production infrastructure and live read-only verification
+
+Validated two published Zcash lightwalletd operators, zec.rocks and Stardust,
+against real mainnet data. They agreed at tip 3,526,658 on the ten-confirmation
+block at height 3,526,648. Tatum Zebra RPC and Blockchair returned identical
+complete raw bytes for that block; local Rust checks passed header hashing,
+Equihash, target and the full transaction Merkle root. The new exporter requires
+two raw-block operators, requires ten confirmations per block, validates a
+contiguous segment and accumulated work, rejects redirects and oversized
+responses, writes only outside the repository and removes only its own partial
+evidence on failure.
+
+Independent review validation: **529 Node tests**, including **8 focused Stage
+4B tests**, and **16 Rust watch tests** pass. Both TypeScript checks, lint, Rust
+formatting/Clippy, wallet production build and extension build pass. No
+production credential, wallet, owned note, payment, signature, broadcast,
+refund, VPS or deployment state was touched.
+
+The result is still **BLOCKED for production payment acceptance**. Anonymous
+Tatum access returned HTTP 429 during a ten-block rehearsal, provider backend
+independence has no attestation/SLA, and the verifier does not locally recompute
+ZIP-244 authorizing-data plus chain-history commitments. The shared VPS is
+suitable for bounded verification but cannot host Zebra: same-day evidence
+shows only 49 GiB dedicated ZecOne capacity and 11 GiB host RAM versus Zebra's
+300 GB disk minimum and 16 GB recommended RAM. No SSH configuration was
+available for a new host inspection, and no host state was changed.
+
+The existing age-encrypted watch backup passed disposable encryption, integrity
+and restore coverage. Production backup remains blocked on an operator-provided
+public age recipient, off-host destination, retention confirmation and failure
+alert route. No production key, UFVK, wallet, owned note, payment, signature,
+broadcast or refund was created. See [Stage 4B infrastructure](docs/STAGE4B-INFRASTRUCTURE.md),
+[backup plan](docs/STAGE4B-BACKUP.md), and [validation](docs/STAGE4B-VALIDATION.md).
+
 ## 22 October 2026 - Stage 4A secure Zcash mainnet provisioning and authenticated observation
 
 Recovered the interrupted Stage 4A work without resetting its changes. Offline disposable provisioning now derives a fresh mainnet UFVK, records an explicit wallet birthday, seals the seed in the purpose-bound keystore and verifies recovery to the same account/address/UFVK without printing secret material. Watch-only import rejects testnet keys, existing/duplicate profiles, repository/historical paths and symlinks. Encrypted watch backups now require a mainnet `uview1` key and pass real SQLite integrity checks before backup and after restore; corrupt or wrong-network recovery fails closed.

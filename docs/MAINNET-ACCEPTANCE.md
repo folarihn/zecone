@@ -2,6 +2,14 @@
 
 > **Superseded findings:** the scanner ownership and missing sender defects recorded below were subsequently fixed and validated in disposable fixtures. See [MAINNET-ACCEPTANCE-CONTINUATION.md](MAINNET-ACCEPTANCE-CONTINUATION.md). Mainnet remains disabled because live providers, production pricing, isolated signers, funded relayers, and controlled acceptance runs are not configured.
 
+> **Stage 4B infrastructure update:** two published lightwalletd operators and
+> two complete raw-block sources agreed on real mainnet data, with local
+> proof-of-work and transaction-Merkle verification. Production payment
+> acceptance remains blocked by authenticated exporter reliability, the
+> documented ZIP-244/full-consensus verification boundary, production backup
+> inputs and the controlled owned-note run. See
+> [STAGE4B-VALIDATION.md](STAGE4B-VALIDATION.md).
+
 **Launch decision: NO-GO for both shielded ZEC → Base and shielded ZEC → Solana.** No production credentials were provisioned/unlocked, payments sent, transactions signed/broadcast or refunds activated during acceptance. Disposable signatures in regression tests are not live transactions.
 
 Validated implementation commit: **`8906258`**.
