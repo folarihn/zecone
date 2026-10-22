@@ -6,6 +6,8 @@
     "node": ">=24.12.0 <25"
   },
   "scripts": {
+    "vps:service": "node --experimental-transform-types scripts/vps-readonly-service.ts",
+    "vps:compose-check": "docker compose --project-directory deploy -f deploy/compose.yaml config --quiet",
     "mainnet:readiness": "tsx scripts/mainnet-critical-readiness.ts",
     "mainnet:config-check": "tsx scripts/mainnet-config-check.ts",
     "mainnet:watch": "tsx scripts/mainnet-watch.ts",

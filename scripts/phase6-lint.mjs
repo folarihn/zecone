@@ -2,6 +2,8 @@
 import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 const files = [
+  "scripts/vps-readonly-service.ts",
+  "tests/vps-deployment.test.ts",
   "services/provisioning/mainnet-keystore.ts",
   "services/settlement/mainnet-watch.ts",
   "services/settlement/mainnet-quote.ts",

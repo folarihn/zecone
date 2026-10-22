@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+COMPOSE=(docker compose --project-directory "$ROOT/deploy" -f "$ROOT/deploy/compose.yaml")
+RUNTIME="$ROOT/deploy/runtime"
+STATE="${ZECONE_STATE_DIR:-$RUNTIME/state}"
+CONFIG="${ZECONE_CONFIG_DIR:-$RUNTIME/config}"
+LOGS="${ZECONE_LOG_DIR:-$RUNTIME/logs}"
+
+fail() { printf '%s\n' "$1" >&2; exit 1; }
+require_file() { [[ -f "$1" ]] || fail "missing required file: $1"; }
+
+case "${1:-}" in
+  init)
+    install -d -m 0700 "$STATE" "$CONFIG" "$LOGS"
+    [[ -e "$CONFIG/mainnet-profiles.json" ]] || install -m 0600 "$ROOT/deploy/config/mainnet-profiles.json" "$CONFIG/mainnet-profiles.json"
+    [[ -e "$CONFIG/mainnet-readonly.json" ]] || install -m 0600 "$ROOT/deploy/config/mainnet-readonly.json" "$CONFIG/mainnet-readonly.json"
+    printf '%s\n' "initialized read-only runtime; replace placeholders before provider validation"
+    ;;
+  validate)
+    require_file "$CONFIG/mainnet-profiles.json"
+    require_file "$CONFIG/mainnet-readonly.json"
+    "${COMPOSE[@]}" config --quiet
+    docker run --rm --read-only --network none \
+      -v "$CONFIG:/etc/zecone:ro" \
+      "zecone-readonly:${ZECONE_IMAGE_TAG:-local}" \
+      node --experimental-transform-types scripts/mainnet-config-check.ts \
+      --profiles /etc/zecone/mainnet-profiles.json \
+      --readonly /etc/zecone/mainnet-readonly.json
+    ;;
+  build)
+    "${COMPOSE[@]}" build --pull readonly
+    ;;
+  start-readonly)
+    [[ "${ZECONE_ALLOW_EXECUTION:-0}" == "0" ]] || fail "execution flag must remain disabled"
+    "${COMPOSE[@]}" up -d --no-deps readonly
+    ;;
+  health)
+    curl --fail --silent --show-error "http://127.0.0.1:${ZECONE_HEALTH_PORT:-3410}/healthz"
+    printf '\n'
+    ;;
+  logs)
+    "${COMPOSE[@]}" logs --tail "${ZECONE_LOG_LINES:-200}" readonly
+    ;;
+  pause)
+    reason="${2:-OPERATOR_EMERGENCY_PAUSE}"
+    [[ "$reason" =~ ^[A-Z0-9_]{3,96}$ ]] || fail "pause reason must be a finite uppercase code"
+    for network in base solana; do
+      "${COMPOSE[@]}" exec -T readonly node --experimental-transform-types scripts/mainnet-operator.ts pause \
+        --journal "/var/lib/zecone/${network}-submissions.sqlite" \
+        --lease /var/lib/zecone/operator-control.sqlite \
+        --reason "$reason"
+    done
+    ;;
+  backup)
+    command -v age >/dev/null || fail "age is required"
+    command -v sqlite3 >/dev/null || fail "sqlite3 is required"
+    recipient_file="${ZECONE_BACKUP_RECIPIENT_FILE:-}"
+    output="${2:-}"
+    require_file "$recipient_file"
+    [[ -n "$output" && ! -e "$output" ]] || fail "provide a new backup output path"
+    tmp="$(mktemp -d)"
+    trap 'rm -rf -- "$tmp"' EXIT
+    mkdir -m 0700 "$tmp/state"
+    while IFS= read -r -d '' db; do
+      sqlite3 "$db" ".timeout 5000" ".backup '$tmp/state/$(basename "$db")'"
+    done < <(find "$STATE" -maxdepth 1 -type f -name '*.sqlite' -print0)
+    find "$STATE" -maxdepth 1 -type f ! -name '*.sqlite*' -exec cp -p -- '{}' "$tmp/state/" \;
+    [[ -d "$STATE/zcash-watch" ]] && cp -a -- "$STATE/zcash-watch" "$tmp/state/zcash-watch"
+    tar -C "$tmp" -cf - state | age -R "$recipient_file" -o "$output"
+    chmod 0600 "$output"
+    printf '%s\n' "encrypted backup created; verify it on the offline operator PC"
+    ;;
+  restore-test)
+    command -v age >/dev/null || fail "age is required"
+    command -v sqlite3 >/dev/null || fail "sqlite3 is required"
+    backup="${2:-}"
+    identity="${ZECONE_BACKUP_IDENTITY_FILE:-}"
+    require_file "$backup"
+    require_file "$identity"
+    tmp="$(mktemp -d)"
+    trap 'rm -rf -- "$tmp"' EXIT
+    age -d -i "$identity" "$backup" | tar -C "$tmp" -xf -
+    while IFS= read -r -d '' db; do
+      [[ "$(sqlite3 "$db" 'PRAGMA integrity_check;')" == "ok" ]] || fail "backup database integrity failed"
+    done < <(find "$tmp/state" -type f -name '*.sqlite' -print0)
+    printf '%s\n' "restore verification passed in disposable directory; active state unchanged"
+    ;;
+  stop)
+    "${COMPOSE[@]}" stop --timeout 30 readonly
+    ;;
+  *)
+    fail "usage: deploy/zecone-vps {init|validate|build|start-readonly|health|logs|pause [CODE]|backup OUTPUT|restore-test BACKUP|stop}"
+    ;;
+esac
