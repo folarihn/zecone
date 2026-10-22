@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-10-22T14:50:05Z",
+  "status": "PASS",
+  "network": "zcash-mainnet",
+  "mode": "READ_ONLY",
+  "height": 3526781,
+  "blockHash": "000000000008bfbbd56ff2373665c62cca8fa5fe8e827228765d4a4549af5d23",
+  "confirmations": 10,
+  "orchardRoot": "2c473b5e94cd9400d434888fa9c37e3dd00fd59fe5dc65db77eb7ebda727f91d",
+  "primary": {
+    "endpoint": "https://zec.rocks:443",
+    "tip": 3526791
+  },
+  "fallbackChecks": [
+    {
+      "observedAt": "2026-10-22T14:50:05Z",
+      "endpoint": "https://zec-node.cakewallet.com:443",
+      "operator": "cake-wallet",
+      "tip": 3526791,
+      "providerAgreement": "PASS"
+    },
+    {
+      "observedAt": "2026-10-22T14:50:06Z",
+      "endpoint": "https://lwd.zcashexplorer.app:9067",
+      "operator": "zcash-explorer",
+      "tip": 3526791,
+      "providerAgreement": "PASS"
+    }
+  ],
+  "authenticatedProofOfWork": "NOT_CHECKED_BY_GRPC_PROBE",
+  "note": "Additional public-provider agreement checks. These are fallback candidates, not the selected production pair and not an independence or SLA attestation."
+}

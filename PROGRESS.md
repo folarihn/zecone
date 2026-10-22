@@ -1,5 +1,40 @@
 # ZecOne progress
 
+## 22 October 2026 - Stage 4C provider verification, export rehearsal and backup preparation
+
+Rechecked the live public Zcash path and the running read-only VPS.
+zec.rocks and Stardust/ChainSafe agreed at tip 3,526,794 on height 3,526,784
+with ten confirmations; Tatum and Blockchair returned byte-identical full-block
+bytes, and local header, Equihash, target and transaction-Merkle checks passed.
+A three-block export at heights 3,526,768-3,526,770 also passed exact
+dual-source agreement, continuity and accumulated-work checks. Additional
+fallback probes against Cake Wallet and Zcash Explorer passed. The providers are
+distinct published operators, but backend/administrative independence and an SLA
+remain **UNVERIFIED**.
+
+A representative ten-block export from height 3,526,765 failed closed when
+anonymous Tatum returned HTTP 429 and removed its partial output. Production
+authenticated export therefore remains **BLOCKED** on an operator-owned Tatum key
+or an approved full-node exporter.
+
+A fresh disposable backup/restore drill encrypted a synthetic mainnet watch
+profile to a disposable age identity, restored matching account/address/birthday
+metadata and passed SQLite integrity. Production off-host backup remains
+**BLOCKED** on a pinned age recipient, destination, credentials, retention and
+alert route. Backblaze B2 is the recommended lowest-cost destination (10 GB
+free, then USD 6.95/TB-month; versioning by default and optional Object Lock).
+No account or purchase was made.
+
+Read-only SSH confirmed the Contabo host is healthy: 11 GiB RAM with 9.5 GiB
+available, 77 GiB free on `/`, 49 GiB dedicated ZecOne filesystem, and a healthy
+`zecone-readonly-1` on `stage1-1.89`. The health endpoint remains `READ_ONLY`,
+paused and `OPERATOR_SETUP_REQUIRED`. The host has Node and `age` but no
+`rclone`, `b2` CLI or watch binary; `/opt/zecone` is staged source, not a Git
+checkout. No VPS file, service, container, firewall rule, wallet, payment,
+signature, broadcast or refund was changed. See
+[Stage 4C validation](docs/STAGE4C-VALIDATION.md) and the
+[operator checklist](docs/STAGE4C-OPERATOR-CHECKLIST.md).
+
 ## 22 October 2026 - Stage 4B production infrastructure and live read-only verification
 
 Validated two published Zcash lightwalletd operators, zec.rocks and Stardust,

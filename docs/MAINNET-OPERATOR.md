@@ -6,12 +6,16 @@ production credentials, independent providers, signed prices or authenticated
 Zcash mainnet observation have been supplied. Do not treat local validation or
 fixtures as authorization for a real transfer.
 
-Stage 4B validated the public read-only Zcash path. Before wallet provisioning,
-follow [STAGE4B-VALIDATION.md](STAGE4B-VALIDATION.md) and
-[STAGE4B-BACKUP.md](STAGE4B-BACKUP.md): configure an operator-owned authenticated
-raw-block source, pass a representative dual-source export, decide the
-ZIP-244/full-node trust boundary, and complete a real off-host encrypted backup
-and restore drill. Public probe success does not lift the mainnet pause.
+Stage 4B validated the public read-only Zcash path. Stage 4C rechecked the live
+providers, passed a three-block cryptographically verified export and a
+disposable age restore drill, but the representative ten-block export failed
+closed on anonymous Tatum HTTP 429. Before wallet provisioning, follow
+[STAGE4C-VALIDATION.md](STAGE4C-VALIDATION.md),
+[STAGE4C-OPERATOR-CHECKLIST.md](STAGE4C-OPERATOR-CHECKLIST.md) and
+[STAGE4B-BACKUP.md](STAGE4B-BACKUP.md): supply an authenticated raw-block source,
+pass a reliable representative export, decide the ZIP-244/full-node trust
+boundary, and complete a real off-host encrypted backup and restore drill.
+Public probe success does not lift the mainnet pause.
 
 ## Commands
 

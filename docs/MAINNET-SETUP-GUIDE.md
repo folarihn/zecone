@@ -7,9 +7,12 @@ Mainnet execution remains disabled by the repository.
 
 Stage 4B provider and backup prerequisites are recorded in
 [STAGE4B-INFRASTRUCTURE.md](STAGE4B-INFRASTRUCTURE.md) and
-[STAGE4B-BACKUP.md](STAGE4B-BACKUP.md). Complete their operator gates before
-creating a production wallet. The anonymous public endpoints used for live
-evidence are not approved production infrastructure.
+[STAGE4B-BACKUP.md](STAGE4B-BACKUP.md). Stage 4C adds the current live
+verification, the ten-block Tatum rate-limit result and the Backblaze B2 backup
+recommendation in [STAGE4C-VALIDATION.md](STAGE4C-VALIDATION.md) and
+[STAGE4C-OPERATOR-CHECKLIST.md](STAGE4C-OPERATOR-CHECKLIST.md). Complete their
+operator gates before creating a production wallet. The anonymous public
+endpoints used for live evidence are not approved production infrastructure.
 
 Read the whole guide before creating accounts or keys. Stop at every review
 gate. If a step does not match the reviewed plan, stop instead of improvising.
@@ -540,7 +543,10 @@ The restored account, address and birthday must exactly match provisioning and
 the original watch manifest. Never restore over an existing wallet. Test the
 restore before funding. Production backup readiness also requires an approved
 age recipient and an audited off-host destination; the public repository does
-not supply either.
+not supply either. Stage 4C recommends Backblaze B2 with versioning, optional
+Object Lock, a bucket-scoped key and 7 daily / 4 weekly / 12 monthly retention;
+follow [STAGE4C-OPERATOR-CHECKLIST.md](STAGE4C-OPERATOR-CHECKLIST.md) for the
+exact setup, upload and remote-SHA-256 checks.
 
 Recover the UFVK from the receiver keystore when the original viewing-key file is
 lost. This requires the receiver passphrase and the provisioning metadata:

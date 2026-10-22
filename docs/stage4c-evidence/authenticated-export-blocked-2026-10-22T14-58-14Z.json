@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-22T14:58:14.844Z",
+  "status": "BLOCKED",
+  "operation": "ten_block_export",
+  "network": "zcash-mainnet",
+  "mode": "READ_ONLY",
+  "startHeight": 3526765,
+  "count": 10,
+  "observedTip": 3526795,
+  "error": "zcash_raw_block_http_tatum_429",
+  "partialOutputRemoved": true,
+  "interpretation": "Anonymous Tatum access was rate-limited during the representative segment. Production authenticated export remains blocked until an operator-owned Tatum key or approved full-node exporter is supplied. No raw block, wallet, payment or signature was created."
+}
