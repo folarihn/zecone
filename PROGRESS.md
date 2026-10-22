@@ -1,5 +1,11 @@
 # ZecOne progress
 
+## 22 October 2026 - Shared Contabo VPS inspected read-only
+
+Inspected the authorized shared Ubuntu host without changing it. The host has 6 vCPU, 11 GiB RAM (9.6 GiB available), 137 GiB free root storage, and port 3410 free. Hermes is active with systemd CPU/memory/task limits and isolated development storage; multiple root-owned PM2 workloads also run on the host. No Docker Engine/Compose or `age` is installed, no ZecOne path or namespace exists, and no application backup schedule was evidenced. The host is conditionally suitable for the paused pilot after approved installation, dedicated/quota-bounded ZecOne state storage, and encrypted off-host backups. Root-owned peer workloads remain a shared-host trust risk.
+
+Review found and fixed a non-spending bind-mount permission defect: fresh state/log paths are now owned by container UID/GID 10001, while configuration remains root-owned and group-readable by the non-root container. Compose schema and the 2 disposable deployment tests pass. No VPS package, file, image, process, service, port, firewall rule, wallet, or transaction was changed. Docker image build is still **BLOCKED** until an approved Docker-capable environment is available.
+
 ## 22 October 2026 - Contabo read-only deployment package prepared
 
 Added a production-oriented Docker image and Compose service that runs only the new read-only health process. It starts as UID 10001 with a read-only root filesystem, all capabilities dropped, no-new-privileges, bounded CPU/memory/PIDs/logs, loopback-only health, tmpfs scratch space and persistent host-mounted state. First boot refuses non-empty uninitialized state, creates fresh Base/Solana journals, and durably pauses both journals plus the fenced operator lease. No signer material is mounted and there is no wallet, approval, signing, broadcast, refund or admin HTTP endpoint.

@@ -69,7 +69,7 @@ deploy/zecone-vps health
 deploy/zecone-vps logs
 ```
 
-`init` creates mode-0700 runtime directories and mode-0600 disabled configuration templates. Replace placeholders through an editor over SSH; never pass secret provider URLs as command-line arguments. `validate` performs Compose validation and a network-disabled configuration inspection. BLOCKED provider findings are expected before operator setup; FAIL findings must be resolved.
+`init` creates the state and log directories as container UID/GID 10001 with mode 0700. It creates the configuration directory as root:10001 with mode 0750 and disabled templates as root:10001 with mode 0640, so the non-root container can read configuration without being able to replace it. Check that UID/GID 10001 is unused on the host before installation, or set `ZECONE_CONTAINER_UID` and `ZECONE_CONTAINER_GID` consistently in both the operator environment and Compose configuration. Replace placeholders through an editor over SSH; never pass secret provider URLs as command-line arguments. `validate` performs Compose validation and a network-disabled configuration inspection. BLOCKED provider findings are expected before operator setup; FAIL findings must be resolved.
 
 `start-readonly` refuses `ZECONE_ALLOW_EXECUTION` unless it is `0` or unset. Compose runs a non-root user, read-only root filesystem, all Linux capabilities dropped, no-new-privileges, bounded processes/resources/logs, persistent state, and a graceful 30-second stop.
 
@@ -106,5 +106,5 @@ Restore testing checks every SQLite database with `PRAGMA integrity_check` and n
 
 ## Current validation limits
 
-Compose schema validation passes locally. The disposable service starts, remains paused, exposes health only, persists journals across restart, and rejects POST/admin paths. The local Docker CLI is installed but its Linux daemon is not running, so the image build and container start are **BLOCKED in this workstation run**. No Contabo host or SSH configuration was supplied, so no VPS inspection or deployment occurred.
+Compose schema validation passes locally. The disposable service starts, remains paused, exposes health only, persists journals across restart, and rejects POST/admin paths. The local Docker CLI is installed but its Linux daemon is not running, so the image build and container start are **BLOCKED in this workstation run**. The October 22, 2026 read-only VPS inspection is recorded in `VPS-INSPECTION-2026-10-22.md`; no VPS change or deployment occurred.
 

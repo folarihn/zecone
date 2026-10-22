@@ -8,15 +8,18 @@ RUNTIME="$ROOT/deploy/runtime"
 STATE="${ZECONE_STATE_DIR:-$RUNTIME/state}"
 CONFIG="${ZECONE_CONFIG_DIR:-$RUNTIME/config}"
 LOGS="${ZECONE_LOG_DIR:-$RUNTIME/logs}"
+CONTAINER_UID="${ZECONE_CONTAINER_UID:-10001}"
+CONTAINER_GID="${ZECONE_CONTAINER_GID:-10001}"
 
 fail() { printf '%s\n' "$1" >&2; exit 1; }
 require_file() { [[ -f "$1" ]] || fail "missing required file: $1"; }
 
 case "${1:-}" in
   init)
-    install -d -m 0700 "$STATE" "$CONFIG" "$LOGS"
-    [[ -e "$CONFIG/mainnet-profiles.json" ]] || install -m 0600 "$ROOT/deploy/config/mainnet-profiles.json" "$CONFIG/mainnet-profiles.json"
-    [[ -e "$CONFIG/mainnet-readonly.json" ]] || install -m 0600 "$ROOT/deploy/config/mainnet-readonly.json" "$CONFIG/mainnet-readonly.json"
+    install -d -o "$CONTAINER_UID" -g "$CONTAINER_GID" -m 0700 "$STATE" "$LOGS"
+    install -d -o root -g "$CONTAINER_GID" -m 0750 "$CONFIG"
+    [[ -e "$CONFIG/mainnet-profiles.json" ]] || install -o root -g "$CONTAINER_GID" -m 0640 "$ROOT/deploy/config/mainnet-profiles.json" "$CONFIG/mainnet-profiles.json"
+    [[ -e "$CONFIG/mainnet-readonly.json" ]] || install -o root -g "$CONTAINER_GID" -m 0640 "$ROOT/deploy/config/mainnet-readonly.json" "$CONFIG/mainnet-readonly.json"
     printf '%s\n' "initialized read-only runtime; replace placeholders before provider validation"
     ;;
   validate)

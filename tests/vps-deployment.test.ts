@@ -133,6 +133,8 @@ test("container package has no key mount, public port, or executable startup", (
     dockerfile = readFileSync("deploy/Dockerfile", "utf8"),
     operator = readFileSync("deploy/zecone-vps", "utf8");
   assert.match(compose, /127\.0\.0\.1:\$\{ZECONE_HEALTH_PORT/);
+  assert.match(compose, /ZECONE_CONTAINER_UID:-10001/);
+  assert.match(compose, /ZECONE_CONTAINER_GID:-10001/);
   assert.match(compose, /read_only: true/);
   assert.match(compose, /cap_drop: \["ALL"\]/);
   assert.match(compose, /no-new-privileges:true/);
@@ -141,6 +143,16 @@ test("container package has no key mount, public port, or executable startup", (
   assert.match(dockerfile, /ZECONE_READ_ONLY=1/);
   assert.doesNotMatch(dockerfile, /mainnet-operator\.ts execute/);
   assert.match(operator, /ZECONE_ALLOW_EXECUTION:-0/);
+  assert.match(operator, /CONTAINER_UID="\$\{ZECONE_CONTAINER_UID:-10001\}"/);
+  assert.match(
+    operator,
+    /install -d -o "\$CONTAINER_UID" -g "\$CONTAINER_GID" -m 0700 "\$STATE" "\$LOGS"/,
+  );
+  assert.match(
+    operator,
+    /install -d -o root -g "\$CONTAINER_GID" -m 0750 "\$CONFIG"/,
+  );
+  assert.match(operator, /install -o root -g "\$CONTAINER_GID" -m 0640/);
   assert.match(operator, /\.backup/);
   assert.match(operator, /age -R/);
   assert.match(operator, /PRAGMA integrity_check/);

@@ -8,7 +8,7 @@ services:
     image: zecone-readonly:${ZECONE_IMAGE_TAG:-local}
     restart: unless-stopped
     init: true
-    user: "10001:10001"
+    user: "${ZECONE_CONTAINER_UID:-10001}:${ZECONE_CONTAINER_GID:-10001}"
     read_only: true
     cap_drop: ["ALL"]
     security_opt:
