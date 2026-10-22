@@ -7,7 +7,6 @@ services:
       dockerfile: deploy/Dockerfile
     image: zecone-readonly:${ZECONE_IMAGE_TAG:-local}
     restart: unless-stopped
-    init: true
     user: "${ZECONE_CONTAINER_UID:-10001}:${ZECONE_CONTAINER_GID:-10001}"
     read_only: true
     cap_drop: ["ALL"]
@@ -17,16 +16,15 @@ services:
     mem_limit: 2g
     cpus: 2.0
     stop_grace_period: 30s
+    network_mode: host
     environment:
       ZECONE_READ_ONLY: "1"
-      ZECONE_HEALTH_HOST: "0.0.0.0"
-      ZECONE_HEALTH_PORT: "3410"
+      ZECONE_HEALTH_HOST: "127.0.0.1"
+      ZECONE_HEALTH_PORT: ${ZECONE_HEALTH_PORT:-3410}
       ZECONE_STATE: /var/lib/zecone
       ZECONE_CONFIG: /etc/zecone
       ZECONE_MIN_FREE_BYTES: ${ZECONE_MIN_FREE_BYTES:-5368709120}
       ZECONE_REQUIRED_STATE_FS_UUID: ${ZECONE_REQUIRED_STATE_FS_UUID:-}
-    ports:
-      - "127.0.0.1:${ZECONE_HEALTH_PORT:-3410}:3410"
     volumes:
       - ${ZECONE_STATE_DIR:-./runtime/state}:/var/lib/zecone
       - ${ZECONE_LOG_DIR:-./runtime/logs}:/var/log/zecone
@@ -35,12 +33,9 @@ services:
       - /tmp:rw,noexec,nosuid,nodev,size=64m,uid=10001,gid=10001,mode=0700
     healthcheck:
       test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://127.0.0.1:3410/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
-        ]
+        - CMD-SHELL
+        - >-
+          node -e "fetch('http://127.0.0.1:'+process.env.ZECONE_HEALTH_PORT+'/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
       interval: 30s
       timeout: 5s
       retries: 3

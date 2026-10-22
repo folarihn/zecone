@@ -142,8 +142,13 @@ test(
 test("container package has no key mount, public port, or executable startup", () => {
   const compose = readFileSync("deploy/compose.yaml", "utf8"),
     dockerfile = readFileSync("deploy/Dockerfile", "utf8"),
-    operator = readFileSync("deploy/zecone-vps", "utf8");
-  assert.match(compose, /127\.0\.0\.1:\$\{ZECONE_HEALTH_PORT/);
+    operator = readFileSync("deploy/zecone-vps", "utf8"),
+    unit = readFileSync("deploy/systemd/zecone-docker.service", "utf8");
+  assert.match(compose, /network_mode: host/);
+  assert.doesNotMatch(compose, /init: true/);
+  assert.match(compose, /ZECONE_HEALTH_HOST: "127\.0\.0\.1"/);
+  assert.doesNotMatch(compose, /^    ports:/m);
+  assert.doesNotMatch(compose, /0\.0\.0\.0/);
   assert.match(compose, /ZECONE_CONTAINER_UID:-10001/);
   assert.match(compose, /ZECONE_CONTAINER_GID:-10001/);
   assert.match(compose, /ZECONE_REQUIRED_STATE_FS_UUID/);
@@ -157,6 +162,7 @@ test("container package has no key mount, public port, or executable startup", (
   assert.match(dockerfile, /ZECONE_READ_ONLY=1/);
   assert.doesNotMatch(dockerfile, /mainnet-operator\.ts execute/);
   assert.match(operator, /ZECONE_ALLOW_EXECUTION:-0/);
+  assert.match(operator, /\/run\/zecone-docker\/docker\.sock/);
   assert.match(operator, /CONTAINER_UID="\$\{ZECONE_CONTAINER_UID:-10001\}"/);
   assert.match(operator, /ZECONE_\[A-Z0-9_\]\+/);
   assert.doesNotMatch(operator, /source .*\.env/);
@@ -173,6 +179,16 @@ test("container package has no key mount, public port, or executable startup", (
   assert.match(operator, /\.backup/);
   assert.match(operator, /age -R/);
   assert.match(operator, /PRAGMA integrity_check/);
+  assert.match(unit, /--host=unix:\/\/\/run\/zecone-docker\/docker\.sock/);
+  assert.doesNotMatch(unit, /--host=tcp/);
+  assert.match(unit, /--bridge=none/);
+  assert.match(unit, /--iptables=false/);
+  assert.match(unit, /--ip-forward=false/);
+  assert.match(unit, /--ip-masq=false/);
+  assert.match(
+    unit,
+    /Conflicts=docker\.service docker\.socket containerd\.service/,
+  );
 });
 
 test("required dedicated state filesystem marker fails closed", async () => {

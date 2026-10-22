@@ -116,4 +116,17 @@ Stopping ZecOne does not touch Nginx, PM2, Redis, Hermes, its loop device, or an
 
 ## Readiness gate
 
-The isolated image build and disposable runtime/backup tests now **PASS** on the VPS. The host is ready for an operator-approved **read-only deployment**, but no production container has been started. Automatic deployment, public exposure, and mainnet execution remain blocked. Production backups remain blocked until an approved public `age` recipient and real off-host destination are configured. Production configuration still requires operator-provided provider endpoints and UFVK data, and mainnet signing remains off-host and disabled.
+At the Stage 1 gate, the isolated image build and disposable runtime/backup tests **PASSED** on the VPS. The host was ready for an operator-approved **read-only deployment**, and no production container had been started at that point; the Stage 2 update below records the deployment performed afterward. Automatic deployment, public exposure, and mainnet execution remain blocked. Production backups remain blocked until an approved public `age` recipient and real off-host destination are configured. Production configuration still requires operator-provided provider endpoints and UFVK data, and mainnet signing remains off-host and disabled.
+
+## Stage 2 deployment update - 2026-10-22
+
+The controlled read-only deployment was executed after the Stage 1 validation. The historical approval-stage commands above are superseded for this deployment: the exact Stage 1 image was reused, not rebuilt, and the existing `/var/lib/zecone`, `/etc/zecone`, and `/var/log/zecone` paths were used.
+
+- `zecone-docker.service` is enabled and active. Its Unix socket is `/run/zecone-docker/docker.sock` mode `0600`; it has no TCP listener, bridge, Docker iptables rules, forwarding, masquerading, or userland proxy. Normal `docker.service`, `docker.socket`, and `containerd.service` remain disabled and inactive.
+- `zecone-readonly-1` is running from `zecone-readonly:stage1-1.89` (ID `sha256:b31c0c1c59c1306768929557ac62feb410c02ada55fd5831a664972a323a6270`). It uses host networking but binds only `127.0.0.1:3410`; no port is published and no bridge interface exists.
+- The container is non-root, read-only, capability-free, `no-new-privileges`, capped at 128 PIDs / 2 GiB / 2 CPUs, with bounded logs. Postflight showed about 81 MiB RAM and 8 PIDs. Health is `healthy`; `/healthz` and `/readyz` report `READ_ONLY`, all execution/signing/broadcast/refund controls false, operator paused, disk `PASS`, and `OPERATOR_SETUP_REQUIRED`.
+- A controlled stop/start returned healthy with unchanged journal inode/size values. The Compose `init` setting was removed because the image already runs `tini` as PID 1; this avoids a double-init warning.
+- `validate` reports expected `BLOCKED` placeholder-provider findings. `backup` failed closed with no recipient and created no output. The execution guard rejected `ZECONE_ALLOW_EXECUTION=1`.
+- Nginx, Redis, Hermes, and PM2 PIDs/restart counts and the 16-rule UFW policy were unchanged. The normal Docker socket remains absent.
+
+Host networking was required to keep the daemon free of a bridge, port publishing, iptables management, forwarding, and masquerading. The container therefore shares the host network namespace and can reach loopback services; it has no credentials, no writable host storage, and a read-only root filesystem. Strict network-namespace separation would require a separately reviewed bridge/proxy design and was not implemented. Reboot and forced failure-restart behavior have not been tested. Production providers, production backups, and all mainnet execution remain blocked.

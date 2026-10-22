@@ -1,0 +1,47 @@
+[Unit]
+Description=ZecOne dedicated Docker daemon (read-only)
+Documentation=https://docs.docker.com
+After=network-online.target
+Wants=network-online.target
+RequiresMountsFor=/var/lib/zecone
+Conflicts=docker.service docker.socket containerd.service
+StartLimitBurst=3
+StartLimitIntervalSec=60
+
+[Service]
+Type=notify
+NotifyAccess=main
+ExecStart=/usr/bin/dockerd \
+  --host=unix:///run/zecone-docker/docker.sock \
+  --pidfile=/run/zecone-docker/docker.pid \
+  --exec-root=/run/zecone-docker/exec \
+  --data-root=/var/lib/docker \
+  --iptables=false \
+  --ip6tables=false \
+  --ip-forward=false \
+  --ip-masq=false \
+  --userland-proxy=false \
+  --bridge=none \
+  --storage-driver=overlay2 \
+  --log-level=warn
+ExecStartPost=/bin/sh -c 'for i in $(seq 1 30); do [ -S /run/zecone-docker/docker.sock ] && { chmod 0600 /run/zecone-docker/docker.sock; exit 0; }; sleep 1; done; exit 1'
+ExecReload=/bin/kill -s HUP $MAINPID
+TimeoutStartSec=0
+TimeoutStopSec=120
+Restart=on-failure
+RestartSec=5
+KillMode=process
+OOMScoreAdjust=-500
+LimitNOFILE=infinity
+LimitNPROC=infinity
+LimitCORE=infinity
+TasksMax=1024
+Delegate=yes
+CPUQuota=200%
+MemoryMax=4G
+MemorySwapMax=0
+RuntimeDirectory=zecone-docker
+RuntimeDirectoryMode=0700
+
+[Install]
+WantedBy=multi-user.target

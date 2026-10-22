@@ -19,6 +19,9 @@ if [[ -f "$ENV_FILE" ]]; then
     fi
   done < "$ENV_FILE"
 fi
+if [[ -z "${DOCKER_HOST:-}" && -S /run/zecone-docker/docker.sock ]]; then
+  export DOCKER_HOST="unix:///run/zecone-docker/docker.sock"
+fi
 COMPOSE=(docker compose --project-directory "$ROOT/deploy" -f "$ROOT/deploy/compose.yaml")
 RUNTIME="$ROOT/deploy/runtime"
 STATE="${ZECONE_STATE_DIR:-$RUNTIME/state}"
