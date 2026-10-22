@@ -52,6 +52,7 @@ npm run mainnet:execute -- `
   --watch-journal <watch.sqlite> --watch-binding <binding.json> `
   --watch-wallet <native-watch-dir> --watch-server <https-primary> `
   --watch-peer <https-peer> `
+  --watch-authenticated-blocks <external-raw-block-directory> `
   --execution-authorization <execution-authorization.json> `
   --keystore <relayer.keystore.json> --passphrase-file <external-passphrase> `
   --approval <exact-signing-approval.json> --signer-ledger <signer-ledger.sqlite> `
@@ -166,10 +167,15 @@ The scanner uses the maintained Zcash SDK for wallet sync and independently
 fetches the candidate full transaction from two configured lightwalletd
 providers. Both must agree on bytes, mined height and the block hash at that
 height. The scanner then trial-decrypts the exact output with the imported UFVK
-and checks account, pool, output index, incoming type, value and receiver.
+and checks account, pool, output index, incoming type, value and receiver. It
+also requires externally staged raw blocks for the payment and bounded
+confirmation segment. The complete raw blocks prove transaction Merkle
+inclusion and supply headers for Equihash, target, linkage and accumulated-work
+verification; both lightwalletd providers must corroborate every block hash.
 
-This is not a local consensus proof. The code does not verify an independent
-Merkle inclusion path or proof-of-work chain. Two genuinely independent
+This is not a local full-node consensus implementation. It verifies complete
+block Merkle inclusion and a bounded proof-of-work confirmation segment, while
+the approved raw-block source and two genuinely independent
 lightwalletd operators remain mandatory, and the scanner executable, provider
 configuration, service process and imported UFVK are trusted. If an
 authenticated verified-chain-data boundary cannot be supplied, the Zcash side
@@ -187,7 +193,7 @@ must remain **NO-GO** rather than treating two RPC responses as consensus.
 | One-shot submission and reconciliation | PASS in fixtures            | Tests cover duplicate, uncertain, crash-left claimed, finalized and no-resend paths.                                       |
 | Production profile template            | PASS as a disabled template | `config/mainnet-profiles.production.example.json` has two placeholder providers per network and cannot validate as active. |
 | Production pricing                     | BLOCKED                     | No genuine independently signed price feeds or pinned operator keys are configured.                                        |
-| Zcash authenticated observation        | BLOCKED                     | No configured independent mainnet lightwalletd pair, produced UFVK or controlled owned-note run; no inclusion/PoW proof.   |
+| Zcash authenticated observation        | BLOCKED                     | Implementation verifies raw-block inclusion and bounded PoW continuity; no approved raw-block source, independent mainnet lightwalletd pair, produced UFVK or controlled owned-note run is configured. |
 | Base live acceptance                   | BLOCKED                     | No production RPC operators, relayer funding, signer attestation, fee-fork validation or rehearsal.                        |
 | Solana live acceptance                 | BLOCKED                     | No production RPC operators, funded relayer, signer attestation or rehearsal.                                              |
 | Production single-writer deployment    | BLOCKED                     | Lease behavior is fixture-tested; the intended host/volume topology and emergency runbook have not been exercised.         |

@@ -455,6 +455,11 @@ async function execute(values: Map<string, string>) {
         required(values, "watch-wallet"),
         required(values, "watch-server"),
         required(values, "watch-peer"),
+        resolve(
+          `target/debug/zecone-zcash-watch${process.platform === "win32" ? ".exe" : ""}`,
+        ),
+        [],
+        required(values, "watch-authenticated-blocks"),
       ),
       payment = await observeMainnetWatch(watch, scanner, binding);
     if (payment.orderId !== executionAuth.orderId)

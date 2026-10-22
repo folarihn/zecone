@@ -1,0 +1,27 @@
+{
+  "zcash": {
+    "lightwalletd": [
+      { "endpoint": "https://zec.rocks:443", "operator": "zec.rocks" },
+      { "endpoint": "https://us.zec.stardust.rest:443", "operator": "stardust" }
+    ],
+    "headerRpc": {
+      "endpoint": "https://zcash-mainnet-zebrad.gateway.tatum.io",
+      "operator": "tatum"
+    },
+    "rawBlock": {
+      "endpoint": "https://api.blockchair.com/zcash/raw/block",
+      "operator": "blockchair"
+    }
+  },
+  "base": [
+    { "endpoint": "https://mainnet.base.org", "operator": "coinbase" },
+    { "endpoint": "https://base-rpc.publicnode.com", "operator": "allnodes" }
+  ],
+  "solana": [
+    {
+      "endpoint": "https://api.mainnet-beta.solana.com",
+      "operator": "solana-foundation"
+    },
+    { "endpoint": "https://solana-rpc.publicnode.com", "operator": "allnodes" }
+  ]
+}

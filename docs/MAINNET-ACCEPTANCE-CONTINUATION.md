@@ -12,16 +12,18 @@
 
 ## Security boundary and limitations
 
-Owned-note evidence is cryptographically grounded in UFVK trial decryption of provider-corroborated full transaction bytes. The scanner also corroborates the transaction height's block hash with both providers. It does not operate a local Zcash consensus node or independently verify a transaction Merkle path and proof-of-work chain; two genuinely independent provider operators remain mandatory. The local Rust executable, its configuration, the service process, and the imported UFVK are trusted computing-base components. A process with code-execution rights can bypass in-process provenance checks.
+Owned-note evidence is cryptographically grounded in UFVK trial decryption of provider-corroborated full transaction bytes. The scanner also corroborates the transaction height's block hash with both providers.
 
-No authenticated historical or controlled mainnet owned-note fixture and no configured mainnet UFVK/provider pair were available, so the scanner is not production-demonstrated. The locked Zcash crates remain pre-release versions and require dependency review before production custody decisions.
+**Stage 4A update (22 October 2026):** owned-payment evidence is now `zcash-full-transaction-ufvk-v3`. A review found that lightwalletd compact blocks omit transactions without shielded activity, so their compact txid list cannot generally prove the header transaction Merkle root. The scanner now refuses that shortcut. It requires externally staged full raw blocks for the payment and bounded confirmation segment, verifies the complete transaction Merkle tree, header hash, Equihash `(200,9)`, target, previous-hash continuity and accumulated work, and requires both configured lightwalletd providers to corroborate every block hash. It rechecks the agreed tip after evidence construction so an in-flight reorg invalidates the scan. This still does not operate a local Zcash consensus node or verify all work from genesis or a trusted checkpoint. The approved raw-block source, two genuinely independent lightwalletd operators, local Rust executable, configuration, service process, and imported UFVK are trusted components. A process with equivalent code-execution rights can bypass in-process provenance checks.
+
+No authenticated historical or controlled mainnet owned-note fixture, approved full-block source, or configured mainnet UFVK/provider pair was available, so the scanner is not production-demonstrated. The locked Zcash crates remain pre-release versions and require dependency review before production custody decisions.
 
 The executor deliberately contains no transaction private-key loader. Production signing must happen on a separate device and return only an exact signed bundle. The operator execution-authorization key must also be independently provisioned and separately validated. Local password encryption does not prove device isolation.
 
 ## Current launch decisions
 
 - **Zcash scanner implementation: PASS.** Full-transaction UFVK decryption replaces metadata/nullifier ownership claims.
-- **Zcash live mainnet scanner: BLOCKED.** Missing two configured independent providers, a production watch profile/UFVK, and an authenticated owned-note acceptance run.
+- **Zcash live mainnet scanner: BLOCKED.** Missing an approved raw-full-block source, two configured independent providers, a production watch profile/UFVK, and an authenticated owned-note acceptance run.
 - **Production pricing: BLOCKED.** The verifier requires two pinned signed feeds, but no genuine feed operators or keys are configured.
 - **Base execution implementation: PASS in disposable fixtures.** Exact construction, offline signature verification, current-state revalidation, one-shot submission, uncertain-state handling, and canonical finality paths exist.
 - **Solana execution implementation: PASS in disposable fixtures.** The same controls exist for native SOL, including blockhash validity, exact signed simulation, genesis validation, and finalized receipt effects.
@@ -34,7 +36,7 @@ There is no current implementation FAIL known on the narrow native-transfer path
 ## Required operator setup for the first controlled transfers
 
 1. Configure two independently operated Zcash mainnet lightwalletd endpoints, two Base mainnet RPCs, and two Solana mainnet RPCs. Record operator independence and verify network identities.
-2. Create a watch-only Zcash mainnet profile with a UFVK and birthday through the offline workflow. Complete a controlled authenticated scan and record the decrypted owned-note evidence. Do not place a spending key on the observer.
+2. Create a watch-only Zcash mainnet profile with a UFVK and recorded birthday through the offline workflow. Configure an approved raw-full-block exporter, complete a controlled authenticated scan, and record the decrypted owned-note evidence plus v3 full-block/chain evidence. Perform an encrypted watch-backup/restore and UFVK-recovery rehearsal to an approved off-host destination. Do not place a spending key on the observer.
 3. Provision fresh Base and Solana recipient and relayer credentials on the designated signing device. Provision a separate Ed25519 execution-authority key. Record public identities and separate-device attestations.
 4. Configure two genuine signed production price feeds with pinned authorized keys and freshness/disagreement limits.
 5. Fund only the destination relayers. Confirm exact inventory, fee/rent caps, emergency pause, recipient ownership, per-transaction/daily limits, and the single-writer deployment lock.

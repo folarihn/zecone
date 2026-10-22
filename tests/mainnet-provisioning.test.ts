@@ -2,7 +2,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
-import { mkdtempSync, readFileSync, copyFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  copyFileSync,
+  writeFileSync,
+  rmSync,
+} from "node:fs";
+import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { privateKeyToAccount } from "viem/accounts";
@@ -133,5 +140,72 @@ test("disposable credential passwords, network/purpose substitution and tamperin
   } finally {
     pass.fill(0);
     secret.fill(0);
+  }
+});
+
+test("disposable Zcash mainnet provisioning records birthday and recovers the same UFVK", () => {
+  const root = mkdtempSync(join(tmpdir(), "zecone-zcash-provision-")),
+    passphrase = join(root, "passphrase.bin"),
+    output = join(root, "wallets"),
+    recovered = join(root, "recovered.ufvk");
+  writeFileSync(passphrase, randomBytes(48));
+  try {
+    const provision = spawnSync(
+      process.execPath,
+      [
+        "--import",
+        "tsx",
+        "scripts/mainnet-provision.ts",
+        "--out",
+        output,
+        "--passphrase-file",
+        passphrase,
+        "--zcash-birthday",
+        "3526000",
+        "--confirm",
+        "CREATE_MAINNET_KEYS",
+      ],
+      { cwd: process.cwd(), encoding: "utf8", timeout: 120_000 },
+    );
+    assert.equal(provision.status, 0, provision.stderr);
+    const metadata = JSON.parse(
+        readFileSync(join(output, "provisioning.json"), "utf8"),
+      ) as {
+        credentials: { role: string; birthday?: number }[];
+      },
+      originalUfvk = readFileSync(join(output, "zcash-receiver.ufvk"), "utf8");
+    assert.equal(
+      metadata.credentials.find((item) => item.role === "zcash-receiver")
+        ?.birthday,
+      3_526_000,
+    );
+    assert.match(originalUfvk, /^uview1/);
+    assert.ok(!provision.stdout.includes(originalUfvk.trim()));
+
+    const recovery = spawnSync(
+      process.execPath,
+      [
+        "--import",
+        "tsx",
+        "scripts/mainnet-zcash-recover.ts",
+        "--keystore",
+        join(output, "zcash-receiver.keystore.json"),
+        "--passphrase-file",
+        passphrase,
+        "--provisioning",
+        join(output, "provisioning.json"),
+        "--out",
+        recovered,
+        "--confirm",
+        "RECOVER_MAINNET_UFVK",
+      ],
+      { cwd: process.cwd(), encoding: "utf8", timeout: 120_000 },
+    );
+    assert.equal(recovery.status, 0, recovery.stderr);
+    assert.equal(readFileSync(recovered, "utf8"), originalUfvk);
+    assert.ok(!recovery.stdout.includes(originalUfvk.trim()));
+    assert.equal(JSON.parse(recovery.stdout).birthday, 3_526_000);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
   }
 });

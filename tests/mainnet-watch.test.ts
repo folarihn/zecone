@@ -41,9 +41,31 @@ const payment = (
   isChange: false,
   confirmations: 11,
   ownershipEvidence: {
-    scheme: "zcash-full-transaction-ufvk-v1",
+    scheme: "zcash-full-transaction-ufvk-v3",
     digest: "7".repeat(64),
     providers: 2,
+    blockEvidence: {
+      scheme: "zcash-header-pow-merkle-v1",
+      height: 90,
+      headerHash: "d".repeat(64),
+      merkleRoot: "6".repeat(64),
+      transactionIndex: 0,
+      transactionCount: 1,
+      proofOfWork: "PASS",
+      readOnly: true,
+    },
+    chainEvidence: {
+      scheme: "zcash-pow-chain-segment-v1",
+      startHeight: 90,
+      endHeight: 99,
+      startHash: "d".repeat(64),
+      endHash: "e".repeat(64),
+      blockCount: 10,
+      accumulatedWork: "1234abcd",
+      proofOfWork: "PASS",
+      continuity: "PASS",
+      readOnly: true,
+    },
   },
   ...over,
 });
@@ -98,12 +120,24 @@ function nativeScanner(s: MainnetWatchSnapshot) {
     s.peerSource,
     process.execPath,
     [script],
+    directory,
   );
 }
 
 async function nativeScan(s: MainnetWatchSnapshot) {
   return nativeScanner(s).observe();
 }
+
+test("native scanner requires authenticated raw-block storage", async () => {
+  await assert.rejects(
+    new MainnetWatchScanner(
+      mkdtempSync(join(tmpdir(), "zecone-mainnet-watch-")),
+      "https://light.example.org",
+      "https://peer.example.org",
+    ).observe(),
+    /AUTHENTICATED_MAINNET_BLOCK_DIRECTORY_REQUIRED/,
+  );
+});
 
 function authorization(observation: MainnetWatchObservation) {
   return assertMainnetPaymentAuthorization(observation, {
@@ -123,6 +157,68 @@ test("mainnet snapshot validation rejects testnet, stale and inconsistent scans"
     snapshot({ anchorHeight: 92 }),
     snapshot({ scanned: 99 }),
     snapshot({ payments: [payment({ confirmations: 10 })] }),
+    snapshot({
+      payments: [
+        payment({
+          ownershipEvidence: {
+            ...payment().ownershipEvidence,
+            scheme: "zcash-full-transaction-ufvk-v2" as never,
+          },
+        }),
+      ],
+    }),
+    snapshot({
+      payments: [
+        payment({
+          ownershipEvidence: {
+            ...payment().ownershipEvidence,
+            blockEvidence: {
+              ...payment().ownershipEvidence.blockEvidence,
+              headerHash: "9".repeat(64),
+            },
+          },
+        }),
+      ],
+    }),
+    snapshot({
+      payments: [
+        payment({
+          ownershipEvidence: {
+            ...payment().ownershipEvidence,
+            blockEvidence: {
+              ...payment().ownershipEvidence.blockEvidence,
+              transactionIndex: 1,
+            },
+          },
+        }),
+      ],
+    }),
+    snapshot({
+      payments: [
+        payment({
+          ownershipEvidence: {
+            ...payment().ownershipEvidence,
+            chainEvidence: {
+              ...payment().ownershipEvidence.chainEvidence,
+              endHash: "x".repeat(64),
+            },
+          },
+        }),
+      ],
+    }),
+    snapshot({
+      payments: [
+        payment({
+          ownershipEvidence: {
+            ...payment().ownershipEvidence,
+            chainEvidence: {
+              ...payment().ownershipEvidence.chainEvidence,
+              blockCount: 9,
+            },
+          },
+        }),
+      ],
+    }),
   ])
     assert.throws(() => validateMainnetWatchSnapshot(bad, now));
 });
@@ -152,8 +248,24 @@ test("journal rejects metadata-only ownership while retaining attribution and re
   const b = binding();
   assert.equal(j.observe(b, snapshot()).status, "awaiting");
   assert.equal(
-    j.observe(b, snapshot({ minimumConfirmations: 20, payments: [payment()] }))
-      .status,
+    j.observe(
+      b,
+      snapshot({
+        minimumConfirmations: 20,
+        payments: [
+          payment({
+            ownershipEvidence: {
+              ...payment().ownershipEvidence,
+              chainEvidence: {
+                ...payment().ownershipEvidence.chainEvidence,
+                endHeight: 100,
+                blockCount: 11,
+              },
+            },
+          }),
+        ],
+      }),
+    ).status,
     "invalid",
   );
   const confirmed = j.observe(b, snapshot({ payments: [payment()] }));

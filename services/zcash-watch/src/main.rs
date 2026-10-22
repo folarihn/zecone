@@ -1,5 +1,6 @@
 //! Testnet and mainnet UFVK scanner. No seed import, spending key access, signing or broadcast API.
 mod cache;
+mod mainnet_evidence;
 mod phase52_refund;
 use anyhow::{Context, Result, ensure};
 use clap::{Parser, Subcommand};
@@ -20,14 +21,17 @@ use zcash_client_backend::{
         Account, AccountBirthday, AccountPurpose, WalletCommitmentTrees, WalletRead, WalletWrite,
     },
     decrypt_transaction,
-    proto::service::{self, compact_tx_streamer_client::CompactTxStreamerClient},
+    proto::{
+        compact_formats::CompactBlock,
+        service::{self, compact_tx_streamer_client::CompactTxStreamerClient},
+    },
 };
 use zcash_client_sqlite::{WalletDb, util::SystemClock, wallet::init::init_wallet_db};
 use zcash_keys::{
     address::UnifiedAddress,
     keys::{UnifiedAddressRequest, UnifiedFullViewingKey},
 };
-use zcash_primitives::transaction::Transaction;
+use zcash_primitives::{block::BlockHash, transaction::Transaction};
 use zcash_protocol::consensus::{BlockHeight, BranchId, Network};
 const NET: Network = Network::TestNetwork;
 const MAIN_NET: Network = Network::MainNetwork;
@@ -55,6 +59,33 @@ enum Command {
         server: String,
         #[arg(long)]
         height: u32,
+    },
+    /// Public mainnet metadata only. Requires two independently operated lightwalletd endpoints.
+    ProbeMainnet {
+        #[arg(long)]
+        server: String,
+        #[arg(long)]
+        peer: String,
+        #[arg(long)]
+        height: Option<u32>,
+    },
+    /// Parse and verify a public mainnet header without contacting the network.
+    VerifyHeader {
+        #[arg(long)]
+        header_file: PathBuf,
+        #[arg(long)]
+        expected_hash: String,
+    },
+    /// Parse a public mainnet block and verify Merkle inclusion and proof of work.
+    VerifyBlock {
+        #[arg(long)]
+        block_file: PathBuf,
+        #[arg(long)]
+        expected_hash: String,
+        #[arg(long)]
+        height: u32,
+        #[arg(long)]
+        txid: Option<String>,
     },
     /// New directory only. Viewing keys are sensitive and must be transferred privately.
     Import {
@@ -87,6 +118,9 @@ enum Command {
         /// Prior persisted tip; the server must still return the same hash.
         #[arg(long)]
         checkpoint_height: Option<u32>,
+        /// External directory containing raw `height-hash.bin` mainnet blocks.
+        #[arg(long)]
+        authenticated_block_dir: PathBuf,
     },
 }
 #[derive(Serialize, Deserialize)]
@@ -110,6 +144,99 @@ fn write_new(path: &Path, data: &[u8]) -> Result<()> {
     f.write_all(data)?;
     f.sync_all()?;
     Ok(())
+}
+
+fn contains_historical_component(path: &Path) -> bool {
+    path.components().any(|component| {
+        matches!(
+            component
+                .as_os_str()
+                .to_string_lossy()
+                .to_lowercase()
+                .as_str(),
+            ".secrets" | ".state"
+        )
+    })
+}
+
+fn repository_root() -> Option<PathBuf> {
+    let mut current = std::env::current_dir().ok()?;
+    loop {
+        if current.join(".git").exists() {
+            return Some(current);
+        }
+        current = current.parent()?.to_path_buf();
+    }
+}
+
+fn ensure_no_symlink_ancestor(path: &Path) -> Result<()> {
+    let mut current = path.parent();
+    while let Some(parent) = current {
+        if parent.exists() {
+            ensure!(
+                !fs::symlink_metadata(parent)?.file_type().is_symlink(),
+                "symlink_watch_path"
+            );
+        }
+        current = parent.parent();
+    }
+    Ok(())
+}
+
+fn canonical_parent(path: &Path) -> Result<PathBuf> {
+    let parent = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    ensure!(parent.exists(), "watch_parent_missing");
+    fs::canonicalize(parent).context("watch_parent_invalid")
+}
+
+fn ensure_outside_repository(path: &Path, canonical: &Path) -> Result<()> {
+    ensure!(
+        !contains_historical_component(path) && !contains_historical_component(canonical),
+        "historical_wallet_path_forbidden"
+    );
+    if let Some(root) = repository_root() {
+        let root = fs::canonicalize(root).context("repository_root_invalid")?;
+        ensure!(
+            !canonical.starts_with(&root),
+            "watch_path_inside_repository"
+        );
+    }
+    Ok(())
+}
+
+fn ensure_external_new_directory(path: &Path) -> Result<()> {
+    ensure!(!path.exists(), "new_directory_required");
+    ensure_no_symlink_ancestor(path)?;
+    let parent = canonical_parent(path)?;
+    let name = path.file_name().context("watch_directory_name")?;
+    let canonical = parent.join(name);
+    ensure_outside_repository(path, &canonical)?;
+    Ok(())
+}
+
+fn ensure_external_watch_directory(path: &Path) -> Result<()> {
+    let metadata = fs::symlink_metadata(path).context("watch_directory_missing")?;
+    ensure!(
+        !metadata.file_type().is_symlink() && metadata.is_dir(),
+        "watch_directory_required"
+    );
+    ensure_no_symlink_ancestor(path)?;
+    let canonical = fs::canonicalize(path).context("watch_directory_invalid")?;
+    ensure_outside_repository(path, &canonical)
+}
+
+fn ensure_external_file(path: &Path) -> Result<()> {
+    let metadata = fs::symlink_metadata(path).context("ufvk_file_missing")?;
+    ensure!(
+        !metadata.file_type().is_symlink() && metadata.is_file(),
+        "ufvk_regular_file_required"
+    );
+    ensure_no_symlink_ancestor(path)?;
+    let canonical = fs::canonicalize(path).context("ufvk_file_invalid")?;
+    ensure_outside_repository(path, &canonical)
 }
 struct Lock(PathBuf);
 impl Drop for Lock {
@@ -276,6 +403,79 @@ async fn probe(server: &str, height: u32) -> Result<Value> {
         "observedAt":SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),"readOnly":true}),
     )
 }
+async fn probe_mainnet(server: &str, peer: &str, height: Option<u32>) -> Result<Value> {
+    ensure!(server != peer, "independent_mainnet_peer_required");
+    mainnet_provider(server)?;
+    mainnet_provider(peer)?;
+    let mut c = connect_to_for(server, &MAIN_NET, "main").await?;
+    let mut p = connect_to_for(peer, &MAIN_NET, "main").await?;
+    let primary_info = c.get_lightd_info(service::Empty {}).await?.into_inner();
+    let peer_info = p.get_lightd_info(service::Empty {}).await?.into_inner();
+    ensure!(
+        primary_info.chain_name == "main" && peer_info.chain_name == "main",
+        "wrong_network"
+    );
+    let tip = u32::try_from(primary_info.block_height.min(peer_info.block_height))?;
+    let h = height.unwrap_or(tip.checked_sub(10).context("tip_too_low")?);
+    ensure!(h > 0 && h <= tip, "height_above_tip");
+    let primary_tree = tree_for(&mut c, &MAIN_NET, "main", h).await?;
+    let peer_tree = tree_for(&mut p, &MAIN_NET, "main", h).await?;
+    ensure!(
+        primary_tree.hash == peer_tree.hash,
+        "mainnet_provider_disagreement"
+    );
+    ensure!(
+        primary_tree.orchard_tree()? == peer_tree.orchard_tree()?,
+        "mainnet_provider_disagreement"
+    );
+    let primary_latest = c
+        .get_latest_block(service::ChainSpec::default())
+        .await?
+        .into_inner();
+    let peer_latest = p
+        .get_latest_block(service::ChainSpec::default())
+        .await?
+        .into_inner();
+    Ok(json!({
+        "network":"zcash-mainnet",
+        "source":server,
+        "peerSource":peer,
+        "primaryTip":primary_info.block_height,
+        "peerTip":peer_info.block_height,
+        "primaryLatestHash":hex::encode(primary_latest.hash),
+        "peerLatestHash":hex::encode(peer_latest.hash),
+        "height":h,
+        "confirmations":tip.saturating_sub(h),
+        "blockHash":primary_tree.hash,
+        "orchardRoot":hex::encode(primary_tree.orchard_tree()?.root().to_bytes()),
+        "providerAgreement":"PASS",
+        "authenticatedProofOfWork":"NOT_CHECKED_BY_GRPC_PROBE",
+        "observedAt":SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),
+        "readOnly":true
+    }))
+}
+
+fn read_bounded(path: &Path) -> Result<Vec<u8>> {
+    ensure!(
+        fs::metadata(path)?.len() <= 16 * 1024 * 1024,
+        "file_too_large"
+    );
+    Ok(fs::read(path)?)
+}
+
+fn verify_header_file(path: &Path, expected_hash: &str) -> Result<Value> {
+    mainnet_evidence::verify_header(&read_bounded(path)?, expected_hash)
+}
+
+fn verify_block_file(
+    path: &Path,
+    expected_hash: &str,
+    height: u32,
+    txid: Option<&str>,
+) -> Result<Value> {
+    mainnet_evidence::verify_block(&read_bounded(path)?, expected_hash, height, txid)
+}
+
 async fn import(path: &Path, ufvk_file: &Path, height: Option<u32>) -> Result<Value> {
     let (key, id) = viewing_key(ufvk_file)?;
     ensure!(!path.exists(), "new_directory_required");
@@ -334,8 +534,9 @@ async fn import_mainnet(
     ensure!(server != peer, "independent_mainnet_peer_required");
     mainnet_provider(server)?;
     mainnet_provider(peer)?;
+    ensure_external_new_directory(path)?;
+    ensure_external_file(ufvk_file)?;
     let (key, id) = viewing_key_for(ufvk_file, &MAIN_NET, "mainnet")?;
-    ensure!(!path.exists(), "new_directory_required");
     let mut c = connect_to_for(server, &MAIN_NET, "main").await?;
     let tip = u32::try_from(
         c.get_latest_block(service::ChainSpec::default())
@@ -481,13 +682,128 @@ struct MainnetPaymentRow {
 /// Re-establish ownership from provider-corroborated transaction bytes instead of trusting
 /// wallet SQLite rows. The database is only a candidate index; the returned memo and evidence
 /// digest come from a fresh full-transaction trial decryption with the imported UFVK.
+fn compact_txids(block: &CompactBlock) -> Vec<Vec<u8>> {
+    block.vtx.iter().map(|tx| tx.txid.clone()).collect()
+}
+
+async fn verify_confirmation_chain(
+    primary: &mut CompactTxStreamerClient<Channel>,
+    peer: &mut CompactTxStreamerClient<Channel>,
+    start_height: u32,
+    end_height: u32,
+    authenticated_block_dir: &Path,
+    expected_txid: &str,
+) -> Result<(Value, Value)> {
+    ensure!(start_height <= end_height, "invalid_confirmation_range");
+    ensure!(
+        end_height - start_height < 100,
+        "confirmation_chain_too_long"
+    );
+    let mut primary_blocks = Vec::with_capacity((end_height - start_height + 1) as usize);
+    let mut peer_blocks = Vec::with_capacity(primary_blocks.capacity());
+    let mut raw_headers = Vec::with_capacity(primary_blocks.capacity());
+    let mut payment_block_evidence = None;
+    for height in start_height..=end_height {
+        let id = service::BlockId {
+            height: u64::from(height),
+            hash: vec![],
+        };
+        let primary_block = primary
+            .get_block(id.clone())
+            .await
+            .context("mainnet_primary_confirmation_block_unavailable")?
+            .into_inner();
+        let peer_block = peer
+            .get_block(id)
+            .await
+            .context("mainnet_peer_confirmation_block_unavailable")?
+            .into_inner();
+        ensure!(
+            primary_block.height == u64::from(height)
+                && peer_block.height == u64::from(height)
+                && primary_block.hash == peer_block.hash
+                && primary_block.prev_hash == peer_block.prev_hash,
+            "mainnet_confirmation_provider_disagreement"
+        );
+        ensure!(
+            primary_block.hash.len() == 32,
+            "mainnet_confirmation_hash_invalid"
+        );
+        let hash = BlockHash::from_slice(&primary_block.hash).to_string();
+        ensure!(hash.len() == 64, "mainnet_confirmation_hash_invalid");
+        let block_path = authenticated_block_dir.join(format!("{height}-{hash}.bin"));
+        let raw = read_bounded(&block_path).context("authenticated_mainnet_block_unavailable")?;
+        let (block_evidence, header) = mainnet_evidence::verify_full_block(
+            &raw,
+            &hash,
+            height,
+            (height == start_height).then_some(expected_txid),
+        )?;
+        if height == start_height {
+            payment_block_evidence = Some(block_evidence);
+        }
+        raw_headers.push(header);
+        primary_blocks.push(primary_block);
+        peer_blocks.push(peer_block);
+    }
+    let primary_headers = primary_blocks
+        .iter()
+        .enumerate()
+        .map(|(index, block)| mainnet_evidence::CompactHeader {
+            height: u32::try_from(block.height).expect("bounded mainnet height"),
+            hash: &block.hash,
+            previous_hash: &block.prev_hash,
+            header: &raw_headers[index],
+        })
+        .collect::<Vec<_>>();
+    let peer_headers = peer_blocks
+        .iter()
+        .enumerate()
+        .map(|(index, block)| mainnet_evidence::CompactHeader {
+            height: u32::try_from(block.height).expect("bounded mainnet height"),
+            hash: &block.hash,
+            previous_hash: &block.prev_hash,
+            header: &raw_headers[index],
+        })
+        .collect::<Vec<_>>();
+    let primary_evidence =
+        mainnet_evidence::verify_chain_segment(&primary_headers, start_height, end_height)?;
+    let peer_evidence =
+        mainnet_evidence::verify_chain_segment(&peer_headers, start_height, end_height)?;
+    ensure!(
+        primary_evidence.start_hash == peer_evidence.start_hash
+            && primary_evidence.end_hash == peer_evidence.end_hash
+            && primary_evidence.accumulated_work == peer_evidence.accumulated_work,
+        "mainnet_confirmation_provider_disagreement"
+    );
+    Ok((
+        payment_block_evidence.context("missing_authenticated_payment_block")?,
+        primary_evidence.to_json(),
+    ))
+}
+
+struct MainnetPaymentVerification<'a> {
+    key: &'a UnifiedFullViewingKey,
+    account_id: zcash_client_sqlite::AccountUuid,
+    row: &'a MainnetPaymentRow,
+    tip: u32,
+    minimum_confirmations: u32,
+    authenticated_block_dir: &'a Path,
+}
+
 async fn verify_mainnet_payment(
     primary: &mut CompactTxStreamerClient<Channel>,
     peer: &mut CompactTxStreamerClient<Channel>,
-    key: &UnifiedFullViewingKey,
-    account_id: zcash_client_sqlite::AccountUuid,
-    row: &MainnetPaymentRow,
-) -> Result<(String, String)> {
+    verification: MainnetPaymentVerification<'_>,
+) -> Result<(String, String, Value, Value)> {
+    let MainnetPaymentVerification {
+        key,
+        account_id,
+        row,
+        tip,
+        minimum_confirmations,
+        authenticated_block_dir,
+    } = verification;
     let filter = service::TxFilter {
         hash: row.rpc_txid.clone(),
         ..Default::default()
@@ -514,6 +830,63 @@ async fn verify_mainnet_payment(
         primary_block.hash == peer_block.hash
             && primary_block.hash.to_lowercase() == row.block_hash,
         "mainnet_payment_block_disagreement"
+    );
+    let primary_compact = primary
+        .get_block(service::BlockId {
+            height: u64::from(row.height),
+            hash: vec![],
+        })
+        .await
+        .context("mainnet_primary_compact_block_unavailable")?
+        .into_inner();
+    let peer_compact = peer
+        .get_block(service::BlockId {
+            height: u64::from(row.height),
+            hash: vec![],
+        })
+        .await
+        .context("mainnet_peer_compact_block_unavailable")?
+        .into_inner();
+    let primary_txids = compact_txids(&primary_compact);
+    let peer_txids = compact_txids(&peer_compact);
+    ensure!(
+        primary_compact.height == u64::from(row.height)
+            && peer_compact.height == u64::from(row.height)
+            && primary_compact.hash == peer_compact.hash
+            && primary_compact.prev_hash == peer_compact.prev_hash
+            && primary_txids == peer_txids,
+        "mainnet_compact_block_provider_disagreement"
+    );
+    let available_confirmations = tip
+        .checked_sub(row.height)
+        .and_then(|depth| depth.checked_add(1))
+        .context("mainnet_payment_above_tip")?;
+    let proof_blocks = available_confirmations.min(minimum_confirmations);
+    ensure!(proof_blocks > 0, "mainnet_payment_above_tip");
+    let confirmation_end = row
+        .height
+        .checked_add(proof_blocks - 1)
+        .context("confirmation_height_overflow")?;
+    ensure!(
+        primary_txids
+            .iter()
+            .filter(|txid| txid.as_slice() == row.rpc_txid)
+            .count()
+            == 1,
+        "mainnet_payment_not_in_compact_block"
+    );
+    let (block_evidence, chain_evidence) = verify_confirmation_chain(
+        primary,
+        peer,
+        row.height,
+        confirmation_end,
+        authenticated_block_dir,
+        &row.txid,
+    )
+    .await?;
+    ensure!(
+        chain_evidence["startHash"] == row.block_hash,
+        "mainnet_confirmation_start_disagreement"
     );
     let height = BlockHeight::from(row.height);
     let tx = Transaction::read(
@@ -574,7 +947,7 @@ async fn verify_mainnet_payment(
     }
     .context("mainnet_owned_note_decryption_failed")?;
     let mut evidence = Sha256::new();
-    evidence.update(b"zecone-mainnet-owned-note-v1");
+    evidence.update(b"zecone-mainnet-owned-note-v3");
     evidence.update(&primary_raw.data);
     evidence.update(row.height.to_le_bytes());
     evidence.update(row.pool.to_le_bytes());
@@ -582,7 +955,27 @@ async fn verify_mainnet_payment(
     evidence.update(row.zatoshis.to_le_bytes());
     evidence.update(row.block_hash.as_bytes());
     evidence.update(row.address.as_bytes());
-    Ok((memo, hex::encode(evidence.finalize())))
+    evidence.update(
+        block_evidence["transactionMerkleRoot"]
+            .as_str()
+            .context("missing_verified_merkle_root")?,
+    );
+    evidence.update(
+        chain_evidence["endHash"]
+            .as_str()
+            .context("missing_chain_end_hash")?,
+    );
+    evidence.update(
+        chain_evidence["accumulatedWork"]
+            .as_str()
+            .context("missing_accumulated_work")?,
+    );
+    Ok((
+        memo,
+        hex::encode(evidence.finalize()),
+        block_evidence,
+        chain_evidence,
+    ))
 }
 
 async fn observe_mainnet(
@@ -591,9 +984,13 @@ async fn observe_mainnet(
     peer: &str,
     minimum_confirmations: u32,
     checkpoint_height: Option<u32>,
+    authenticated_block_dir: &Path,
 ) -> Result<Value> {
     ensure!(server != peer, "independent_mainnet_peer_required");
     ensure!(minimum_confirmations > 0, "invalid_confirmations");
+    ensure_external_watch_directory(path)?;
+    ensure_external_watch_directory(authenticated_block_dir)
+        .context("authenticated_block_directory_invalid")?;
     let manifest = inspect_directory_for(path, "zcash-mainnet")?;
     let (key, id) = viewing_key_for(&path.join("viewing-key.txt"), &MAIN_NET, "mainnet")?;
     ensure!(id == manifest.key_id, "viewing_key_changed");
@@ -711,17 +1108,49 @@ async fn observe_mainnet(
     drop(conn);
     let mut payments = Vec::with_capacity(candidates.len());
     for row in candidates {
-        let (memo, ownership_digest) =
-            verify_mainnet_payment(&mut c, &mut p, &key, accounts[0], &row).await?;
+        let (memo, ownership_digest, block_evidence, chain_evidence) = verify_mainnet_payment(
+            &mut c,
+            &mut p,
+            MainnetPaymentVerification {
+                key: &key,
+                account_id: accounts[0],
+                row: &row,
+                tip,
+                minimum_confirmations,
+                authenticated_block_dir,
+            },
+        )
+        .await?;
         payments.push(json!({
             "account":row.account,"txid":row.txid,"pool":row.pool,"index":row.index,
             "zatoshis":row.zatoshis.to_string(),"height":row.height,"blockHash":row.block_hash,
             "address":row.address,"memo":memo,"nullifier":row.nullifier.map(hex::encode),
             "locked":row.locked,"spent":row.spent,"isChange":row.is_change,
             "confirmations":tip.checked_sub(row.height).map(|d|d+1),
-            "ownershipEvidence":{"scheme":"zcash-full-transaction-ufvk-v1","digest":ownership_digest,"providers":2}
+            "ownershipEvidence":{"scheme":"zcash-full-transaction-ufvk-v3","digest":ownership_digest,"providers":2,"blockEvidence":block_evidence,"chainEvidence":chain_evidence}
         }));
     }
+    let latest_after = c
+        .get_latest_block(service::ChainSpec::default())
+        .await?
+        .into_inner();
+    let peer_latest_after = p
+        .get_latest_block(service::ChainSpec::default())
+        .await?
+        .into_inner();
+    ensure!(
+        latest_after.height == u64::from(tip) && peer_latest_after.height >= u64::from(tip),
+        "tip_changed_retry_scan"
+    );
+    let primary_tip_after = tree_for(&mut c, &MAIN_NET, "main", tip).await?;
+    let peer_tip_after = tree_for(&mut p, &MAIN_NET, "main", tip).await?;
+    ensure!(
+        primary_tip_after.hash == remote.hash
+            && peer_tip_after.hash == remote.hash
+            && primary_tip_after.orchard_tree()? == remote.orchard_tree()?
+            && peer_tip_after.orchard_tree()? == remote.orchard_tree()?,
+        "chain_changed_retry_scan"
+    );
     Ok(
         json!({"network":"zcash-mainnet","watchOnly":true,"liveChain":true,"liveRefundsEnabled":false,"source":server,"peerSource":peer,"account":id,"address":manifest.address,"birthday":manifest.birthday,"tip":tip,"scanned":tip,"blockHash":hex::encode(hash),"observedAt":SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),"minimumConfirmations":minimum_confirmations,"anchor":hex::encode(anchor.to_bytes()),"anchorHeight":anchor_height,"checkpoint":checkpoint_value,"payments":payments}),
     )
@@ -736,6 +1165,21 @@ async fn main() {
             phase52_refund::prepare(&c.wallet, &profile_id).await
         }
         Command::ProbeProvider { server, height } => probe(&server, height).await,
+        Command::ProbeMainnet {
+            server,
+            peer,
+            height,
+        } => probe_mainnet(&server, &peer, height).await,
+        Command::VerifyHeader {
+            header_file,
+            expected_hash,
+        } => verify_header_file(&header_file, &expected_hash),
+        Command::VerifyBlock {
+            block_file,
+            expected_hash,
+            height,
+            txid,
+        } => verify_block_file(&block_file, &expected_hash, height, txid.as_deref()),
         Command::Import {
             ufvk_file,
             birthday,
@@ -752,6 +1196,7 @@ async fn main() {
             peer,
             minimum_confirmations,
             checkpoint_height,
+            authenticated_block_dir,
         } => {
             observe_mainnet(
                 &c.wallet,
@@ -759,6 +1204,7 @@ async fn main() {
                 &peer,
                 minimum_confirmations,
                 checkpoint_height,
+                &authenticated_block_dir,
             )
             .await
         }
@@ -886,6 +1332,53 @@ mod tests {
         assert!(!d.path().join("wallet.sqlite").exists());
     }
     #[test]
+    fn mainnet_import_rejects_historical_existing_and_symlinked_paths() {
+        let d = tempfile::tempdir().unwrap();
+        let fresh = d.path().join("fresh-mainnet-watch");
+        assert!(ensure_external_new_directory(&fresh).is_ok());
+        fs::create_dir(&fresh).unwrap();
+        assert!(ensure_external_new_directory(&fresh).is_err());
+        assert!(ensure_external_watch_directory(&fresh).is_ok());
+        fs::create_dir(d.path().join(".secrets")).unwrap();
+        fs::create_dir(d.path().join(".state")).unwrap();
+        assert!(
+            ensure_external_new_directory(&d.path().join(".secrets").join("new-watch")).is_err()
+        );
+        assert!(ensure_external_new_directory(&d.path().join(".state").join("new-watch")).is_err());
+        assert!(ensure_external_watch_directory(&d.path().join(".state")).is_err());
+        let file = d.path().join("viewing-key.txt");
+        fs::write(&file, b"u1not-a-key").unwrap();
+        assert!(ensure_external_file(&file).is_ok());
+        let historical = d.path().join(".secrets").join("ufvk.txt");
+        fs::write(&historical, b"u1not-a-key").unwrap();
+        assert!(ensure_external_file(&historical).is_err());
+    }
+    #[test]
+    fn mainnet_import_accepts_mainnet_ufvk_and_rejects_testnet_ufvk() {
+        use rand::{Rng, rand_core::UnwrapErr, rngs::SysRng};
+        use zcash_keys::keys::UnifiedSpendingKey;
+        let mut seed = zeroize::Zeroizing::new([0u8; 32]);
+        UnwrapErr(SysRng).fill_bytes(&mut *seed);
+        let usk =
+            UnifiedSpendingKey::from_seed(&MAIN_NET, &*seed, 0u32.try_into().unwrap()).unwrap();
+        let d = tempfile::tempdir().unwrap();
+        let file = d.path().join("viewing-key.txt");
+        fs::write(
+            &file,
+            usk.to_unified_full_viewing_key().encode(&NET).unwrap(),
+        )
+        .unwrap();
+        assert!(viewing_key_for(&file, &MAIN_NET, "mainnet").is_err());
+        fs::write(
+            &file,
+            usk.to_unified_full_viewing_key().encode(&MAIN_NET).unwrap(),
+        )
+        .unwrap();
+        let (view, id) = viewing_key_for(&file, &MAIN_NET, "mainnet").unwrap();
+        assert!(view.orchard().is_some());
+        assert_eq!(id.len(), 64);
+    }
+    #[test]
     fn malformed_or_mainnet_manifest_fails_closed() {
         let d = tempfile::tempdir().unwrap();
         fs::write(
@@ -920,7 +1413,8 @@ mod tests {
                 "https://a.example.org",
                 "https://a.example.org",
                 10,
-                None
+                None,
+                d.path(),
             )
             .await
             .is_err()
@@ -931,7 +1425,8 @@ mod tests {
                 "https://a.example.org",
                 "https://b.example.org",
                 0,
-                None
+                None,
+                d.path(),
             )
             .await
             .is_err()
@@ -946,6 +1441,7 @@ mod tests {
             "https://b.example.org",
             20,
             None,
+            d.path(),
         )
         .await;
         assert!(result.is_err());
@@ -957,6 +1453,12 @@ mod tests {
         let source = include_str!("main.rs");
         assert!(source.contains("get_transaction(filter.clone())"));
         assert!(source.contains("get_transaction(filter)"));
+        assert!(source.contains("get_block(service::BlockId"));
+        assert!(source.contains("verify_full_block("));
+        assert!(source.contains("authenticated_mainnet_block_unavailable"));
+        assert!(source.contains("verify_confirmation_chain("));
+        assert!(source.contains("mainnet_confirmation_provider_disagreement"));
+        assert!(source.contains("mainnet_compact_block_provider_disagreement"));
         assert!(source.contains("decrypt_transaction("));
         assert!(source.contains("mainnet_owned_note_decryption_failed"));
     }

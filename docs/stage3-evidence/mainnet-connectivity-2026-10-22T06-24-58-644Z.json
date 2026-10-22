@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-22T06:24:49.975Z",
+  "mode": "READ_ONLY",
+  "executionAllowed": false,
+  "productionReady": false,
+  "note": "Public free endpoints are evidence probes, not approved production providers.",
+  "base": {
+    "status": "PASS",
+    "chainId": "0x2105",
+    "finalizedHeight": 52929761,
+    "finalizedHash": "0x256dce60e23d5ba9dd82cd052c941838275815d05b430d01ec1612995e0112f1",
+    "timestamp": 1792648869,
+    "providers": [
+      {
+        "operator": "coinbase",
+        "endpoint": "https://mainnet.base.org",
+        "chainId": "0x2105",
+        "number": 52929973,
+        "hash": "0x568fcd130c99a7f4b3a46f397193948dace31b5d7f310a338ad03d9f32aeec40",
+        "timestamp": 1792649293
+      },
+      {
+        "operator": "allnodes",
+        "endpoint": "https://base-rpc.publicnode.com",
+        "chainId": "0x2105",
+        "number": 52929761,
+        "hash": "0x256dce60e23d5ba9dd82cd052c941838275815d05b430d01ec1612995e0112f1",
+        "timestamp": 1792648869
+      }
+    ],
+    "readOnly": true
+  },
+  "solana": {
+    "status": "PASS",
+    "genesisHash": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
+    "finalizedSlot": 459932496,
+    "finalizedHash": "GVNF8fD1weKr4tqoNVjHbirXfcXWpwwEkNDyLAH4Ytue",
+    "blockTime": 1792650293,
+    "providers": [
+      {
+        "operator": "solana-foundation",
+        "endpoint": "https://api.mainnet-beta.solana.com",
+        "genesis": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
+        "slot": 459932496,
+        "hash": "GVNF8fD1weKr4tqoNVjHbirXfcXWpwwEkNDyLAH4Ytue",
+        "blockTime": 1792650293
+      },
+      {
+        "operator": "allnodes",
+        "endpoint": "https://solana-rpc.publicnode.com",
+        "genesis": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
+        "slot": 459932496,
+        "hash": "GVNF8fD1weKr4tqoNVjHbirXfcXWpwwEkNDyLAH4Ytue",
+        "blockTime": 1792650293
+      }
+    ],
+    "readOnly": true
+  },
+  "zcash": {
+    "status": "PASS",
+    "height": 3526379,
+    "blockHash": "0000000000262d7bf2e92055df778b830f37cc92bdab7aac722b09001a0aeb48",
+    "primaryTip": 3526389,
+    "peerTip": 3526389,
+    "orchardRoot": "b90710cd0193282f0aafc88e887f5c43947e07db6e211927c892154637d5280c",
+    "confirmations": 10,
+    "lightwalletdAgreement": true,
+    "transactionCount": 1,
+    "transactionMerkleRoot": "0bdd04af48ac0c0f871d00f6c103acbd55a53a898c4934506ee673ce2c71ad80",
+    "transactionMerkleRootMatchesHeader": true,
+    "proofOfWork": "PASS",
+    "headerSource": "tatum",
+    "blockSource": "blockchair",
+    "readOnly": true
+  },
+  "status": "PASS"
+}

@@ -32,9 +32,31 @@ export type MainnetWatchPayment = {
   isChange: boolean;
   confirmations: number;
   ownershipEvidence: {
-    scheme: "zcash-full-transaction-ufvk-v1";
+    scheme: "zcash-full-transaction-ufvk-v3";
     digest: string;
     providers: 2;
+    blockEvidence: {
+      scheme: "zcash-header-pow-merkle-v1";
+      height: number;
+      headerHash: string;
+      merkleRoot: string;
+      transactionIndex: number;
+      transactionCount: number;
+      proofOfWork: "PASS";
+      readOnly: true;
+    };
+    chainEvidence: {
+      scheme: "zcash-pow-chain-segment-v1";
+      startHeight: number;
+      endHeight: number;
+      startHash: string;
+      endHash: string;
+      blockCount: number;
+      accumulatedWork: string;
+      proofOfWork: "PASS";
+      continuity: "PASS";
+      readOnly: true;
+    };
   };
 };
 
@@ -170,9 +192,46 @@ export function validateMainnetWatchSnapshot(
       typeof p.locked !== "boolean" ||
       typeof p.spent !== "boolean" ||
       typeof p.isChange !== "boolean" ||
-      p.ownershipEvidence?.scheme !== "zcash-full-transaction-ufvk-v1" ||
+      p.ownershipEvidence?.scheme !== "zcash-full-transaction-ufvk-v3" ||
       !HEX64.test(p.ownershipEvidence?.digest ?? "") ||
-      p.ownershipEvidence?.providers !== 2
+      p.ownershipEvidence?.providers !== 2 ||
+      p.ownershipEvidence?.blockEvidence?.scheme !==
+        "zcash-header-pow-merkle-v1" ||
+      p.ownershipEvidence.blockEvidence.height !== p.height ||
+      p.ownershipEvidence.blockEvidence.headerHash !== p.blockHash ||
+      !HEX64.test(p.ownershipEvidence.blockEvidence.merkleRoot) ||
+      !Number.isSafeInteger(
+        p.ownershipEvidence.blockEvidence.transactionIndex,
+      ) ||
+      p.ownershipEvidence.blockEvidence.transactionIndex < 0 ||
+      !Number.isSafeInteger(
+        p.ownershipEvidence.blockEvidence.transactionCount,
+      ) ||
+      p.ownershipEvidence.blockEvidence.transactionCount < 1 ||
+      p.ownershipEvidence.blockEvidence.transactionIndex >=
+        p.ownershipEvidence.blockEvidence.transactionCount ||
+      p.ownershipEvidence.blockEvidence.proofOfWork !== "PASS" ||
+      p.ownershipEvidence.blockEvidence.readOnly !== true ||
+      p.ownershipEvidence.chainEvidence?.scheme !==
+        "zcash-pow-chain-segment-v1" ||
+      p.ownershipEvidence.chainEvidence.startHeight !== p.height ||
+      p.ownershipEvidence.chainEvidence.startHash !== p.blockHash ||
+      !positive(p.ownershipEvidence.chainEvidence.endHeight) ||
+      p.ownershipEvidence.chainEvidence.endHeight < p.height ||
+      p.ownershipEvidence.chainEvidence.endHeight > s.tip ||
+      !HEX64.test(p.ownershipEvidence.chainEvidence.endHash) ||
+      !positive(p.ownershipEvidence.chainEvidence.blockCount) ||
+      p.ownershipEvidence.chainEvidence.blockCount !==
+        p.ownershipEvidence.chainEvidence.endHeight - p.height + 1 ||
+      p.ownershipEvidence.chainEvidence.blockCount !==
+        Math.min(p.confirmations, s.minimumConfirmations) ||
+      typeof p.ownershipEvidence.chainEvidence.accumulatedWork !== "string" ||
+      !/^[1-9a-f][0-9a-f]*$/.test(
+        p.ownershipEvidence.chainEvidence.accumulatedWork,
+      ) ||
+      p.ownershipEvidence.chainEvidence.proofOfWork !== "PASS" ||
+      p.ownershipEvidence.chainEvidence.continuity !== "PASS" ||
+      p.ownershipEvidence.chainEvidence.readOnly !== true
     )
       throw Error("INVALID_MAINNET_PAYMENT");
     const key = `${p.txid}:${p.pool}:${p.index}`;
@@ -242,11 +301,14 @@ export class MainnetWatchScanner {
       `target/debug/zecone-zcash-watch${process.platform === "win32" ? ".exe" : ""}`,
     ),
     readonly executableArgsPrefix: string[] = [],
+    readonly authenticatedBlockDirectory = "",
   ) {}
 
   async observe(checkpointHeight?: number): Promise<MainnetWatchSnapshot> {
     if (!https(this.source) || !https(this.peer) || this.source === this.peer)
       throw Error("INVALID_MAINNET_WATCH_PROVIDERS");
+    if (!this.authenticatedBlockDirectory)
+      throw Error("AUTHENTICATED_MAINNET_BLOCK_DIRECTORY_REQUIRED");
     const args = [
       "--wallet",
       resolve(this.wallet),
@@ -257,6 +319,8 @@ export class MainnetWatchScanner {
       this.peer,
       "--minimum-confirmations",
       "10",
+      "--authenticated-block-dir",
+      resolve(this.authenticatedBlockDirectory),
     ];
     if (checkpointHeight !== undefined) {
       if (!positive(checkpointHeight)) throw Error("INVALID_CHECKPOINT_HEIGHT");
@@ -285,6 +349,8 @@ export class MainnetWatchScanner {
     validateMainnetWatchSnapshot(snapshot);
     if (snapshot.checkpoint) Object.freeze(snapshot.checkpoint);
     for (const payment of snapshot.payments) {
+      Object.freeze(payment.ownershipEvidence.blockEvidence);
+      Object.freeze(payment.ownershipEvidence.chainEvidence);
       Object.freeze(payment.ownershipEvidence);
       Object.freeze(payment);
       nativePayments.add(payment);

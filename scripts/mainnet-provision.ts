@@ -13,7 +13,8 @@ import {
   readdirSync,
   writeFileSync,
 } from "node:fs";
-import { resolve, relative, isAbsolute, sep } from "node:path";
+import { resolve, relative, isAbsolute, sep, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import {
   assertDistinctMainnetCredentials,
@@ -39,9 +40,10 @@ function args() {
 function runWithInput(
   executable: string,
   input: Buffer | string,
+  args: string[] = [],
 ): Promise<string> {
   return new Promise((yes, no) => {
-    const child = spawn(executable, [], {
+    const child = spawn(executable, args, {
         windowsHide: true,
         stdio: ["pipe", "pipe", "pipe"],
       }),
@@ -82,6 +84,7 @@ function writeExclusive(path: string, value: string) {
   }
 }
 
+const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 let passphrase: Buffer = Buffer.alloc(0);
 const secrets: Buffer[] = [];
 function remember<T extends { secret: Buffer }>(key: T) {
@@ -90,15 +93,19 @@ function remember<T extends { secret: Buffer }>(key: T) {
 }
 async function provision() {
   const values = args(),
-    out = resolve(values.get("out") ?? "");
+    out = resolve(values.get("out") ?? ""),
+    zcashBirthdayText = values.get("zcash-birthday") ?? "";
   if (
     !values.get("out") ||
     values.get("confirm") !== "CREATE_MAINNET_KEYS" ||
     !values.get("passphrase-file")
   )
     throw Error("OFFLINE_PROVISION_CONFIRMATION_REQUIRED");
+  if (!/^[1-9][0-9]{0,8}$/.test(zcashBirthdayText))
+    throw Error("ZCASH_MAINNET_BIRTHDAY_REQUIRED");
+  const zcashBirthday = Number(zcashBirthdayText);
   const outside = (file: string) => {
-    const rel = relative(realpathSync("."), file);
+    const rel = relative(realpathSync(projectRoot), file);
     return rel === ".." || rel.startsWith(".." + sep) || isAbsolute(rel);
   };
   const passFile = realpathSync(values.get("passphrase-file")!);
@@ -145,32 +152,41 @@ async function provision() {
   if (seedFile && ufvkFile) throw Error("ZCASH_SEED_AND_UFVK_ARE_EXCLUSIVE");
   const helper = (name: string) =>
     resolve(
+      projectRoot,
       `target/debug/${name}${process.platform === "win32" ? ".exe" : ""}`,
     );
   let zcash: {
     address: string;
     account: string;
-    ufvk: string;
     mode: "seed-keystore" | "ufvk";
     keystore: string | null;
   };
+  const ufvkOut = resolve(out, "zcash-receiver.ufvk");
+  const inspectUfvk = async (ufvk: string) =>
+    JSON.parse(await runWithInput(helper("inspect-mainnet-ufvk"), ufvk)) as {
+      network: string;
+      address: string;
+      account: string;
+      ufvkValid: boolean;
+    };
+  const validUfvk = (result: {
+    network: string;
+    address: string;
+    account: string;
+    ufvkValid: boolean;
+  }) =>
+    result.network === "zcash-mainnet" &&
+    result.ufvkValid === true &&
+    /^u1[0-9a-z]{20,220}$/.test(result.address) &&
+    /^[a-f0-9]{64}$/.test(result.account);
   if (ufvkFile) {
     const ufvk = readFileSync(resolve(ufvkFile), "utf8").trim(),
-      result = JSON.parse(
-        await runWithInput(helper("inspect-mainnet-ufvk"), ufvk),
-      ) as { network: string; address: string; account: string; ufvk: string };
-    if (
-      result.network !== "zcash-mainnet" ||
-      result.ufvk !== ufvk ||
-      !/^u1[0-9a-z]{20,220}$/.test(result.address) ||
-      !/^[a-f0-9]{64}$/.test(result.account)
-    )
-      throw Error("INVALID_MAINNET_UFVK");
-    writeExclusive(resolve(out, "zcash-receiver.ufvk"), ufvk + "\n");
+      result = await inspectUfvk(ufvk);
+    if (!validUfvk(result)) throw Error("INVALID_MAINNET_UFVK");
+    writeExclusive(ufvkOut, ufvk + "\n");
     zcash = {
       address: result.address,
       account: result.account,
-      ufvk: result.ufvk,
       mode: "ufvk",
       keystore: null,
     };
@@ -178,13 +194,24 @@ async function provision() {
     const seed = seedFile ? readFileSync(resolve(seedFile)) : randomBytes(32);
     secrets.push(seed);
     if (seed.length !== 32) throw Error("ZCASH_SEED_MUST_BE_32_BYTES");
-    const result = JSON.parse(
-      await runWithInput(helper("derive-mainnet-ufvk"), seed),
-    ) as { network: string; address: string; account: string; ufvk: string };
+    const derived = JSON.parse(
+      await runWithInput(helper("derive-mainnet-ufvk"), seed, [
+        "--out",
+        ufvkOut,
+      ]),
+    ) as {
+      network: string;
+      address: string;
+      account: string;
+      ufvkWritten: boolean;
+    };
+    if (derived.network !== "zcash-mainnet" || derived.ufvkWritten !== true)
+      throw Error("MAINNET_UFVK_DERIVATION_FAILED");
+    const result = await inspectUfvk(readFileSync(ufvkOut, "utf8").trim());
     if (
-      result.network !== "zcash-mainnet" ||
-      !/^u1[0-9a-z]{20,220}$/.test(result.address) ||
-      !/^[a-f0-9]{64}$/.test(result.account)
+      !validUfvk(result) ||
+      result.account !== derived.account ||
+      result.address !== derived.address
     )
       throw Error("MAINNET_UFVK_DERIVATION_FAILED");
     const sealed = await sealMainnetCredential(
@@ -193,11 +220,9 @@ async function provision() {
       "mainnet:zcash:receiver",
     );
     writeMainnetKeystore(resolve(out, "zcash-receiver.keystore.json"), sealed);
-    writeExclusive(resolve(out, "zcash-receiver.ufvk"), result.ufvk + "\n");
     zcash = {
       address: result.address,
       account: result.account,
-      ufvk: result.ufvk,
       mode: "seed-keystore",
       keystore: "zcash-receiver.keystore.json",
     };
@@ -261,6 +286,7 @@ async function provision() {
         address: zcash.address,
         account: zcash.account,
         mode: zcash.mode,
+        birthday: zcashBirthday,
         ufvkFile: "zcash-receiver.ufvk",
         keystore: zcash.keystore,
       },

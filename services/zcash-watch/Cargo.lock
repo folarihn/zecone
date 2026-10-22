@@ -707,6 +707,7 @@ checksum = "306286e8dcc39ab3dfceb74c792ce8baffdab90591321d3ffaae64829734c37f"
 dependencies = [
  "blake2b_simd",
  "corez",
+ "document-features",
 ]
 
 [[package]]
@@ -3247,7 +3248,9 @@ dependencies = [
  "anyhow",
  "async-trait",
  "clap",
+ "equihash",
  "hex",
+ "num-bigint 0.4.8",
  "rand 0.10.3",
  "rusqlite",
  "rustls",

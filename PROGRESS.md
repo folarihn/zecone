@@ -1,5 +1,15 @@
 # ZecOne progress
 
+## 22 October 2026 - Stage 4A secure Zcash mainnet provisioning and authenticated observation
+
+Recovered the interrupted Stage 4A work without resetting its changes. Offline disposable provisioning now derives a fresh mainnet UFVK, records an explicit wallet birthday, seals the seed in the purpose-bound keystore and verifies recovery to the same account/address/UFVK without printing secret material. Watch-only import rejects testnet keys, existing/duplicate profiles, repository/historical paths and symlinks. Encrypted watch backups now require a mainnet `uview1` key and pass real SQLite integrity checks before backup and after restore; corrupt or wrong-network recovery fails closed.
+
+The owned-payment path still performs fresh two-provider full-transaction agreement and UFVK trial decryption of the exact incoming output. A review found that lightwalletd compact txids are not a complete block transaction list, so they cannot generally prove the header Merkle root. That shortcut was removed. `observe-mainnet` now requires externally staged raw mainnet blocks, verifies the full block transaction tree, header hash, Equihash `(200,9)`, target, a bounded previous-hash-linked confirmation segment and accumulated work, and requires both lightwalletd providers to corroborate every block hash. It rechecks the tip after evidence construction. Native evidence is versioned `zcash-full-transaction-ufvk-v3`; stale, copied, fabricated, restarted, reorged or replayed evidence cannot authorize execution.
+
+Validation: **523 Node tests**, including **44 focused Stage 4A tests**, and **16 Rust watch tests** pass. Both TypeScript checks, lint, Rust formatting/Clippy, wallet production build and extension build pass. Preservation confirms **537 + 91 protected files unchanged**, historical Phase 7B/7C journals and financial rows unchanged, one signing/broadcast claim each and refunds disabled. The VPS and production credentials were not accessed.
+
+Mainnet acceptance remains **NO-GO**. Missing operator setup includes an approved raw-full-block exporter, two independently operated mainnet lightwalletd services, an operator-approved real wallet birthday/provisioning run, a controlled authenticated owned-note scan, an approved public `age` recipient and off-host backup/restore drill, and review of the locked pre-release Zcash crates. See [Stage 4A validation](docs/STAGE4A-VALIDATION.md).
+
 ## 22 October 2026 - Shared Contabo VPS inspected read-only
 
 Inspected the authorized shared Ubuntu host without changing it. The host has 6 vCPU, 11 GiB RAM (9.6 GiB available), 137 GiB free root storage, and port 3410 free. Hermes is active with systemd CPU/memory/task limits and isolated development storage; multiple root-owned PM2 workloads also run on the host. No Docker Engine/Compose or `age` is installed, no ZecOne path or namespace exists, and no application backup schedule was evidenced. The host is conditionally suitable for the paused pilot after approved installation, dedicated/quota-bounded ZecOne state storage, and encrypted off-host backups. Root-owned peer workloads remain a shared-host trust risk.

@@ -1,5 +1,6 @@
 //! Offline validation and public-address derivation from a mainnet UFVK on
-//! stdin. No seed, spending key, storage, signing or network access.
+//! stdin. It prints no viewing key, seed or spending key. No storage, signing or
+//! network access.
 use anyhow::{Result, ensure};
 use sha2::{Digest, Sha256};
 use std::io::Read;
@@ -21,7 +22,7 @@ fn run() -> Result<()> {
             "network": "zcash-mainnet",
             "account": hex::encode(Sha256::digest(text.as_bytes())),
             "address": address.encode(&Network::MainNetwork),
-            "ufvk": text,
+            "ufvkValid": true,
             "spendingKeyRetained": false
         })
     );

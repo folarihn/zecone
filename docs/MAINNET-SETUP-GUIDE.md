@@ -12,7 +12,10 @@ gate. If a step does not match the reviewed plan, stop instead of improvising.
 
 - Never put production endpoints, passphrases, private keys, keystores, UFVKs,
   source-payment identifiers or journals in the repository.
-- Never paste a seed or private key into a shell, chat, issue or browser page.
+- Never paste a seed, private key or age identity into a shell, chat, issue or
+  browser page.
+- Keep the watch-backup age identity on a different device from the encrypted
+  archive. Never store both together or in the repository.
 - Never fund more than the pilot caps.
 - Never reuse a source note, order, nonce, quote, signed bundle or plan.
 - Never run `execute` until every pilot precondition, two-device approval and
@@ -111,12 +114,13 @@ Run provisioning into an empty directory outside the repository:
 npm run --silent mainnet:provision -- `
   --out (Join-Path $keys "provisioned") `
   --passphrase-file $pass `
+  --zcash-birthday <RECENT_MAINNET_HEIGHT_BEFORE_FIRST_RECEIPT> `
   --confirm CREATE_MAINNET_KEYS
 ```
 
-The command prints only `PROVISIONED`, the output path and `signing:false`;
-it must not print secrets. Inspect only the public fields in
-`provisioning.json`:
+The command prints only `PROVISIONED`, the output path, `signing:false`,
+`broadcast:false` and the credential count; it must not print secrets. Inspect
+only the public fields in `provisioning.json`:
 
 ```powershell
 $prov = Join-Path $keys "provisioned\provisioning.json"
@@ -407,6 +411,7 @@ $ufvk = Join-Path $keys "provisioned\zcash-receiver.ufvk"
 $server = "https://zec.rocks:443"
 $peer = "https://us.zec.stardust.rest:443"
 $birthday = "<HEIGHT_BEFORE_THE_SOURCE_NOTE>"
+$blocks = Join-Path $private "zcash-authenticated-blocks"
 
 npm run --silent mainnet:watch -- import `
   --wallet $watch `
@@ -420,6 +425,16 @@ The import must fail rather than open a spending wallet. The watcher holds only
 the UFVK. Choose a birthday at or before the source note's block; a very old
 birthday makes the scan slow, while a birthday after the note misses it. A
 buffer of 100-1,000 blocks is reasonable for a fresh note.
+
+Before observation, export the raw binary mainnet block containing each
+candidate payment and the following blocks needed for the confirmation policy
+from an approved full-node source. Store each outside the repository as
+`<height>-<display-hash>.bin` in `$blocks`. ZecOne verifies the complete block's
+transaction Merkle root, header hash, Equihash solution and target, and verifies
+the linked proof-of-work confirmation segment. lightwalletd compact transaction
+lists are intentionally not used as a complete Merkle tree because the protocol
+omits transactions without shielded activity. Missing or malformed raw blocks
+fail closed.
 
 Create one order binding. The amount is the exact source-note value in zatoshis,
 not the destination quote. For a 0.02 ZEC note:
@@ -454,6 +469,7 @@ npm run --silent mainnet:watch -- observe `
   --wallet $watch `
   --server $server `
   --peer $peer `
+  --authenticated-blocks $blocks `
   --journal $journal `
   --binding $binding
 ```
@@ -467,7 +483,86 @@ requires 20. Wait for at least 20 before planning execution. Record
 Do not reuse this note for the second transfer. Create a separate order binding
 and confirm a second note.
 
-## 8. Build a price context and sign the feeds
+## 8. Back up and recover the watch profile
+
+Stop the watcher before copying the profile. The backup command refuses a
+profile containing `process.lock`, a symlink, an unexpected file, a testnet key
+or an inconsistent `watch-only.json`. It reads only
+`watch-only.json`, `viewing-key.txt`, `wallet.sqlite` and optional SQLite WAL/SHM
+files. It does not include the keystore or seed.
+
+Generate a separate age identity on the offline backup device. The identity is
+written to a new private file and must never be stored with the backup or in the
+repository:
+
+```powershell
+$ageIdentity = Join-Path $keys "zcash-watch-backup.agekey"
+$ageRecipient = Join-Path $keys "zcash-watch-backup.agepub"
+npm run --silent mainnet:watch-backup -- identity `
+  --out $ageIdentity `
+  --confirm CREATE_AGE_IDENTITY
+```
+
+Copy the printed `recipient` value (beginning `age1`) into `$ageRecipient`. Then
+create the encrypted archive and record its SHA-256:
+
+```powershell
+$watchBackup = Join-Path $evidence "zcash-watch-backup.age"
+npm run --silent mainnet:watch-backup -- backup `
+  --profile $watch `
+  --recipient-file $ageRecipient `
+  --out $watchBackup `
+  --confirm CREATE_WATCH_BACKUP
+```
+
+Keep the age identity on a different device from the archive. A copied archive
+is not recoverable without that identity. Verify the live profile and perform a
+real restore into a new directory:
+
+```powershell
+npm run --silent mainnet:watch-backup -- verify --profile $watch
+
+$restoredWatch = Join-Path $state "zcash-watch-restored"
+npm run --silent mainnet:watch-backup -- restore `
+  --backup $watchBackup `
+  --identity-file $ageIdentity `
+  --out $restoredWatch `
+  --confirm RESTORE_WATCH_PROFILE
+```
+
+The restored account, address and birthday must exactly match provisioning and
+the original watch manifest. Never restore over an existing wallet. Test the
+restore before funding. Production backup readiness also requires an approved
+age recipient and an audited off-host destination; the public repository does
+not supply either.
+
+Recover the UFVK from the receiver keystore when the original viewing-key file is
+lost. This requires the receiver passphrase and the provisioning metadata:
+
+```powershell
+$recovered = Join-Path $keys "recovered"
+New-Item -ItemType Directory -Path $recovered
+npm run --silent mainnet:zcash-recover -- `
+  --keystore (Join-Path $keys "provisioned\zcash-receiver.keystore.json") `
+  --passphrase-file $pass `
+  --provisioning $prov `
+  --out (Join-Path $recovered "zcash-receiver.ufvk") `
+  --confirm RECOVER_MAINNET_UFVK
+```
+
+The printed account and address must match `provisioning.json`. Independently
+inspect the new UFVK without printing it:
+
+```powershell
+Get-Content (Join-Path $recovered "zcash-receiver.ufvk") |
+  .\target\debug\inspect-mainnet-ufvk.exe
+```
+
+The helper must report `ufvkValid: true` and the same public address. It never
+prints the viewing key. Then rebuild the watch-only profile from the recovered
+UFVK and the recorded birthday; do not overwrite the original profile.
+
+## 9. Build a price context and sign the feeds
 
 The quote context binds the network, pair, amount, fee bounds and exact profile.
 Compute it before asking either authority to sign:
@@ -590,7 +685,7 @@ profile, and the exact fee values used for the context:
 The operator name and public key must match a pinned authority. A
 self-selected key is rejected even if its signature is valid.
 
-## 9. Create the quote
+## 10. Create the quote
 
 ```powershell
 $quote = Join-Path $state "base-quote.json"
@@ -606,7 +701,7 @@ Get-Content $quote
 The quote must be fresh, under the caps, and show `CORROBORATED_SIGNED_PRICES`.
 If it fails, do not edit the signature or the context. Obtain new statements.
 
-## 10. Prove destination ownership and prepare
+## 11. Prove destination ownership and prepare
 
 Get the ownership challenge for the exact recipient:
 
@@ -666,11 +761,11 @@ npm run --silent mainnet:simulate -- `
 
 Stop here. This guide does not authorize live execution. The `execute` command
 now runs the native scanner in-process and accepts `--watch-wallet`,
-`--watch-server` and `--watch-peer` instead of a JSON snapshot. Run it only after
+`--watch-server`, `--watch-peer` and `--watch-authenticated-blocks` instead of a JSON snapshot. Run it only after
 every precondition, two-device approval and evidence review is complete. A
 simulation is not authorization.
 
-## 11. Reconcile and record
+## 12. Reconcile and record
 
 After all preconditions and evidence reviews are complete:
 
@@ -685,14 +780,18 @@ After all preconditions and evidence reviews are complete:
 Do not enable refunds, public traffic, higher caps or a second attempt in the
 same run.
 
-## 12. Evidence checklist
+## 13. Evidence checklist
 
 Store under `$private\evidence`:
 
 - `git rev-parse HEAD` and `git status --short`.
 - Test, typecheck, lint and build logs.
 - `config-check.json` and `config-check-probe.json`.
-- Provisioning public fields only; never keystores or passphrases.
+- Provisioning public fields only; never keystores, passphrases, age identities
+  or UFVKs.
+- Encrypted watch-backup SHA-256 and the restored account/address/birthday
+  metadata; keep the age identity and archive separate.
+- UFVK recovery output metadata; no recovered viewing-key contents.
 - Both Zcash watch observations with `paymentDigest`.
 - Quote context, signed statement inputs, pricing, quote, request, ownership
   proof, plan and simulation output.
@@ -720,6 +819,13 @@ amounts, finality and non-sensitive configuration facts.
 - **`UNAUTHORIZED_OR_UNBOUND_PRODUCTION_PRICE`**: the operator name, pinned key,
   network or quote context does not match. Regenerate the context and signatures
   rather than editing the quote.
+- **`WATCH_PROFILE_MUST_BE_STOPPED`**: `process.lock` still exists. Stop the
+  watcher cleanly and retry; do not delete the lock to force a backup.
+- **`HISTORICAL_WALLET_PATH_FORBIDDEN` / `WATCH_PATH_INSIDE_REPOSITORY`**: the
+  path is historical, inside the repository, or reached through a symlink.
+  Choose a new external directory; never override the guard.
+- **`WATCH_BACKUP_DECRYPT_FAILED`**: the age identity is wrong or the archive
+  was altered. Restore from another verified copy; do not edit the ciphertext.
 - **`MAINNET_CHECKPOINT_ABOVE_TIP`**: the watch checkpoint is ahead of the
   provider. Stop and investigate the provider/reorg; do not reset blindly.
 - **`MAINNET_OWNED_NOTE_CRYPTOGRAPHIC_VERIFIER_REQUIRED`**: the native scan did

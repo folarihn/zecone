@@ -90,6 +90,11 @@ async function execute() {
       required(values, "wallet"),
       required(values, "server"),
       required(values, "peer"),
+      resolve(
+        `target/debug/zecone-zcash-watch${process.platform === "win32" ? ".exe" : ""}`,
+      ),
+      [],
+      required(values, "authenticated-blocks"),
     );
     const observation = await observeMainnetWatch(journal, scanner, order);
     process.stdout.write(JSON.stringify(observation, null, 2) + "\n");
