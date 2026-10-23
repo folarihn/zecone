@@ -1,6 +1,7 @@
 // Localhost-only deployment health service. It exposes no wallet, approval,
 // signing, execution, refund, configuration, or administrative endpoint.
 import { createServer } from "node:http";
+import { spawn, type ChildProcess } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -16,6 +17,11 @@ import {
   MainnetSubmissionJournal,
   pauseMainnetSubmissionJournal,
 } from "../services/settlement/mainnet-submitter.ts";
+import {
+  readOperationalStatus,
+  validateWatchWorkerConfig,
+  type WatchWorkerConfig,
+} from "../services/operations/mainnet-watch-worker.ts";
 
 const integer = (value: string | undefined, fallback: number) => {
   if (value === undefined) return fallback;
@@ -43,12 +49,19 @@ const state = resolve(process.env.ZECONE_STATE ?? "/var/lib/zecone"),
     integer(process.env.ZECONE_MIN_FREE_BYTES, 5 * 1024 * 1024 * 1024),
   ),
   requiredStateFsUuid = process.env.ZECONE_REQUIRED_STATE_FS_UUID?.trim(),
+  workerEnabled = process.env.ZECONE_WATCH_WORKER === "1",
+  workerConfig = resolve(
+    process.env.ZECONE_WATCH_WORKER_CONFIG ??
+      join(config, "mainnet-watch-worker.json"),
+  ),
   filesystemMarker = join(state, ".zecone-filesystem-uuid"),
   marker = join(state, ".zecone-readonly-v1"),
   profilesFile = join(config, "mainnet-profiles.json"),
   readOnlyFile = join(config, "mainnet-readonly.json");
 
-if (requiredStateFsUuid) {
+if (!requiredStateFsUuid)
+  throw Error("REQUIRED_STATE_FILESYSTEM_UUID_REQUIRED");
+{
   if (
     !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
       requiredStateFsUuid,
@@ -84,6 +97,19 @@ const profiles = JSON.parse(readFileSync(profilesFile, "utf8")),
   configuration = inspectMainnetConfiguration({ profiles, readOnly }),
   lease = new MainnetExecutionLease(join(state, "operator-control.sqlite"));
 
+let workerMaximumLagBlocks = 0,
+  workerMaximumScanAgeSeconds = 0,
+  workerStopped = false;
+if (workerEnabled) {
+  const workerPolicy = JSON.parse(
+    readFileSync(workerConfig, "utf8"),
+  ) as WatchWorkerConfig;
+  validateWatchWorkerConfig(workerPolicy);
+  if (!workerPolicy.enabled) throw Error("WATCH_WORKER_CONFIG_DISABLED");
+  workerMaximumLagBlocks = workerPolicy.maximumLagBlocks;
+  workerMaximumScanAgeSeconds = workerPolicy.maximumScanAgeSeconds;
+}
+
 for (const network of ["base", "solana"]) {
   const journalFile = join(state, `${network}-submissions.sqlite`);
   if (!existsSync(journalFile)) {
@@ -102,8 +128,18 @@ function health() {
   const fs = statfsSync(state),
     freeBytes = BigInt(fs.bavail) * BigInt(fs.bsize),
     disk = freeBytes >= minimumFree ? "PASS" : "LOW_DISK";
+  const operations = readOperationalStatus(state),
+    watchReady =
+      !workerEnabled ||
+      (!workerStopped &&
+        operations.watch.providerAgreement === "PASS" &&
+        operations.watch.lastError === null &&
+        typeof operations.watch.lagBlocks === "number" &&
+        operations.watch.lagBlocks <= workerMaximumLagBlocks &&
+        typeof operations.watch.scanAgeSeconds === "number" &&
+        operations.watch.scanAgeSeconds <= workerMaximumScanAgeSeconds);
   return {
-    ok: disk === "PASS",
+    ok: disk === "PASS" && watchReady,
     mode: "READ_ONLY",
     executionAvailable: false,
     signingAvailable: false,
@@ -115,7 +151,52 @@ function health() {
       : "OPERATOR_SETUP_REQUIRED",
     disk,
     freeBytes: freeBytes.toString(),
+    watchWorker: workerEnabled
+      ? workerStopped
+        ? "STOPPED"
+        : "ENABLED_READ_ONLY"
+      : "DISABLED",
+    watch: operations.watch,
+    backup: operations.backup,
   } as const;
+}
+
+let worker: ChildProcess | undefined;
+if (workerEnabled) {
+  worker = spawn(
+    process.execPath,
+    [
+      "--experimental-transform-types",
+      resolve("scripts/mainnet-watch-worker.ts"),
+      "run",
+      "--config",
+      workerConfig,
+    ],
+    { stdio: ["ignore", "inherit", "inherit"], windowsHide: true },
+  );
+  const stopped = (
+    reason: "exit" | "error" | "close",
+    detail: Record<string, unknown>,
+  ) => {
+    if (workerStopped) return;
+    workerStopped = true;
+    log("WATCH_WORKER_STOPPED", { reason, ...detail });
+  };
+  worker.once("exit", (code, signal) =>
+    stopped("exit", {
+      code: Number.isInteger(code) ? code : null,
+      signal: typeof signal === "string" ? signal : null,
+    }),
+  );
+  worker.once("error", (error) =>
+    stopped("error", { error: finiteCode(error) }),
+  );
+  worker.once("close", (code, signal) =>
+    stopped("close", {
+      code: Number.isInteger(code) ? code : null,
+      signal: typeof signal === "string" ? signal : null,
+    }),
+  );
 }
 
 const server = createServer((request, response) => {
@@ -140,6 +221,7 @@ let closing = false;
 const close = (signal: string) => {
   if (closing) return;
   closing = true;
+  worker?.kill("SIGTERM");
   server.close(() => {
     lease.close();
     log("READ_ONLY_SERVICE_STOPPED", { signal });

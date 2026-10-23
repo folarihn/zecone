@@ -1,10 +1,13 @@
 // Disposable credentials and synthetic transactions only. No live key, network,
 // signature or broadcast is used by these tests.
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { createPublicKey, randomBytes, verify } from "node:crypto";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import {
@@ -48,7 +51,125 @@ import {
 } from "../services/settlement/mainnet-transfer.ts";
 import type { ProductionProfile } from "../services/settlement/production-safety.ts";
 
-const now = 1_800_000_000;
+const run = promisify(execFile);
+const now = Math.floor(Date.now() / 1000);
+
+test("online mainnet operator accepts external bundles but has no local key unlock path", () => {
+  const source = readFileSync(
+    new URL("../scripts/mainnet-operator.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(source, /bundleFile = required\(values, "bundle"\)/);
+  assert.doesNotMatch(source, /MainnetOfflineSigner\.open/);
+  assert.doesNotMatch(source, /passphrase-file/);
+  assert.doesNotMatch(source, /required\(values, "keystore"\)/);
+});
+
+test("separate offline CLI signs reviewed bytes without network or signed-byte output", async (t) => {
+  const root = mkdtempSync(join(tmpdir(), "zecone-mainnet-offline-cli-")),
+    key = await generateBaseMainnetKey(),
+    recipient = privateKeyToAccount(generatePrivateKey()).address,
+    profile = baseProfile(key, recipient),
+    terms = baseTerms(profile, recipient),
+    prepared = basePrepared(terms),
+    reviewed = approval(terms, prepared),
+    credential = await writeCredential(
+      root,
+      key.secret,
+      "mainnet:base:relayer",
+    ),
+    planFile = join(root, "plan.json"),
+    profileFile = join(root, "profiles.json"),
+    approvalFile = join(root, "approval.json"),
+    outputFile = join(root, "bundle.json"),
+    script = new URL("../scripts/mainnet-offline-sign.ts", import.meta.url),
+    scriptPath = fileURLToPath(script);
+  t.after(() => {
+    key.secret.fill(0);
+    credential.passphrase.fill(0);
+  });
+  writeFileSync(
+    planFile,
+    JSON.stringify({
+      version: 1,
+      network: "base",
+      profile,
+      terms,
+      termsDigest: termsDigest(terms),
+      prepared,
+    }),
+  );
+  writeFileSync(profileFile, JSON.stringify([profile]));
+  writeFileSync(approvalFile, JSON.stringify(reviewed));
+  const source = readFileSync(script, "utf8");
+  assert.doesNotMatch(source, /\bfetch\s*\(/);
+  assert.doesNotMatch(source, /sendRawTransaction|sendTransaction/);
+  const { stdout } = await run(
+    process.execPath,
+    [
+      "--import",
+      "tsx",
+      scriptPath,
+      "--plan",
+      planFile,
+      "--profiles",
+      profileFile,
+      "--approval",
+      approvalFile,
+      "--confirm",
+      reviewed.preparedDigest,
+      "--keystore",
+      credential.keystore,
+      "--passphrase-file",
+      credential.passFile,
+      "--signer-ledger",
+      join(root, "ledger.sqlite"),
+      "--out",
+      outputFile,
+      "--arm",
+      "SIGN_EXACT_MAINNET_BUNDLE",
+    ],
+    { windowsHide: true, timeout: 30_000 },
+  );
+  assert.equal(existsSync(outputFile), true);
+  const summary = JSON.parse(stdout);
+  assert.equal(summary.broadcast, false);
+  assert.equal(summary.signedBytesPrinted, false);
+  assert.equal("signed" in summary, false);
+  assert.match(JSON.parse(readFileSync(outputFile, "utf8")).signed, /^0x/);
+
+  writeFileSync(profileFile, JSON.stringify([{ ...profile, enabled: false }]));
+  await assert.rejects(
+    run(
+      process.execPath,
+      [
+        "--import",
+        "tsx",
+        scriptPath,
+        "--plan",
+        planFile,
+        "--profiles",
+        profileFile,
+        "--approval",
+        approvalFile,
+        "--confirm",
+        reviewed.preparedDigest,
+        "--keystore",
+        credential.keystore,
+        "--passphrase-file",
+        credential.passFile,
+        "--signer-ledger",
+        join(root, "disabled-ledger.sqlite"),
+        "--out",
+        join(root, "disabled-bundle.json"),
+        "--arm",
+        "SIGN_EXACT_MAINNET_BUNDLE",
+      ],
+      { windowsHide: true, timeout: 30_000 },
+    ),
+    /MAINNET_PROFILE_DISABLED/,
+  );
+});
 
 function baseProfile(
   key: Awaited<ReturnType<typeof generateBaseMainnetKey>>,

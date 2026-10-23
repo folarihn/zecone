@@ -1,5 +1,8 @@
 # Stage 4B validation — 22 October 2026
 
+> Superseded by Stage 4C for raw-block providers and the ten-block export.
+> See [STAGE4C-VALIDATION.md](STAGE4C-VALIDATION.md).
+
 ## Decision
 
 ZecOne has a verified, practical read-only infrastructure path, but production

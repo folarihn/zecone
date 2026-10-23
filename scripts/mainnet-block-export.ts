@@ -98,6 +98,15 @@ async function main() {
   const output = resolve(argument("output")!);
   const startHeight = positiveInteger("start-height", 0xffff_ffff);
   const count = positiveInteger("count", 100);
+  const minimumConfirmations = Number(
+    argument("minimum-confirmations", false) ?? "10",
+  );
+  if (
+    !Number.isSafeInteger(minimumConfirmations) ||
+    minimumConfirmations < 10 ||
+    minimumConfirmations > 99
+  )
+    throw Error("invalid_minimum_confirmations");
   if (startHeight + count - 1 > 0xffff_ffff)
     throw Error("zcash_export_range_invalid");
   const config = JSON.parse(readFileSync(configPath, "utf8")) as Config;
@@ -136,7 +145,7 @@ async function main() {
         throw Error("zcash_lightwalletd_disagreement");
       if (
         !Number.isSafeInteger(probe.confirmations) ||
-        (probe.confirmations as number) < 10
+        (probe.confirmations as number) < minimumConfirmations
       )
         throw Error("zcash_export_block_insufficient_confirmations");
       const hash = String(probe.blockHash ?? "");
@@ -208,6 +217,7 @@ async function main() {
       executionAllowed: false,
       startHeight,
       endHeight: startHeight + count - 1,
+      minimumConfirmations,
       chainContinuity: "PASS",
       accumulatedWork: accumulatedWork.toString(16),
       blocks,

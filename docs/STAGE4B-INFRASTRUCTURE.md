@@ -2,6 +2,10 @@
 
 Date: 22 October 2026. Mode: read-only. Mainnet execution remains disabled.
 
+> Stage 4C superseded the raw-block pair below with Tatum and GetBlock.
+> Blockchair is development-use only and is no longer in the probe
+> configuration. See [STAGE4C-VALIDATION.md](STAGE4C-VALIDATION.md).
+
 ## Provider result
 
 Two separately operated public lightwalletd services were exercised with the

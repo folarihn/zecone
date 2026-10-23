@@ -24,6 +24,7 @@ RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund \
 COPY --chown=root:root services ./services
 COPY --chown=root:root scripts ./scripts
 COPY --chown=root:root config ./config
+COPY --chown=root:root deploy/config ./deploy/config
 COPY --from=zcash-watch-builder /src/services/zcash-watch/target/release/zecone-zcash-watch /usr/local/bin/zecone-zcash-watch
 RUN chmod 0555 /usr/local/bin/zecone-zcash-watch \
  && find /app -type d -exec chmod 0555 {} + \

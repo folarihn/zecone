@@ -17,9 +17,10 @@
         "authEnv": "ZECONE_TATUM_API_KEY"
       },
       {
-        "endpoint": "https://api.blockchair.com/zcash/raw/block",
-        "operator": "blockchair",
-        "protocol": "blockchair-rest"
+        "endpoint": "https://shared.eu-central-1.getblock.io",
+        "operator": "getblock",
+        "protocol": "zcash-json-rpc",
+        "endpointEnv": "ZECONE_GETBLOCK_URL"
       }
     ]
   },

@@ -18,12 +18,7 @@ import {
   type MainnetExecutionAuthorization,
 } from "../services/settlement/mainnet-executor.ts";
 import { MainnetExecutionLease } from "../services/settlement/mainnet-operator-lease.ts";
-import {
-  MainnetOfflineSigner,
-  revokeMainnetSigner,
-  type MainnetSignerLimits,
-  type MainnetSigningApproval,
-} from "../services/settlement/mainnet-signer.ts";
+import { revokeMainnetSigner } from "../services/settlement/mainnet-signer.ts";
 import {
   MainnetSubmissionJournal,
   pauseMainnetSubmissionJournal,
@@ -44,6 +39,7 @@ import {
   MainnetWatchScanner,
   observeMainnetWatch,
   type MainnetOrderBinding,
+  type MainnetWatchPolicy,
 } from "../services/settlement/mainnet-watch.ts";
 import {
   assertMainnetQuote,
@@ -122,6 +118,11 @@ function profile(file: string, net: DestinationNetwork) {
   const found = profiles(file).find((p) => p.network === net);
   if (!found) throw Error("PROFILE_NOT_FOUND");
   return found;
+}
+function watchPolicy(file: string) {
+  const found = profiles(file).find((p) => p.network === "zcash");
+  if (!found) throw Error("ZCASH_WATCH_PROFILE_NOT_FOUND");
+  return found as MainnetWatchPolicy;
 }
 function quoteInput(
   net: DestinationNetwork,
@@ -409,7 +410,9 @@ async function pause(values: Map<string, string>) {
 async function execute(values: Map<string, string>) {
   const file = required(values, "plan"),
     plan = planFile(file),
-    p = assertCurrentProfile(plan, required(values, "profiles")),
+    profilesFile = required(values, "profiles"),
+    p = assertCurrentProfile(plan, profilesFile),
+    zcashPolicy = watchPolicy(profilesFile),
     prepared = assertPlanPrepared(plan),
     confirm = required(values, "confirm"),
     leaseFile = required(values, "lease"),
@@ -419,16 +422,14 @@ async function execute(values: Map<string, string>) {
     executionAuth = readJson<MainnetExecutionAuthorization>(
       required(values, "execution-authorization"),
     ),
-    bundleFile = values.get("bundle"),
+    bundleFile = required(values, "bundle"),
     journal = journalFor(resolve(journalFile), p),
     lease = new MainnetExecutionLease(resolve(leaseFile)),
     watch = new MainnetWatchJournal(resolve(watchJournalFile));
-  let signer: MainnetOfflineSigner | null = null,
-    token: string | null = null,
+  let token: string | null = null,
     timer: NodeJS.Timeout | null = null;
   try {
-    if (values.has("snapshot"))
-      throw Error("NATIVE_SNAPSHOT_HANDOFF_REQUIRED");
+    if (values.has("snapshot")) throw Error("NATIVE_SNAPSHOT_HANDOFF_REQUIRED");
     if (confirm !== plan.termsDigest)
       throw Error("EXACT_ORDER_CONFIRMATION_REQUIRED");
     if (values.get("arm") !== "ARM_MAINNET_EXECUTION")
@@ -436,6 +437,7 @@ async function execute(values: Map<string, string>) {
     if (values.get("resume-submitter") !== "RESUME_MAINNET_SUBMITTER")
       throw Error("EXPLICIT_SUBMITTER_RESUME_REQUIRED");
     if (!p.enabled) throw Error("MAINNET_PROFILE_DISABLED");
+    if (!zcashPolicy.enabled) throw Error("ZCASH_WATCH_PROFILE_DISABLED");
     const acquired = lease.acquire(required(values, "lease-owner"), {
       recoverExpired: values.get("recover-expired-lease") === "true",
       ttlSeconds: 300,
@@ -455,6 +457,7 @@ async function execute(values: Map<string, string>) {
         required(values, "watch-wallet"),
         required(values, "watch-server"),
         required(values, "watch-peer"),
+        zcashPolicy,
         resolve(
           `target/debug/zecone-zcash-watch${process.platform === "win32" ? ".exe" : ""}`,
         ),
@@ -465,26 +468,7 @@ async function execute(values: Map<string, string>) {
     if (payment.orderId !== executionAuth.orderId)
       throw Error("WATCH_ORDER_AUTHORIZATION_MISMATCH");
     lease.assertOwned(token);
-    if (!bundleFile)
-      signer = await MainnetOfflineSigner.open({
-        profile: p,
-        keystorePath: required(values, "keystore"),
-        passphrasePath: required(values, "passphrase-file"),
-        limits: {
-          perTransaction: p.perTransaction,
-          daily: p.daily,
-        } as MainnetSignerLimits,
-        ledgerPath: required(values, "signer-ledger"),
-      });
-    let bundle: MainnetSignedBundle;
-    if (bundleFile) {
-      bundle = readJson<MainnetSignedBundle>(resolve(bundleFile));
-    } else {
-      const approval = readJson<MainnetSigningApproval>(
-        required(values, "approval"),
-      );
-      bundle = await signer!.sign(plan.terms, prepared, approval);
-    }
+    const bundle = readJson<MainnetSignedBundle>(resolve(bundleFile));
     journal.resume();
     const result = await executeMainnetTransfer(
       journal,
@@ -510,7 +494,6 @@ async function execute(values: Map<string, string>) {
         // An expired or fenced lease is already closed.
       }
     }
-    signer?.close();
     watch.close();
     lease.close();
     journal.close();

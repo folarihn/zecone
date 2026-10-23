@@ -7,6 +7,7 @@ import {
   MainnetWatchScanner,
   observeMainnetWatch,
   type MainnetOrderBinding,
+  type MainnetWatchPolicy,
 } from "../services/settlement/mainnet-watch.ts";
 
 const exec = promisify(execFile);
@@ -33,6 +34,17 @@ function binding(file: string): MainnetOrderBinding {
   const value = JSON.parse(readFileSync(file, "utf8")) as MainnetOrderBinding;
   if (!value || typeof value !== "object") throw Error("BINDING_FILE_INVALID");
   return value;
+}
+
+function watchPolicy(file: string): MainnetWatchPolicy {
+  const profiles = JSON.parse(
+    readFileSync(file, "utf8"),
+  ) as MainnetWatchPolicy[];
+  const policy = Array.isArray(profiles)
+    ? profiles.find((profile) => profile.network === "zcash")
+    : undefined;
+  if (!policy) throw Error("ZCASH_MAINNET_POLICY_REQUIRED");
+  return policy;
 }
 
 async function execute() {
@@ -86,10 +98,12 @@ async function execute() {
     }
     if (command !== "observe") throw Error("UNKNOWN_COMMAND");
     const order = binding(required(values, "binding"));
+    const policy = watchPolicy(required(values, "profiles"));
     const scanner = new MainnetWatchScanner(
       required(values, "wallet"),
       required(values, "server"),
       required(values, "peer"),
+      policy,
       resolve(
         `target/debug/zecone-zcash-watch${process.platform === "win32" ? ".exe" : ""}`,
       ),

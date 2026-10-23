@@ -87,6 +87,14 @@ export type MainnetWatchSnapshot = {
   payments: MainnetWatchPayment[];
 };
 
+export type MainnetWatchPolicy = {
+  network: "zcash";
+  enabled: boolean;
+  providers: { endpoint: string; operator: string }[];
+  independenceAcknowledged: boolean;
+  confirmations: number;
+};
+
 export type MainnetOrderBinding = {
   orderId: string;
   account: string;
@@ -122,12 +130,63 @@ const amountOk = (value: unknown) =>
   /^[0-9]{1,20}$/.test(value) &&
   BigInt(value) > 0n &&
   BigInt(value) <= 2_100_000_000_000_000n;
-const https = (value: unknown) =>
-  typeof value === "string" &&
-  value.startsWith("https://") &&
-  value.length <= 220 &&
-  !value.includes("@") &&
-  !value.toLowerCase().includes("test");
+const https = (value: unknown) => {
+  if (typeof value !== "string" || value.length > 220) return false;
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      !url.username &&
+      !url.password &&
+      !url.search &&
+      !url.hash &&
+      !url.hostname.toLowerCase().includes("test")
+    );
+  } catch {
+    return false;
+  }
+};
+
+const canonicalEndpoint = (value: string) => {
+  const url = new URL(value);
+  url.hash = "";
+  if (url.pathname === "/") url.pathname = "";
+  return url.href.replace(/\/$/, "");
+};
+
+export function validateMainnetWatchPolicy(policy: MainnetWatchPolicy) {
+  if (
+    policy?.network !== "zcash" ||
+    typeof policy.enabled !== "boolean" ||
+    policy.independenceAcknowledged !== true ||
+    !Number.isSafeInteger(policy.confirmations) ||
+    policy.confirmations < 20 ||
+    policy.confirmations > 100 ||
+    !Array.isArray(policy.providers) ||
+    policy.providers.length !== 2
+  )
+    throw Error("INVALID_MAINNET_WATCH_POLICY");
+  const endpoints = new Set<string>(),
+    hosts = new Set<string>(),
+    operators = new Set<string>();
+  for (const provider of policy.providers) {
+    if (!https(provider?.endpoint) || !provider?.operator?.trim())
+      throw Error("INVALID_MAINNET_WATCH_POLICY_PROVIDER");
+    const endpoint = canonicalEndpoint(provider.endpoint),
+      host = new URL(endpoint).hostname.toLowerCase(),
+      operator = provider.operator.trim().toLowerCase();
+    if (endpoints.has(endpoint) || hosts.has(host) || operators.has(operator))
+      throw Error("MAINNET_WATCH_PROVIDER_INDEPENDENCE_REQUIRED");
+    endpoints.add(endpoint);
+    hosts.add(host);
+    operators.add(operator);
+  }
+  return Object.freeze({
+    source: canonicalEndpoint(policy.providers[0].endpoint),
+    peer: canonicalEndpoint(policy.providers[1].endpoint),
+    minimumConfirmations: policy.confirmations,
+  });
+}
 
 export function validateMainnetWatchSnapshot(
   s: MainnetWatchSnapshot,
@@ -287,22 +346,34 @@ export function verifyOwnedNote(
       zatoshis: payment.zatoshis,
       height: payment.height,
       blockHash: payment.blockHash,
+      source: s.source,
+      peerSource: s.peerSource,
+      minimumConfirmations: s.minimumConfirmations,
       ownershipEvidence: payment.ownershipEvidence,
     }),
   };
 }
 
 export class MainnetWatchScanner {
+  readonly policy: ReturnType<typeof validateMainnetWatchPolicy>;
   constructor(
     readonly wallet: string,
     readonly source: string,
     readonly peer: string,
+    policy: MainnetWatchPolicy,
     readonly executable = resolve(
       `target/debug/zecone-zcash-watch${process.platform === "win32" ? ".exe" : ""}`,
     ),
     readonly executableArgsPrefix: string[] = [],
     readonly authenticatedBlockDirectory = "",
-  ) {}
+  ) {
+    this.policy = validateMainnetWatchPolicy(policy);
+    if (
+      canonicalEndpoint(source) !== this.policy.source ||
+      canonicalEndpoint(peer) !== this.policy.peer
+    )
+      throw Error("MAINNET_WATCH_POLICY_PROVIDER_MISMATCH");
+  }
 
   async observe(checkpointHeight?: number): Promise<MainnetWatchSnapshot> {
     if (!https(this.source) || !https(this.peer) || this.source === this.peer)
@@ -318,7 +389,7 @@ export class MainnetWatchScanner {
       "--peer",
       this.peer,
       "--minimum-confirmations",
-      "10",
+      String(this.policy.minimumConfirmations),
       "--authenticated-block-dir",
       resolve(this.authenticatedBlockDirectory),
     ];
@@ -347,6 +418,12 @@ export class MainnetWatchScanner {
     }
     const snapshot = JSON.parse(stdout) as MainnetWatchSnapshot;
     validateMainnetWatchSnapshot(snapshot);
+    if (
+      canonicalEndpoint(snapshot.source) !== this.policy.source ||
+      canonicalEndpoint(snapshot.peerSource) !== this.policy.peer ||
+      snapshot.minimumConfirmations !== this.policy.minimumConfirmations
+    )
+      throw Error("MAINNET_WATCH_SNAPSHOT_POLICY_MISMATCH");
     if (snapshot.checkpoint) Object.freeze(snapshot.checkpoint);
     for (const payment of snapshot.payments) {
       Object.freeze(payment.ownershipEvidence.blockEvidence);

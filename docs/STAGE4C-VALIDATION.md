@@ -13,10 +13,18 @@ verified export. It is **not approved for production payment acceptance**.
 - **Three-block export — PASS.** Heights 3,526,768–3,526,770 passed exact
   two-source raw-byte agreement, header hash, Equihash proof of work, target,
   transaction Merkle root, previous-hash continuity and accumulated work.
-- **Representative ten-block export — BLOCKED.** Anonymous Tatum returned HTTP
-  429 at height 3,526,765. The exporter failed closed and removed its partial
-  output. An operator-owned Tatum key or approved full-node exporter is still
-  required.
+- **Authenticated Tatum export — PASS.** Two ten-block segments, heights
+  3,526,778–3,526,787 and 3,526,745–3,526,754, passed exact Tatum/Blockchair
+  agreement and all local checks. The authenticated endpoint returned HTTP 200
+  with no 429 during either export.
+- **GetBlock export — PASS.** Heights 3,526,768–3,526,777 passed exact
+  Tatum/GetBlock byte agreement and all local checks. A one-block test at height
+  3,526,807 also passed. Blockchair is development-use only and was replaced by
+  GetBlock in the sanitized probe configuration.
+- **Provider independence — UNVERIFIED.** GetBlock resolves to AS44051 Fornex
+  Hosting and Tatum to AS396982 Google Cloud. The operators, domains, IPs, ASNs
+  and response stacks differ, but shared upstreams and administrative
+  independence have no attestation. Both free tiers have no ZecOne SLA.
 - **Backup mechanics — PASS.** A disposable mainnet watch profile was encrypted
   to a disposable age X25519 recipient, restored and verified with matching
   account, address, birthday and SQLite integrity.
@@ -40,8 +48,61 @@ Local proof of work and transaction Merkle verification passed.
 Earlier live checks at height `3,526,781` also passed with zec.rocks paired
 with Cake Wallet (`zec-node.cakewallet.com`) and with Zcash Explorer
 (`lwd.zcashexplorer.app`). Those are fallback candidates, not approved
-production providers. The selected configuration remains zec.rocks and
-Stardust in `deploy/config/mainnet-public-probes.json`.
+production providers. The selected lightwalletd configuration remains zec.rocks
+and Stardust in `deploy/config/mainnet-public-probes.json`.
+
+## Authenticated Tatum and GetBlock exports
+
+The operator-owned Tatum key was read from the header-formatted secret file and
+parsed in-process; it was never printed, logged or written to evidence. Tatum
+returned HTTP 200 with `x-ttm-plan: free;ratelimit=3;strategy=shared`. Two
+ten-block exports completed without HTTP 429:
+
+- `3,526,778–3,526,787`: minimum 31 confirmations, accumulated work
+  `18b1ed3b5e35`, start hash
+  `000000000042bbe5062a40e59811f57ac63f9eae8c0223d6cecbd09f3467d919`.
+- `3,526,745–3,526,754`: minimum 71 confirmations, accumulated work
+  `186060d4d397`.
+
+Both segments had exact Tatum/Blockchair raw-byte agreement, matching header
+hashes, passing Equihash `(200,9)` proof of work and target checks, matching
+transaction Merkle roots and contiguous previous-hash links.
+
+GetBlock was then validated against Tatum. A one-block test at height
+`3,526,807` returned 19,566 bytes with SHA-256
+`ec17bfcdda29e182b10df119ebef26ad99b3068f00055071c7fdeb031b203841`; both
+providers returned identical bytes. The ten-block export at heights
+`3,526,768–3,526,777` had minimum 51 confirmations and accumulated work
+`18c36117bf61`; every block passed exact agreement, proof of work, Merkle root
+and continuity checks. The first authenticated attempt at the tip failed closed
+with `zcash_export_block_insufficient_confirmations`; starting at least 40
+blocks below tip avoided lightwalletd lag.
+
+GetBlock is a free shared endpoint with a documented 50,000 Compute Units per
+day, 20 RPS and two access tokens. A sequential five-block probe returned the
+expected byte lengths, and a further burst returned HTTP 200 with no rate-limit
+headers or 429. The free plan is positioned for prototypes and testnet work,
+has no extra CU purchase and is explicitly excluded from GetBlock's SLA. It is
+technically sufficient for this read-only validation, not production
+acceptance.
+
+The sanitized configuration uses
+`https://shared.eu-central-1.getblock.io` plus `endpointEnv:
+"ZECONE_GETBLOCK_URL"`. The credential-bearing URL remains only in
+`%USERPROFILE%\ZecOne-mainnet-pilot\secrets\zcash-rpc-secondary-url.txt`.
+Runtime resolution requires an HTTPS URL on the declared host and rejects
+userinfo, query strings, fragments and host changes. No token is stored in Git.
+
+External evidence directories:
+
+- `%USERPROFILE%\ZecOne-mainnet-pilot\evidence\authenticated-10-first-20261022T153055Z`
+- `%USERPROFILE%\ZecOne-mainnet-pilot\evidence\authenticated-10-second-20261022T153204Z`
+- `%USERPROFILE%\ZecOne-mainnet-pilot\evidence\getblock-10-20261022T154219Z`
+
+A credential scan found zero occurrences of the Tatum key across the generated
+evidence files. The GetBlock URL was not written to evidence. Exact dual-source
+bytes plus PoW and Merkle checks still do not recompute ZIP-244 authorizing-data
+or chain-history commitments locally.
 
 ## Three-block verified export
 
@@ -65,9 +126,10 @@ The limitation is unchanged: ZIP-244 authorizing-data and chain-history
 commitments are not recomputed locally. Exact dual-exporter agreement reduces
 single-provider tampering risk but is not full consensus validation.
 
-The next ten-block attempt started at height `3,526,765` against tip
-`3,526,795`. Tatum returned HTTP 429 and the exporter removed the incomplete
-directory. This is the same production reliability gate recorded in Stage 4B.
+The earlier anonymous ten-block attempt at height `3,526,765` failed closed when
+Tatum returned HTTP 429 and the exporter removed the incomplete directory. The
+later authenticated exports above resolved that anonymous rate-limit gate for
+read-only evidence. A second successful export day is still required.
 
 ## Provider independence
 
@@ -77,6 +139,13 @@ were reachable as additional fallback candidates. These facts support
 operational diversity but do **not** prove separate administrative control,
 hosting, failure domains, logging policy or resistance to coordinated
 misbehaviour. No SLA exists. Do not describe the pair as production-approved.
+
+For raw blocks, GetBlock resolves to AS44051 Fornex Hosting in Frankfurt and
+Tatum to AS396982 Google Cloud. The operators, domains, IPs, ASNs and response
+stacks differ, and GetBlock serves Zebra JSON-RPC. This is stronger than a
+same-host pair but still only supports **operator-level** independence. Shared
+upstreams, administrative control and coordinated-failure resistance remain
+**UNVERIFIED**; both free tiers are excluded from their providers' SLAs.
 
 ## Backup drill
 
@@ -103,7 +172,7 @@ image `zecone-readonly:stage1-1.89`, and the health endpoint on
 The host has `node` and `age`, but no `rclone`, `b2` CLI or
 `zecone-zcash-watch` binary. `/opt/zecone` contains the staged deployment
 source, not a Git checkout. No package, file, container, service or firewall
-rule was changed. The ten-block export was run from the operator workstation;
+rule was changed. The ten-block exports were run from the operator workstation;
 running the exporter on the VPS is not yet deployed or validated.
 
 ## Safety result
@@ -117,11 +186,13 @@ execution remains disabled.
 
 Before a production watch-only wallet or payment acceptance:
 
-1. Supply a Tatum key with automatic upgrades disabled, or an approved full-node
-   exporter, and pass a representative ten-block segment twice on different
-   days without rate-limit failure.
-2. Obtain provider independence evidence or explicitly accept the documented
-   no-SLA public-provider risk. Verify fallback endpoints before cutover.
+1. Keep the authenticated Tatum key and GetBlock URL in operator-only secret
+   storage, with automatic upgrades disabled, and pass a representative
+   ten-block segment twice on different days without rate-limit failure. The
+   same-day Tatum and GetBlock segments pass; the second day is still required.
+2. Obtain production provider terms and upstream-independence evidence, or
+   explicitly accept the documented free-tier no-SLA risk. Verify fallback
+   endpoints before cutover.
 3. Create the production age recipient on an offline device, provision a
    versioned/object-locked off-host bucket, upload the ciphertext, verify its
    SHA-256 remotely, and complete a restore drill on the offline device.

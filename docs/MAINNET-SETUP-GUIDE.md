@@ -8,8 +8,9 @@ Mainnet execution remains disabled by the repository.
 Stage 4B provider and backup prerequisites are recorded in
 [STAGE4B-INFRASTRUCTURE.md](STAGE4B-INFRASTRUCTURE.md) and
 [STAGE4B-BACKUP.md](STAGE4B-BACKUP.md). Stage 4C adds the current live
-verification, the ten-block Tatum rate-limit result and the Backblaze B2 backup
-recommendation in [STAGE4C-VALIDATION.md](STAGE4C-VALIDATION.md) and
+verification, authenticated Tatum and GetBlock ten-block results, the remaining
+cross-day and SLA gates, and the Backblaze B2 backup recommendation in
+[STAGE4C-VALIDATION.md](STAGE4C-VALIDATION.md) and
 [STAGE4C-OPERATOR-CHECKLIST.md](STAGE4C-OPERATOR-CHECKLIST.md). Complete their
 operator gates before creating a production wallet. The anonymous public
 endpoints used for live evidence are not approved production infrastructure.
@@ -478,14 +479,19 @@ npm run --silent mainnet:watch -- observe `
   --wallet $watch `
   --server $server `
   --peer $peer `
+  --profiles <profiles.json> `
   --authenticated-blocks $blocks `
   --journal $journal `
   --binding $binding
 ```
 
 The observation must become `confirmed` with reason `OWNED_NOTE_CONFIRMED` and
-`reorgDetected: false`. The scanner's minimum is 10 confirmations; the profile
-requires 20. Wait for at least 20 before planning execution. Record
+`reorgDetected: false`. The scanner now reads the Zcash production profile and
+requires its exact provider pair and a minimum of 20 confirmations. The raw
+block exporter retains a separate evidence-depth threshold (10 by default), so
+the first operational confirmation can be delayed beyond 20 confirmations
+until the complete 20-block proof segment is available in the authenticated
+corpus. Record
 `paymentDigest` from the confirmed observation. That value is the
 `sourcePaymentCommitment` for the destination request.
 

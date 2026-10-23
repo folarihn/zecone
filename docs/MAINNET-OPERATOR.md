@@ -7,15 +7,16 @@ Zcash mainnet observation have been supplied. Do not treat local validation or
 fixtures as authorization for a real transfer.
 
 Stage 4B validated the public read-only Zcash path. Stage 4C rechecked the live
-providers, passed a three-block cryptographically verified export and a
-disposable age restore drill, but the representative ten-block export failed
-closed on anonymous Tatum HTTP 429. Before wallet provisioning, follow
-[STAGE4C-VALIDATION.md](STAGE4C-VALIDATION.md),
+providers, passed authenticated Tatum and GetBlock ten-block exports, and passed
+a disposable age restore drill. The raw-block providers are distinct operators
+on separate ASNs, but upstream independence and production SLAs remain
+unverified, and only one export day has passed. Before wallet provisioning,
+follow [STAGE4C-VALIDATION.md](STAGE4C-VALIDATION.md),
 [STAGE4C-OPERATOR-CHECKLIST.md](STAGE4C-OPERATOR-CHECKLIST.md) and
-[STAGE4B-BACKUP.md](STAGE4B-BACKUP.md): supply an authenticated raw-block source,
-pass a reliable representative export, decide the ZIP-244/full-node trust
-boundary, and complete a real off-host encrypted backup and restore drill.
-Public probe success does not lift the mainnet pause.
+[STAGE4B-BACKUP.md](STAGE4B-BACKUP.md): repeat the export on a second day,
+obtain production provider terms, decide the ZIP-244/full-node trust boundary,
+and complete a real off-host encrypted backup and restore drill. Public probe
+success does not lift the mainnet pause.
 
 ## Commands
 
@@ -31,7 +32,8 @@ npm run mainnet:quote -- quote --profiles <profiles.json> --pricing <pricing.jso
 npm run mainnet:prepare -- --network base --profiles <profiles.json> --request <request.json> --pricing <pricing.json> --quote <quote.json> --ownership-proof <proof.json> --out <plan.json>
 npm run mainnet:simulate -- --profiles <profiles.json> --plan <plan.json>
 npm run mainnet:simulate -- --profiles <profiles.json> --plan <plan.json> --bundle <signed-bundle.json>
-npm run mainnet:execute -- ... --confirm <exact-terms-digest> --arm ARM_MAINNET_EXECUTION --resume-submitter RESUME_MAINNET_SUBMITTER
+npm run mainnet:offline-sign -- --plan <plan.json> --profiles <profiles.json> --approval <approval.json> --confirm <prepared-digest> --keystore <keystore.json> --passphrase-file <passphrase-file> --signer-ledger <ledger.sqlite> --out <signed-bundle.json> --arm SIGN_EXACT_MAINNET_BUNDLE
+npm run mainnet:execute -- ... --bundle <signed-bundle.json> --confirm <exact-terms-digest> --arm ARM_MAINNET_EXECUTION --resume-submitter RESUME_MAINNET_SUBMITTER
 npm run mainnet:reconcile -- ... --order <order-id> --arm ARM_MAINNET_EXECUTION
 npm run mainnet:pause -- --journal <journal.sqlite> --lease <lease.sqlite> --reason "operator emergency"
 npm run mainnet:revoke-signer -- --signer-ledger <signer-ledger.sqlite> --reason "operator revocation"
@@ -65,8 +67,7 @@ npm run mainnet:execute -- `
   --watch-peer <https-peer> `
   --watch-authenticated-blocks <external-raw-block-directory> `
   --execution-authorization <execution-authorization.json> `
-  --keystore <relayer.keystore.json> --passphrase-file <external-passphrase> `
-  --approval <exact-signing-approval.json> --signer-ledger <signer-ledger.sqlite> `
+  --bundle <externally-signed-bundle.json> `
   --arm ARM_MAINNET_EXECUTION --resume-submitter RESUME_MAINNET_SUBMITTER
 ```
 
@@ -88,10 +89,12 @@ The exact signing approval is:
 }
 ```
 
-Use `--bundle <signed-bundle.json>` instead of the keystore/passphrase/approval
-arguments when a separately operated signer produced the bundle. Inline signing
-requires a durable `--signer-ledger` path; `:memory:` is rejected so spending
-limits and revocation survive a restart. The owned-note evidence must come from
+The online operator requires `--bundle`; it has no keystore, passphrase or local
+signing path. Run `mainnet:offline-sign` on the separately controlled signing
+device after reviewing the exact prepared digest. The offline signer requires a
+durable ledger path; `:memory:` is rejected so spending limits and revocation
+survive a restart. It refuses disabled profiles and writes signed bytes only to
+the exclusive output file. The owned-note evidence must come from
 the in-process trusted scanner in the current observation window; a copied or
 older snapshot is never accepted. An expired lease needs
 `--recover-expired-lease true` only after the operator has stopped the old
@@ -111,10 +114,11 @@ connectivity, signer attestation or chain finality.
 4. Acquire a durable, fenced single-writer lease. An unexpired lease held by
    another owner fails. Recovering an expired lease requires an explicit
    `--recover-expired-lease true`; the old process then fails its next guard.
-5. Only after the lease is held, open the purpose-bound relayer keystore and
-   create a fresh native payment observation from the trusted scanner output.
-6. Sign only the exact prepared digest and terms. The signer enforces its own
-   per-transaction and daily ceilings and never accepts arbitrary calldata.
+5. Only after the lease is held, create a fresh native payment observation from
+   the trusted scanner output and validate the externally signed bundle against
+   the exact prepared bytes, pinned signer and financial limits.
+6. The online process never opens a relayer keystore. Signing happens earlier
+   on the separate offline device and only for the exact prepared digest.
 7. Resume the submitter journal only for this armed, exact order, execute the
    one-shot boundary, then pause both the journal and operator control in a
    `finally` block. A crash leaves the lease expired and reconciliation

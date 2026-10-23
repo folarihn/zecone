@@ -6,6 +6,7 @@ export type RawBlockProvider = {
   protocol: "zcash-json-rpc" | "blockchair-rest";
   authHeader?: string;
   authEnv?: string;
+  endpointEnv?: string;
 };
 
 const HEX = /^[0-9a-f]+$/i;
@@ -47,6 +48,11 @@ export function assertRawBlockProviders(
       throw Error("zcash_raw_block_auth_header_invalid");
     if (provider.authEnv && !/^ZECONE_[A-Z0-9_]{1,80}$/.test(provider.authEnv))
       throw Error("zcash_raw_block_auth_env_invalid");
+    if (
+      provider.endpointEnv &&
+      !/^ZECONE_[A-Z0-9_]{1,80}$/.test(provider.endpointEnv)
+    )
+      throw Error("zcash_raw_block_endpoint_env_invalid");
     hosts.add(url.host);
     operators.add(provider.operator);
   }
@@ -64,11 +70,39 @@ function providerHeaders(provider: RawBlockProvider) {
   return headers;
 }
 
+function providerEndpoint(provider: RawBlockProvider) {
+  if (!provider.endpointEnv) return provider.endpoint;
+  const raw = process.env[provider.endpointEnv];
+  if (!raw)
+    throw Error(`zcash_raw_block_endpoint_env_missing_${provider.operator}`);
+  let resolved: URL;
+  try {
+    resolved = new URL(raw);
+  } catch {
+    throw Error(`zcash_raw_block_endpoint_env_invalid_${provider.operator}`);
+  }
+  const declared = new URL(provider.endpoint);
+  if (
+    resolved.protocol !== "https:" ||
+    resolved.username ||
+    resolved.password ||
+    resolved.search ||
+    resolved.hash ||
+    resolved.host !== declared.host
+  )
+    throw Error(`zcash_raw_block_endpoint_env_invalid_${provider.operator}`);
+  return resolved.toString();
+}
+
 async function readJsonResponse(response: Response, operator: string) {
   const declared = response.headers.get("content-length");
   if (declared !== null) {
     const length = Number(declared);
-    if (!Number.isSafeInteger(length) || length < 0 || length > MAX_RESPONSE_BYTES)
+    if (
+      !Number.isSafeInteger(length) ||
+      length < 0 ||
+      length > MAX_RESPONSE_BYTES
+    )
       throw Error(`zcash_raw_block_response_invalid_${operator}`);
   }
   if (!response.body)
@@ -102,6 +136,7 @@ async function readJsonResponse(response: Response, operator: string) {
 
 async function fetchJson(
   provider: RawBlockProvider,
+  endpoint: string,
   hash: string,
   fetcher: typeof fetch,
 ) {
@@ -109,7 +144,7 @@ async function fetchJson(
   let response: Response;
   if (provider.protocol === "zcash-json-rpc") {
     headers["content-type"] = "application/json";
-    response = await fetcher(provider.endpoint, {
+    response = await fetcher(endpoint, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -122,14 +157,11 @@ async function fetchJson(
       signal: AbortSignal.timeout(30_000),
     });
   } else {
-    response = await fetcher(
-      `${provider.endpoint.replace(/\/$/, "")}/${hash}`,
-      {
-        headers,
-        redirect: "error",
-        signal: AbortSignal.timeout(30_000),
-      },
-    );
+    response = await fetcher(`${endpoint.replace(/\/$/, "")}/${hash}`, {
+      headers,
+      redirect: "error",
+      signal: AbortSignal.timeout(30_000),
+    });
   }
   if (!response.ok)
     throw Error(`zcash_raw_block_http_${provider.operator}_${response.status}`);
@@ -163,6 +195,7 @@ function extractRawBlock(
 
 async function fetchWithRetry(
   provider: RawBlockProvider,
+  endpoint: string,
   hash: string,
   fetcher: typeof fetch,
 ) {
@@ -171,7 +204,7 @@ async function fetchWithRetry(
     try {
       return extractRawBlock(
         provider,
-        await fetchJson(provider, hash, fetcher),
+        await fetchJson(provider, endpoint, hash, fetcher),
         hash,
       );
     } catch (error) {
@@ -192,8 +225,11 @@ export async function fetchCorroboratedRawBlock(
 ) {
   assertRawBlockProviders(providers);
   if (!/^[0-9a-f]{64}$/i.test(hash)) throw Error("zcash_block_hash_invalid");
+  const endpoints = providers.map(providerEndpoint);
   const blocks = await Promise.all(
-    providers.map((provider) => fetchWithRetry(provider, hash, fetcher)),
+    providers.map((provider, index) =>
+      fetchWithRetry(provider, endpoints[index], hash, fetcher),
+    ),
   );
   if (blocks[0] !== blocks[1])
     throw Error("zcash_raw_block_provider_disagreement");

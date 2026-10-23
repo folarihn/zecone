@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 type Provider = { endpoint: string; operator: string };
 type RawBlockProvider = Provider & {
   protocol: "zcash-json-rpc" | "blockchair-rest";
+  endpointEnv?: string;
 };
 const config = JSON.parse(
   readFileSync("deploy/config/mainnet-public-probes.json", "utf8"),
@@ -38,7 +39,7 @@ function assertIndependent(label: string, providers: Provider[]) {
   assert.equal(operators.size, 2, label);
 }
 
-test("mainnet public probes require independent credential-free HTTPS providers", () => {
+test("mainnet public probes require independent HTTPS providers and env-only credentials", () => {
   assertIndependent("zcash-lightwalletd", config.zcash.lightwalletd);
   assertIndependent("base", config.base);
   assertIndependent("solana", config.solana);
@@ -49,6 +50,20 @@ test("mainnet public probes require independent credential-free HTTPS providers"
     assert.equal(url.username, "");
     assert.equal(url.password, "");
   }
+  assert.equal(
+    config.zcash.rawBlocks.some(
+      (provider) =>
+        provider.operator === "getblock" &&
+        provider.endpointEnv === "ZECONE_GETBLOCK_URL",
+    ),
+    true,
+  );
+  assert.equal(
+    config.zcash.rawBlocks.some(
+      (provider) => provider.operator === "blockchair",
+    ),
+    false,
+  );
 });
 
 test("mainnet connectivity verifies raw Zcash evidence and stays read-only", () => {

@@ -158,7 +158,23 @@ Compose schema validation passes locally. The disposable service starts, remains
 - `validate` reports expected `BLOCKED` provider and authorization findings for the disabled placeholder profiles. No provider endpoint, UFVK, key, signer, recipient, or production backup identity was added.
 - `backup` failed closed because no recipient file is configured and created no output. The `ZECONE_ALLOW_EXECUTION=1` guard refused to start. Shared Nginx, Redis, Hermes, and PM2 PIDs/restart counts and the 16-rule UFW policy were unchanged.
 
+### Stage 3 �?" public mainnet connectivity evidence (PASS, read-only)
+
+- `scripts/mainnet-connectivity.ts` probes two independently operated endpoints per network. It rejects HTTP, embedded credentials, duplicate hosts/operators and placeholder hosts. It does not sign or broadcast.
+- Zcash lightwalletd `https://zec.rocks:443` and `https://us.zec.stardust.rest:443` agreed on the same 10-confirmation block and Orchard root. Tatum supplied the raw header and Blockchair supplied the raw block. The local Rust verifier parsed both, checked the block hash, Equihash `(200, 9)` solution, compact target/proof of work, transaction Merkle root and header binding.
+- Base `https://mainnet.base.org` and `https://base-rpc.publicnode.com` agreed on chain ID `0x2105` and a common finalized block. Solana `https://api.mainnet-beta.solana.com` and `https://solana-rpc.publicnode.com` agreed on the mainnet genesis and a common finalized slot/hash.
+- Local evidence: `docs/stage3-evidence/mainnet-connectivity-2026-10-22T08-31-57-604Z.json`. VPS evidence: `docs/stage3-evidence/vps-mainnet-connectivity-2026-10-22T08-36-37-238Z.json` (SHA-256 `25ae5169849486c9ef2ff2e829219a1d19df0de7ea8fb753082833a6309a7cca`).
+- VPS probe block: height `3526477`, hash `00000000006213191514bd9116efc1bb0887a8ad742a68a20cfc007e67a343d2`, 6 transactions, PoW `PASS`, Merkle root `PASS`. Base finalized height `52933801`; Solana finalized slot `459969747`.
+- The probe image `zecone-readonly:stage3-probe` (`sha256:ec7cd399b9f4cf38317e3398475c0cc23d0ca73de67c69581cfacfc2e6487153`) was built on the VPS in a 2 CPU / 4 GiB scope and run as a one-off read-only, non-root, capability-free, resource-capped container. The running deployment remained `zecone-readonly:stage1-1.89` with no restart. Shared Nginx (`1071`), Redis (`317768`), Hermes (`1050`), Hermes Telegram (`337574`) and `hermes-dev-poc` (`247496`) PIDs were unchanged.
+- Public free endpoints are not approved production providers. `mainnet-readonly.json` and `mainnet-profiles.json` remain placeholders. Stage 3 reports `productionReady: false` and `executionAllowed: false`.
+- Zcash watch-only import still requires the operator UFVK and birthday. Production backup still requires an approved `age` recipient and off-host destination. Production providers still require operator review and independence acknowledgement.
+
 The deployment has not been reboot-tested, and automatic failure-restart behavior has not been forced. Production provider configuration, production backups, and any execution remain blocked. The workstation Docker daemon remains unavailable, so this validation used the VPS only. Mainnet execution remains disabled.
 
-The October 22, 2026 initial read-only inspection and its validation update are recorded in `VPS-INSPECTION-2026-10-22.md`.
+## Watch-worker integration checkpoint — 2026-10-23
 
+The image now contains a disabled-by-default checkpointed watch-only worker. It advances a provider-corroborated raw-block corpus, scans the UFVK-only wallet, persists an atomic checkpoint, detects reorgs and stale observation, and resumes without skipping heights. Compose enables it only when both the protected worker configuration and `ZECONE_WATCH_WORKER=1` are set. The VPS service refuses startup unless `ZECONE_REQUIRED_STATE_FS_UUID` is present and matches the dedicated mount marker.
+
+Exact configuration, activation, monitoring, backup, recovery and rollback steps are in [MAINNET-WATCH-WORKER.md](MAINNET-WATCH-WORKER.md). This is code readiness only: the running VPS has not been changed, the worker remains disabled, no UFVK or provider credential was provisioned, and no transaction was signed or broadcast.
+
+The October 22, 2026 initial read-only inspection and its validation update are recorded in `VPS-INSPECTION-2026-10-22.md`.

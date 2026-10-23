@@ -39,6 +39,7 @@ async function start(root: string, port: number) {
         ZECONE_HEALTH_HOST: "127.0.0.1",
         ZECONE_HEALTH_PORT: String(port),
         ZECONE_MIN_FREE_BYTES: "1",
+        ZECONE_REQUIRED_STATE_FS_UUID: "11111111-2222-3333-4444-555555555555",
       },
       stdio: ["ignore", "pipe", "pipe"],
     },
@@ -161,6 +162,22 @@ test("container package has no key mount, public port, or executable startup", (
   assert.match(dockerfile, /CARGO_BUILD_JOBS=2/);
   assert.match(dockerfile, /ZECONE_READ_ONLY=1/);
   assert.doesNotMatch(dockerfile, /mainnet-operator\.ts execute/);
+  assert.match(
+    readFileSync("scripts/vps-readonly-service.ts", "utf8"),
+    /workerMaximumLagBlocks = workerPolicy\.maximumLagBlocks/,
+  );
+  assert.match(
+    readFileSync("scripts/vps-readonly-service.ts", "utf8"),
+    /!workerStopped &&/,
+  );
+  assert.match(
+    readFileSync("scripts/vps-readonly-service.ts", "utf8"),
+    /worker\.once\("error"/,
+  );
+  assert.match(
+    readFileSync("scripts/vps-readonly-service.ts", "utf8"),
+    /worker\.once\("close"/,
+  );
   assert.match(operator, /ZECONE_ALLOW_EXECUTION:-0/);
   assert.match(operator, /\/run\/zecone-docker\/docker\.sock/);
   assert.match(operator, /CONTAINER_UID="\$\{ZECONE_CONTAINER_UID:-10001\}"/);

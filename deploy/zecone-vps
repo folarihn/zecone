@@ -34,7 +34,7 @@ fail() { printf '%s\n' "$1" >&2; exit 1; }
 require_file() { [[ -f "$1" ]] || fail "missing required file: $1"; }
 require_state_filesystem() {
   local required="${ZECONE_REQUIRED_STATE_FS_UUID:-}"
-  [[ -n "$required" ]] || return 0
+  [[ -n "$required" ]] || fail "required ZecOne state filesystem UUID is not configured"
   mountpoint -q "$STATE" || fail "required ZecOne state filesystem is not mounted"
   local source actual marker
   source="$(findmnt -n -o SOURCE --mountpoint "$STATE")"
@@ -52,6 +52,8 @@ case "${1:-}" in
     install -d -o root -g "$CONTAINER_GID" -m 0750 "$CONFIG"
     [[ -e "$CONFIG/mainnet-profiles.json" ]] || install -o root -g "$CONTAINER_GID" -m 0640 "$ROOT/deploy/config/mainnet-profiles.json" "$CONFIG/mainnet-profiles.json"
     [[ -e "$CONFIG/mainnet-readonly.json" ]] || install -o root -g "$CONTAINER_GID" -m 0640 "$ROOT/deploy/config/mainnet-readonly.json" "$CONFIG/mainnet-readonly.json"
+    [[ -e "$CONFIG/mainnet-public-probes.json" ]] || install -o root -g "$CONTAINER_GID" -m 0640 "$ROOT/deploy/config/mainnet-public-probes.json" "$CONFIG/mainnet-public-probes.json"
+    [[ -e "$CONFIG/mainnet-watch-worker.json" ]] || install -o root -g "$CONTAINER_GID" -m 0640 "$ROOT/deploy/config/mainnet-watch-worker.json" "$CONFIG/mainnet-watch-worker.json"
     printf '%s\n' "initialized read-only runtime; replace placeholders before provider validation"
     ;;
   validate)
@@ -109,7 +111,14 @@ case "${1:-}" in
     [[ -d "$STATE/zcash-watch" ]] && cp -a -- "$STATE/zcash-watch" "$tmp/state/zcash-watch"
     tar -C "$tmp" -cf - state | age -R "$recipient_file" -o "$output"
     chmod 0600 "$output"
-    printf '%s\n' "encrypted backup created; verify it on the offline operator PC"
+    install -d -o "$CONTAINER_UID" -g "$CONTAINER_GID" -m 0700 "$STATE/backup"
+    completed="$(date +%s)"
+    status_tmp="$STATE/backup/status.json.partial"
+    printf '{"schemaVersion":1,"state":"LOCAL_ENCRYPTED_BACKUP_ONLY","completedAt":%s,"offHostVerified":false,"restoreDrillVerified":false,"productionReady":false,"blocker":"OFF_HOST_COPY_AND_RESTORE_DRILL_REQUIRED"}\n' "$completed" > "$status_tmp"
+    chown "$CONTAINER_UID:$CONTAINER_GID" "$status_tmp"
+    chmod 0600 "$status_tmp"
+    mv -f -- "$status_tmp" "$STATE/backup/status.json"
+    printf '%s\n' "encrypted backup created; off-host copy and offline restore verification are still required"
     ;;
   restore-test)
     command -v age >/dev/null || fail "age is required"

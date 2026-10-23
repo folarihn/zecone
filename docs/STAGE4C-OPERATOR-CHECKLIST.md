@@ -43,21 +43,37 @@ npm run mainnet:connectivity -- C:\zecone-evidence
 ## 2. Produce a verified raw-block segment
 
 Run this on a trusted operator machine, not the shared VPS. Choose a start
-height at least 20 blocks below the current tip.
+height at least 40 blocks below the current tip; the first authenticated attempt
+at tip-minus-10 failed on lightwalletd confirmation lag.
+
+Inject both credentials into the process without printing them. The Tatum file
+is header-formatted, so parse the value rather than using the file verbatim.
+The GetBlock URL contains an access token; keep it out of Git and shell history.
+
+```powershell
+$keyFile = "$env:USERPROFILE\ZecOne-mainnet-pilot\secrets\tatum-key.txt"
+$env:ZECONE_TATUM_API_KEY = [regex]::Match(
+  (Get-Content -Raw -LiteralPath $keyFile),
+  '(?i)apikey\s*:\s*"([^"]+)"'
+).Groups[1].Value
+$env:ZECONE_GETBLOCK_URL = (
+  Get-Content -Raw -LiteralPath `
+    "$env:USERPROFILE\ZecOne-mainnet-pilot\secrets\zcash-rpc-secondary-url.txt"
+).Trim()
+```
 
 ```powershell
 npm run mainnet:block-export -- `
   --config deploy/config/mainnet-public-probes.json `
   --output C:\zecone-exports\mainnet-20261022T150000Z `
-  --start-height <tip-minus-20> `
+  --start-height <tip-minus-40> `
   --count 10
 ```
 
 - [ ] Require `status: PASS`, `chainContinuity: PASS`, ten blocks, and no
   `NOT_LOCALLY_RECOMPUTED` field interpreted as full consensus.
-- [ ] Run the same ten-block check twice on different days. A short three-block
-  success is not sufficient production evidence; anonymous Tatum can return
-  HTTP 429.
+- [ ] Run the same ten-block check twice on different days. Tatum and GetBlock
+  passed the same-day segments; a second day is still required.
 - [ ] Copy only the verified directory and manifest to the VPS after approval:
 
 ```bash
@@ -71,9 +87,13 @@ ssh root@37.60.246.170 \
 - [ ] Never place raw blocks or the manifest in Git. The VPS does not currently
   have the watch binary or exporter code deployed.
 
-**Gate 2 remains BLOCKED** until an operator-owned Tatum key or approved
-full-node source is installed and the ten-block run passes reliably. See
-[STAGE4B-INFRASTRUCTURE.md](STAGE4B-INFRASTRUCTURE.md) for the trust boundary.
+**Gate 2 is PASS for same-day read-only evidence**: authenticated Tatum passed
+two ten-block segments and GetBlock passed one ten-block segment. The production
+gate remains **BLOCKED** pending a second successful day, production provider
+terms, and resolution of the independence/SLA and ZIP-244 trust boundaries.
+Blockchair was removed from the probe configuration; it is development-use
+only. See [STAGE4B-INFRASTRUCTURE.md](STAGE4B-INFRASTRUCTURE.md) and
+[STAGE4C-VALIDATION.md](STAGE4C-VALIDATION.md).
 
 ## 3. Create the offline age recipient
 

@@ -1,5 +1,42 @@
 # ZecOne progress
 
+## 23 October 2026 - Mainnet demo hardening and watch-only operations
+
+Completed the two-track hardening sprint from checkpoint `257e328`. The online
+mainnet executor now requires an externally signed bundle and has no relayer
+keystore or passphrase path. A separate network-free CLI signs only an exact
+reviewed prepared digest, requires an enabled production profile and durable
+signer ledger, and never prints signed bytes. Physical separate-device
+validation remains mandatory before mainnet signing.
+
+Zcash payment authorization now uses the profile's exact two-provider pair and
+minimum 20-confirmation policy. The provider identities and threshold are bound
+into the payment digest and checked again against native scanner output. A new
+disabled-by-default watch-only worker advances a two-source authenticated raw
+block corpus, scans the UFVK-only wallet, atomically checkpoints progress,
+detects reorgs/provider disagreement, exposes redacted lag/freshness health and
+recovers safely after restart. The VPS service still has no signing, broadcast,
+refund or financial mutation endpoint.
+
+Patched Next.js to 16.4.2 and updated Rust TLS dependencies across all three
+lockfiles (`rustls` 0.23.46, `rustls-webpki` 0.103.16, `webpki-roots` 1.0.10,
+`ctutils` 0.4.4). Production dependency audits are clean. Typechecks, lint,
+wallet/extension builds, strict Zcash-watch Clippy, 16 watch tests, historical
+Zcash/refund tests, focused mainnet tests and preservation checks pass. The full
+Node suite has 541 tests; one first-run Windows restore-directory rename was
+transient and its isolated rerun passed. The final clean full-suite rerun also
+covers worker lock release after a corrupt checkpoint, contiguous authenticated
+manifest heights, and fail-closed VPS health after the watch worker exits. It is
+recorded in [the hardening validation](docs/MAINNET-DEMO-HARDENING-VALIDATION.md).
+
+Mainnet execution remains disabled. Operator work still required includes a
+fresh mainnet UFVK and birthday, reviewed independent production providers,
+two genuine price authorities, fresh recipient/relayer identities, a physical
+offline signer, funded capped accounts, second-day provider evidence, off-host
+backup/restore, immutable image build/deployment and two separately authorized
+live acceptance transfers. No live key was unlocked and no payment, signature,
+broadcast, refund or VPS change occurred.
+
 ## 22 October 2026 - Stage 4C provider verification, export rehearsal and backup preparation
 
 Rechecked the live public Zcash path and the running read-only VPS.
@@ -8,14 +45,24 @@ with ten confirmations; Tatum and Blockchair returned byte-identical full-block
 bytes, and local header, Equihash, target and transaction-Merkle checks passed.
 A three-block export at heights 3,526,768-3,526,770 also passed exact
 dual-source agreement, continuity and accumulated-work checks. Additional
-fallback probes against Cake Wallet and Zcash Explorer passed. The providers are
-distinct published operators, but backend/administrative independence and an SLA
-remain **UNVERIFIED**.
+fallback probes against Cake Wallet and Zcash Explorer passed.
 
-A representative ten-block export from height 3,526,765 failed closed when
-anonymous Tatum returned HTTP 429 and removed its partial output. Production
-authenticated export therefore remains **BLOCKED** on an operator-owned Tatum key
-or an approved full-node exporter.
+An operator-owned Tatum key then passed authenticated ten-block exports at
+heights 3,526,778-3,526,787 and 3,526,745-3,526,754. All twenty blocks passed
+exact Tatum/Blockchair byte agreement, local Equihash `(200,9)` proof of work,
+target, transaction Merkle root and previous-hash continuity. GetBlock's Zebra
+JSON-RPC was validated with a one-block test and a ten-block export at heights
+3,526,768-3,526,777; all ten blocks passed the same checks with exact
+Tatum/GetBlock agreement. Blockchair is development-use only and was replaced
+by GetBlock in the sanitized probe configuration. The GetBlock URL is supplied
+only through `ZECONE_GETBLOCK_URL`.
+
+The raw-block providers are distinct operators on separate networks: GetBlock
+resolved to AS44051 Fornex Hosting and Tatum to AS396982 Google Cloud. That
+supports operator-level independence, but shared upstreams and administrative
+independence remain **UNVERIFIED**. Both free plans have no ZecOne SLA.
+Production acceptance remains **BLOCKED** pending a second successful export
+day, production-grade provider terms, and the remaining operator gates.
 
 A fresh disposable backup/restore drill encrypted a synthetic mainnet watch
 profile to a disposable age identity, restored matching account/address/birthday

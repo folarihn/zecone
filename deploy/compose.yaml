@@ -25,6 +25,8 @@ services:
       ZECONE_CONFIG: /etc/zecone
       ZECONE_MIN_FREE_BYTES: ${ZECONE_MIN_FREE_BYTES:-5368709120}
       ZECONE_REQUIRED_STATE_FS_UUID: ${ZECONE_REQUIRED_STATE_FS_UUID:-}
+      ZECONE_WATCH_WORKER: ${ZECONE_WATCH_WORKER:-0}
+      ZECONE_WATCH_WORKER_CONFIG: /etc/zecone/mainnet-watch-worker.json
     volumes:
       - ${ZECONE_STATE_DIR:-./runtime/state}:/var/lib/zecone
       - ${ZECONE_LOG_DIR:-./runtime/logs}:/var/log/zecone
@@ -45,4 +47,3 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
-

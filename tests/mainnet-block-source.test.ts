@@ -57,6 +57,14 @@ test("raw block providers must be independent HTTPS operators", () => {
       ]),
     /provider_invalid/,
   );
+  assert.throws(
+    () =>
+      assertRawBlockProviders([
+        providers[0],
+        { ...providers[1], endpointEnv: "GETBLOCK_URL" },
+      ]),
+    /endpoint_env_invalid/,
+  );
 });
 
 test("corroborated raw block requires exact bytes", async () => {
@@ -149,5 +157,57 @@ test("optional provider authentication is read locally and never returned", asyn
     assert.equal(JSON.stringify(result).includes(secret), false);
   } finally {
     delete process.env.ZECONE_TEST_RAW_BLOCK_KEY;
+  }
+});
+
+test("provider endpoint is read from the environment and never returned", async () => {
+  const secret = "disposable-endpoint-token";
+  const endpoint = `https://blocks-b.org/raw/${secret}`;
+  process.env.ZECONE_TEST_RAW_BLOCK_URL = endpoint;
+  const environmentProvider: RawBlockProvider = {
+    endpoint: "https://blocks-b.org",
+    operator: "operator-b",
+    protocol: "zcash-json-rpc",
+    endpointEnv: "ZECONE_TEST_RAW_BLOCK_URL",
+  };
+  const seen: string[] = [];
+  const fetcher = (async (input: unknown) => {
+    seen.push(String(input));
+    return new Response(JSON.stringify({ result: raw, error: null }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  }) as typeof fetch;
+  try {
+    const result = await fetchCorroboratedRawBlock(
+      [providers[0], environmentProvider],
+      "a".repeat(64),
+      fetcher,
+    );
+    assert.deepEqual(seen, ["https://rpc-a.net", endpoint]);
+    assert.equal(JSON.stringify(result).includes(secret), false);
+  } finally {
+    delete process.env.ZECONE_TEST_RAW_BLOCK_URL;
+  }
+  await assert.rejects(
+    fetchCorroboratedRawBlock(
+      [providers[0], environmentProvider],
+      "a".repeat(64),
+      fetcher,
+    ),
+    /endpoint_env_missing/,
+  );
+  process.env.ZECONE_TEST_RAW_BLOCK_URL = `https://other-b.org/${secret}`;
+  try {
+    await assert.rejects(
+      fetchCorroboratedRawBlock(
+        [providers[0], environmentProvider],
+        "a".repeat(64),
+        fetcher,
+      ),
+      /endpoint_env_invalid/,
+    );
+  } finally {
+    delete process.env.ZECONE_TEST_RAW_BLOCK_URL;
   }
 });
