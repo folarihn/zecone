@@ -33,9 +33,9 @@ Mainnet execution remains disabled. Operator work still required includes a
 fresh mainnet UFVK and birthday, reviewed independent production providers,
 two genuine price authorities, fresh recipient/relayer identities, a physical
 offline signer, funded capped accounts, second-day provider evidence, off-host
-backup/restore, immutable image build/deployment and two separately authorized
-live acceptance transfers. No live key was unlocked and no payment, signature,
-broadcast, refund or VPS change occurred.
+backup/restore, immutable image deployment (the image build now passes locally)
+and two separately authorized live acceptance transfers. No live key was
+unlocked and no payment, signature, broadcast, refund or VPS change occurred.
 
 ## 22 October 2026 - Stage 4C provider verification, export rehearsal and backup preparation
 

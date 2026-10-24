@@ -37,7 +37,7 @@
 - `npm audit --omit=dev --audit-level=high`: **0 vulnerabilities**.
 - RustSec audit of the root, watch and refund lockfiles: **PASS** against 1,350 advisories.
 - Compose schema: **PASS**.
-- Container image build: **BLOCKED on this workstation because the Docker Linux daemon is not running**. No VPS change was authorized or made in this sprint.
+- Container image build: **PASS** (`zecone-readonly:local`, manifest `sha256:31620013591730282fb638ccac35dde8b31eb760ceaf0f63115725d31056323b`). No VPS change was authorized or made in this sprint.
 - Preservation: **537/537 historical files unchanged and 91/91 Phase 7B files unchanged**. Phase 7B and 7C remain completed, each retains one signing/broadcast operation, financial rows are unchanged and refunds remain disabled.
 
 The root Zcash and refund crates pass their tests. Warning-denied Clippy for those two historical crates still reports pre-existing style warnings in protected legacy source. Those files were deliberately not changed because preservation is a stronger release requirement; the new mainnet watch crate passes strict Clippy.
