@@ -272,6 +272,27 @@ test("mainnet terms bind signer, relayer, recipient, source payment and limits",
   );
 });
 
+test("source maximum zatoshis caps the Zcash source side independently", () => {
+  const capped = baseProfile();
+  capped.sourceMaximumZatoshis = "2000000";
+  assert.doesNotThrow(() =>
+    mainnetTransferTerms(capped, request({ sourceZatoshis: "2000000" }), now),
+  );
+  assert.throws(
+    () =>
+      mainnetTransferTerms(capped, request({ sourceZatoshis: "2000001" }), now),
+    /SOURCE_ZATOSHIS_CAP_EXCEEDED/,
+  );
+  // Profiles without the field keep their prior behavior (backward compatible).
+  assert.doesNotThrow(() =>
+    mainnetTransferTerms(
+      baseProfile(),
+      request({ sourceZatoshis: "2000001" }),
+      now,
+    ),
+  );
+});
+
 test("Base preparation and offline signature verification are exact and read-only", async () => {
   const profile = baseProfile(),
     terms = mainnetTransferTerms(profile, request(), now),

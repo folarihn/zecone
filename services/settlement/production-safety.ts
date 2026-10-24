@@ -24,6 +24,9 @@ export type ProductionProfile = {
   perTransaction: string;
   daily: string;
   feeCap: string;
+  // Optional hard cap on the Zcash source side of a transfer (zatoshis). When
+  // present it bounds the source spend independently of the destination cap.
+  sourceMaximumZatoshis?: string;
   confirmations: number;
   priceAuthorities?: { operator: string; publicKey: string }[];
   signer?: {

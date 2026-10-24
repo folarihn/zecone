@@ -130,11 +130,15 @@ export function mainnetTransferTerms(
   if (network === "base" && l1Bound > feeCap) throw Error("L1_DATA_FEE_BOUND");
   if (amount + feeCap > BigInt(profile.perTransaction))
     throw Error("PER_TRANSACTION_LIMIT");
-  if (
-    !request.sourceZatoshis ||
-    integer(request.sourceZatoshis, "SOURCE_ZATOSHIS") <= 0n
-  )
+  const sourceZatoshis = integer(request.sourceZatoshis, "SOURCE_ZATOSHIS");
+  if (!request.sourceZatoshis || sourceZatoshis <= 0n)
     throw Error("INVALID_SOURCE_ZATOSHIS");
+  if (
+    profile.sourceMaximumZatoshis &&
+    sourceZatoshis >
+      integer(profile.sourceMaximumZatoshis, "SOURCE_MAXIMUM_ZATOSHIS")
+  )
+    throw Error("SOURCE_ZATOSHIS_CAP_EXCEEDED");
   if (!/^[a-f0-9]{64}$/.test(request.sourcePaymentCommitment))
     throw Error("INVALID_SOURCE_COMMITMENT");
   if (request.destinationBinding !== addressBinding(network, recipient))
@@ -168,7 +172,7 @@ export function mainnetTransferTerms(
     l1DataFeeBound: l1Bound.toString(),
     maximumDestinationDebit: (amount + feeCap).toString(),
     sourceNetwork: "zcash-mainnet",
-    sourceZatoshis: BigInt(request.sourceZatoshis).toString(),
+    sourceZatoshis: sourceZatoshis.toString(),
     sourcePaymentCommitment: request.sourcePaymentCommitment,
     destinationBinding: request.destinationBinding,
     quoteDigest: request.quoteDigest ?? null,
