@@ -4,6 +4,7 @@
 import { createHash, createPublicKey, verify } from "node:crypto";
 import {
   independentProviders,
+  singleDevicePilotActive,
   type ProductionProfile,
 } from "./production-safety.ts";
 import { readProductionRpc } from "./mainnet-probe.ts";
@@ -77,9 +78,13 @@ export function verifyExecutionAuthorization(
   authorization: MainnetExecutionAuthorization,
   now = Math.floor(Date.now() / 1000),
 ) {
-  const authority = profile.executionAuthority;
+  const authority = profile.executionAuthority,
+    pilotActive = singleDevicePilotActive(profile, now);
   if (
-    !authority?.separateDeviceValidated ||
+    !authority ||
+    (pilotActive
+      ? authority.separateDeviceValidated !== false
+      : !authority.separateDeviceValidated) ||
     !authority.identity.trim() ||
     !authority.attestationReference.trim()
   )

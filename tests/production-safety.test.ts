@@ -64,6 +64,62 @@ test("production configuration rejects missing corroboration, fake isolation and
   assert.throws(() => validateProductionProfile({ ...p, daily: "1" }));
   assert.throws(assertMainnetExecutionAvailable, /MAINNET_DISABLED/);
 });
+test("single-device pilot is gated, expiring and honest about non-separation", () => {
+  const now = Math.floor(Date.now() / 1000),
+    pilot = {
+      enabled: true as const,
+      isolation: "single-device-process-isolation" as const,
+      operator: "pilot-operator",
+      expires: now + 3600,
+      riskAccepted: "docs/MAINNET-SINGLE-DEVICE-PILOT.md",
+    },
+    pilotProfile = {
+      ...profile(),
+      pilot,
+      signer: { ...profile().signer!, separateDeviceValidated: false },
+    };
+  validateProductionProfile(pilotProfile, now);
+  assert.throws(
+    () =>
+      validateProductionProfile(
+        { ...pilotProfile, pilot: { ...pilot, expires: now - 1 } },
+        now,
+      ),
+    /SINGLE_DEVICE_PILOT_INVALID_OR_EXPIRED/,
+  );
+  assert.throws(
+    () =>
+      validateProductionProfile(
+        { ...pilotProfile, pilot: { ...pilot, expires: now + 31 * 86400 } },
+        now,
+      ),
+    /SINGLE_DEVICE_PILOT_INVALID_OR_EXPIRED/,
+  );
+  assert.throws(
+    () =>
+      validateProductionProfile(
+        {
+          ...pilotProfile,
+          signer: { ...pilotProfile.signer!, separateDeviceValidated: true },
+        },
+        now,
+      ),
+    /SEPARATE_DEVICE_SIGNER_REQUIRED/,
+  );
+  // Production (no pilot marker) still requires a separate device.
+  assert.throws(
+    () =>
+      validateProductionProfile(
+        {
+          ...profile(),
+          signer: { ...profile().signer!, separateDeviceValidated: false },
+        },
+        now,
+      ),
+    /SEPARATE_DEVICE_SIGNER_REQUIRED/,
+  );
+});
+
 test("production single writer fails closed across connections and restart", () => {
   const path = join(
       mkdtempSync(join(tmpdir(), "zecone-reserve-")),

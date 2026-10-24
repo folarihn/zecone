@@ -111,7 +111,7 @@ export function mainnetTransferTerms(
   now = Math.floor(Date.now() / 1000),
 ): MainnetTransferTerms {
   const network = destinationNetwork(profile.network);
-  validateProductionProfile(profile);
+  validateProductionProfile(profile, now);
   if (!profile.enabled) throw Error("MAINNET_PROFILE_DISABLED");
   if (profile.recipients.length !== 1)
     throw Error("EXACT_MAINNET_RECIPIENT_REQUIRED");

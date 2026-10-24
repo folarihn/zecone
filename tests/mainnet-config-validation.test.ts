@@ -7,6 +7,7 @@ import {
   type ConfigFinding,
 } from "../services/settlement/mainnet-config-validation.ts";
 import { relayerFromSigner } from "../services/settlement/mainnet-address.ts";
+import type { ProductionProfile } from "../services/settlement/production-safety.ts";
 
 const pem = (type: "ed25519" | "secp256k1") =>
   String(
@@ -24,7 +25,12 @@ const provider = (name: string) => ({
   endpoint: `https://${name}.provider.net`,
   operator: name,
 });
-const solanaProfile = () => {
+type SolanaFixture = ProductionProfile & {
+  signer: NonNullable<ProductionProfile["signer"]>;
+  executionAuthority: NonNullable<ProductionProfile["executionAuthority"]>;
+  priceAuthorities: NonNullable<ProductionProfile["priceAuthorities"]>;
+};
+const solanaProfile = (): SolanaFixture => {
   const signer = solanaAccount(),
     recipient = solanaAccount(),
     authority = pem("ed25519"),
@@ -174,6 +180,50 @@ test("address, signer binding and price-authority errors fail closed", () => {
   assert.ok(findings.includes("SIGNER_RELAYER_MISMATCH"));
   assert.ok(findings.includes("INDEPENDENT_PRICE_AUTHORITIES_REQUIRED"));
   assert.equal(report.configurationReady, false);
+});
+
+test("single-device pilot mode reports honestly and fails closed when invalid", () => {
+  const p = solanaProfile();
+  p.signer.separateDeviceValidated = false;
+  p.executionAuthority.separateDeviceValidated = false;
+  p.pilot = {
+    enabled: true,
+    isolation: "single-device-process-isolation",
+    operator: "pilot-operator",
+    expires: Math.floor(Date.now() / 1000) + 3600,
+    riskAccepted: "docs/MAINNET-SINGLE-DEVICE-PILOT.md",
+  };
+  const report = inspectMainnetConfiguration({
+    profiles: [...blockedProfiles(), p],
+    readOnly: readOnly(),
+  });
+  const sol = report.profiles.find((x) => x.network === "solana");
+  assert.equal(sol?.status, "PASS");
+  assert.ok(codes(sol!.findings).includes("SINGLE_DEVICE_PILOT_ACTIVE"));
+  assert.ok(!codes(sol!.findings).includes("SEPARATE_DEVICE_SIGNER_REQUIRED"));
+  assert.ok(
+    !codes(sol!.findings).includes("INDEPENDENT_EXECUTION_AUTHORITY_REQUIRED"),
+  );
+
+  const bad = solanaProfile();
+  bad.signer.separateDeviceValidated = false;
+  bad.executionAuthority.separateDeviceValidated = false;
+  bad.pilot = {
+    enabled: true,
+    isolation: "single-device-process-isolation",
+    operator: "pilot-operator",
+    expires: 1,
+    riskAccepted: "docs/MAINNET-SINGLE-DEVICE-PILOT.md",
+  };
+  const expired = inspectMainnetConfiguration({
+    profiles: [...blockedProfiles(), bad],
+    readOnly: readOnly(),
+  });
+  assert.ok(
+    codes(
+      expired.profiles.find((x) => x.network === "solana")!.findings,
+    ).includes("SINGLE_DEVICE_PILOT_INVALID_OR_EXPIRED"),
+  );
 });
 
 test("read-only spending switches and duplicate profiles fail validation", () => {

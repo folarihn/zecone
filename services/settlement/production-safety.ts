@@ -3,6 +3,17 @@ import { DatabaseSync } from "node:sqlite";
 import { createHash, randomUUID, verify, createPublicKey } from "node:crypto";
 export type ProductionNetwork = "zcash" | "base" | "solana";
 export type Provider = { endpoint: string; operator: string };
+// A deliberately narrow, operator-only exception for the first real mainnet
+// transfer on a single laptop. It is never a device attestation: it records
+// process-level isolation only, has a hard expiry, and is never enabled by any
+// deploy or example configuration.
+export type SingleDevicePilot = {
+  enabled: true;
+  isolation: "single-device-process-isolation";
+  operator: string;
+  expires: number;
+  riskAccepted: string;
+};
 export type ProductionProfile = {
   network: ProductionNetwork;
   enabled: boolean;
@@ -28,6 +39,7 @@ export type ProductionProfile = {
     separateDeviceValidated: boolean;
     attestationReference: string;
   };
+  pilot?: SingleDevicePilot;
 };
 const integer = (v: string) => {
   if (typeof v !== "string" || !/^[1-9]\d{0,30}$/.test(v))
@@ -51,7 +63,29 @@ export function independentProviders(p: ProductionProfile) {
   if (a.host === b.host || a.operator === b.operator)
     throw Error("PROVIDER_INDEPENDENCE_REQUIRED");
 }
-export function validateProductionProfile(p: ProductionProfile) {
+const MAX_PILOT_WINDOW_SECONDS = 30 * 86400;
+const SINGLE_DEVICE_ISOLATION = "single-device-process-isolation" as const;
+
+export function singleDevicePilotActive(
+  profile: ProductionProfile,
+  now = Math.floor(Date.now() / 1000),
+): boolean {
+  const pilot = profile.pilot;
+  return (
+    pilot?.enabled === true &&
+    pilot.isolation === SINGLE_DEVICE_ISOLATION &&
+    pilot.operator.trim().length > 0 &&
+    pilot.riskAccepted.trim().length > 0 &&
+    Number.isSafeInteger(pilot.expires) &&
+    pilot.expires > now &&
+    pilot.expires <= now + MAX_PILOT_WINDOW_SECONDS
+  );
+}
+
+export function validateProductionProfile(
+  p: ProductionProfile,
+  now = Math.floor(Date.now() / 1000),
+) {
   if (
     !["zcash", "base", "solana"].includes(p.network) ||
     typeof p.enabled !== "boolean" ||
@@ -71,10 +105,27 @@ export function validateProductionProfile(p: ProductionProfile) {
   )
     throw Error("CONFIRMATION_POLICY");
   independentProviders(p);
+  // A pilot marker, when present, must be complete and unexpired or it fails
+  // closed. It is never silently ignored.
+  if (p.pilot !== undefined) {
+    if (
+      p.pilot.enabled !== true ||
+      p.pilot.isolation !== SINGLE_DEVICE_ISOLATION ||
+      !p.pilot.operator.trim() ||
+      !p.pilot.riskAccepted.trim() ||
+      !Number.isSafeInteger(p.pilot.expires) ||
+      p.pilot.expires <= now ||
+      p.pilot.expires > now + MAX_PILOT_WINDOW_SECONDS
+    )
+      throw Error("SINGLE_DEVICE_PILOT_INVALID_OR_EXPIRED");
+  }
+  const pilotActive = singleDevicePilotActive(p, now);
   if (
     !p.signer ||
     p.signer.transport !== "offline-bundle" ||
-    !p.signer.separateDeviceValidated ||
+    (pilotActive
+      ? p.signer.separateDeviceValidated !== false
+      : !p.signer.separateDeviceValidated) ||
     !p.signer.identity.trim() ||
     !p.signer.attestationReference.trim()
   )

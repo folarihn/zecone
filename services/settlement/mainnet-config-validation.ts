@@ -117,17 +117,46 @@ function inspectLimits(p: Json, network: Network, findings: ConfigFinding[]) {
     push(findings, "CONFIRMATION_POLICY", "FAIL");
 }
 
+function pilotActive(p: Json): boolean {
+  const pilot = p.pilot as Json | undefined;
+  return (
+    !!pilot &&
+    pilot.enabled === true &&
+    pilot.isolation === "single-device-process-isolation" &&
+    text(pilot.operator) &&
+    text(pilot.riskAccepted) &&
+    Number.isSafeInteger(pilot.expires) &&
+    (pilot.expires as number) > Math.floor(Date.now() / 1000)
+  );
+}
+
+function inspectPilot(p: Json, findings: ConfigFinding[]) {
+  if (p.pilot === undefined) return;
+  if (!pilotActive(p))
+    push(findings, "SINGLE_DEVICE_PILOT_INVALID_OR_EXPIRED", "BLOCKED");
+  else
+    push(
+      findings,
+      "SINGLE_DEVICE_PILOT_ACTIVE",
+      "PASS",
+      `expires=${String((p.pilot as Json).expires)}`,
+    );
+}
+
 function inspectSigner(
   p: Json,
   network: "base" | "solana",
   relayer: string | null,
   findings: ConfigFinding[],
 ) {
-  const signer = p.signer as Json | undefined;
+  const signer = p.signer as Json | undefined,
+    pilot = pilotActive(p);
   if (
     !signer ||
     signer.transport !== "offline-bundle" ||
-    signer.separateDeviceValidated !== true ||
+    (pilot
+      ? signer.separateDeviceValidated !== false
+      : signer.separateDeviceValidated !== true) ||
     !text(signer.identity) ||
     !text(signer.attestationReference) ||
     !text(signer.publicKey)
@@ -165,10 +194,13 @@ function inspectExecutionAuthority(
   signer: Json | undefined,
   findings: ConfigFinding[],
 ) {
-  const authority = p.executionAuthority as Json | undefined;
+  const authority = p.executionAuthority as Json | undefined,
+    pilot = pilotActive(p);
   if (
     !authority ||
-    authority.separateDeviceValidated !== true ||
+    (pilot
+      ? authority.separateDeviceValidated !== false
+      : authority.separateDeviceValidated !== true) ||
     !text(authority.identity) ||
     !text(authority.attestationReference) ||
     !text(authority.publicKey)
@@ -269,6 +301,7 @@ function inspectProfile(value: unknown) {
       push(findings, "INVALID_RELAYER_ADDRESS", "FAIL");
     }
   }
+  inspectPilot(p, findings);
   inspectSigner(p, network, relayer, findings);
   inspectExecutionAuthority(p, p.signer as Json | undefined, findings);
   inspectPriceAuthorities(p, findings);
