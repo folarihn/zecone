@@ -17,6 +17,7 @@ import { createKeyPairSignerFromPrivateKeyBytes } from "@solana/kit";
 import {
   generateBaseMainnetKey,
   generateSolanaMainnetKey,
+  generateExecutionAuthorityKey,
   sealMainnetCredential,
   openMainnetCredential,
   writeMainnetKeystore,
@@ -140,6 +141,34 @@ test("disposable credential passwords, network/purpose substitution and tamperin
   } finally {
     pass.fill(0);
     secret.fill(0);
+  }
+});
+
+test("execution-authority key is Ed25519 and survives sealed recovery", async () => {
+  const pass = randomBytes(48),
+    authority = generateExecutionAuthorityKey();
+  let recovered: Buffer | undefined;
+  try {
+    assert.equal(authority.verifyPublicKey, true);
+    assert.match(authority.publicKey, /BEGIN PUBLIC KEY/);
+    const envelope = await sealMainnetCredential(
+      authority.secret,
+      pass,
+      "mainnet:execution-authority",
+    );
+    recovered = await openMainnetCredential(
+      envelope,
+      pass,
+      "mainnet:execution-authority",
+    );
+    assert.ok(recovered.equals(authority.secret));
+    await assert.rejects(
+      openMainnetCredential(envelope, pass, "mainnet:solana:relayer"),
+    );
+  } finally {
+    authority.secret.fill(0);
+    pass.fill(0);
+    recovered?.fill(0);
   }
 });
 

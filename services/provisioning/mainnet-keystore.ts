@@ -35,13 +35,15 @@ export type MainnetCredentialPurpose =
   | "mainnet:base:relayer"
   | "mainnet:solana:recipient"
   | "mainnet:solana:relayer"
-  | "mainnet:zcash:receiver";
+  | "mainnet:zcash:receiver"
+  | "mainnet:execution-authority";
 const purposes = new Set<MainnetCredentialPurpose>([
   "mainnet:base:recipient",
   "mainnet:base:relayer",
   "mainnet:solana:recipient",
   "mainnet:solana:relayer",
   "mainnet:zcash:receiver",
+  "mainnet:execution-authority",
 ]);
 const aad = (purpose: string) =>
   Buffer.from(JSON.stringify({ ...header, purpose }));
@@ -185,6 +187,23 @@ export async function generateSolanaMainnetKey() {
   return {
     secret,
     address: signer.address,
+    publicKey,
+    verifyPublicKey: createPublicKey(publicKey).asymmetricKeyType === "ed25519",
+  };
+}
+
+export function generateExecutionAuthorityKey() {
+  const pair = generateKeyPairSync("ed25519"),
+    jwk = pair.privateKey.export({ format: "jwk" }) as JsonWebKey;
+  if (!jwk.d) throw Error("EXECUTION_AUTHORITY_GENERATION_FAILED");
+  const secret = Buffer.from(jwk.d, "base64url");
+  if (secret.length !== 32)
+    throw Error("EXECUTION_AUTHORITY_GENERATION_FAILED");
+  const publicKey = String(
+    pair.publicKey.export({ format: "pem", type: "spki" }),
+  );
+  return {
+    secret,
     publicKey,
     verifyPublicKey: createPublicKey(publicKey).asymmetricKeyType === "ed25519",
   };
