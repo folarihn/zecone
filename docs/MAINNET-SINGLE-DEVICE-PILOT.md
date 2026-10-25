@@ -28,7 +28,11 @@ this one transfer:
 ## What is not weakened
 
 - Provider independence (two distinct HTTPS operators per chain) is unchanged.
-- Price-authority independence (two distinct Ed25519 operators) is unchanged.
+- Production price-authority independence is unchanged: the two-independent-
+  operator Ed25519 path remains mandatory outside this pilot. The pilot instead
+  uses the explicitly named `SINGLE_OPERATOR_PILOT_PRICING` policy (one operator,
+  two independent market-data providers), which cannot activate without the
+  pilot marker, cap, and expiry.
 - The 20-confirmation Zcash policy is unchanged.
 - The 1800-second Base finality gate is unchanged.
 - Exact recipient/amount/fee/digest review is unchanged.
@@ -36,6 +40,23 @@ this one transfer:
 - Funding, signing, and broadcast remain separate, explicit approvals.
 - One-shot submission, single-writer lease, emergency pause, and fail-closed
   replay/refund behavior are unchanged.
+
+## Recovery policy (accepted residual risk)
+
+This is a single-laptop personal pilot. The operator has explicitly accepted
+that independent disaster recovery is **not established**:
+
+- The age-encrypted keystore archive is in Backblaze B2 (off-device ciphertext),
+  and local recovery (keystore reopen, Zcash UFVK re-derivation, Base address
+  match) is verified.
+- The age identity and the wallet passphrase both reside only on this laptop's
+  BitLocker-encrypted D: drive. Neither BitLocker nor the B2 ciphertext alone
+  guarantees recovery if the laptop is lost or destroyed, because recovering the
+  B2 archive requires both of these on-device secrets.
+
+The off-device-backup requirement is an **operational readiness rule**, not a
+code-enforced gate; this pilot records the acceptance above instead of claiming
+independent disaster recovery.
 
 ## Not enabled anywhere
 
