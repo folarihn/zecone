@@ -8,9 +8,11 @@ import {
   type ProductionProfile,
   type SignedPrice,
 } from "../services/settlement/production-safety.ts";
+import type { SingleOperatorPilotPrice } from "../services/settlement/mainnet-pilot-pricing.ts";
 
 type Pricing = {
-  feeds: { price: SignedPrice; publicKey: string }[];
+  feeds?: { price: SignedPrice; publicKey: string }[];
+  pilotPrice?: SingleOperatorPilotPrice;
   pair: "ETH/ZEC" | "SOL/ZEC";
   networkFee: string;
   l1DataFee: string;
@@ -102,7 +104,9 @@ if (command === "context") {
     network,
     profile,
     pair: pricing.pair,
-    feeds: pricing.feeds,
+    ...(pricing.pilotPrice
+      ? { pilotPrice: pricing.pilotPrice }
+      : { feeds: pricing.feeds! }),
     destinationUnits: BigInt(amount),
     networkFee: BigInt(pricing.networkFee),
     l1DataFee: BigInt(pricing.l1DataFee),
