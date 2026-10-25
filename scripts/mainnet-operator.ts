@@ -43,6 +43,7 @@ import {
 } from "../services/settlement/mainnet-watch.ts";
 import {
   assertMainnetQuote,
+  mainnetQuoteContext,
   type MainnetQuote,
   type MainnetQuoteInput,
 } from "../services/settlement/mainnet-quote.ts";
@@ -52,6 +53,10 @@ import {
   type ProductionProfile,
   type SignedPrice,
 } from "../services/settlement/production-safety.ts";
+import {
+  verifySingleOperatorPilotPrice,
+  type SingleOperatorPilotPrice,
+} from "../services/settlement/mainnet-pilot-pricing.ts";
 
 type RequestFile = {
   recipient: string;
@@ -62,7 +67,8 @@ type RequestFile = {
   expires: number;
 };
 type PricingFile = {
-  feeds: { price: SignedPrice; publicKey: string }[];
+  feeds?: { price: SignedPrice; publicKey: string }[];
+  pilotPrice?: SingleOperatorPilotPrice;
   pair: "ETH/ZEC" | "SOL/ZEC";
   maximumSpreadBps?: number;
   networkFee: string;
@@ -135,7 +141,9 @@ function quoteInput(
     network: net,
     profile: p,
     pair: pricing.pair,
-    feeds: pricing.feeds,
+    ...(pricing.pilotPrice
+      ? { pilotPrice: pricing.pilotPrice }
+      : { feeds: pricing.feeds! }),
     destinationUnits,
     networkFee: BigInt(pricing.networkFee),
     l1DataFee: BigInt(pricing.l1DataFee),
@@ -204,14 +212,29 @@ async function prepare(values: Map<string, string>) {
     out = required(values, "out"),
     at = now(),
     requested = BigInt(request.amount),
-    price = productionPrice(
-      pricing.feeds,
-      pricing.pair,
-      requested,
-      net === "base" ? 18 : 9,
-      at,
-      pricing.maximumSpreadBps,
-    ),
+    price = pricing.pilotPrice
+      ? (() => {
+          const verified = verifySingleOperatorPilotPrice(
+            p,
+            pricing.pilotPrice,
+            mainnetQuoteContext(quoteInput(net, p, pricing, requested, at)),
+            requested,
+            at,
+          );
+          return {
+            zatoshis: verified.sourceZatoshis,
+            expires: verified.expires,
+            confidence: verified.confidence,
+          };
+        })()
+      : productionPrice(
+          pricing.feeds!,
+          pricing.pair,
+          requested,
+          net === "base" ? 18 : 9,
+          at,
+          pricing.maximumSpreadBps,
+        ),
     quote = assertMainnetQuote(
       quoted,
       quoteInput(net, p, pricing, requested, at),

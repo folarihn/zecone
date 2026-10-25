@@ -15,6 +15,7 @@
     "mainnet:watch": "tsx scripts/mainnet-watch.ts",
     "mainnet:watch-backup": "tsx scripts/mainnet-watch-backup.ts",
     "mainnet:quote": "tsx scripts/mainnet-quote.ts",
+    "mainnet:pilot-price": "tsx scripts/mainnet-pilot-price.ts",
     "mainnet:transfer": "tsx scripts/mainnet-transfer.ts",
     "mainnet:operator": "tsx scripts/mainnet-operator.ts",
     "mainnet:status": "tsx scripts/mainnet-operator.ts status",

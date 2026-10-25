@@ -227,6 +227,15 @@ function inspectExecutionAuthority(
 }
 
 function inspectPriceAuthorities(p: Json, findings: ConfigFinding[]) {
+  if (pilotActive(p)) {
+    push(
+      findings,
+      "SINGLE_OPERATOR_PILOT_PRICING",
+      "PASS",
+      "one-operator-two-market-data-providers",
+    );
+    return;
+  }
   const pins = p.priceAuthorities;
   if (!Array.isArray(pins) || pins.length !== 2) {
     push(findings, "TWO_AUTHORIZED_PRICE_AUTHORITIES_REQUIRED", "BLOCKED");

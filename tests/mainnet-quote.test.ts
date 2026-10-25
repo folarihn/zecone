@@ -143,14 +143,14 @@ test("production quotes reject self-selected feed keys, wrong network and replay
   );
   const attacker = feed("a");
   assert.throws(
-    () => mainnetQuote({ ...i, feeds: [attacker, i.feeds[1]] }),
+    () => mainnetQuote({ ...i, feeds: [attacker, i.feeds![1]] }),
     /UNAUTHORIZED_OR_UNBOUND/,
   );
   assert.throws(
     () => mainnetQuote({ ...i, destinationUnits: i.destinationUnits + 1n }),
     /UNAUTHORIZED_OR_UNBOUND/,
   );
-  const f = structuredClone(i.feeds);
+  const f = structuredClone(i.feeds!);
   f[0].price.statement.network = "base-mainnet";
   assert.throws(
     () => mainnetQuote({ ...i, feeds: f }),

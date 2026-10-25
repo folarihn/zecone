@@ -5,12 +5,17 @@ import {
   type ProductionProfile,
   type SignedPrice,
 } from "./production-safety.ts";
+import {
+  verifySingleOperatorPilotPrice,
+  type SingleOperatorPilotPrice,
+} from "./mainnet-pilot-pricing.ts";
 
 export type MainnetQuoteInput = {
   network: "base" | "solana";
   profile: ProductionProfile;
   pair: "ETH/ZEC" | "SOL/ZEC";
-  feeds: readonly { price: SignedPrice; publicKey: string }[];
+  feeds?: readonly { price: SignedPrice; publicKey: string }[];
+  pilotPrice?: SingleOperatorPilotPrice;
   destinationUnits: bigint;
   networkFee: bigint;
   l1DataFee: bigint;
@@ -47,7 +52,8 @@ export type MainnetQuote = {
   createdAt: number;
   expires: number;
   priceExpires: number;
-  priceConfidence: "CORROBORATED_SIGNED_PRICES";
+  priceConfidence:
+    "CORROBORATED_SIGNED_PRICES" | "SINGLE_OPERATOR_PILOT_PRICING";
   feedsDigest: string;
   profileDigest: string;
   quoteDigest: string;
@@ -68,7 +74,7 @@ export function mainnetQuoteContext(input: MainnetQuoteContextInput) {
 }
 function assertAuthorizedFeeds(input: MainnetQuoteInput) {
   const pins = input.profile.priceAuthorities;
-  if (!pins || pins.length !== 2 || input.feeds.length !== 2)
+  if (!pins || pins.length !== 2 || !input.feeds || input.feeds.length !== 2)
     throw Error("AUTHORIZED_PRODUCTION_PRICE_FEEDS_REQUIRED");
   const key = (s: string) =>
     createPublicKey(s).export({ format: "der", type: "spki" }).toString("hex");
@@ -121,16 +127,32 @@ export function mainnetQuote(input: MainnetQuoteInput): MainnetQuote {
       BigInt(p.perTransaction)
   )
     throw Error("QUOTE_EXCEEDS_PROFILE_LIMIT");
-  assertAuthorizedFeeds(input);
-  const price = productionPrice(
-      input.feeds,
-      input.pair,
-      input.destinationUnits,
-      input.network === "base" ? 18 : 9,
-      input.now,
-      spread,
-    ),
-    totalFee = input.networkFee + input.l1DataFee + input.serviceFee,
+  const context = mainnetQuoteContext(input);
+  const price = input.pilotPrice
+    ? verifySingleOperatorPilotPrice(
+        p,
+        input.pilotPrice,
+        context,
+        input.destinationUnits,
+        input.now,
+      )
+    : (() => {
+        assertAuthorizedFeeds(input);
+        const result = productionPrice(
+          input.feeds!,
+          input.pair,
+          input.destinationUnits,
+          input.network === "base" ? 18 : 9,
+          input.now,
+          spread,
+        );
+        return {
+          sourceZatoshis: result.zatoshis,
+          expires: result.expires,
+          confidence: "CORROBORATED_SIGNED_PRICES" as const,
+        };
+      })();
+  const totalFee = input.networkFee + input.l1DataFee + input.serviceFee,
     debit = input.destinationUnits + totalFee,
     maximumDestinationDebit = BigInt(p.perTransaction),
     feeCap = BigInt(p.feeCap);
@@ -144,18 +166,18 @@ export function mainnetQuote(input: MainnetQuoteInput): MainnetQuote {
     pair: input.pair,
     destinationUnits: input.destinationUnits.toString(),
     destinationAmount: input.destinationUnits.toString(),
-    sourceZatoshis: price.zatoshis,
+    sourceZatoshis: price.sourceZatoshis,
     networkFee: input.networkFee.toString(),
     l1DataFee: input.l1DataFee.toString(),
     serviceFee: input.serviceFee.toString(),
     totalFee: totalFee.toString(),
     maximumDestinationDebit: debit.toString(),
-    maximumSourceSpend: price.zatoshis,
+    maximumSourceSpend: price.sourceZatoshis,
     createdAt: input.now,
     expires: Math.min(price.expires, input.now + ttl),
     priceExpires: price.expires,
-    priceConfidence: "CORROBORATED_SIGNED_PRICES" as const,
-    feedsDigest: digest(input.feeds),
+    priceConfidence: price.confidence,
+    feedsDigest: digest(input.pilotPrice ?? input.feeds),
     profileDigest: digest(p),
   };
   return { ...body, quoteDigest: digest(body) };

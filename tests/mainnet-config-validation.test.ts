@@ -200,9 +200,13 @@ test("single-device pilot mode reports honestly and fails closed when invalid", 
   const sol = report.profiles.find((x) => x.network === "solana");
   assert.equal(sol?.status, "PASS");
   assert.ok(codes(sol!.findings).includes("SINGLE_DEVICE_PILOT_ACTIVE"));
+  assert.ok(codes(sol!.findings).includes("SINGLE_OPERATOR_PILOT_PRICING"));
   assert.ok(!codes(sol!.findings).includes("SEPARATE_DEVICE_SIGNER_REQUIRED"));
   assert.ok(
     !codes(sol!.findings).includes("INDEPENDENT_EXECUTION_AUTHORITY_REQUIRED"),
+  );
+  assert.ok(
+    !codes(sol!.findings).includes("TWO_AUTHORIZED_PRICE_AUTHORITIES_REQUIRED"),
   );
 
   const bad = solanaProfile();
