@@ -71,112 +71,107 @@ export default function HomeWidget() {
   }
 
   const status =
-    health === null ? "Checking service…" : health === "down" ? "Payment API offline" : health.livePayoutEnabled ? "Live" : "Demo mode · live payouts off";
+    health === null
+      ? "Checking service…"
+      : health === "down"
+        ? "Payment API offline"
+        : health.livePayoutEnabled
+          ? "Live settlement"
+          : health.mode === "monitor"
+            ? "Mainnet monitoring, payout off"
+            : "Demo mode, live payouts off";
 
   return (
-    <div className="relative">
-      <div className="rounded-[28px] border border-line bg-surface p-5 shadow-float sm:p-6">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[14px] font-semibold text-ink">Checkout preview</span>
-          <span
-            className={`flex items-center gap-1.5 text-[12.5px] font-medium ${health === "down" ? "text-red" : "text-amber"}`}
-            data-testid="service-status"
-          >
-            <span className={`h-1.5 w-1.5 rounded-full ${health === "down" ? "bg-red" : "bg-amber animate-pulse-soft"}`} />
-            {status}
-          </span>
-        </div>
-
-        <div className="mt-4 rounded-2xl bg-canvas p-4">
-          <div className="flex items-center justify-between text-[13px] text-muted">
-            <span>Customer pays</span>
-            <span className="flex items-center gap-1.5 text-gold-deep">
-              <ZcashMark size={18} /> Zcash · shielded
-            </span>
-          </div>
-          <div className="mt-2 flex items-baseline justify-between gap-3">
-            <label className="flex items-baseline gap-1 text-ink">
-              <span className="text-[22px] font-semibold text-muted">$</span>
-              <input
-                aria-label="Amount in US dollars"
-                inputMode="decimal"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ""))}
-                className="w-28 bg-transparent text-[34px] font-semibold tracking-tight outline-none"
-              />
-            </label>
-            <div className="text-right">
-              <div className="text-[20px] font-semibold tabular-nums text-ink" data-testid="quote-zec">
-                {preview ? `${preview.zecAmount} ZEC` : "—"}
-              </div>
-            </div>
-          </div>
-          <div className="mt-3 flex gap-2">
-            {PRESETS.map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setAmount(p)}
-                className={`rounded-full border px-3 py-1 text-[12.5px] font-medium transition-colors ${
-                  amount === p ? "border-ink bg-ink text-white" : "border-line bg-surface text-ink-soft hover:border-ink/30"
-                }`}
-              >
-                ${Number(p)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="relative z-10 -my-2.5 flex justify-center">
-          <span className="grid h-9 w-9 place-items-center rounded-full border border-line bg-surface text-ink shadow-sm">
-            <ArrowDown size={16} />
-          </span>
-        </div>
-
-        <div className="rounded-2xl bg-canvas p-4">
-          <div className="flex items-center justify-between text-[13px] text-muted">
-            <span>Merchant receives</span>
-            <span className="flex items-center gap-1.5 text-blue-deep">
-              <BaseMark size={18} /> Base · public
-            </span>
-          </div>
-          <div className="mt-2 text-[22px] font-semibold tabular-nums text-ink" data-testid="quote-eth">
-            {preview ? `${shortEth(preview.ethPayout)} ETH` : "—"}
-          </div>
-        </div>
-
-        <ol className="mt-5 grid gap-2.5 text-[13px]">
-          {[
-            ["Shielded payment", "Sent to a Zcash address assigned to this order."],
-            ["Confirmed", "Attributed by exact transaction; 20 confirmations required."],
-            ["Paid out", "The relayer sends ETH to the merchant's verified Base address."],
-          ].map(([t, d], i) => (
-            <li key={t} className="flex gap-3">
-              <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border border-line-strong text-[11px] font-semibold text-ink-soft">
-                {i + 1}
-              </span>
-              <span>
-                <span className="font-semibold text-ink">{t}.</span> <span className="text-muted">{d}</span>
-              </span>
-            </li>
-          ))}
-        </ol>
-
-        <button
-          type="button"
-          onClick={pay}
-          disabled={!valid || busy || health === "down"}
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-ink py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-navy disabled:cursor-not-allowed disabled:opacity-50"
+    <div className="rounded-[var(--radius-xl)] border border-line bg-surface p-5 shadow-float sm:p-7">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 className="font-display text-[18px] font-semibold text-ink">Quote a payment</h3>
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[13px] font-semibold ${
+            health === "down" ? "border-red/25 bg-red-soft text-red" : "border-line-strong bg-canvas text-ink-soft"
+          }`}
+          data-testid="service-status"
         >
-          {busy && <Loader2 size={16} className="animate-spin" />}
-          {busy ? "Creating payment request…" : `Continue to demo checkout`}
-        </button>
-        {error && <p className="mt-2 text-[12.5px] text-red">{error}</p>}
-        <p className="mt-3 text-[12px] leading-relaxed text-muted">
-          Demo rate: 1 ZEC = $50.00, fixed — not a market price. Demo checkouts replay recorded mainnet transactions; no
-          funds move.
-        </p>
+          <span className={`h-1.5 w-1.5 rounded-full ${health === "down" ? "bg-red" : "bg-gold animate-pulse-soft"}`} aria-hidden="true" />
+          {status}
+        </span>
       </div>
+
+      <div className="mt-5 rounded-[var(--radius-lg)] border border-line bg-canvas p-4 sm:p-5">
+        <div className="flex items-center justify-between text-[14px] text-muted">
+          <span>Customer pays</span>
+          <span className="flex items-center gap-1.5 font-medium text-gold-deep">
+            <ZcashMark size={18} /> Zcash, shielded
+          </span>
+        </div>
+        <div className="mt-2 flex flex-wrap items-baseline justify-between gap-3">
+          <label className="flex items-baseline gap-1 text-ink">
+            <span className="font-display text-[26px] font-semibold text-muted">$</span>
+            <input
+              aria-label="Amount in US dollars"
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ""))}
+              className="w-32 rounded-md bg-transparent font-display text-[40px] font-semibold tracking-[-0.03em] outline-none focus:ring-2 focus:ring-lime"
+            />
+          </label>
+          <div className="font-mono text-[20px] font-medium tabular-nums text-ink" data-testid="quote-zec" aria-live="polite">
+            {preview ? `${preview.zecAmount} ZEC` : "…"}
+          </div>
+        </div>
+        <div className="mt-3 flex gap-2" role="group" aria-label="Preset amounts">
+          {PRESETS.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setAmount(p)}
+              aria-pressed={amount === p}
+              className={`min-h-9 rounded-full border px-3.5 text-[14px] font-semibold transition-colors ${
+                amount === p ? "border-forest bg-forest text-ivory" : "border-line-strong bg-surface text-ink-soft hover:border-forest/40"
+              }`}
+            >
+              ${Number(p)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="relative z-10 -my-3 flex justify-center" aria-hidden="true">
+        <span className="grid h-9 w-9 place-items-center rounded-full border border-line bg-surface text-ink">
+          <ArrowDown size={16} />
+        </span>
+      </div>
+
+      <div className="rounded-[var(--radius-lg)] border border-line bg-canvas p-4 sm:p-5">
+        <div className="flex items-center justify-between text-[14px] text-muted">
+          <span>Merchant receives</span>
+          <span className="flex items-center gap-1.5 font-medium text-blue-deep">
+            <BaseMark size={18} /> Base, public
+          </span>
+        </div>
+        <div className="mt-2 font-mono text-[20px] font-medium tabular-nums text-ink" data-testid="quote-eth">
+          {preview ? `${shortEth(preview.ethPayout)} ETH` : "…"}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={pay}
+        disabled={!valid || busy || health === "down"}
+        className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-forest text-[16px] font-semibold text-ivory transition-colors hover:bg-navy disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {busy && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
+        {busy ? "Creating payment request…" : `Continue to demo checkout`}
+      </button>
+      {!valid && amount !== "" && <p className="mt-2 text-[14px] text-muted">Demo checkouts accept amounts from $0.01 to $50.</p>}
+      {error && (
+        <p className="mt-2 text-[14px] font-medium text-red" role="alert">
+          {error}
+        </p>
+      )}
+      <p className="mt-4 text-[13.5px] leading-relaxed text-muted">
+        Demo rate: 1 ZEC = $50.00, fixed, not a market price. Demo checkouts are simulated and replay the recorded mainnet pilot;
+        no funds move.
+      </p>
     </div>
   );
 }
