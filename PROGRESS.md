@@ -1,5 +1,19 @@
 # ZecOne progress
 
+## 26 October 2026 (later) - Read-only watcher integration, safe demo, verification
+
+Connected the existing authenticated Zcash mainnet watcher to the merchant payment API as a read-only **monitor mode** (`services/payments/watch-bridge.ts`): it reuses `MainnetWatchScanner`, the settlement path's `verifyOwnedNote` and the watch worker's lock, attributes notes only by UFVK receiver + exclusive allocation + mining after the allocation tip, enforces the 20-confirmation policy, records chain evidence, handles reorganisations and provider failures fail-closed, survives restarts, streams status over a new token-scoped SSE endpoint and sends signed webhooks. Monitor payments stop at `ZEC_CONFIRMED`; nothing can trigger a Base payout. Demo checkouts are now explicitly simulated: no payable address or payment URI, a labelled example interface, and evidence types that cannot cross between demo and real payments. Per-order diversified addresses remain unimplemented (single active real checkout enforced).
+
+Validation (Linux cloud workspace, Node 22): payment/SDK/watcher Node tests, the 35-test wallet UI suite with the wallet served at `/`, and 11 browser end-to-end tests pass; both typechecks, lint, Turbopack and webpack builds pass. The 10 previously failing native tests pass once `zecone-zcash`, `zecone-refund-signer` and the watch binaries are built; the remaining 5 need Foundry `anvil`. Windows/Node 24 is not verified from here — `scripts/verify-windows.ps1` performs those checks locally. No ZEC or ETH moved; nothing deployed.
+
+## 26 October 2026 - External DApp integration and UI redesign completed (demo mode)
+
+Continued the interrupted redesign from the uncommitted tree on `df6409b`. The legacy dark wallet stylesheet is now scoped to `.wallet-scope` (it previously overrode the new light site on every page), and the local wallet gateways set `ZECONE_SURFACE=wallet` so `Launch-ZecOne.cmd`, pairing links and wallet UI tests keep the wallet at `/`; the public site serves it at `/wallet`.
+
+Built the merchant integration: EIP-4361 wallet-ownership onboarding with server-composed single-use challenges, hashed scoped API keys, wallet-verified dashboard sessions, key rotation, payout-address change requiring the new wallet's signature; payment API with atomic conflict-checked idempotency, expiry sweeper, cancel, receipts, merchant-scoped history, recipient bound to the verified address, liquidity guard and safe errors; enforced single-active-checkout allocation; signed webhooks with event ids, retries and test ping (the secret is now actually returned once). Removed the unauthenticated demo-completion route and every "complete" button: demo payments complete only through a server-side observer that replays recorded mainnet evidence, labelled `recorded-mainnet-replay`. `@zecone/sdk` 0.2 adds list/cancel/receipt/retries, `constructEvent`, onboarding helpers, a browser-safe checkout module and `<ZecOneCheckout>`. New hosted checkout (`/pay/:id`), iframe embed (`/embed/:id`), payment links with QR, merchant dashboard, and a rebuilt Access Pass example that unlocks only after a verified webhook plus API re-check.
+
+Validation: 25 payment/SDK Node tests and 6 browser end-to-end tests (real-signature test wallet, chain switch, onboarding, hosted/embedded checkout, webhook-gated unlock, forged webhook rejection) pass; both typechecks, lint and production build pass. See `docs/INTEGRATION-GAP-REPORT.md`. Live payouts, Zcash broadcast and the relayer submitter remain disabled; no ZEC or ETH moved; nothing deployed. Per-order diversified addresses and the live watcher feed remain open.
+
 ## 23 October 2026 - Mainnet demo hardening and watch-only operations
 
 Completed the two-track hardening sprint from checkpoint `257e328`. The online
