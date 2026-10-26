@@ -1,0 +1,69 @@
+// ZecOne Merchant Payment API — standalone HTTP listener.
+//
+// This process NEVER loads spending keys, relayer keys, or operator signing
+// credentials. Live payout and Zcash broadcast are disabled and cannot be
+// enabled from this surface (see api.ts). Configuration: .env.example.
+import { createServer } from "node:http";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
+import { configFromEnv, createPaymentsApp } from "./api.ts";
+import { watcherFromWorkerConfig } from "./watch-bridge.ts";
+
+const PORT = Number(process.env.ZECONE_PAYMENTS_PORT ?? 4321);
+const HOST = process.env.ZECONE_PAYMENTS_HOST ?? "127.0.0.1";
+
+const config = configFromEnv();
+if (config.mode !== "demo" && config.mode !== "monitor") {
+  console.error("[zecone-payments] refusing to start: live mode is disabled in this build (ZECONE_PAYMENTS_MODE must be demo or monitor).");
+  process.exit(1);
+}
+if (config.mode === "monitor") {
+  // Read-only mainnet monitoring: real deposits are observed, nothing is ever paid out.
+  const ack = process.env.ZECONE_MONITOR_AUTHORIZED === "I_UNDERSTAND_NO_AUTOMATIC_PAYOUT";
+  const workerConfig = process.env.ZECONE_WATCH_WORKER_CONFIG;
+  if (!ack || !workerConfig) {
+    console.error(
+      "[zecone-payments] monitor mode needs ZECONE_MONITOR_AUTHORIZED=I_UNDERSTAND_NO_AUTOMATIC_PAYOUT and ZECONE_WATCH_WORKER_CONFIG (the mainnet watch worker config).",
+    );
+    process.exit(1);
+  }
+  try {
+    const w = watcherFromWorkerConfig(workerConfig, config.checkoutAddress);
+    config.monitor = {
+      authorized: true,
+      source: w.source,
+      lock: w.lock,
+      minimumConfirmations: w.minimumConfirmations,
+      intervalSeconds: Math.max(60, Number(process.env.ZECONE_WATCH_INTERVAL_SECONDS ?? 120)),
+      maxSnapshotAgeSeconds: Number(process.env.ZECONE_WATCH_MAX_AGE_SECONDS ?? 900),
+    };
+  } catch (e) {
+    console.error(`[zecone-payments] watcher configuration invalid: ${(e as Error).message}`);
+    process.exit(1);
+  }
+}
+mkdirSync(dirname(config.dbPath), { recursive: true });
+const app = createPaymentsApp(config);
+app.start();
+
+const server = createServer((req, res) => void app.handle(req, res));
+server.listen(PORT, HOST, () => {
+  console.log(
+    `[zecone-payments] http://${HOST}:${PORT} (${config.mode} mode; live payout and Zcash broadcast disabled${config.mode === "monitor" ? "; real deposits observed read-only" : "; simulated checkouts"})`,
+  );
+  console.log(`[zecone-payments] hosted checkout base: ${config.publicCheckoutBaseUrl}`);
+  console.log(
+    `[zecone-payments] demo observer: ${config.demoObserver.enabled ? `replays recorded mainnet evidence ${config.demoObserver.startAfterSeconds}s after a demo payment is created` : "disabled"}`,
+  );
+  if (app.demoApiKey && HOST === "127.0.0.1")
+    console.log(`[zecone-payments] demo storefront key (loopback only, demo): ${app.demoApiKey}`);
+  if (!config.operatorToken) console.log("[zecone-payments] operator endpoints disabled (ZECONE_OPERATOR_TOKEN unset)");
+});
+
+const shutdown = () => {
+  server.close();
+  app.close();
+  process.exit(0);
+};
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
