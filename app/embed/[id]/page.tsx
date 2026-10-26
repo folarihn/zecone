@@ -18,7 +18,7 @@ export default async function Embed({
   const { t, theme } = await searchParams;
   const valid = /^pay_[0-9a-f]{26}$/.test(id) && /^[0-9a-f]{40}$/.test(t ?? "");
   return (
-    <main className="p-2" style={{ background: theme === "dark" ? "#0d1117" : "transparent" }}>
+    <main className="p-2" style={{ background: theme === "dark" ? "#102820" : "transparent" }}>
       {valid ? (
         <EmbedClient id={id} token={t!} theme={theme === "dark" ? "dark" : "light"} />
       ) : (
