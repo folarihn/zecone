@@ -5,7 +5,7 @@ export default defineConfig({
       "node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3211",
     url: "http://127.0.0.1:3211",
     reuseExistingServer: false,
-    env: { NEXT_TELEMETRY_DISABLED: "1" },
+    env: { NEXT_TELEMETRY_DISABLED: "1", ZECONE_SURFACE: "wallet" },
   },
   testDir: "tests/ui",
   fullyParallel: false,
@@ -14,7 +14,9 @@ export default defineConfig({
   use: {
     baseURL: "http://127.0.0.1:3211",
     browserName: "chromium",
-    channel: "msedge",
+    ...(process.env.ZECONE_PW_EXECUTABLE
+      ? { launchOptions: { executablePath: process.env.ZECONE_PW_EXECUTABLE } }
+      : { channel: "msedge" }),
     headless: true,
     trace: "off",
     screenshot: "only-on-failure",

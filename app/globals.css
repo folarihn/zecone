@@ -2,8 +2,39 @@
 @theme {
   --color-forest: #c9e78a;
   --color-paper: #0d1117;
+
+  /* ZecOne marketing design system (light) */
+  --color-canvas: #faf9f6; /* warm white */
+  --color-surface: #ffffff;
+  --color-ink: #0f1b2d; /* dark navy */
+  --color-navy: #15243c;
+  --color-ink-soft: #46536b;
+  --color-muted: #6e7787;
+  --color-line: #eae7e0;
+  --color-line-strong: #d8d4ca;
+  --color-gold: #a87a12; /* restrained Zcash gold */
+  --color-gold-deep: #835f0d;
+  --color-gold-soft: #f8f0df;
+  --color-blue: #2055d8; /* subtle Base blue */
+  --color-blue-deep: #163f9f;
+  --color-blue-soft: #eaf0fc;
+  --color-green: #1f7a4d;
+  --color-green-soft: #e7f3ec;
+  --color-red: #c0392b;
+  --color-red-soft: #fbeae8;
+  --color-amber: #b57614;
+  --color-amber-soft: #fbf1e2;
+
+  --radius-xl: 20px;
+  --radius-lg: 16px;
+  --shadow-card:
+    0 1px 2px rgba(15, 27, 45, 0.04), 0 8px 24px rgba(15, 27, 45, 0.06);
+  --shadow-float:
+    0 2px 6px rgba(15, 27, 45, 0.06), 0 20px 48px rgba(15, 27, 45, 0.1);
 }
-:root {
+/* Legacy local-wallet theme. Every selector is scoped to `.wallet-scope` so the
+   dark wallet styles never leak into the light public site. */
+.wallet-scope {
   font-family: Arial, Helvetica, sans-serif;
   color: #e7ebef;
   background: #0d1117;
@@ -13,95 +44,95 @@
   --green: #c9e78a;
   --sage: #1c2927;
 }
-* {
+.wallet-scope * {
   box-sizing: border-box;
 }
-body {
+.wallet-scope {
   margin: 0;
 }
-button,
-input {
+.wallet-scope button,
+.wallet-scope input {
   font: inherit;
 }
-button,
-a,
-input,
-summary {
+.wallet-scope button,
+.wallet-scope a,
+.wallet-scope input,
+.wallet-scope summary {
   -webkit-tap-highlight-color: transparent;
 }
-button {
+.wallet-scope button {
   cursor: pointer;
 }
-button:disabled {
+.wallet-scope button:disabled {
   cursor: wait;
   opacity: 0.55;
 }
-a {
+.wallet-scope a {
   color: inherit;
   text-decoration: none;
 }
-button {
+.wallet-scope button {
   border: 0;
   background: none;
   color: inherit;
 }
-h1,
-h2,
-h3,
-p {
+.wallet-scope h1,
+.wallet-scope h2,
+.wallet-scope h3,
+.wallet-scope p {
   margin: 0;
 }
-h1 {
+.wallet-scope h1 {
   font-size: 32px;
   letter-spacing: -1.15px;
   font-weight: 600;
   line-height: 1.2;
 }
-h2 {
+.wallet-scope h2 {
   font-size: 19px;
   font-weight: 600;
   letter-spacing: -0.4px;
 }
-h3 {
+.wallet-scope h3 {
   font-weight: 600;
   font-size: 16px;
 }
-p {
+.wallet-scope p {
   line-height: 1.65;
 }
-svg {
+.wallet-scope svg {
   flex-shrink: 0;
 }
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-summary:focus-visible {
+.wallet-scope button:focus-visible,
+.wallet-scope a:focus-visible,
+.wallet-scope input:focus-visible,
+.wallet-scope summary:focus-visible {
   outline: 3px solid #557aab;
   outline-offset: 4px;
 }
-.muted,
-.subtitle {
+.wallet-scope .muted,
+.wallet-scope .subtitle {
   color: var(--muted);
 }
-.tiny {
+.wallet-scope .tiny {
   font-size: 12px;
   color: var(--muted);
   line-height: 1.6;
 }
-.mono {
+.wallet-scope .mono {
   font-family: Consolas, "Courier New", monospace;
   font-size: 12px;
 }
-.break {
+.wallet-scope .break {
   overflow-wrap: anywhere;
 }
-.center {
+.wallet-scope .center {
   text-align: center;
 }
-.full {
+.wallet-scope .full {
   width: 100%;
 }
-.skip {
+.wallet-scope .skip {
   position: fixed;
   top: -80px;
   left: 20px;
@@ -109,13 +140,13 @@ summary:focus-visible {
   background: #151c24;
   padding: 14px;
 }
-.skip:focus {
+.wallet-scope .skip:focus {
   top: 12px;
 }
-.shell {
+.wallet-scope .shell {
   min-height: 100vh;
 }
-.sidebar {
+.wallet-scope .sidebar {
   width: 224px;
   position: fixed;
   inset: 0 auto 0 0;
@@ -126,7 +157,7 @@ summary:focus-visible {
   flex-direction: column;
   z-index: 10;
 }
-.brand {
+.wallet-scope .brand {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -134,7 +165,7 @@ summary:focus-visible {
   font-weight: 650;
   letter-spacing: -1px;
 }
-.brand-mark {
+.wallet-scope .brand-mark {
   width: 37px;
   height: 37px;
   border-radius: 12px;
@@ -144,10 +175,10 @@ summary:focus-visible {
   place-items: center;
   font-size: 28px;
 }
-.brand-dot {
+.wallet-scope .brand-dot {
   color: #618553;
 }
-.testnet-tag {
+.wallet-scope .testnet-tag {
   display: inline-flex;
   gap: 6px;
   align-items: center;
@@ -158,18 +189,18 @@ summary:focus-visible {
   margin: 23px 0 35px 4px;
   color: #626e58;
 }
-.testnet-tag > span {
+.wallet-scope .testnet-tag > span {
   width: 5px;
   height: 5px;
   background: #7c914b;
   border-radius: 50%;
 }
-.sidebar nav {
+.wallet-scope .sidebar nav {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
-.nav-item {
+.wallet-scope .nav-item {
   display: flex;
   align-items: center;
   gap: 13px;
@@ -180,25 +211,25 @@ summary:focus-visible {
   text-align: left;
   transition: background 0.15s;
 }
-.nav-item.active {
+.wallet-scope .nav-item.active {
   background: #dfe9d7;
   color: #244936;
   font-weight: 600;
 }
-.nav-item:hover {
+.wallet-scope .nav-item:hover {
   background: #e8eee2;
 }
-.nav-dot {
+.wallet-scope .nav-dot {
   width: 5px;
   height: 5px;
   border-radius: 50%;
   background: #477045;
   margin-left: auto;
 }
-.sidebar-bottom {
+.wallet-scope .sidebar-bottom {
   margin-top: auto;
 }
-.local-note {
+.wallet-scope .local-note {
   border: 1px solid #dae3d3;
   border-radius: 12px;
   padding: 13px 10px;
@@ -206,16 +237,16 @@ summary:focus-visible {
   align-items: flex-start;
   gap: 8px;
 }
-.local-note strong {
+.wallet-scope .local-note strong {
   font-size: 11px;
 }
-.local-note p {
+.wallet-scope .local-note p {
   font-size: 10px;
   color: #a3b0be;
   margin-top: 2px;
 }
-.local-dot,
-.status-dot {
+.wallet-scope .local-dot,
+.wallet-scope .status-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -223,10 +254,10 @@ summary:focus-visible {
   display: inline-block;
   flex-shrink: 0;
 }
-.local-dot {
+.wallet-scope .local-dot {
   margin-top: 5px;
 }
-.lock-button {
+.wallet-scope .lock-button {
   display: flex;
   align-items: center;
   gap: 9px;
@@ -234,15 +265,15 @@ summary:focus-visible {
   font-size: 12px;
   color: #a3b0be;
 }
-.version {
+.wallet-scope .version {
   font-size: 10px;
   color: #65715d;
   padding: 8px 7px 0;
 }
-.workspace {
+.wallet-scope .workspace {
   margin-left: 224px;
 }
-.topbar {
+.wallet-scope .topbar {
   height: 83px;
   padding: 0 42px;
   display: flex;
@@ -251,36 +282,36 @@ summary:focus-visible {
   border-bottom: 1px solid var(--line);
   background: #fafbf8;
 }
-.topbar-label {
+.wallet-scope .topbar-label {
   font-size: 12px;
   color: #a3b0be;
 }
-.account-controls {
+.wallet-scope .account-controls {
   display: flex;
   align-items: center;
   gap: 14px;
 }
-.mobile-lock {
+.wallet-scope .mobile-lock {
   display: none;
 }
 @media (max-width: 580px) {
-  .mobile-lock {
+  .wallet-scope .mobile-lock {
     display: inline-flex;
   }
 }
-.network-pill {
+.wallet-scope .network-pill {
   font-size: 11px;
   display: flex;
   align-items: center;
   gap: 7px;
 }
-.network-pill > span {
+.wallet-scope .network-pill > span {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: #4b78b6;
 }
-.account-pill {
+.wallet-scope .account-pill {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -290,38 +321,38 @@ summary:focus-visible {
   padding: 10px 12px;
   font-size: 11px;
 }
-.account-pill .desktop-only {
+.wallet-scope .account-pill .desktop-only {
   color: #a3b0be;
   border-left: 1px solid var(--line);
   padding-left: 8px;
 }
-.account-pill.verified {
+.wallet-scope .account-pill.verified {
   background: #202c35;
 }
-.main {
+.wallet-scope .main {
   max-width: 1260px;
   margin: auto;
   padding: 38px 42px 0;
 }
-.page-heading {
+.wallet-scope .page-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
   margin-bottom: 28px;
 }
-.eyebrow {
+.wallet-scope .eyebrow {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 1.65px;
   color: #a3b0be;
   margin-bottom: 10px;
 }
-.subtitle {
+.wallet-scope .subtitle {
   font-size: 13px;
   margin-top: 10px;
 }
-.refresh {
+.wallet-scope .refresh {
   display: flex;
   gap: 8px;
   align-items: center;
@@ -331,7 +362,7 @@ summary:focus-visible {
   border: 1px solid var(--line);
   background: #151c24;
 }
-.connect-banner {
+.wallet-scope .connect-banner {
   display: flex;
   align-items: center;
   gap: 14px;
@@ -341,19 +372,19 @@ summary:focus-visible {
   border-radius: 12px;
   margin-bottom: 22px;
 }
-.connect-banner strong {
+.wallet-scope .connect-banner strong {
   font-size: 13px;
 }
-.connect-banner p {
+.wallet-scope .connect-banner p {
   font-size: 12px;
   color: #5b6d54;
 }
-.connect-banner .secondary {
+.wallet-scope .connect-banner .secondary {
   margin-left: auto;
   white-space: nowrap;
 }
-.primary,
-.secondary {
+.wallet-scope .primary,
+.wallet-scope .secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -365,21 +396,21 @@ summary:focus-visible {
   transition: background 0.15s;
   min-height: 44px;
 }
-.primary {
+.wallet-scope .primary {
   background: #224e3a;
   color: #151c24;
 }
-.primary:hover:enabled {
+.wallet-scope .primary:hover:enabled {
   background: #143e2a;
 }
-.secondary {
+.wallet-scope .secondary {
   background: #151c24;
   border: 1px solid #dce2d6;
 }
-.secondary:hover:enabled {
+.wallet-scope .secondary:hover:enabled {
   background: #f4f7f0;
 }
-.icon-button {
+.wallet-scope .icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -387,50 +418,50 @@ summary:focus-visible {
   height: 32px;
   border-radius: 6px;
 }
-.icon-button:hover {
+.wallet-scope .icon-button:hover {
   background: #e9eee5;
 }
-.balances {
+.wallet-scope .balances {
   display: grid;
   grid-template-columns: 1.15fr 1fr;
   gap: 20px;
 }
-.balance-card {
+.wallet-scope .balance-card {
   border-radius: 17px;
   padding: 25px 26px 0;
   overflow: hidden;
 }
-.shielded {
+.wallet-scope .shielded {
   color: #f4f7ec;
   background: #214b3a;
   box-shadow: 0 5px 12px #233d2110;
 }
-.base {
+.wallet-scope .base {
   background: #151c24;
   border: 1px solid var(--line);
 }
-.card-top {
+.wallet-scope .card-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 10px;
 }
-.asset-label {
+.wallet-scope .asset-label {
   display: flex;
   align-items: center;
   gap: 11px;
 }
-.asset-label h2 {
+.wallet-scope .asset-label h2 {
   font-size: 14px;
   font-weight: 500;
   letter-spacing: 0;
 }
-.asset-label p {
+.wallet-scope .asset-label p {
   font-size: 10px;
   opacity: 0.7;
   margin-top: 4px;
 }
-.asset-symbol {
+.wallet-scope .asset-symbol {
   background: #42634c;
   border: 1px solid #638365;
   border-radius: 50%;
@@ -441,7 +472,7 @@ summary:focus-visible {
   font-size: 24px;
   color: #e7eac0;
 }
-.base-symbol {
+.wallet-scope .base-symbol {
   background: #215edf;
   color: #151c24;
   border-radius: 50%;
@@ -452,7 +483,7 @@ summary:focus-visible {
   font-size: 24px;
   line-height: 1;
 }
-.badge {
+.wallet-scope .badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -464,34 +495,34 @@ summary:focus-visible {
   font-weight: 500;
   white-space: nowrap;
 }
-.shielded .badge {
+.wallet-scope .shielded .badge {
   background: #3a604b;
   color: #e2ebd5;
 }
-.badge.public {
+.wallet-scope .badge.public {
   background: #edf1f8;
   color: #496580;
 }
-.balance-value {
+.wallet-scope .balance-value {
   font-size: 39px;
   font-weight: 500;
   letter-spacing: -1px;
   margin-top: 28px;
   line-height: 1.2;
 }
-.balance-value > span {
+.wallet-scope .balance-value > span {
   font-size: 15px;
   margin-left: 9px;
   font-weight: 400;
   opacity: 0.7;
   letter-spacing: 0;
 }
-.balance-detail {
+.wallet-scope .balance-detail {
   font-size: 11px;
   margin-top: 9px;
   opacity: 0.72;
 }
-.balance-footer {
+.wallet-scope .balance-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -501,20 +532,20 @@ summary:focus-visible {
   font-size: 10px;
   min-height: 59px;
 }
-.balance-footer > span,
-.balance-footer > button {
+.wallet-scope .balance-footer > span,
+.wallet-scope .balance-footer > button {
   display: flex;
   align-items: center;
   gap: 7px;
 }
-.balance-footer > button {
+.wallet-scope .balance-footer > button {
   font-size: 10px;
 }
-.base .balance-footer {
+.wallet-scope .base .balance-footer {
   border-color: var(--line);
   color: #a3b0be;
 }
-.health-strip {
+.wallet-scope .health-strip {
   display: flex;
   align-items: center;
   gap: 24px;
@@ -526,43 +557,43 @@ summary:focus-visible {
   font-size: 10px;
   color: #a3b0be;
 }
-.health-strip > div {
+.wallet-scope .health-strip > div {
   display: flex;
   align-items: center;
   gap: 7px;
 }
-.health-strip strong {
+.wallet-scope .health-strip strong {
   font-weight: 500;
   color: #a3b0be;
 }
-.health-time {
+.wallet-scope .health-time {
   margin-left: auto;
   font-size: 9px;
 }
-.status-dot.pending {
+.wallet-scope .status-dot.pending {
   background: #ae7934;
 }
-.section {
+.wallet-scope .section {
   margin-top: 35px;
 }
-.section-heading {
+.wallet-scope .section-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 17px;
   gap: 16px;
 }
-.section-heading p {
+.wallet-scope .section-heading p {
   font-size: 11px;
   color: #a3b0be;
   margin-top: 5px;
 }
-.section-heading h2 {
+.wallet-scope .section-heading h2 {
   display: flex;
   align-items: center;
   gap: 9px;
 }
-.count {
+.wallet-scope .count {
   font-size: 10px;
   background: #e9eee3;
   border: 1px solid #dfe6d7;
@@ -570,7 +601,7 @@ summary:focus-visible {
   padding: 3px 7px;
   color: #556849;
 }
-.text-link {
+.wallet-scope .text-link {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -578,18 +609,18 @@ summary:focus-visible {
   font-weight: 500;
   color: #c9e78a;
 }
-.collectibles {
+.wallet-scope .collectibles {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
 }
-.nft-card {
+.wallet-scope .nft-card {
   background: #151c24;
   border: 1px solid #dfe4d8;
   border-radius: 13px;
   overflow: hidden;
 }
-.nft-art {
+.wallet-scope .nft-art {
   background: #e4ebd5;
   aspect-ratio: 1.55;
   display: flex;
@@ -599,18 +630,18 @@ summary:focus-visible {
   padding: 15px 17px;
   color: #456047;
 }
-.art-top {
+.wallet-scope .art-top {
   display: flex;
   justify-content: space-between;
   font-size: 8px;
   letter-spacing: 1.4px;
   font-weight: 600;
 }
-.art-top span:last-child {
+.wallet-scope .art-top span:last-child {
   font-size: 6px;
   letter-spacing: 0.8px;
 }
-.art-bottom {
+.wallet-scope .art-bottom {
   display: flex;
   justify-content: space-between;
   align-items: end;
@@ -621,11 +652,11 @@ summary:focus-visible {
   margin-top: auto;
   z-index: 1;
 }
-.art-bottom span:last-child {
+.wallet-scope .art-bottom span:last-child {
   font-size: 24px;
   font-weight: 400;
 }
-.seal {
+.wallet-scope .seal {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -637,7 +668,7 @@ summary:focus-visible {
   display: grid;
   place-items: center;
 }
-.seal > span {
+.wallet-scope .seal > span {
   position: relative;
   z-index: 1;
   font-family: Georgia, serif;
@@ -646,37 +677,37 @@ summary:focus-visible {
   color: #476844;
   text-shadow: 1px 2px #fff8;
 }
-.seal i {
+.wallet-scope .seal i {
   position: absolute;
   inset: 7px;
   border: 1px solid #7d927036;
   border-radius: 50%;
 }
-.seal i:nth-child(3) {
+.wallet-scope .seal i:nth-child(3) {
   inset: -20px;
 }
-.seal i:nth-child(4) {
+.wallet-scope .seal i:nth-child(4) {
   inset: -37px;
 }
-.nft-info {
+.wallet-scope .nft-info {
   padding: 15px 16px 11px;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-.nft-info h3 {
+.wallet-scope .nft-info h3 {
   font-size: 12px;
   letter-spacing: -0.1px;
 }
-.nft-info p {
+.wallet-scope .nft-info p {
   font-size: 9px;
   color: #a3b0be;
   margin-top: 4px;
 }
-.nft-info > svg {
+.wallet-scope .nft-info > svg {
   color: #667c52;
 }
-.nft-footer {
+.wallet-scope .nft-footer {
   border-top: 1px solid #eff1eb;
   padding: 9px 16px;
   display: flex;
@@ -685,12 +716,12 @@ summary:focus-visible {
   color: #a3b0be;
   font-size: 9px;
 }
-.nft-footer span {
+.wallet-scope .nft-footer span {
   display: flex;
   align-items: center;
   gap: 4px;
 }
-.mint-callout {
+.wallet-scope .mint-callout {
   border: 1px dashed #cbd6bf;
   border-radius: 13px;
   padding: 25px 22px;
@@ -700,47 +731,47 @@ summary:focus-visible {
   background: #202c35;
   justify-content: center;
 }
-.callout-icon {
+.wallet-scope .callout-icon {
   color: #567746;
   margin-bottom: 14px;
 }
-.mint-callout h3 {
+.wallet-scope .mint-callout h3 {
   font-size: 21px;
   font-weight: 500;
   letter-spacing: -0.6px;
   line-height: 1.25;
 }
-.mint-callout p {
+.wallet-scope .mint-callout p {
   font-size: 11px;
   color: #a3b0be;
   margin: 12px 0 17px;
 }
-.mint-callout .secondary {
+.wallet-scope .mint-callout .secondary {
   font-size: 10px;
   padding: 10px 13px;
   min-height: 36px;
 }
-.mint-callout .tiny {
+.wallet-scope .mint-callout .tiny {
   font-size: 9px;
   margin-top: 10px;
 }
-.activity-list {
+.wallet-scope .activity-list {
   background: #151c24;
   border: 1px solid var(--line);
   border-radius: 12px;
   overflow: hidden;
 }
-.activity-row {
+.wallet-scope .activity-row {
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 16px 20px;
   border-bottom: 1px solid #edf0e8;
 }
-.activity-row:last-child {
+.wallet-scope .activity-row:last-child {
   border-bottom: 0;
 }
-.activity-icon {
+.wallet-scope .activity-icon {
   width: 38px;
   height: 38px;
   border-radius: 12px;
@@ -749,29 +780,29 @@ summary:focus-visible {
   place-items: center;
   color: #4e6c3f;
 }
-.activity-icon.blue {
+.wallet-scope .activity-icon.blue {
   background: #edf1f9;
   color: #5378a6;
 }
-.activity-name {
+.wallet-scope .activity-name {
   flex: 1;
   min-width: 0;
 }
-.activity-name strong {
+.wallet-scope .activity-name strong {
   display: block;
   font-size: 12px;
   font-weight: 500;
 }
-.activity-name > span {
+.wallet-scope .activity-name > span {
   display: block;
   font-size: 10px;
   color: #a3b0be;
   margin-top: 4px;
 }
-.separator {
+.wallet-scope .separator {
   padding: 0 4px;
 }
-.activity-status {
+.wallet-scope .activity-status {
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -779,11 +810,11 @@ summary:focus-visible {
   font-size: 10px;
   color: #a3b0be;
 }
-.activity-status .mono {
+.wallet-scope .activity-status .mono {
   font-size: 9px;
   color: #a3b0be;
 }
-.activity-amount {
+.wallet-scope .activity-amount {
   width: 126px;
   text-align: right;
   display: flex;
@@ -791,19 +822,19 @@ summary:focus-visible {
   justify-content: end;
   gap: 8px;
 }
-.activity-amount strong {
+.wallet-scope .activity-amount strong {
   font-size: 12px;
   font-weight: 500;
 }
-.status-failed {
+.wallet-scope .status-failed {
   color: #e6a58a;
 }
-.empty {
+.wallet-scope .empty {
   padding: 25px;
   font-size: 13px;
   color: var(--muted);
 }
-.page-footer {
+.wallet-scope .page-footer {
   display: flex;
   justify-content: space-between;
   padding: 25px 0;
@@ -812,59 +843,59 @@ summary:focus-visible {
   color: #a3b0be;
   font-size: 9px;
 }
-.page-footer > span:first-child {
+.wallet-scope .page-footer > span:first-child {
   display: flex;
   align-items: center;
   gap: 6px;
 }
-.checkout-layout {
+.wallet-scope .checkout-layout {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
   gap: 30px;
   align-items: start;
 }
-.checkout-product {
+.wallet-scope .checkout-product {
   background: #151c24;
   border: 1px solid var(--line);
   border-radius: 15px;
   overflow: hidden;
 }
-.checkout-product .nft-art {
+.wallet-scope .checkout-product .nft-art {
   aspect-ratio: 1.45;
   padding: 23px 24px;
 }
-.checkout-product .seal {
+.wallet-scope .checkout-product .seal {
   width: 140px;
   height: 140px;
 }
-.checkout-product .seal span {
+.wallet-scope .checkout-product .seal span {
   font-size: 105px;
 }
-.checkout-product .art-top {
+.wallet-scope .checkout-product .art-top {
   font-size: 11px;
 }
-.checkout-product .art-top span:last-child {
+.wallet-scope .checkout-product .art-top span:last-child {
   font-size: 8px;
 }
-.checkout-product .art-bottom {
+.wallet-scope .checkout-product .art-bottom {
   font-size: 10px;
 }
-.product-info {
+.wallet-scope .product-info {
   padding: 25px;
 }
-.product-info h2 {
+.wallet-scope .product-info h2 {
   font-size: 24px;
   margin-top: 15px;
 }
-.product-info > p {
+.wallet-scope .product-info > p {
   font-size: 12px;
   color: var(--muted);
   margin-top: 12px;
 }
-.product-info > .tiny {
+.wallet-scope .product-info > .tiny {
   font-size: 10px;
 }
-.price {
+.wallet-scope .price {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -872,50 +903,50 @@ summary:focus-visible {
   padding-top: 19px;
   margin-top: 20px;
 }
-.price strong {
+.wallet-scope .price strong {
   font-size: 26px;
   font-weight: 500;
 }
-.price strong span {
+.wallet-scope .price strong span {
   font-size: 14px;
   color: #6b7b5e;
 }
-.price > span {
+.wallet-scope .price > span {
   font-size: 10px;
   color: #6c7b60;
 }
-.privacy-note {
+.wallet-scope .privacy-note {
   display: flex;
   gap: 12px;
   margin-top: 25px;
   padding: 0 4px;
   color: #4d6744;
 }
-.privacy-note h3 {
+.wallet-scope .privacy-note h3 {
   font-size: 12px;
 }
-.privacy-note p {
+.wallet-scope .privacy-note p {
   font-size: 11px;
   margin-top: 7px;
   color: #6c7a61;
 }
-.checkout-panel {
+.wallet-scope .checkout-panel {
   background: #151c24;
   border: 1px solid var(--line);
   border-radius: 15px;
   padding: 26px;
 }
-.checkout-panel h2 {
+.wallet-scope .checkout-panel h2 {
   font-size: 21px;
   line-height: 1.35;
 }
-.saved-checkouts {
+.wallet-scope .saved-checkouts {
   display: block;
   font-size: 11px;
   color: #a3b0be;
   margin-bottom: 20px;
 }
-.saved-checkouts select {
+.wallet-scope .saved-checkouts select {
   width: 100%;
   margin-top: 8px;
   border: 1px solid #dce4d3;
@@ -925,16 +956,16 @@ summary:focus-visible {
   font: inherit;
   color: #314d36;
 }
-.saved-checkouts select:focus-visible {
+.wallet-scope .saved-checkouts select:focus-visible {
   outline: 3px solid #557aab;
   outline-offset: 3px;
 }
-.review-list {
+.wallet-scope .review-list {
   margin: 19px 0;
   padding: 0;
   font-size: 11px;
 }
-.review-list > div {
+.wallet-scope .review-list > div {
   display: flex;
   justify-content: space-between;
   gap: 20px;
@@ -942,20 +973,20 @@ summary:focus-visible {
   padding: 12px 0;
   align-items: flex-start;
 }
-.review-list dt {
+.wallet-scope .review-list dt {
   color: #a3b0be;
   min-width: 95px;
 }
-.review-list dd {
+.wallet-scope .review-list dd {
   margin: 0;
   text-align: right;
   max-width: 64%;
   line-height: 1.5;
 }
-.review-list .mono {
+.wallet-scope .review-list .mono {
   font-size: 10px;
 }
-.notice {
+.wallet-scope .notice {
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -968,63 +999,63 @@ summary:focus-visible {
   margin: 18px 0;
   line-height: 1.6;
 }
-.notice svg {
+.wallet-scope .notice svg {
   margin-top: 2px;
 }
-.notice p {
+.wallet-scope .notice p {
   line-height: 1.6;
 }
-.notice .icon-button {
+.wallet-scope .notice .icon-button {
   margin-left: auto;
   flex-shrink: 0;
 }
-.error {
+.wallet-scope .error {
   background: #fff0e9;
   color: #8a422d;
   border-color: #ebcdbd;
 }
-.checkout-disclaimer {
+.wallet-scope .checkout-disclaimer {
   font-size: 10px;
   color: #a3b0be;
   line-height: 1.7;
   margin-top: 17px;
 }
-.checkout-panel > .secondary {
+.wallet-scope .checkout-panel > .secondary {
   margin-top: 12px;
 }
-.checkout-panel > .tiny {
+.wallet-scope .checkout-panel > .tiny {
   margin-top: 16px;
 }
-.progress-section {
+.wallet-scope .progress-section {
   padding: 18px 0;
 }
-.progress-title {
+.wallet-scope .progress-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
   font-size: 11px;
   gap: 10px;
 }
-.progress-title strong {
+.wallet-scope .progress-title strong {
   font-weight: 500;
 }
-.progress-title > span {
+.wallet-scope .progress-title > span {
   font-size: 10px;
   color: #a3b0be;
 }
-.progress-track {
+.wallet-scope .progress-track {
   height: 5px;
   background: #e9eee4;
   border-radius: 5px;
   margin: 12px 0 21px;
   overflow: hidden;
 }
-.progress-track > span {
+.wallet-scope .progress-track > span {
   height: 100%;
   display: block;
   background: #648a4e;
 }
-.steps {
+.wallet-scope .steps {
   list-style: none;
   padding: 0;
   margin: 0;
@@ -1032,14 +1063,14 @@ summary:focus-visible {
   flex-direction: column;
   gap: 13px;
 }
-.steps li {
+.wallet-scope .steps li {
   display: flex;
   align-items: center;
   gap: 10px;
   font-size: 11px;
   color: #a3b0be;
 }
-.steps li > span {
+.wallet-scope .steps li > span {
   display: grid;
   place-items: center;
   width: 20px;
@@ -1048,21 +1079,21 @@ summary:focus-visible {
   border-radius: 50%;
   font-size: 9px;
 }
-.steps li.done {
+.wallet-scope .steps li.done {
   color: #3e6337;
 }
-.steps li.done > span {
+.wallet-scope .steps li.done > span {
   background: #e2edda;
   border-color: #d5e4c9;
 }
-.receipt {
+.wallet-scope .receipt {
   background: #edf4e7;
   border: 1px solid #dbe7d2;
   border-radius: 9px;
   padding: 14px;
   margin: 15px 0;
 }
-.receipt p {
+.wallet-scope .receipt p {
   font-size: 10px;
   margin-top: 8px;
   display: flex;
@@ -1070,72 +1101,72 @@ summary:focus-visible {
   gap: 5px;
   color: #4b683b;
 }
-.payment-reference {
+.wallet-scope .payment-reference {
   font-size: 11px;
   color: #687960;
   margin: 15px 0;
 }
-.payment-reference summary {
+.wallet-scope .payment-reference summary {
   cursor: pointer;
   padding: 6px 0;
 }
-.payment-reference p {
+.wallet-scope .payment-reference p {
   margin-top: 7px;
 }
-.payment-reference .mono {
+.wallet-scope .payment-reference .mono {
   font-size: 10px;
 }
-.new-checkout {
+.wallet-scope .new-checkout {
   justify-content: center;
   width: 100%;
   margin-top: 17px;
 }
-.activity-intro {
+.wallet-scope .activity-intro {
   display: flex;
   align-items: center;
   gap: 9px;
   margin-bottom: 22px;
 }
-.activity-intro > span:last-child {
+.wallet-scope .activity-intro > span:last-child {
   font-size: 10px;
   color: #a3b0be;
   margin-left: auto;
 }
-.activity-foot {
+.wallet-scope .activity-foot {
   margin-top: 20px;
 }
-.privacy-grid {
+.wallet-scope .privacy-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
-.privacy-card {
+.wallet-scope .privacy-card {
   background: #151c24;
   border: 1px solid var(--line);
   padding: 27px;
   border-radius: 13px;
 }
-.privacy-card svg {
+.wallet-scope .privacy-card svg {
   color: #698352;
   margin-bottom: 19px;
 }
-.privacy-card h2 {
+.wallet-scope .privacy-card h2 {
   font-size: 17px;
   margin-bottom: 11px;
 }
-.privacy-card p {
+.wallet-scope .privacy-card p {
   font-size: 12px;
   color: #6b7862;
   line-height: 1.8;
 }
-.unlock {
+.wallet-scope .unlock {
   min-height: 100vh;
   display: grid;
   place-items: center;
   padding: 25px;
   background: #eef2e7;
 }
-.unlock-card {
+.wallet-scope .unlock-card {
   width: 100%;
   max-width: 440px;
   padding: 35px;
@@ -1144,10 +1175,10 @@ summary:focus-visible {
   border-radius: 20px;
   box-shadow: 0 20px 80px #314f2310;
 }
-.unlock-card .testnet-tag {
+.wallet-scope .unlock-card .testnet-tag {
   margin: 18px 0 25px;
 }
-.unlock-symbol {
+.wallet-scope .unlock-symbol {
   background: #e6edda;
   border-radius: 17px;
   display: grid;
@@ -1157,24 +1188,24 @@ summary:focus-visible {
   margin-bottom: 25px;
   color: #567246;
 }
-.unlock-card h1 {
+.wallet-scope .unlock-card h1 {
   font-size: 43px;
   line-height: 1.1;
   margin-bottom: 20px;
   letter-spacing: -1.5px;
 }
-.unlock-card .muted {
+.wallet-scope .unlock-card .muted {
   font-size: 13px;
 }
-.unlock-card form {
+.wallet-scope .unlock-card form {
   margin-top: 28px;
 }
-.unlock-card label {
+.wallet-scope .unlock-card label {
   display: block;
   font-size: 11px;
   margin-bottom: 10px;
 }
-.unlock-card input {
+.wallet-scope .unlock-card input {
   border: 1px solid #d9e2d0;
   border-radius: 8px;
   background: #151c24;
@@ -1183,7 +1214,7 @@ summary:focus-visible {
   font-size: 12px;
   margin-bottom: 12px;
 }
-.unlock-foot {
+.wallet-scope .unlock-foot {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1194,13 +1225,13 @@ summary:focus-visible {
   padding-top: 20px;
   margin-top: 25px;
 }
-.unlock-card .error {
+.wallet-scope .unlock-card .error {
   padding: 12px;
   margin-top: 12px;
   font-size: 12px;
   border-radius: 7px;
 }
-dialog {
+.wallet-scope dialog {
   width: min(520px, calc(100% - 32px));
   max-height: calc(100dvh - 40px);
   margin: auto;
@@ -1211,20 +1242,20 @@ dialog {
   border-radius: 17px;
   box-shadow: 0 25px 100px #14261935;
 }
-dialog::backdrop {
+.wallet-scope dialog::backdrop {
   background: #172e2766;
   backdrop-filter: blur(3px);
 }
-.dialog-title {
+.wallet-scope .dialog-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20px;
 }
-.dialog-title h2 {
+.wallet-scope .dialog-title h2 {
   font-size: 21px;
 }
-.dialog-symbol {
+.wallet-scope .dialog-symbol {
   background: #eaf1e2;
   color: #537240;
   padding: 12px;
@@ -1232,14 +1263,14 @@ dialog::backdrop {
   border-radius: 12px;
   margin-bottom: 15px;
 }
-dialog > p {
+.wallet-scope dialog > p {
   font-size: 12px;
   color: #a3b0be;
 }
-dialog .full {
+.wallet-scope dialog .full {
   margin-top: 15px;
 }
-.challenge-message {
+.wallet-scope .challenge-message {
   background: #f0f4e9;
   border: 1px solid #dfe7d5;
   border-radius: 9px;
@@ -1252,19 +1283,19 @@ dialog .full {
   color: #516549;
   margin: 18px 0;
 }
-.approval-amount {
+.wallet-scope .approval-amount {
   font-size: 36px;
   font-weight: 500;
   letter-spacing: -1px;
   text-align: center;
   margin: 25px 0 6px;
 }
-.approval-amount span {
+.wallet-scope .approval-amount span {
   font-size: 17px;
   letter-spacing: 0;
   color: #a3b0be;
 }
-.spinning {
+.wallet-scope .spinning {
   animation: spin 2s linear infinite;
 }
 @keyframes spin {
@@ -1273,166 +1304,166 @@ dialog .full {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .spinning {
+  .wallet-scope .spinning {
     animation: none;
   }
-  * {
+  .wallet-scope * {
     transition: none !important;
   }
 }
 @media (min-width: 1500px) {
-  .main {
+  .wallet-scope .main {
     padding-top: 44px;
   }
-  .balance-card {
+  .wallet-scope .balance-card {
     padding-top: 29px;
   }
-  .balance-value {
+  .wallet-scope .balance-value {
     font-size: 44px;
   }
-  .collectibles {
+  .wallet-scope .collectibles {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 @media (max-width: 1150px) {
-  .sidebar {
+  .wallet-scope .sidebar {
     width: 192px;
     padding: 28px 15px;
   }
-  .workspace {
+  .wallet-scope .workspace {
     margin-left: 192px;
   }
-  .topbar {
+  .wallet-scope .topbar {
     padding: 0 28px;
   }
-  .main {
+  .wallet-scope .main {
     padding: 30px 28px 0;
   }
-  .collectibles {
+  .wallet-scope .collectibles {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .health-strip {
+  .wallet-scope .health-strip {
     gap: 13px;
   }
-  .health-time {
+  .wallet-scope .health-time {
     display: none;
   }
-  .balance-value {
+  .wallet-scope .balance-value {
     font-size: 34px;
   }
-  .balance-card {
+  .wallet-scope .balance-card {
     padding: 21px 20px 0;
   }
-  .checkout-layout {
+  .wallet-scope .checkout-layout {
     gap: 20px;
   }
-  .checkout-panel {
+  .wallet-scope .checkout-panel {
     padding: 21px;
   }
-  .checkout-panel h2 {
+  .wallet-scope .checkout-panel h2 {
     font-size: 19px;
   }
 }
 @media (max-width: 800px) {
-  .sidebar {
+  .wallet-scope .sidebar {
     width: 78px;
     padding: 24px 10px;
     align-items: center;
   }
-  .brand > span:last-child,
-  .sidebar .testnet-tag,
-  .sidebar-bottom,
-  .nav-item span {
+  .wallet-scope .brand > span:last-child,
+  .wallet-scope .sidebar .testnet-tag,
+  .wallet-scope .sidebar-bottom,
+  .wallet-scope .nav-item span {
     display: none;
   }
-  .sidebar nav {
+  .wallet-scope .sidebar nav {
     margin-top: 38px;
     width: 100%;
   }
-  .nav-item {
+  .wallet-scope .nav-item {
     justify-content: center;
     padding: 15px 10px;
   }
-  .workspace {
+  .wallet-scope .workspace {
     margin-left: 78px;
   }
-  .topbar-label {
+  .wallet-scope .topbar-label {
     display: none;
   }
-  .topbar {
+  .wallet-scope .topbar {
     justify-content: flex-end;
     height: 70px;
     padding: 0 22px;
   }
-  .main {
+  .wallet-scope .main {
     padding: 27px 22px 0;
   }
-  .page-heading h1 {
+  .wallet-scope .page-heading h1 {
     font-size: 27px;
   }
-  .subtitle {
+  .wallet-scope .subtitle {
     font-size: 11px;
   }
-  .eyebrow {
+  .wallet-scope .eyebrow {
     font-size: 8px;
   }
-  .balance-card {
+  .wallet-scope .balance-card {
     padding: 20px 17px 0;
   }
-  .card-top .badge {
+  .wallet-scope .card-top .badge {
     display: none;
   }
-  .balance-value {
+  .wallet-scope .balance-value {
     font-size: 31px;
   }
-  .balance-detail {
+  .wallet-scope .balance-detail {
     font-size: 10px;
   }
-  .balance-footer {
+  .wallet-scope .balance-footer {
     font-size: 9px;
   }
-  .connect-banner {
+  .wallet-scope .connect-banner {
     flex-wrap: wrap;
   }
-  .connect-banner .secondary {
+  .wallet-scope .connect-banner .secondary {
     margin-left: 32px;
   }
-  .checkout-layout {
+  .wallet-scope .checkout-layout {
     grid-template-columns: 1fr;
   }
-  .checkout-product {
+  .wallet-scope .checkout-product {
     display: grid;
     grid-template-columns: 0.9fr 1fr;
   }
-  .checkout-product .nft-art {
+  .wallet-scope .checkout-product .nft-art {
     height: 100%;
     aspect-ratio: auto;
     min-height: 260px;
   }
-  .product-info {
+  .wallet-scope .product-info {
     padding: 20px;
   }
-  .privacy-note {
+  .wallet-scope .privacy-note {
     margin-bottom: 5px;
   }
-  .checkout-panel {
+  .wallet-scope .checkout-panel {
     padding: 25px;
   }
-  .checkout-panel h2 {
+  .wallet-scope .checkout-panel h2 {
     font-size: 23px;
   }
-  .activity-status {
+  .wallet-scope .activity-status {
     max-width: 105px;
   }
-  .activity-amount {
+  .wallet-scope .activity-amount {
     width: 110px;
   }
-  .activity-intro > span:last-child {
+  .wallet-scope .activity-intro > span:last-child {
     display: none;
   }
 }
 @media (max-width: 580px) {
-  .sidebar {
+  .wallet-scope .sidebar {
     width: 100%;
     height: 124px;
     inset: auto 0 0;
@@ -1442,10 +1473,10 @@ dialog .full {
     border-top: 1px solid #dfe6d5;
     display: block;
   }
-  .sidebar > .brand {
+  .wallet-scope .sidebar > .brand {
     display: none;
   }
-  .sidebar nav {
+  .wallet-scope .sidebar nav {
     margin: 0;
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -1453,249 +1484,249 @@ dialog .full {
     height: 100%;
     padding: 5px 8px;
   }
-  .nav-item {
+  .wallet-scope .nav-item {
     flex-direction: column;
     gap: 5px;
     padding: 8px 5px;
     border-radius: 8px;
     font-size: 9px;
   }
-  .nav-item span:not(.nav-dot) {
+  .wallet-scope .nav-item span:not(.nav-dot) {
     display: block;
   }
-  .nav-item .nav-dot {
+  .wallet-scope .nav-item .nav-dot {
     display: none;
   }
-  .nav-item.active {
+  .wallet-scope .nav-item.active {
     background: #e8efdf;
   }
-  .workspace {
+  .wallet-scope .workspace {
     margin-left: 0;
     padding-bottom: 124px;
   }
-  .topbar {
+  .wallet-scope .topbar {
     height: 64px;
     padding: 0 18px;
     justify-content: space-between;
   }
-  .topbar-label {
+  .wallet-scope .topbar-label {
     display: block;
     font-size: 16px;
     font-weight: 650;
     letter-spacing: -0.5px;
     color: #365b41;
   }
-  .topbar-label::after {
+  .wallet-scope .topbar-label::after {
     content: " · Testnet";
     font-size: 9px;
     letter-spacing: 0;
     font-weight: 400;
   }
-  .topbar-label {
+  .wallet-scope .topbar-label {
     font-size: 0;
   }
-  .topbar-label::before {
+  .wallet-scope .topbar-label::before {
     content: "ZecOne";
     font-size: 19px;
   }
-  .network-pill,
-  .desktop-only {
+  .wallet-scope .network-pill,
+  .wallet-scope .desktop-only {
     display: none;
   }
-  .account-pill {
+  .wallet-scope .account-pill {
     font-size: 10px;
     padding: 9px;
   }
-  .main {
+  .wallet-scope .main {
     padding: 26px 18px 0;
   }
-  .page-heading {
+  .wallet-scope .page-heading {
     margin-bottom: 23px;
     align-items: flex-start;
     gap: 8px;
   }
-  .page-heading h1 {
+  .wallet-scope .page-heading h1 {
     font-size: 26px;
     letter-spacing: -0.7px;
   }
-  .subtitle {
+  .wallet-scope .subtitle {
     font-size: 11px;
     line-height: 1.6;
     max-width: 270px;
   }
-  .eyebrow {
+  .wallet-scope .eyebrow {
     font-size: 7px;
     letter-spacing: 1.1px;
     margin-bottom: 10px;
   }
-  .refresh {
+  .wallet-scope .refresh {
     padding: 9px;
     margin-top: 21px;
   }
-  .refresh span {
+  .wallet-scope .refresh span {
     display: none;
   }
-  .balances {
+  .wallet-scope .balances {
     grid-template-columns: 1fr;
     gap: 14px;
   }
-  .balance-card {
+  .wallet-scope .balance-card {
     padding: 22px 23px 0;
   }
-  .balance-value {
+  .wallet-scope .balance-value {
     font-size: 39px;
     margin-top: 25px;
   }
-  .card-top .badge {
+  .wallet-scope .card-top .badge {
     display: inline-flex;
   }
-  .balance-detail {
+  .wallet-scope .balance-detail {
     font-size: 11px;
   }
-  .balance-footer {
+  .wallet-scope .balance-footer {
     margin-top: 20px;
     padding: 12px 0;
     font-size: 10px;
   }
-  .balance-footer > button {
+  .wallet-scope .balance-footer > button {
     font-size: 11px;
   }
-  .balance-card.base .balance-value {
+  .wallet-scope .balance-card.base .balance-value {
     font-size: 30px;
     margin-top: 21px;
   }
-  .balance-card.base .balance-footer {
+  .wallet-scope .balance-card.base .balance-footer {
     margin-top: 17px;
   }
-  .health-strip {
+  .wallet-scope .health-strip {
     padding: 13px 12px;
     justify-content: space-between;
     gap: 10px;
     font-size: 8px;
   }
-  .health-strip > div {
+  .wallet-scope .health-strip > div {
     gap: 5px;
   }
-  .section {
+  .wallet-scope .section {
     margin-top: 29px;
   }
-  .section-heading {
+  .wallet-scope .section-heading {
     align-items: start;
     gap: 10px;
   }
-  .section-heading h2 {
+  .wallet-scope .section-heading h2 {
     font-size: 17px;
   }
-  .section-heading p {
+  .wallet-scope .section-heading p {
     font-size: 10px;
     max-width: 230px;
     line-height: 1.6;
   }
-  .section-heading .text-link {
+  .wallet-scope .section-heading .text-link {
     font-size: 9px;
     white-space: nowrap;
     padding-top: 4px;
   }
-  .collectibles {
+  .wallet-scope .collectibles {
     gap: 13px;
     grid-template-columns: 1fr 1fr;
   }
-  .nft-art {
+  .wallet-scope .nft-art {
     aspect-ratio: 1.05;
     padding: 12px;
   }
-  .art-top {
+  .wallet-scope .art-top {
     font-size: 6px;
     letter-spacing: 1px;
   }
-  .art-top span:last-child {
+  .wallet-scope .art-top span:last-child {
     display: none;
   }
-  .art-bottom {
+  .wallet-scope .art-bottom {
     font-size: 6px;
     letter-spacing: 0.8px;
   }
-  .seal {
+  .wallet-scope .seal {
     width: 65px;
     height: 65px;
   }
-  .seal > span {
+  .wallet-scope .seal > span {
     font-size: 51px;
   }
-  .seal i:nth-child(3) {
+  .wallet-scope .seal i:nth-child(3) {
     inset: -13px;
   }
-  .seal i:nth-child(4) {
+  .wallet-scope .seal i:nth-child(4) {
     inset: -25px;
   }
-  .nft-info {
+  .wallet-scope .nft-info {
     padding: 12px 11px 9px;
     gap: 5px;
   }
-  .nft-info h3 {
+  .wallet-scope .nft-info h3 {
     font-size: 10px;
   }
-  .nft-info p {
+  .wallet-scope .nft-info p {
     font-size: 8px;
   }
-  .nft-info svg {
+  .wallet-scope .nft-info svg {
     width: 14px;
   }
-  .nft-footer {
+  .wallet-scope .nft-footer {
     padding: 8px 10px;
     font-size: 7px;
   }
-  .nft-footer svg {
+  .wallet-scope .nft-footer svg {
     width: 12px;
   }
-  .mint-callout {
+  .wallet-scope .mint-callout {
     padding: 15px 13px;
   }
-  .callout-icon {
+  .wallet-scope .callout-icon {
     margin-bottom: 8px;
   }
-  .callout-icon svg {
+  .wallet-scope .callout-icon svg {
     width: 21px;
   }
-  .mint-callout h3 {
+  .wallet-scope .mint-callout h3 {
     font-size: 18px;
   }
-  .mint-callout p {
+  .wallet-scope .mint-callout p {
     font-size: 9px;
     line-height: 1.6;
     margin: 9px 0 12px;
   }
-  .mint-callout .secondary {
+  .wallet-scope .mint-callout .secondary {
     font-size: 8px;
     padding: 8px 9px;
     gap: 5px;
   }
-  .mint-callout .tiny {
+  .wallet-scope .mint-callout .tiny {
     font-size: 7px;
   }
-  .activity-row {
+  .wallet-scope .activity-row {
     padding: 14px 12px;
     gap: 9px;
     flex-wrap: wrap;
   }
-  .activity-icon {
+  .wallet-scope .activity-icon {
     width: 32px;
     height: 32px;
     border-radius: 10px;
   }
-  .activity-icon svg {
+  .wallet-scope .activity-icon svg {
     width: 17px;
   }
-  .activity-name {
+  .wallet-scope .activity-name {
     min-width: 150px;
   }
-  .activity-name strong {
+  .wallet-scope .activity-name strong {
     font-size: 11px;
   }
-  .activity-name > span {
+  .wallet-scope .activity-name > span {
     font-size: 9px;
   }
-  .activity-status {
+  .wallet-scope .activity-status {
     order: 4;
     max-width: none;
     width: 100%;
@@ -1705,142 +1736,142 @@ dialog .full {
     font-size: 9px;
     margin-top: -2px;
   }
-  .activity-status .mono {
+  .wallet-scope .activity-status .mono {
     font-size: 8px;
   }
-  .activity-amount {
+  .wallet-scope .activity-amount {
     width: auto;
     margin-left: auto;
   }
-  .activity-amount strong {
+  .wallet-scope .activity-amount strong {
     font-size: 10px;
   }
-  .page-footer {
+  .wallet-scope .page-footer {
     font-size: 8px;
     margin-top: 25px;
     padding: 20px 0;
     justify-content: center;
   }
-  .page-footer > span:last-child {
+  .wallet-scope .page-footer > span:last-child {
     display: none;
   }
-  .connect-banner {
+  .wallet-scope .connect-banner {
     padding: 13px;
     gap: 10px;
   }
-  .connect-banner > div {
+  .wallet-scope .connect-banner > div {
     flex: 1;
     min-width: 230px;
   }
-  .connect-banner strong {
+  .wallet-scope .connect-banner strong {
     font-size: 12px;
   }
-  .connect-banner p {
+  .wallet-scope .connect-banner p {
     font-size: 10px;
   }
-  .connect-banner .secondary {
+  .wallet-scope .connect-banner .secondary {
     font-size: 10px;
     padding: 9px 12px;
     min-height: 38px;
     margin-left: 29px;
   }
-  .checkout-layout {
+  .wallet-scope .checkout-layout {
     gap: 22px;
   }
-  .checkout-product {
+  .wallet-scope .checkout-product {
     display: block;
   }
-  .checkout-product .nft-art {
+  .wallet-scope .checkout-product .nft-art {
     aspect-ratio: 1.55;
     min-height: 0;
   }
-  .checkout-product .seal {
+  .wallet-scope .checkout-product .seal {
     height: 110px;
     width: 110px;
   }
-  .checkout-product .seal span {
+  .wallet-scope .checkout-product .seal span {
     font-size: 83px;
   }
-  .checkout-product .art-top span:last-child {
+  .wallet-scope .checkout-product .art-top span:last-child {
     display: block;
   }
-  .product-info {
+  .wallet-scope .product-info {
     padding: 22px;
   }
-  .product-info h2 {
+  .wallet-scope .product-info h2 {
     font-size: 22px;
   }
-  .checkout-panel {
+  .wallet-scope .checkout-panel {
     padding: 21px;
   }
-  .checkout-panel h2 {
+  .wallet-scope .checkout-panel h2 {
     font-size: 21px;
   }
-  .review-list {
+  .wallet-scope .review-list {
     font-size: 10px;
   }
-  .review-list > div {
+  .wallet-scope .review-list > div {
     gap: 12px;
   }
-  .review-list dt {
+  .wallet-scope .review-list dt {
     min-width: 91px;
   }
-  .review-list dd {
+  .wallet-scope .review-list dd {
     max-width: 65%;
   }
-  .review-list .mono {
+  .wallet-scope .review-list .mono {
     font-size: 10px;
   }
-  .privacy-grid {
+  .wallet-scope .privacy-grid {
     grid-template-columns: 1fr;
     gap: 14px;
   }
-  .privacy-card {
+  .wallet-scope .privacy-card {
     padding: 23px;
   }
-  .privacy-card h2 {
+  .wallet-scope .privacy-card h2 {
     font-size: 17px;
   }
-  .privacy-card p {
+  .wallet-scope .privacy-card p {
     font-size: 12px;
   }
-  dialog {
+  .wallet-scope dialog {
     padding: 21px;
   }
-  .dialog-title h2 {
+  .wallet-scope .dialog-title h2 {
     font-size: 19px;
   }
-  .unlock-card {
+  .wallet-scope .unlock-card {
     padding: 28px;
   }
-  .unlock-card .brand > span:last-child {
+  .wallet-scope .unlock-card .brand > span:last-child {
     display: block;
   }
-  .unlock-card h1 {
+  .wallet-scope .unlock-card h1 {
     font-size: 39px;
   }
 }
 /* Public connector popup: readable at its narrower window size. */
-.connect-shell {
+.wallet-scope .connect-shell {
   max-width: 760px;
   margin: 0 auto;
   padding: 28px 24px;
   overflow-wrap: anywhere;
 }
-.connect-shell h1 {
+.wallet-scope .connect-shell h1 {
   font-size: 29px;
   line-height: 1.15;
   margin: 14px 0;
 }
-.connect-shell h2 {
+.wallet-scope .connect-shell h2 {
   font-size: 22px;
   margin: 18px 0;
 }
-.connect-shell p {
+.wallet-scope .connect-shell p {
   font-size: 14px;
   line-height: 1.6;
 }
-.connect-shell .origin-box {
+.wallet-scope .connect-shell .origin-box {
   display: grid;
   gap: 7px;
   border: 1px solid #b5cbb9;
@@ -1849,60 +1880,60 @@ dialog .full {
   margin: 22px 0;
   background: #edf4ee;
 }
-.connect-shell .origin-box small {
+.wallet-scope .connect-shell .origin-box small {
   font-size: 10px;
   letter-spacing: 1px;
 }
-.connect-shell .origin-box strong {
+.wallet-scope .connect-shell .origin-box strong {
   font-size: 17px;
 }
-.connect-shell .review-list,
-.connect-shell .review-list .mono {
+.wallet-scope .connect-shell .review-list,
+.wallet-scope .connect-shell .review-list .mono {
   font-size: 13px;
 }
-.connect-shell .review-list dd {
+.wallet-scope .connect-shell .review-list dd {
   min-width: 0;
   max-width: 63%;
 }
-.approval-actions {
+.wallet-scope .approval-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
   flex-wrap: wrap;
   margin: 24px 0;
 }
-.approval-actions button {
+.wallet-scope .approval-actions button {
   border: 1px solid #b3c5b7;
   border-radius: 8px;
   padding: 12px 17px;
   min-height: 44px;
 }
-.review-data {
+.wallet-scope .review-data {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font-size: 12px;
   max-height: 280px;
   overflow: auto;
 }
-.connect-shell .panel {
+.wallet-scope .connect-shell .panel {
   background: #151c24;
   border: 1px solid #dbe5dd;
   border-radius: 12px;
 }
 
-.swap-panel {
+.wallet-scope .swap-panel {
   display: grid;
   gap: 16px;
   overflow-wrap: anywhere;
 }
-.swap-panel > label {
+.wallet-scope .swap-panel > label {
   display: grid;
   gap: 8px;
   max-width: 520px;
   font-weight: 600;
 }
-.swap-panel input,
-.swap-panel select {
+.wallet-scope .swap-panel input,
+.wallet-scope .swap-panel select {
   width: 100%;
   min-width: 0;
   min-height: 44px;
@@ -1913,23 +1944,23 @@ dialog .full {
   color: inherit;
   font: inherit;
 }
-.swap-panel > button,
-.swap-panel .purchase-card button {
+.wallet-scope .swap-panel > button,
+.wallet-scope .swap-panel .purchase-card button {
   justify-self: start;
   min-height: 44px;
   border: 1px solid #b3c5b7;
   border-radius: 8px;
   padding: 10px 16px;
 }
-.swap-panel > button.primary {
+.wallet-scope .swap-panel > button.primary {
   background: var(--green);
   color: #151c24;
 }
-.swap-panel .purchase-list {
+.wallet-scope .swap-panel .purchase-list {
   display: grid;
   gap: 16px;
 }
-.swap-panel .purchase-card {
+.wallet-scope .swap-panel .purchase-card {
   display: grid;
   gap: 12px;
   padding: 24px;
@@ -1937,14 +1968,14 @@ dialog .full {
   border-radius: 12px;
   background: #151c24;
 }
-.swap-panel .purchase-card a {
+.wallet-scope .swap-panel .purchase-card a {
   color: var(--green);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
 /* Phase 6 product tokens. Shared by dashboard, checkout and approval windows. */
-:root {
+.wallet-scope {
   color-scheme: dark;
   --surface: #151c24;
   --surface-raised: #1b2530;
@@ -1957,111 +1988,111 @@ dialog .full {
   --space: 8px;
   font-family: Inter, "Segoe UI", Arial, sans-serif;
 }
-body {
+.wallet-scope {
   background: #0d1117;
   color: var(--text);
 }
-.sidebar,
-.topbar,
-.panel,
-.unlock-card,
-dialog,
-.balance-card,
-.purchase-card,
-.checkout-panel,
-.nft-card,
-.privacy-card {
+.wallet-scope .sidebar,
+.wallet-scope .topbar,
+.wallet-scope .panel,
+.wallet-scope .unlock-card,
+.wallet-scope dialog,
+.wallet-scope .balance-card,
+.wallet-scope .purchase-card,
+.wallet-scope .checkout-panel,
+.wallet-scope .nft-card,
+.wallet-scope .privacy-card {
   background: var(--surface);
   color: var(--text);
   border-color: var(--line);
 }
-.sidebar {
+.wallet-scope .sidebar {
   background: #10161e;
 }
-.brand-mark,
-.primary,
-.primary.full,
-.swap-panel > button.primary {
+.wallet-scope .brand-mark,
+.wallet-scope .primary,
+.wallet-scope .primary.full,
+.wallet-scope .swap-panel > button.primary {
   background: var(--green);
   color: #18220d;
 }
-.primary svg {
+.wallet-scope .primary svg {
   color: inherit;
 }
-.brand,
-.page-heading h1,
-.balance-value,
-h1,
-h2,
-h3,
-.account-pill,
-.asset-label,
-.nav-item.active,
-.review-list dd {
+.wallet-scope .brand,
+.wallet-scope .page-heading h1,
+.wallet-scope .balance-value,
+.wallet-scope h1,
+.wallet-scope h2,
+.wallet-scope h3,
+.wallet-scope .account-pill,
+.wallet-scope .asset-label,
+.wallet-scope .nav-item.active,
+.wallet-scope .review-list dd {
   color: var(--text);
 }
-.muted,
-.subtitle,
-.eyebrow,
-.balance-detail,
-.section-heading p,
-.privacy-card p,
-.version {
+.wallet-scope .muted,
+.wallet-scope .subtitle,
+.wallet-scope .eyebrow,
+.wallet-scope .balance-detail,
+.wallet-scope .section-heading p,
+.wallet-scope .privacy-card p,
+.wallet-scope .version {
   color: var(--muted);
 }
-.nav-item {
+.wallet-scope .nav-item {
   color: var(--muted);
   min-height: 44px;
 }
-.nav-item.active,
-.workflow-tools .active {
+.wallet-scope .nav-item.active,
+.wallet-scope .workflow-tools .active {
   background: #253526;
   color: #d5eda4;
 }
-.nav-dot,
-.status-dot,
-.local-dot {
+.wallet-scope .nav-dot,
+.wallet-scope .status-dot,
+.wallet-scope .local-dot {
   background: #c9e78a;
 }
-.testnet-tag,
-.badge,
-.network-pill,
-.account-pill,
-.health-strip,
-.connect-banner,
-.notice {
+.wallet-scope .testnet-tag,
+.wallet-scope .badge,
+.wallet-scope .network-pill,
+.wallet-scope .account-pill,
+.wallet-scope .health-strip,
+.wallet-scope .connect-banner,
+.wallet-scope .notice {
   background: #1c272d;
   color: #d2dfd5;
   border-color: var(--line);
 }
-.badge.public {
+.wallet-scope .badge.public {
   background: #202d3b;
   color: #becfe6;
 }
-.error,
-.error.notice {
+.wallet-scope .error,
+.wallet-scope .error.notice {
   background: #321f25;
   color: #ffc7c7;
   border-color: #78414e;
 }
-.secondary,
-.refresh,
-.icon-button,
-.lock-button {
+.wallet-scope .secondary,
+.wallet-scope .refresh,
+.wallet-scope .icon-button,
+.wallet-scope .lock-button {
   color: var(--text);
   border-color: var(--line);
 }
-button:disabled {
+.wallet-scope button:disabled {
   cursor: not-allowed;
 }
-button:not(:disabled):hover {
+.wallet-scope button:not(:disabled):hover {
   filter: brightness(1.12);
 }
-input,
-select,
-textarea,
-.swap-panel input,
-.swap-panel select {
+.wallet-scope input,
+.wallet-scope select,
+.wallet-scope textarea,
+.wallet-scope .swap-panel input,
+.wallet-scope .swap-panel select {
   background: #101720;
   color: var(--text);
   border: 1px solid var(--line);
@@ -2071,31 +2102,31 @@ textarea,
   max-width: 100%;
   font: inherit;
 }
-:focus-visible {
+.wallet-scope :focus-visible {
   outline: 2px solid #d0e997;
   outline-offset: 4px;
 }
-button,
-a,
-input,
-select,
-summary {
+.wallet-scope button,
+.wallet-scope a,
+.wallet-scope input,
+.wallet-scope select,
+.wallet-scope summary {
   scroll-margin: 24px;
 }
-.workflow-tools {
+.wallet-scope .workflow-tools {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 16px;
 }
-.workflow-tools button {
+.wallet-scope .workflow-tools button {
   padding: 9px 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
   min-height: 44px;
   font-size: 13px;
 }
-.privacy-ribbon {
+.wallet-scope .privacy-ribbon {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.7;
@@ -2103,7 +2134,7 @@ summary {
   border-left: 2px solid #c9e78a;
   padding-left: 12px;
 }
-.checkout-tracker {
+.wallet-scope .checkout-tracker {
   padding: 24px;
   border: 1px solid var(--line);
   background: var(--surface);
@@ -2113,15 +2144,15 @@ summary {
   gap: 16px;
   min-width: 0;
 }
-.checkout-tracker select {
+.wallet-scope .checkout-tracker select {
   width: 100%;
 }
-.checkout-record {
+.wallet-scope .checkout-record {
   display: grid;
   gap: 18px;
   min-width: 0;
 }
-.checkout-steps {
+.wallet-scope .checkout-steps {
   display: flex;
   list-style: none;
   padding: 0;
@@ -2129,7 +2160,7 @@ summary {
   margin: 8px 0;
   flex-wrap: wrap;
 }
-.checkout-steps li {
+.wallet-scope .checkout-steps li {
   flex: 1;
   min-width: 100px;
   display: grid;
@@ -2139,140 +2170,223 @@ summary {
   border-top: 2px solid var(--line);
   padding-top: 12px;
 }
-.checkout-steps .reached {
+.wallet-scope .checkout-steps .reached {
   color: #d3eba4;
   border-color: #c9e78a;
 }
-.checkout-steps span {
+.wallet-scope .checkout-steps span {
   font-variant-numeric: tabular-nums;
 }
-.empty-state {
+.wallet-scope .empty-state {
   padding: 24px 0;
   display: grid;
   gap: 10px;
   border-top: 1px solid var(--line);
 }
-.account-panel {
+.wallet-scope .account-panel {
   padding: 28px;
   display: grid;
   gap: 18px;
   overflow-wrap: anywhere;
   margin-bottom: 24px;
 }
-.account-panel article {
+.wallet-scope .account-panel article {
   padding: 18px 0;
   border-top: 1px solid var(--line);
   display: grid;
   gap: 8px;
 }
-.account-panel .secondary {
+.wallet-scope .account-panel .secondary {
   justify-self: start;
   padding: 12px 18px;
   border: 1px solid var(--line);
   border-radius: 8px;
   min-height: 44px;
 }
-.balance-value {
+.wallet-scope .balance-value {
   font-variant-numeric: tabular-nums;
   letter-spacing: -1.5px;
 }
-.balance-card.shielded {
+.wallet-scope .balance-card.shielded {
   background: #18251f;
   border: 1px solid #3a4e38;
 }
-.balance-card.base {
+.wallet-scope .balance-card.base {
   background: #18212d;
 }
-.nft-art {
+.wallet-scope .nft-art {
   background: #1b2d25;
   color: #d8eab2;
 }
-.connect-shell .panel {
+.wallet-scope .connect-shell .panel {
   background: var(--surface);
   border-color: var(--line);
 }
-.review-data {
+.wallet-scope .review-data {
   background: #10161e;
   color: var(--text);
   padding: 12px;
 }
-.swap-panel .purchase-card {
+.wallet-scope .swap-panel .purchase-card {
   background: var(--surface);
 }
 @media (max-width: 760px) {
-  .main {
+  .wallet-scope .main {
     padding: 22px 16px 36px;
   }
-  .checkout-tracker,
-  .account-panel {
+  .wallet-scope .checkout-tracker,
+  .wallet-scope .account-panel {
     padding: 18px;
   }
-  .topbar {
+  .wallet-scope .topbar {
     padding: 12px 16px;
   }
-  .workflow-tools {
+  .wallet-scope .workflow-tools {
     gap: 6px;
   }
-  .checkout-steps li {
+  .wallet-scope .checkout-steps li {
     min-width: 80px;
   }
-  .sidebar nav {
+  .wallet-scope .sidebar nav {
     overflow-x: auto;
   }
-  .account-pill .desktop-only {
+  .wallet-scope .account-pill .desktop-only {
     display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  .wallet-scope *,
+  .wallet-scope *::before,
+  .wallet-scope *::after {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
   }
 }
 
-.balance-card p,
-.balance-footer,
-.balance-value span,
-.balance-card .asset-label p {
+.wallet-scope .balance-card p,
+.wallet-scope .balance-footer,
+.wallet-scope .balance-value span,
+.wallet-scope .balance-card .asset-label p {
   opacity: 1;
   color: var(--muted);
 }
-.account-pill.verified {
+.wallet-scope .account-pill.verified {
   background: #23312a;
 }
 
-body {
+.wallet-scope {
   font-size: 14px;
 }
-.eyebrow,
-.tiny,
-.privacy-ribbon,
-.version,
-.health-strip,
-.balance-detail,
-.balance-footer,
-.asset-label p,
-.nft-empty p,
-.page-footer,
-.review-list dt {
+.wallet-scope .eyebrow,
+.wallet-scope .tiny,
+.wallet-scope .privacy-ribbon,
+.wallet-scope .version,
+.wallet-scope .health-strip,
+.wallet-scope .balance-detail,
+.wallet-scope .balance-footer,
+.wallet-scope .asset-label p,
+.wallet-scope .nft-empty p,
+.wallet-scope .page-footer,
+.wallet-scope .review-list dt {
   font-size: 12px;
 }
-.balance-detail {
+.wallet-scope .balance-detail {
   line-height: 1.6;
 }
-.checkout-record summary {
+.wallet-scope .checkout-record summary {
   cursor: pointer;
   padding: 12px 0;
   color: var(--muted);
 }
-.checkout-record details[open] {
+.wallet-scope .checkout-record details[open] {
   border-top: 1px solid var(--line);
 }
-.nft-empty {
+.wallet-scope .nft-empty {
   background: var(--surface);
   color: var(--text);
   border-color: var(--line);
+}
+
+/* ============================================================
+   ZecOne marketing theme — light by default for public pages.
+   The local wallet keeps its dark theme via `.wallet-scope`.
+   ============================================================ */
+:root {
+  color-scheme: light;
+}
+body {
+  background: #faf9f6;
+  color: #0f1b2d;
+  font-family:
+    "Inter",
+    "SF Pro Text",
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.wallet-scope {
+  color-scheme: dark;
+  background: #0d1117;
+  color: #e7ebef;
+  min-height: 100vh;
+}
+
+/* Motion */
+@keyframes zc-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes zc-flow {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(6px);
+  }
+}
+@keyframes zc-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.animate-rise {
+  animation: zc-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-flow {
+  animation: zc-flow 2.4s ease-in-out infinite;
+}
+.animate-pulse-soft {
+  animation: zc-pulse 2.2s ease-in-out infinite;
+}
+.delay-1 {
+  animation-delay: 0.08s;
+}
+.delay-2 {
+  animation-delay: 0.16s;
+}
+.delay-3 {
+  animation-delay: 0.24s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-flow,
+  .animate-pulse-soft {
+    animation: none !important;
+  }
 }

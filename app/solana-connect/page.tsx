@@ -1,4 +1,8 @@
 import SolanaConnection from "./popup";
 export default function Page() {
-  return <SolanaConnection />;
+  return (
+    <div className="wallet-scope">
+      <SolanaConnection />
+    </div>
+  );
 }

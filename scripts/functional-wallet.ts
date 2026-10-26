@@ -285,6 +285,8 @@ async function main() {
     }
   }
   const next = nextModule as unknown as typeof import("next").default;
+  // The local wallet gateway serves the wallet at "/"; the public site uses /wallet.
+  process.env.ZECONE_SURFACE ??= "wallet";
   const app = next({ dev: false, hostname: "127.0.0.1", port: 3210 });
   await app.prepare();
   const web = app.getRequestHandler();
