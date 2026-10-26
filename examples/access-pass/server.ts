@@ -165,6 +165,9 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   if (path === "/api/config" && method === "GET") {
     return send(res, 200, {
+      service: "zecone-access-pass",
+      pid: process.pid,
+      zeconeApi: ZECONE_URL,
       configured: !!(state.apiKey && state.merchant),
       webhookConfigured: !!state.webhookSecret,
       merchant: state.merchant,
@@ -346,12 +349,21 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   fail(res, 404, "not_found", "not found");
 }
 
-createServer((req, res) => {
+const server = createServer((req, res) => {
   handle(req, res).catch((e) => {
     console.error("[access-pass]", e);
     if (!res.headersSent) fail(res, 500, "internal", "internal error");
   });
-}).listen(PORT, HOST, () => {
+});
+server.on("error", (e: NodeJS.ErrnoException) => {
+  console.error(
+    e.code === "EADDRINUSE"
+      ? `[access-pass] port ${PORT} on ${HOST} is already in use. Stop the other process or set ACCESS_PASS_PORT (and ACCESS_PASS_PUBLIC_URL).`
+      : `[access-pass] cannot listen on ${HOST}:${PORT}: ${e.message}`,
+  );
+  process.exit(1);
+});
+server.listen(PORT, HOST, () => {
   console.log(`[access-pass] ${PUBLIC_URL} (demo mode) · ZecOne API ${ZECONE_URL} · checkout UI ${ZECONE_WEB}`);
   console.log(`[access-pass] state: ${STATE_FILE} (API key + webhook secret stay here, server-side)`);
 });

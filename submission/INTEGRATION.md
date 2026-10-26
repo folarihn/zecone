@@ -89,3 +89,11 @@ npm run dapp:start          # Access Pass http://127.0.0.1:4333
 ```
 
 Open the Access Pass page, connect a Base wallet, sign, buy, and watch the content unlock after the verified webhook. Automated version: `npm run build:web && npm run test:integration`.
+
+## Troubleshooting (Windows)
+
+- `scripts\verify-windows.ps1` runs its own isolated instances (ports 4381/3081/4383, temporary database) and the browser suite uses 4391/3091/4393, so they never collide with services you are running. It reports what is listening on 3000/3210/4321/4333 and flags ZecOne services started from older code; `-StopStaleZecOne` stops only those.
+- A service that cannot bind its port exits with a clear message naming the variable to change (`ZECONE_PAYMENTS_PORT`, `ACCESS_PASS_PORT`).
+- The website reads `ZECONE_BASE_URL` at request time, so one production build works against any API address.
+- After pulling new code, restart `payments:start`, `dev` and `dapp:start` — an API started from older code returns no quote preview and rejects the website's payment requests.
+- Logs from each verification run are saved in `.state\verify-windows\<timestamp>\`.

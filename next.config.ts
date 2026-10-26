@@ -1,23 +1,13 @@
 import type { NextConfig } from "next";
 
-// The ZecOne payment API (services/payments) runs as a separate process. Only
-// its PUBLIC, read-only endpoints are proxied same-origin so browsers never need
-// to reach the API host directly. Authenticated merchant calls go through
-// server-side route handlers in app/api/*, which hold credentials.
-const PAYMENTS_API = (process.env.ZECONE_BASE_URL ?? "http://127.0.0.1:4321").replace(/\/+$/, "");
-
+// The ZecOne payment API (services/payments) runs as a separate process. Its
+// public read-only endpoints are proxied same-origin by app/zecone/api/v1/[...path]
+// (resolved at request time from ZECONE_BASE_URL); authenticated merchant calls go
+// through server-side route handlers in app/api/*.
 const config: NextConfig = {
   poweredByHeader: false,
   typescript: { tsconfigPath: "tsconfig.web.json" },
   devIndicators: false,
-  async rewrites() {
-    return [
-      { source: "/zecone/api/v1/checkout/:id", destination: `${PAYMENTS_API}/api/v1/checkout/:id` },
-      { source: "/zecone/api/v1/checkout/:id/events", destination: `${PAYMENTS_API}/api/v1/checkout/:id/events` },
-      { source: "/zecone/api/v1/quote/preview", destination: `${PAYMENTS_API}/api/v1/quote/preview` },
-      { source: "/zecone/api/v1/health", destination: `${PAYMENTS_API}/api/v1/health` },
-    ];
-  },
   async headers() {
     const base = [
       { key: "X-Content-Type-Options", value: "nosniff" },

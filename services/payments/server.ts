@@ -47,6 +47,15 @@ const app = createPaymentsApp(config);
 app.start();
 
 const server = createServer((req, res) => void app.handle(req, res));
+server.on("error", (e: NodeJS.ErrnoException) => {
+  console.error(
+    e.code === "EADDRINUSE"
+      ? `[zecone-payments] port ${PORT} on ${HOST} is already in use. Stop the other process or set ZECONE_PAYMENTS_PORT (and ZECONE_BASE_URL for the web app and examples).`
+      : `[zecone-payments] cannot listen on ${HOST}:${PORT}: ${e.message}`,
+  );
+  app.close();
+  process.exit(1);
+});
 server.listen(PORT, HOST, () => {
   console.log(
     `[zecone-payments] http://${HOST}:${PORT} (${config.mode} mode; live payout and Zcash broadcast disabled${config.mode === "monitor" ? "; real deposits observed read-only" : "; simulated checkouts"})`,

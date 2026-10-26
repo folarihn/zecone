@@ -474,6 +474,11 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
         200,
         {
           status: "ok",
+          // Identity so operators/scripts can tell this service (and its version) apart
+          // from anything else listening on the port.
+          service: "zecone-payments",
+          apiVersion: 2,
+          pid: process.pid,
           mode: MODE,
           livePayoutEnabled: false,
           zcashBroadcastEnabled: false,

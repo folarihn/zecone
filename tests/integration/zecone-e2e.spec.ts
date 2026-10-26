@@ -7,9 +7,11 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { installTestWallet } from "./wallet-fixture.ts";
 
-const WEB = "http://localhost:3000";
-const DAPP = "http://127.0.0.1:4333";
-const API = "http://127.0.0.1:4321";
+// Isolated instances started by playwright.integration.config.ts.
+const WEB = process.env.ZECONE_IT_WEB!;
+const DAPP = process.env.ZECONE_IT_DAPP!;
+const API = process.env.ZECONE_IT_API!;
+const WEB_HOST = new URL(WEB).host;
 
 function trackErrors(page: Page) {
   const errors: string[] = [];
@@ -89,7 +91,7 @@ test("merchant dashboard: wallet onboarding with chain switch, API key once, pay
   await expect(page.getByTestId("api-key")).toHaveText(/^zk_[0-9a-f]{24}_sk_[0-9a-f]{48}$/, { timeout: 15_000 });
   expect(wallet.signed).toHaveLength(1);
   expect(wallet.signed[0]).toContain("Chain ID: 8453"); // switched to Base before signing
-  expect(wallet.signed[0]).toContain("localhost:3000 wants you to sign in");
+  expect(wallet.signed[0]).toContain(`${WEB_HOST} wants you to sign in`);
   await expect(page.getByRole("heading", { name: "Pixel Pass" })).toBeVisible();
   // The session is an httpOnly cookie: not readable by page scripts.
   expect(await page.evaluate(() => document.cookie)).not.toContain("zecone_session");
