@@ -27,7 +27,7 @@ test.describe.configure({ mode: "serial" });
 test("public site: every route renders and every internal link resolves", async ({ page, request }) => {
   const errors = trackErrors(page);
   const seen = new Set<string>();
-  for (const route of ["/", "/checkout", "/dashboard", "/docs", "/explorer", "/security", "/wallet"]) {
+  for (const route of ["/", "/payments", "/wallet-app", "/checkout", "/dashboard", "/docs", "/explorer", "/security", "/wallet"]) {
     const res = await page.goto(WEB + route);
     expect(res?.status(), route).toBe(200);
     await expect(page.locator("main")).toBeVisible();
@@ -58,7 +58,7 @@ test("homepage widget: live quote preview, then a hosted demo checkout that comp
   const checkout = page.locator("[data-zecone-checkout]");
   await expect(checkout).toHaveAttribute("data-zecone-checkout", "awaiting");
   // Simulated checkout: a labelled example, never a payable address, QR or zcash: URI.
-  await expect(page.getByTestId("zecone-example")).toContainText("Example payment interface — simulated");
+  await expect(page.getByTestId("zecone-example")).toContainText("Example payment interface, simulated");
   await expect(page.getByTestId("zecone-address")).toHaveCount(0);
   await expect(page.getByRole("img", { name: "Zcash payment QR code" })).toHaveCount(0);
   await expect(page.locator("a[href^='zcash:']")).toHaveCount(0);

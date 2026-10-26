@@ -29,7 +29,7 @@ const toHex = (s) => "0x" + Array.from(new TextEncoder().encode(s), (b) => b.toS
 function renderWallet() {
   $("wallet").textContent = account ? short(account) : "not connected";
   const onBase = chainId === BASE || chainId === BASE_SEPOLIA;
-  $("network").textContent = chainId === null ? "—" : onBase ? (chainId === BASE ? "Base" : "Base Sepolia") : `Unsupported (${chainId})`;
+  $("network").textContent = chainId === null ? "Not connected" : onBase ? (chainId === BASE ? "Base" : "Base Sepolia") : `Unsupported (${chainId})`;
   $("switch").classList.toggle("hidden", !account || onBase);
   $("connect").classList.toggle("hidden", !!account);
   $("sign").disabled = !account || !onBase;
@@ -166,7 +166,7 @@ async function unlock() {
 }
 
 // The embedded checkout posts status messages; they only trigger an early
-// re-check with OUR server — they are never trusted as proof of payment.
+// re-check with OUR server; they are never trusted as proof of payment.
 window.addEventListener("message", (e) => {
   if (!config || e.origin !== new URL(config.zeconeWeb).origin) return;
   if (e.data?.source === "zecone-checkout" && order && e.data.paymentId === order.paymentId) poll();

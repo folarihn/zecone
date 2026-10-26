@@ -87,7 +87,7 @@ export interface Payment {
   zcashAddress: string | null;
   /** ZIP-321 payment URI (render as a QR code). */
   paymentUri: string | null;
-  /** Hosted checkout link — safe to share with the customer. */
+  /** Hosted checkout link, safe to share with the customer. */
   checkoutUrl: string;
   /** Read-only capability for the embedded checkout. Safe for the browser. */
   checkoutToken: string;

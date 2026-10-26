@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Access Pass — pay with shielded ZEC</title>
+<title>Access Pass: pay with shielded ZEC</title>
 <style>
   :root {
     --bg: #f6f5f1; --panel: #ffffff; --line: #e6e2d8; --text: #14213a; --muted: #687387;
@@ -65,7 +65,7 @@
       <div id="setup-form" class="hidden">
         <p class="muted">Connect the Base wallet that should receive payouts, then sign ZecOne's ownership message. The API key and webhook secret are kept by this server, never in your browser.</p>
         <div class="row"><span>Wallet</span><span id="wallet" class="mono">not connected</span></div>
-        <div class="row"><span>Network</span><span id="network">—</span></div>
+        <div class="row"><span>Network</span><span id="network">Not connected</span></div>
         <button id="connect" class="full secondary" type="button">Connect wallet</button>
         <button id="switch" class="full secondary hidden" type="button">Switch to Base</button>
         <button id="sign" class="full" type="button" disabled>Sign and connect to ZecOne</button>
@@ -93,7 +93,7 @@
         </div>
         <iframe id="embed" title="ZecOne checkout"></iframe>
         <div id="hosted" class="hidden">
-          <p class="muted">The same checkout on ZecOne's hosted page — share this link or open it in a new tab.</p>
+          <p class="muted">The same checkout on ZecOne's hosted page. Share this link or open it in a new tab.</p>
           <a id="hosted-link" class="btn secondary" target="_blank" rel="noreferrer">Open hosted checkout</a>
         </div>
         <h2 style="margin-top:18px">Order status <span class="muted">(from this merchant's server)</span></h2>

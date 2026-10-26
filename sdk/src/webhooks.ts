@@ -1,6 +1,6 @@
 // Webhook verification helpers for merchants (server-side).
 //
-// Always verify against the RAW request body — re-serialising parsed JSON can
+// Always verify against the RAW request body; re-serialising parsed JSON can
 // change bytes and break the signature. Reject stale timestamps (replay) and
 // de-duplicate on `event.id`; deliveries are at-least-once.
 import { createHmac, timingSafeEqual } from "node:crypto";

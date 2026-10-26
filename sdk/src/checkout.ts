@@ -1,4 +1,4 @@
-// @zecone/sdk/checkout — browser-safe helpers for the customer-facing checkout.
+// @zecone/sdk/checkout: browser-safe helpers for the customer-facing checkout.
 //
 // Uses only the payment id and its read-only checkout token. No API key, no
 // signing, no ability to change a payment. A "completed" status seen here is a
