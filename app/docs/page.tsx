@@ -1,31 +1,47 @@
 import type { Metadata } from "next";
 import CodeBlock from "./code-block";
-import { Container } from "../ui";
+import DocsNav, { type DocsGroup } from "./docs-nav";
+import { Callout, Container, PageHeader } from "../ui";
 
-export const metadata: Metadata = { title: "Integration guide — ZecOne" };
+export const metadata: Metadata = { title: "Integration guide | ZecOne Developers" };
 
-const NAV = [
-  ["quickstart", "Quickstart"],
-  ["onboarding", "Merchant onboarding"],
-  ["create", "Create a payment"],
-  ["hosted", "Hosted checkout & links"],
-  ["embedded", "Embedded checkout"],
-  ["webhooks", "Webhooks"],
-  ["fulfil", "Unlocking orders safely"],
-  ["receipts", "Status & receipts"],
-  ["reference", "API reference"],
-  ["errors", "Errors & idempotency"],
-  ["modes", "Demo, monitor & live"],
-  ["limits", "Attribution & limits"],
-  ["example", "Example DApp"],
-  ["local", "Run locally"],
+const GROUPS: DocsGroup[] = [
+  { label: "Get started", items: [["quickstart", "Quickstart"], ["onboarding", "Merchant onboarding"]] },
+  {
+    label: "Accept payments",
+    items: [
+      ["create", "Create a payment"],
+      ["hosted", "Hosted checkout and links"],
+      ["embedded", "Embedded checkout"],
+      ["webhooks", "Webhooks"],
+      ["fulfil", "Unlocking orders safely"],
+      ["receipts", "Status and receipts"],
+    ],
+  },
+  {
+    label: "Reference",
+    items: [
+      ["reference", "API reference"],
+      ["errors", "Errors and idempotency"],
+      ["modes", "Demo, monitor and live"],
+      ["limits", "Attribution and limits"],
+    ],
+  },
+  { label: "Examples", items: [["example", "Example DApp"], ["local", "Run locally"]] },
 ];
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
-    <section id={id} className="scroll-mt-24 border-t border-line pt-10">
-      <h2 className="text-[24px] font-semibold tracking-tight text-ink">{title}</h2>
-      <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-ink-soft [&_code]:rounded [&_code]:bg-surface [&_code]:px-1 [&_code]:text-[13.5px] [&_code]:text-ink">
+    <section id={id} aria-labelledby={`${id}-h`} className="scroll-mt-24">
+      <h2 id={`${id}-h`} className="zc-h2 text-ink">
+        <a href={`#${id}`} className="group inline-flex items-baseline gap-2 rounded">
+          {title}
+          <span aria-hidden="true" className="text-[0.6em] text-sage opacity-0 transition-opacity group-hover:opacity-100">
+            #
+          </span>
+        </a>
+      </h2>
+      <div className="mt-5 space-y-5 text-[16.5px] leading-[1.7] text-ink-soft [&_:not(pre)>code]:rounded-md [&_:not(pre)>code]:bg-ink/[0.06] [&_:not(pre)>code]:px-1.5 [&_:not(pre)>code]:py-0.5 [&_:not(pre)>code]:font-mono [&_:not(pre)>code]:text-[0.86em] [&_:not(pre)>code]:text-ink [&_strong]:text-ink">
         {children}
       </div>
     </section>
@@ -55,49 +71,61 @@ const ENDPOINTS: [string, string, string, string][] = [
 export default function Docs() {
   return (
     <main>
-      <Container className="py-12 sm:py-16">
-        <h1 className="max-w-3xl text-[40px] font-semibold leading-tight tracking-tight text-ink sm:text-[48px]">
-          Accept shielded ZEC in your DApp
-        </h1>
-        <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-muted">
-          Your server creates a payment with <code className="text-ink">@zecone/sdk</code>, your customer pays on a hosted or
-          embedded checkout, and your server unlocks the order when a signed webhook confirms settlement. Amounts are decimal
-          strings end to end — there is no floating-point money anywhere in the path.
-        </p>
-
-        <div className="mt-12 grid gap-10 lg:grid-cols-[220px_1fr]">
-          <nav aria-label="On this page" className="hidden lg:block">
-            <ul className="sticky top-24 space-y-0.5 text-[14px]">
-              {NAV.map(([id, label]) => (
-                <li key={id}>
-                  <a href={`#${id}`} className="block rounded-lg px-3 py-1.5 text-muted transition-colors hover:bg-surface hover:text-ink">
-                    {label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-
-          <div className="min-w-0 max-w-3xl space-y-12">
+      <PageHeader
+        crumbs={[{ label: "Home", href: "/" }, { label: "Developers" }]}
+        title="Accept shielded ZEC in your DApp"
+        lead={
+          <>
+            Your server creates a payment with <code className="rounded bg-ink/5 px-1.5 py-0.5 font-mono text-[0.9em]">@zecone/sdk</code>, your
+            customer pays on a hosted or embedded checkout, and your server unlocks the order when a signed webhook confirms
+            settlement. Amounts are decimal strings end to end; there is no floating-point money anywhere in the path.
+          </>
+        }
+      />
+      <Container className="py-10 sm:py-12">
+        <div className="grid gap-10 lg:grid-cols-[250px_minmax(0,1fr)] xl:gap-14">
+          <DocsNav groups={GROUPS} />
+          <div className="docs-body min-w-0 max-w-[760px] space-y-14">
             <Section id="quickstart" title="Quickstart">
               <p>
-                1. Sign in on the <a href="/dashboard" className="font-semibold text-blue-deep hover:underline">merchant dashboard</a>{" "}
-                with the Base wallet that should receive payouts and copy your API key. 2. Install the SDK in your server
-                project. 3. Create a payment and send the customer to its checkout.
+                Three steps take you from nothing to a working checkout.
               </p>
-              <CodeBlock title="terminal" code={`npm install ./path/to/zecone/sdk   # @zecone/sdk (local package for the hackathon build)`} />
+              <ol className="grid gap-3 [counter-reset:step]">
+                {[
+                  <>
+                    Sign in on the{" "}
+                    <a href="/dashboard" className="font-semibold text-ink underline underline-offset-4">
+                      merchant dashboard
+                    </a>{" "}
+                    with the Base wallet that should receive payouts and copy your API key.
+                  </>,
+                  <>Install the SDK in your server project.</>,
+                  <>Create a payment and send the customer to its checkout.</>,
+                ].map((item, i) => (
+                  <li key={i} className="grid grid-cols-[32px_1fr] gap-3">
+                    <span className="grid h-8 w-8 place-items-center rounded-full bg-forest font-mono text-[14px] text-lime">{i + 1}</span>
+                    <span className="pt-0.5">{item}</span>
+                  </li>
+                ))}
+              </ol>
+              <CodeBlock title="Install" lang="shell" code={`npm install ./path/to/zecone/sdk   # @zecone/sdk (local package for the hackathon build)`} />
               <CodeBlock
                 title=".env (server only)"
+                lang="shell"
                 code={`ZECONE_API_KEY=zk_…_sk_…        # from the dashboard, shown once
 ZECONE_BASE_URL=http://127.0.0.1:4321
 ZECONE_WEBHOOK_SECRET=whsec_…   # from the webhook settings, shown once`}
               />
+              <Callout tone="danger" title="Keep secrets on your server">
+                Your API key and webhook secret must never appear in browser code, a public repository or a client bundle. The
+                browser only ever needs the payment id and its read-only checkout token.
+              </Callout>
             </Section>
 
             <Section id="onboarding" title="Merchant onboarding">
               <p>
                 A merchant account is created only after an <strong>EIP-4361 (Sign-In with Ethereum)</strong> signature from the
-                payout wallet. ZecOne writes the whole message — domain, URI, chain, a single-use nonce and a 10-minute expiry —
+                payout wallet. ZecOne writes the whole message (domain, URI, chain, a single-use nonce and a 10-minute expiry),
                 stores it, and verifies that the returned signature recovers to the claimed address. A bare address never yields a
                 credential. Smart-contract wallets are verified through ERC-1271/6492 when the server has a Base RPC configured.
               </p>
@@ -107,6 +135,7 @@ ZECONE_WEBHOOK_SECRET=whsec_…   # from the webhook settings, shown once`}
               </p>
               <CodeBlock
                 title="onboard.ts (server)"
+                lang="ts"
                 code={`import { ZecOne } from "@zecone/sdk";
 
 const base = process.env.ZECONE_BASE_URL!;
@@ -127,6 +156,7 @@ const { merchant, apiKey } = await ZecOne.onboarding.verify(base, { message: cha
             <Section id="create" title="Create a payment">
               <CodeBlock
                 title="app/api/orders/route.ts (Next.js)"
+                lang="ts"
                 code={`import { ZecOne } from "@zecone/sdk";
 
 const zecone = new ZecOne({ apiKey: process.env.ZECONE_API_KEY!, baseUrl: process.env.ZECONE_BASE_URL });
@@ -149,7 +179,7 @@ export async function POST() {
               />
               <p>
                 The response includes the exact quote (<code>quote.zecAmount</code>, <code>quote.ethPayout</code>), a 15-minute{" "}
-                <code>expiresAt</code> and — on real (monitor/live) checkouts only — the shielded address and a ZIP-321{" "}
+                <code>expiresAt</code> and, on real (monitor or live) checkouts only, the shielded address and a ZIP-321{" "}
                 <code>paymentUri</code> for QR codes. Demo payments have <code>simulated: true</code> and no address. The SDK refuses to
                 run in a browser because it holds your secret key.
               </p>
@@ -166,7 +196,8 @@ export async function POST() {
                 <code>{`{ source: "zecone-checkout", type, paymentId, state }`}</code> to the parent window.
               </p>
               <CodeBlock
-                title="iframe"
+                title="iframe embed"
+                lang="html"
                 code={`<iframe src="https://zecone.example/embed/pay_…?t=…" width="420" height="640" style="border:0"></iframe>
 <script>
   window.addEventListener("message", (e) => {
@@ -180,6 +211,7 @@ export async function POST() {
             <Section id="embedded" title="Embedded checkout (React / Next.js)">
               <CodeBlock
                 title="components/pay.tsx"
+                lang="tsx"
                 code={`"use client";
 import { ZecOneCheckout } from "@zecone/sdk/react";
 
@@ -192,7 +224,7 @@ export function Pay({ paymentId, checkoutToken }: { paymentId: string; checkoutT
       theme={{ accent: "#5b3df5", radius: 12 }}   // or "light" | "dark"
       onStatusChange={(c) => console.log(c.state)}
       onCompleted={() => location.assign("/orders/thanks")} // then confirm on your server
-      onExpired={() => alert("Quote expired — create a new order.")}
+      onExpired={() => alert("Quote expired. Create a new order.")}
     />
   );
 }`}
@@ -213,10 +245,11 @@ export function Pay({ paymentId, checkoutToken }: { paymentId: string; checkoutT
               </p>
               <CodeBlock
                 title="app/api/zecone/webhook/route.ts"
+                lang="ts"
                 code={`import { constructEvent } from "@zecone/sdk/webhooks";
 
 export async function POST(req: Request) {
-  const raw = await req.text(); // the RAW body — do not JSON.parse first
+  const raw = await req.text(); // the RAW body; do not JSON.parse first
   let event;
   try {
     event = constructEvent(raw, req.headers.get("x-zecone-signature"), process.env.ZECONE_WEBHOOK_SECRET!);
@@ -237,9 +270,12 @@ export async function POST(req: Request) {
             </Section>
 
             <Section id="fulfil" title="Unlocking orders safely">
+              <Callout tone="danger" title="Never trust the browser">
+                Checkout callbacks and iframe messages are UI hints. Never unlock goods because the browser says the payment
+                finished.
+              </Callout>
               <p>
-                Never unlock goods because the browser says the payment finished — checkout callbacks and iframe messages are UI
-                hints. Unlock on your server after a verified <code>payment.completed</code> webhook, and (recommended) re-read the
+                Unlock on your server after a verified <code>payment.completed</code> webhook, and (recommended) re-read the
                 payment with <code>zecone.payments.retrieve(id)</code> to confirm <code>state === "COMPLETED"</code> and that the
                 amount and <code>metadata.orderId</code> match your order.
               </p>
@@ -247,7 +283,8 @@ export async function POST(req: Request) {
 
             <Section id="receipts" title="Status & receipts">
               <CodeBlock
-                title="server"
+                title="Read status and receipts (server)"
+                lang="ts"
                 code={`const p = await zecone.payments.retrieve(id);          // state, quote, payoutTxHash…
 const events = await zecone.payments.events(id);       // full audit trail
 const receipt = await zecone.payments.receipt(id);     // COMPLETED only
@@ -263,32 +300,28 @@ const receipt = await zecone.payments.receipt(id);     // COMPLETED only
 
             <Section id="reference" title="API reference">
               <p>
-                Authenticate with <code>Authorization: Bearer &lt;key&gt;</code>. Authenticated endpoints send no CORS headers —
+                Authenticate with <code>Authorization: Bearer &lt;key&gt;</code>. Authenticated endpoints send no CORS headers;
                 call them from your server.
               </p>
-              <div className="overflow-hidden rounded-2xl border border-line bg-surface">
-                <table className="w-full text-left text-[13px]">
-                  <thead className="bg-canvas text-ink">
-                    <tr>
-                      <th className="px-3 py-2 font-semibold">Endpoint</th>
-                      <th className="hidden px-3 py-2 font-semibold sm:table-cell">Auth</th>
-                      <th className="hidden px-3 py-2 font-semibold md:table-cell">Purpose</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ENDPOINTS.map(([m, p, a, d]) => (
-                      <tr key={m + p} className="border-t border-line align-top">
-                        <td className="px-3 py-2">
-                          <span className={`mr-2 font-mono text-[11px] font-bold ${m === "GET" ? "text-blue-deep" : "text-gold-deep"}`}>{m}</span>
-                          <span className="break-all font-mono text-[12px] text-ink">{p}</span>
-                        </td>
-                        <td className="hidden px-3 py-2 text-muted sm:table-cell">{a}</td>
-                        <td className="hidden px-3 py-2 text-muted md:table-cell">{d}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <ul className="divide-y divide-line overflow-hidden rounded-[var(--radius-lg)] border border-line bg-surface">
+                {ENDPOINTS.map(([m, p, a, d]) => (
+                  <li key={m + p} className="grid gap-1.5 px-4 py-3.5 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] sm:gap-4">
+                    <span className="flex min-w-0 items-start gap-2.5">
+                      <span
+                        className={`mt-0.5 w-12 shrink-0 rounded-md py-0.5 text-center font-mono text-[12px] font-medium ${
+                          m === "GET" ? "bg-blue-soft text-blue-deep" : "bg-gold-soft text-gold-deep"
+                        }`}
+                      >
+                        {m}
+                      </span>
+                      <span className="min-w-0 break-all font-mono text-[14px] text-ink">{p}</span>
+                    </span>
+                    <span className="text-[15px] leading-snug text-muted">
+                      {d} <span className="whitespace-nowrap text-[13.5px] text-ink-soft">Auth: {a}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </Section>
 
             <Section id="errors" title="Errors & idempotency">
@@ -314,20 +347,20 @@ const receipt = await zecone.payments.receipt(id);     // COMPLETED only
               <p>
                 <strong>Monitor</strong> (operator-authorized): checkouts show the real receiving address. The payment API reads the
                 authenticated mainnet watcher (UFVK-only wallet, two independent providers, authenticated block corpus) and moves
-                payments through <code>payment.detected</code> → <code>payment.zec_confirmed</code> with chain evidence (txid,
+                payments through <code>payment.detected</code> to <code>payment.zec_confirmed</code> with chain evidence (txid,
                 height, confirmations, tip, ownership digest). It never triggers a payout: <code>settlement: &quot;disabled&quot;</code>.
               </p>
-              <p>
-                <strong>Live settlement</strong> is disabled in this build. Base payouts stay behind the operator&apos;s separate SIGN
-                and BROADCAST approvals, liquidity checks and the paused submitter.
-              </p>
+              <Callout tone="warning" title="Live settlement is disabled in this build">
+                Base payouts stay behind the operator&apos;s separate SIGN and BROADCAST approvals, liquidity checks and the paused
+                submitter.
+              </Callout>
             </Section>
 
             <Section id="limits" title="Attribution & current limits">
               <p>
                 In monitor mode ZecOne attributes a shielded note to an order only if the watcher decrypted it for the receiving
                 address, the order held the <strong>exclusive allocation</strong> of that address, and the note was mined after
-                the allocation — never by amount or timing alone. All real checkouts share one receiving address, so{" "}
+                the allocation, never by amount or timing alone. All real checkouts share one receiving address, so{" "}
                 <strong>only one real checkout can be awaiting payment at a time</strong>; others get <code>checkout_busy</code>.
                 Per-order diversified addresses would remove this limit and are not enabled yet.
               </p>
@@ -336,7 +369,7 @@ const receipt = await zecone.payments.receipt(id);     // COMPLETED only
                 quoted at a fixed demo rate in this build; and a quote is only issued if the relayer&apos;s configured balance
                 covers it and all open payouts.
               </p>
-              <p>No browser action can complete a payment in any mode.</p>
+              <Callout title="No browser action can complete a payment in any mode." />
             </Section>
 
             <Section id="example" title="Example DApp: Access Pass">
@@ -349,7 +382,8 @@ const receipt = await zecone.payments.receipt(id);     // COMPLETED only
 
             <Section id="local" title="Run locally">
               <CodeBlock
-                title="terminal"
+                title="Start the three local services"
+                lang="shell"
                 code={`npm ci
 npm run sdk:build
 npm run payments:start      # API on http://127.0.0.1:4321 (demo mode)
