@@ -1,36 +1,68 @@
 @import "tailwindcss";
 @theme {
-  --color-forest: #c9e78a;
-  --color-paper: #0d1117;
+  /* ------------------------------------------------------------------
+     ZecOne design tokens. One brand across Wallet and Pay.
+     Public-site only: the local wallet keeps its own `.wallet-scope` CSS.
+     ------------------------------------------------------------------ */
 
-  /* ZecOne marketing design system (light) */
-  --color-canvas: #faf9f6; /* warm white */
-  --color-surface: #ffffff;
-  --color-ink: #0f1b2d; /* dark navy */
-  --color-navy: #15243c;
-  --color-ink-soft: #46536b;
-  --color-muted: #6e7787;
-  --color-line: #eae7e0;
-  --color-line-strong: #d8d4ca;
-  --color-gold: #a87a12; /* restrained Zcash gold */
-  --color-gold-deep: #835f0d;
-  --color-gold-soft: #f8f0df;
-  --color-blue: #2055d8; /* subtle Base blue */
-  --color-blue-deep: #163f9f;
-  --color-blue-soft: #eaf0fc;
-  --color-green: #1f7a4d;
-  --color-green-soft: #e7f3ec;
-  --color-red: #c0392b;
-  --color-red-soft: #fbeae8;
-  --color-amber: #b57614;
-  --color-amber-soft: #fbf1e2;
+  /* Brand */
+  --color-forest: #102820; /* deep forest: primary ink, dark bands */
+  --color-forest-2: #18382c; /* raised surface on forest */
+  --color-forest-3: #22473a; /* hover / lines on forest */
+  --color-lime: #d7f276; /* electric chartreuse: action + signal, never body text on ivory */
+  --color-lime-soft: #eef8c9;
+  --color-lime-deep: #4c620f; /* chartreuse family, readable on ivory (6.1:1) */
+  --color-ivory: #f6f5ed; /* warm ivory: page */
+  --color-sage: #758a80; /* decorative sage: rules, icons, large text only */
+  --color-paper: #fdfcf7; /* raised ivory */
 
-  --radius-xl: 20px;
+  /* Semantic (existing names kept so every page inherits the brand) */
+  --color-canvas: #f6f5ed;
+  --color-surface: #fdfcf7;
+  --color-ink: #102820;
+  --color-navy: #1d3d31; /* hover for forest buttons */
+  --color-ink-soft: #2f463c;
+  --color-muted: #52675d; /* sage refined for body contrast (5.6:1 on ivory) */
+  --color-line: #e2e1d3;
+  --color-line-strong: #c9ccbb;
+
+  /* Zcash gold */
+  --color-gold: #e8b547;
+  --color-gold-deep: #83600d; /* 5.5:1 on ivory */
+  --color-gold-soft: #f6ebcb;
+
+  /* Base (public chain) */
+  --color-blue: #2a56c6;
+  --color-blue-deep: #1f4199;
+  --color-blue-soft: #e5ebf6;
+
+  /* Status */
+  --color-green: #22704a;
+  --color-green-soft: #e1eee2;
+  --color-red: #ad3426;
+  --color-red-soft: #f7e4df;
+  --color-amber: #93600c;
+  --color-amber-soft: #f6ead2;
+
+  /* Type */
+  --font-sans:
+    var(--font-body), "Manrope", "Segoe UI", system-ui, -apple-system,
+    sans-serif;
+  --font-display:
+    var(--font-heading), "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-mono:
+    var(--font-code), "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas,
+    monospace;
+
+  /* Shape and depth */
+  --radius-sm: 8px;
+  --radius-md: 12px;
   --radius-lg: 16px;
+  --radius-xl: 22px;
   --shadow-card:
-    0 1px 2px rgba(15, 27, 45, 0.04), 0 8px 24px rgba(15, 27, 45, 0.06);
+    0 1px 0 rgba(16, 40, 32, 0.04), 0 1px 3px rgba(16, 40, 32, 0.06);
   --shadow-float:
-    0 2px 6px rgba(15, 27, 45, 0.06), 0 20px 48px rgba(15, 27, 45, 0.1);
+    0 1px 2px rgba(16, 40, 32, 0.06), 0 18px 40px -12px rgba(16, 40, 32, 0.22);
 }
 /* Legacy local-wallet theme. Every selector is scoped to `.wallet-scope` so the
    dark wallet styles never leak into the light public site. */
@@ -1311,6 +1343,157 @@
     transition: none !important;
   }
 }
+
+/* Approved unified-product styling for the functional local wallet. This
+   layer changes presentation only; wallet state, pairing, and transaction
+   capabilities continue to come from the local gateway. */
+.wallet-scope[data-theme="zecone"] {
+  --wallet-canvas: #0b211a;
+  --wallet-surface: #102820;
+  --wallet-raised: #18382c;
+  --wallet-line: #315044;
+  --wallet-ivory: #f7f4e8;
+  --wallet-muted: #aab9b1;
+  --wallet-lime: #d7f276;
+  --wallet-gold: #f4c95d;
+  --wallet-blue: #4c8dff;
+  min-height: 100vh;
+  color: var(--wallet-ivory);
+  background: var(--wallet-canvas);
+  font-family: var(--font-body), Manrope, "Segoe UI", system-ui, sans-serif;
+  --muted: var(--wallet-muted);
+  --line: var(--wallet-line);
+  --green: var(--wallet-lime);
+  --sage: var(--wallet-raised);
+}
+.wallet-scope[data-theme="zecone"] :is(h1, h2, h3, .brand, .balance-value) {
+  font-family:
+    var(--font-heading), "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+}
+.wallet-scope[data-theme="zecone"] :is(.mono, .version) {
+  font-family: var(--font-code), "IBM Plex Mono", Consolas, monospace;
+}
+.wallet-scope[data-theme="zecone"] :is(.sidebar, .topbar, .health-strip) {
+  background: var(--wallet-surface);
+  border-color: var(--wallet-line);
+}
+.wallet-scope[data-theme="zecone"] .sidebar {
+  color: var(--wallet-ivory);
+}
+.wallet-scope[data-theme="zecone"] .brand-mark {
+  background: var(--wallet-lime);
+  color: var(--wallet-surface);
+}
+.wallet-scope[data-theme="zecone"] .brand-dot,
+.wallet-scope[data-theme="zecone"] .nav-dot,
+.wallet-scope[data-theme="zecone"] .local-dot {
+  color: var(--wallet-lime);
+  background: var(--wallet-lime);
+}
+.wallet-scope[data-theme="zecone"] .nav-item {
+  color: var(--wallet-muted);
+}
+.wallet-scope[data-theme="zecone"] .nav-item:is(:hover, .active) {
+  background: var(--wallet-raised);
+  color: var(--wallet-ivory);
+}
+.wallet-scope[data-theme="zecone"] .local-note,
+.wallet-scope[data-theme="zecone"] .account-pill,
+.wallet-scope[data-theme="zecone"] .refresh,
+.wallet-scope[data-theme="zecone"] .secondary {
+  background: var(--wallet-raised);
+  border-color: var(--wallet-line);
+}
+.wallet-scope[data-theme="zecone"] .workspace {
+  min-height: 100vh;
+  background: var(--wallet-canvas);
+}
+.wallet-scope[data-theme="zecone"] .network-pill {
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid var(--wallet-line);
+  border-radius: 999px;
+  background: var(--wallet-raised);
+}
+.wallet-scope[data-theme="zecone"] .network-pill select {
+  border: 0;
+  outline: 0;
+  color: var(--wallet-ivory);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.wallet-scope[data-theme="zecone"] .network-pill select option {
+  color: var(--wallet-ivory);
+  background: var(--wallet-surface);
+}
+.wallet-scope[data-theme="zecone"] .network-pill[data-network="mainnet"] {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--wallet-lime) 60%, var(--wallet-line));
+}
+.wallet-scope[data-theme="zecone"]
+  .network-pill[data-network="mainnet"]
+  > span {
+  background: var(--wallet-lime);
+}
+.wallet-scope[data-theme="zecone"] .network-pill[data-network="testnet"] {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--wallet-gold) 70%, var(--wallet-line));
+}
+.wallet-scope[data-theme="zecone"] .network-pill[data-network="testnet"] > span,
+.wallet-scope[data-theme="zecone"] .testnet-tag > span {
+  background: var(--wallet-gold);
+}
+.wallet-scope[data-theme="zecone"] .testnet-tag {
+  color: var(--wallet-gold);
+}
+.wallet-scope[data-theme="zecone"] .primary {
+  background: var(--wallet-lime);
+  color: var(--wallet-surface);
+}
+.wallet-scope[data-theme="zecone"] .primary:hover:enabled {
+  background: #e4f99b;
+}
+.wallet-scope[data-theme="zecone"] .connect-banner {
+  color: var(--wallet-ivory);
+  background: var(--wallet-raised);
+  border-color: var(--wallet-line);
+}
+.wallet-scope[data-theme="zecone"] .connect-banner p {
+  color: var(--wallet-muted);
+}
+.wallet-scope[data-theme="zecone"] .shielded {
+  background: linear-gradient(145deg, #173b2f, #214b3a);
+  border: 1px solid #3e6657;
+}
+.wallet-scope[data-theme="zecone"] .asset-symbol {
+  color: var(--wallet-surface);
+  background: var(--wallet-gold);
+  border-color: #ffe092;
+}
+.wallet-scope[data-theme="zecone"] .base {
+  background: var(--wallet-surface);
+  border-color: var(--wallet-line);
+}
+.wallet-scope[data-theme="zecone"] .base-symbol {
+  background: var(--wallet-blue);
+  color: white;
+}
+.wallet-scope[data-theme="zecone"]
+  :is(button, a, input, select, summary):focus-visible {
+  outline-color: var(--wallet-lime);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wallet-scope[data-theme="zecone"] *,
+  .wallet-scope[data-theme="zecone"] *::before,
+  .wallet-scope[data-theme="zecone"] *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
 @media (min-width: 1500px) {
   .wallet-scope .main {
     padding-top: 44px;
@@ -2309,30 +2492,132 @@
 }
 
 /* ============================================================
-   ZecOne marketing theme — light by default for public pages.
-   The local wallet keeps its dark theme via `.wallet-scope`.
+   ZecOne public site (light, ivory). Everything below targets the
+   public website only; the local wallet keeps its dark theme via
+   `.wallet-scope`, whose rules are unchanged.
    ============================================================ */
 :root {
   color-scheme: light;
 }
 body {
-  background: #faf9f6;
-  color: #0f1b2d;
-  font-family:
-    "Inter",
-    "SF Pro Text",
-    "Segoe UI",
-    system-ui,
-    -apple-system,
-    sans-serif;
+  background: var(--color-ivory);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+/* Site typography lives on the public-site wrapper so nothing reaches the wallet. */
+.zc-site {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--color-ink);
 }
 .wallet-scope {
   color-scheme: dark;
   background: #0d1117;
   color: #e7ebef;
   min-height: 100vh;
+}
+
+/* Typography roles (see design/zecone-design-system.md) */
+.zc-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2.6rem, 1.6rem + 4.2vw, 4.6rem);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+.zc-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2.1rem, 1.6rem + 2vw, 3.1rem);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+.zc-h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.65rem, 1.35rem + 1.2vw, 2.25rem);
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+.zc-h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.25rem;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+.zc-lead {
+  font-size: 1.125rem;
+  line-height: 1.6;
+}
+.zc-caption {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+.zc-hash {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  letter-spacing: 0;
+  word-break: break-all;
+}
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Focus: always visible, brand coloured */
+:where(.zc-site)
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [tabindex]
+  ):focus-visible {
+  outline: 2px solid var(--color-forest);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.zc-dark
+  :where(.zc-site)
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [tabindex]
+  ):focus-visible {
+  outline-color: var(--color-lime);
+}
+.zc-site ::selection {
+  background: var(--color-lime);
+  color: var(--color-forest);
+}
+
+/* Shielded texture: a quiet diagonal hatch used only where data is encrypted */
+.zc-hatch {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(215, 242, 118, 0.07) 0 2px,
+    transparent 2px 9px
+  );
+}
+.zc-redact {
+  display: inline-block;
+  height: 0.7em;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.28;
+  vertical-align: middle;
 }
 
 /* Motion */
@@ -2364,6 +2649,39 @@ body {
     opacity: 1;
   }
 }
+/* The hero's single orchestrated motion: a payment travelling down the lane,
+   dimming while it is inside the shielded pool and reappearing on Base. */
+@keyframes zc-lane {
+  0% {
+    top: 0%;
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  30% {
+    top: 30%;
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  36%,
+  58% {
+    opacity: 0.15;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+  66% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  94% {
+    top: 100%;
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
 .animate-rise {
   animation: zc-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -2372,6 +2690,13 @@ body {
 }
 .animate-pulse-soft {
   animation: zc-pulse 2.2s ease-in-out infinite;
+}
+.zc-lane-dot {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -50%);
+  animation: zc-lane 5.6s cubic-bezier(0.55, 0, 0.35, 1) infinite;
 }
 .delay-1 {
   animation-delay: 0.08s;
@@ -2388,5 +2713,10 @@ body {
   .animate-flow,
   .animate-pulse-soft {
     animation: none !important;
+  }
+  .zc-lane-dot {
+    animation: none !important;
+    top: 50%;
+    opacity: 0.35;
   }
 }

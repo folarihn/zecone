@@ -134,7 +134,7 @@ export function useBaseWallet() {
 export function friendly(e: unknown): string {
   const code = (e as { code?: number }).code;
   if (code === 4001) return "Request rejected in your wallet.";
-  if (code === -32002) return "Your wallet already has a pending request — open it to continue.";
+  if (code === -32002) return "Your wallet already has a pending request. Open it to continue.";
   const msg = (e as Error)?.message ?? String(e);
   return msg.length > 160 ? `${msg.slice(0, 157)}…` : msg;
 }

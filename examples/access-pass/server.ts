@@ -1,4 +1,4 @@
-// ZecOne Access Pass — reference merchant DApp.
+// ZecOne Access Pass: reference merchant DApp.
 //
 // A merchant sells 30-day access to a members-only page. Customers pay with
 // shielded ZEC through ZecOne; the merchant is paid ETH on Base.
@@ -292,7 +292,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
       const err = e as ZecOneError;
       const friendly =
         err.code === "checkout_busy"
-          ? "Another customer is mid-checkout. ZecOne supports one active checkout at a time — try again in a few seconds."
+          ? "Another customer is mid-checkout. ZecOne supports one active checkout at a time. Try again in a few seconds."
           : err.message;
       return fail(res, err.status || 502, err.code ?? "zecone_error", friendly);
     }

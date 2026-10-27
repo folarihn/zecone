@@ -1,4 +1,4 @@
-// @zecone/sdk — server-side client for the ZecOne Merchant Payment API.
+// @zecone/sdk: server-side client for the ZecOne Merchant Payment API.
 //
 // SECURITY: `ZecOne` holds a merchant API key and must only run server-side
 // (Node.js route handlers, server actions, workers). It refuses to construct in
@@ -149,7 +149,7 @@ export class ZecOne {
       }>(fetchImpl, `${baseUrl.replace(/\/+$/, "")}/api/v1/merchants/verify`, input),
   };
 
-  /** Public checkout view (no key needed) — same data the browser component reads. */
+  /** Public checkout view (no key needed), the same data the browser component reads. */
   static checkout(baseUrl: string, id: string, token: string, fetchImpl: FetchLike = (i, init) => fetch(i, init)) {
     return getJson<{ checkout: CheckoutView }>(
       fetchImpl,

@@ -1,10 +1,10 @@
-// @zecone/sdk/react — embeddable ZecOne Checkout for React / Next.js DApps.
+// @zecone/sdk/react: embeddable ZecOne Checkout for React / Next.js DApps.
 //
 //   <ZecOneCheckout
 //     apiBaseUrl="https://api.zecone.example"
 //     paymentId={payment.id}
 //     checkoutToken={payment.checkoutToken}   // read-only capability, browser-safe
-//     onCompleted={() => router.refresh()}    // UI hint only — verify server-side
+//     onCompleted={() => router.refresh()}    // UI hint only; verify server-side
 //   />
 //
 // The component never sees an API key and cannot change a payment. Treat
@@ -44,30 +44,37 @@ export interface ZecOneTheme {
   fontFamily?: string;
 }
 
+// ZecOne brand: deep forest, warm ivory, chartreuse signal, Zcash gold.
 export const LIGHT_THEME: Required<ZecOneTheme> = {
-  background: "#ffffff",
-  surface: "#faf9f6",
-  text: "#0f1b2d",
-  muted: "#6e7787",
-  border: "#eae7e0",
-  accent: "#0f1b2d",
-  accentText: "#ffffff",
-  success: "#1f7a4d",
-  warning: "#b57614",
-  danger: "#c0392b",
-  radius: 18,
-  fontFamily: "Inter, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif",
+  background: "#fdfcf7",
+  surface: "#f6f5ed",
+  text: "#102820",
+  muted: "#52675d",
+  border: "#e2e1d3",
+  accent: "#102820",
+  accentText: "#f6f5ed",
+  success: "#22704a",
+  warning: "#93600c",
+  danger: "#ad3426",
+  radius: 20,
+  fontFamily: "var(--font-body, Manrope), 'Segoe UI', system-ui, -apple-system, sans-serif",
 };
+
+const DISPLAY_FONT = "var(--font-heading, 'Space Grotesk'), var(--font-body, Manrope), 'Segoe UI', system-ui, sans-serif";
+const MONO_FONT = "var(--font-code, 'IBM Plex Mono'), ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace";
 
 export const DARK_THEME: Required<ZecOneTheme> = {
   ...LIGHT_THEME,
-  background: "#121a24",
-  surface: "#0d1117",
-  text: "#e7ebef",
-  muted: "#9ba8b5",
-  border: "#293440",
-  accent: "#f4b728",
-  accentText: "#0f1b2d",
+  background: "#18382c",
+  surface: "#102820",
+  text: "#f6f5ed",
+  muted: "#a9b8af",
+  border: "#2d4d40",
+  accent: "#d7f276",
+  accentText: "#102820",
+  success: "#9fd67a",
+  warning: "#e8b547",
+  danger: "#f08a7a",
 };
 
 export interface ZecOneCheckoutProps {
@@ -115,7 +122,7 @@ export function ZecOneCheckout(props: ZecOneCheckoutProps) {
         if (c.state === "FAILED") onFailed?.(c);
       },
       onError: (e) => {
-        setError(e.status === 404 ? "This checkout link is invalid." : "Connection lost — retrying…");
+        setError(e.status === 404 ? "This checkout link is invalid." : "Connection lost. Retrying…");
         onError?.(e);
       },
     });
@@ -152,20 +159,34 @@ export function ZecOneCheckout(props: ZecOneCheckoutProps) {
   }
 
   const current = stepIndex(checkout.state);
+  const mode = checkout.simulated ? "simulated" : checkout.mode === "monitor" ? "monitor" : "live";
+  const modeTone = mode === "live" ? t.success : mode === "monitor" ? t.warning : t.muted;
   return (
     <div className={props.className} style={s.root} data-zecone-checkout={phase} data-state={checkout.state}>
+      <div style={s.modeStrip(modeTone, mode === "simulated")}>
+        <span style={{ fontWeight: 700 }}>
+          {mode === "simulated" ? "Simulated demo" : mode === "monitor" ? "Mainnet monitoring" : "Live checkout"}
+        </span>
+        <span>
+          {mode === "simulated"
+            ? "Nothing to pay. No funds move."
+            : mode === "monitor"
+              ? "Real ZEC is detected. Automatic payout is off."
+              : "Payment settles to the merchant on Base."}
+        </span>
+      </div>
       <div style={s.row}>
         <div>
           <div style={s.label}>Pay {checkout.merchant.name}</div>
           <div style={s.amount}>
-            {checkout.quote?.zecAmount ?? "—"} <span style={{ fontSize: 15, color: t.muted, fontWeight: 600 }}>ZEC</span>
+            {checkout.quote?.zecAmount ?? "…"} <span style={{ fontSize: 16, color: t.muted, fontWeight: 600 }}>ZEC</span>
           </div>
           <div style={s.muted}>
-            ${checkout.amountUsd} · merchant receives {checkout.quote ? shortAmount(checkout.quote.ethPayout) : "—"} ETH on Base
+            ${checkout.amountUsd}, merchant receives {checkout.quote ? shortAmount(checkout.quote.ethPayout) : "…"} ETH on Base
           </div>
         </div>
         <span style={s.badge(checkout.mode === "live" ? t.success : t.warning)}>
-          {checkout.simulated ? "Simulated" : checkout.mode === "monitor" ? "Mainnet · payout off" : "Live"}
+          {checkout.simulated ? "Simulated" : checkout.mode === "monitor" ? "Mainnet, payout off" : "Live"}
         </span>
       </div>
 
@@ -173,8 +194,8 @@ export function ZecOneCheckout(props: ZecOneCheckoutProps) {
 
       {checkout.simulated && phase === "awaiting" && (
         <div data-testid="zecone-example" style={s.example}>
-          <div style={{ ...s.label, color: t.warning }}>Example payment interface — simulated</div>
-          <p style={{ margin: "6px 0 0", fontSize: 13.5 }}>
+          <div style={{ ...s.label, color: t.text }}>Example payment interface, simulated</div>
+          <p style={{ margin: "6px 0 0", fontSize: 14 }}>
             This is a demo checkout, so there is nothing to pay and no address to send to. In a live checkout, the shielded
             Zcash address, the exact amount and a QR code for your wallet appear here.
           </p>
@@ -188,7 +209,7 @@ export function ZecOneCheckout(props: ZecOneCheckoutProps) {
       {checkout.mode === "monitor" && phase === "awaiting" && checkout.zcashAddress && (
         <div role="note" style={s.notice(t.warning)}>
           Real Zcash mainnet address. ZecOne will detect and confirm your payment, but automatic payout to the merchant is
-          disabled in this build — only pay if the merchant asked you to.
+          disabled in this build. Only pay if the merchant asked you to.
         </div>
       )}
 
@@ -204,7 +225,7 @@ export function ZecOneCheckout(props: ZecOneCheckoutProps) {
               style={{ background: "#fff", borderRadius: 12, border: `1px solid ${t.border}`, justifySelf: "center" }}
               shapeRendering="crispEdges"
             >
-              <path d={qr.path} fill="#0f1b2d" />
+              <path d={qr.path} fill="#102820" />
             </svg>
           )}
           <div style={{ minWidth: 0 }}>
@@ -243,7 +264,7 @@ export function ZecOneCheckout(props: ZecOneCheckoutProps) {
       {!checkout.simulated && checkout.confirmations !== null && checkout.minimumConfirmations !== null && phase !== "awaiting" && (
         <div style={{ ...s.muted, marginTop: 14 }} data-testid="zecone-confirmations">
           Confirmations: {Math.min(checkout.confirmations, checkout.minimumConfirmations)} / {checkout.minimumConfirmations}
-          {checkout.state === "ZEC_CONFIRMED" && checkout.settlement === "disabled" ? " · ZEC confirmed — Base payout disabled in this build" : ""}
+          {checkout.state === "ZEC_CONFIRMED" && checkout.settlement === "disabled" ? ". ZEC confirmed; Base payout is disabled in this build." : ""}
         </div>
       )}
 
@@ -253,7 +274,7 @@ export function ZecOneCheckout(props: ZecOneCheckoutProps) {
           const active = !done && i === current && (phase === "processing" || phase === "awaiting");
           return (
             <li key={step.key} style={s.step} data-done={done} data-active={active}>
-              <span style={s.dot(done ? t.success : active ? t.accent : t.border, done || active)}>{done ? "✓" : i + 1}</span>
+              <span style={s.dot(done ? t.success : active ? t.accent : t.border, done || active, active ? t.accentText : t.background)}>{done ? "✓" : i + 1}</span>
               <span style={{ color: done || active ? t.text : t.muted, fontWeight: active ? 650 : 500 }}>
                 {step.label}
                 {active && phase === "processing" ? "…" : ""}
@@ -266,7 +287,7 @@ export function ZecOneCheckout(props: ZecOneCheckoutProps) {
       {phase === "completed" && (
         <div role="status" style={s.notice(t.success)}>
           {checkout.simulated
-            ? "Simulated payment complete — a replay of recorded mainnet pilot transactions. No funds moved for this checkout."
+            ? "Simulated payment complete: a replay of recorded mainnet pilot transactions. No funds moved for this checkout."
             : "Payment complete."}
           {checkout.payoutExplorerUrl && (
             <>
@@ -280,7 +301,7 @@ export function ZecOneCheckout(props: ZecOneCheckoutProps) {
       )}
       {phase === "expired" && (
         <div role="status" style={s.notice(t.danger)}>
-          This payment request expired before a payment arrived. Do not send ZEC to it — ask the merchant for a new link.
+          This payment request expired before a payment arrived. Do not send ZEC to it. Ask the merchant for a new link.
         </div>
       )}
       {phase === "failed" && (
@@ -294,8 +315,8 @@ export function ZecOneCheckout(props: ZecOneCheckoutProps) {
         </div>
       )}
       {error && <div style={{ ...s.muted, marginTop: 10, color: t.warning }}>{error}</div>}
-      <div style={{ ...s.muted, marginTop: 14, fontSize: 11.5 }}>
-        Shielded on Zcash · public on Base · settled by a trusted ZecOne relayer
+      <div style={{ ...s.muted, marginTop: 16, paddingTop: 12, borderTop: `1px solid ${t.border}`, fontSize: 12.5 }}>
+        Shielded on Zcash, public on Base, settled by a trusted ZecOne relayer.
       </div>
     </div>
   );
@@ -308,20 +329,20 @@ function styles(t: Required<ZecOneTheme>) {
       color: t.text,
       border: `1px solid ${t.border}`,
       borderRadius: t.radius,
-      padding: 20,
+      padding: 22,
       fontFamily: t.fontFamily,
-      fontSize: 14,
+      fontSize: 15,
       lineHeight: 1.5,
       boxSizing: "border-box",
       width: "100%",
     } as CSSProperties,
     row: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" } as CSSProperties,
-    label: { fontSize: 11.5, fontWeight: 650, letterSpacing: "0.06em", textTransform: "uppercase", color: t.muted } as CSSProperties,
-    amount: { fontSize: 30, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.15, marginTop: 4 } as CSSProperties,
-    muted: { color: t.muted, fontSize: 13 } as CSSProperties,
+    label: { fontSize: 13.5, fontWeight: 650, color: t.muted } as CSSProperties,
+    amount: { fontFamily: DISPLAY_FONT, fontSize: 34, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.1, marginTop: 4 } as CSSProperties,
+    muted: { color: t.muted, fontSize: 14 } as CSSProperties,
     mono: {
-      fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
-      fontSize: 11.5,
+      fontFamily: MONO_FONT,
+      fontSize: 13,
       wordBreak: "break-all",
       lineHeight: 1.45,
     } as CSSProperties,
@@ -332,8 +353,8 @@ function styles(t: Required<ZecOneTheme>) {
       alignItems: "center",
       background: t.surface,
       border: `1px solid ${t.border}`,
-      borderRadius: 10,
-      padding: "8px 10px",
+      borderRadius: 12,
+      padding: "10px 12px",
       marginTop: 4,
     } as CSSProperties,
     link: {
@@ -341,7 +362,7 @@ function styles(t: Required<ZecOneTheme>) {
       border: 0,
       color: t.text,
       fontWeight: 650,
-      fontSize: 12.5,
+      fontSize: 13.5,
       cursor: "pointer",
       padding: 0,
       flexShrink: 0,
@@ -353,44 +374,58 @@ function styles(t: Required<ZecOneTheme>) {
       background: t.accent,
       color: t.accentText,
       borderRadius: 999,
-      padding: "8px 14px",
+      padding: "10px 16px",
       fontWeight: 650,
-      fontSize: 13,
+      fontSize: 14,
       textDecoration: "none",
     } as CSSProperties,
-    steps: { listStyle: "none", padding: 0, margin: "18px 0 0", display: "grid", gap: 8 } as CSSProperties,
-    step: { display: "flex", gap: 10, alignItems: "center", fontSize: 13.5 } as CSSProperties,
-    dot: (c: string, filled: boolean) =>
+    steps: { listStyle: "none", padding: 0, margin: "20px 0 0", display: "grid", gap: 10 } as CSSProperties,
+    step: { display: "flex", gap: 12, alignItems: "center", fontSize: 14.5 } as CSSProperties,
+    dot: (c: string, filled: boolean, ink: string) =>
       ({
         display: "inline-grid",
         placeItems: "center",
-        width: 20,
-        height: 20,
+        width: 24,
+        height: 24,
         borderRadius: 999,
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: 700,
+        fontFamily: MONO_FONT,
         background: filled ? c : "transparent",
-        color: filled ? "#fff" : t.muted,
+        color: filled ? ink : t.muted,
         border: `1.5px solid ${c}`,
         flexShrink: 0,
       }) as CSSProperties,
     badge: (c: string) =>
       ({
-        fontSize: 11,
+        fontSize: 12.5,
         fontWeight: 700,
-        letterSpacing: "0.06em",
-        textTransform: "uppercase",
         color: c,
         border: `1px solid ${c}`,
         borderRadius: 999,
-        padding: "2px 9px",
+        padding: "3px 10px",
         flexShrink: 0,
+        whiteSpace: "nowrap",
+      }) as CSSProperties,
+    modeStrip: (c: string, dashed: boolean) =>
+      ({
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "2px 10px",
+        alignItems: "baseline",
+        margin: "-22px -22px 18px",
+        padding: "10px 22px",
+        borderBottom: `1px ${dashed ? "dashed" : "solid"} ${c}`,
+        borderRadius: `${t.radius}px ${t.radius}px 0 0`,
+        background: t.surface,
+        color: c,
+        fontSize: 13.5,
       }) as CSSProperties,
     example: {
       marginTop: 16,
-      border: `1.5px dashed ${t.warning}`,
+      border: `1.5px dashed ${t.muted}`,
       borderRadius: 14,
-      padding: "12px 14px",
+      padding: "14px 16px",
       background: t.surface,
     } as CSSProperties,
     notice: (c: string) =>
@@ -399,9 +434,9 @@ function styles(t: Required<ZecOneTheme>) {
         border: `1px solid ${c}`,
         color: c,
         borderRadius: 12,
-        padding: "10px 12px",
-        fontSize: 13,
-        background: "transparent",
+        padding: "12px 14px",
+        fontSize: 14,
+        background: t.surface,
       }) as CSSProperties,
   };
 }

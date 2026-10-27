@@ -514,7 +514,10 @@ export default function Wallet() {
           >
             <LockKeyhole size={16} /> Lock wallet
           </button>
-          <p className="version">ZecOne · Phase 6 · testnet</p>
+          <p className="version">
+            ZecOne · Phase 6 ·{" "}
+            {zcashNetwork === "mainnet" ? "mainnet read only" : "testnet"}
+          </p>
         </div>
       </aside>
       <div className="workspace">
@@ -528,7 +531,11 @@ export default function Wallet() {
             >
               <LockKeyhole size={17} />
             </button>
-            <label className="network-pill" htmlFor="zcash-network-select">
+            <label
+              className="network-pill"
+              data-network={zcashNetwork}
+              htmlFor="zcash-network-select"
+            >
               <span />
               <select
                 id="zcash-network-select"

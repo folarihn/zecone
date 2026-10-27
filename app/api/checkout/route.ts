@@ -1,7 +1,7 @@
 // Demo storefront: the ZecOne website acts as a merchant ("ZecOne Demo Store")
 // to let visitors try a checkout. Its API key stays on the server. Payments are
 // demo-mode; completion is driven only by the payment API's server-side demo
-// observer replaying recorded mainnet evidence — never by the browser.
+// observer replaying recorded mainnet evidence, never by the browser.
 import { NextResponse } from "next/server";
 import { DEMO_STORE_KEY, limited, relay, sameOrigin, zecone } from "../../lib/zecone-server";
 
@@ -16,7 +16,7 @@ const PRODUCTS: Record<string, { amountUsd: string; description: string }> = {
 export async function POST(req: Request) {
   if (!sameOrigin(req)) return NextResponse.json({ error: { code: "forbidden", message: "cross-origin request" } }, { status: 403 });
   if (limited(req, "demo-checkout", 12, 60))
-    return NextResponse.json({ error: { code: "rate_limited", message: "Too many demo checkouts — try again in a minute." } }, { status: 429 });
+    return NextResponse.json({ error: { code: "rate_limited", message: "Too many demo checkouts. Try again in a minute." } }, { status: 429 });
   const body = (await req.json().catch(() => ({}))) as { product?: string; amountUsd?: string };
   const product = body.product ? PRODUCTS[body.product] : null;
   const amountUsd = product?.amountUsd ?? body.amountUsd;

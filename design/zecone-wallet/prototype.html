@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ZecOne Wallet design prototype</title>
+<!--
+  NON-OPERATIONAL DESIGN PROTOTYPE.
+  Static HTML and CSS only. No scripts talk to any wallet, key, signer, network or API.
+  Every balance, address and transaction below is sample data. Open this file directly
+  in a browser; it is not served by the ZecOne app and adds no route.
+-->
+<style>
+  @font-face { font-family: "Space Grotesk"; src: url("../../app/fonts/space-grotesk-latin-wght-normal.woff2") format("woff2"); font-weight: 300 700; }
+  @font-face { font-family: "Manrope"; src: url("../../app/fonts/manrope-latin-wght-normal.woff2") format("woff2"); font-weight: 200 800; }
+  @font-face { font-family: "IBM Plex Mono"; src: url("../../app/fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2"); font-weight: 400; }
+
+  :root {
+    --forest: #102820; --forest-2: #18382c; --forest-3: #22473a;
+    --lime: #d7f276; --ivory: #f6f5ed; --paper: #fdfcf7; --gold: #e8b547; --sage: #758a80;
+    --ink-soft: #2f463c; --muted: #52675d; --muted-dark: #a9b8af; --line: #e2e1d3; --line-dark: rgba(246,245,237,.12);
+    --blue: #2a56c6; --red: #f08a7a; --amber: #e8b547;
+    --display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+    --body: "Manrope", "Segoe UI", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ivory); color: var(--forest); font: 16px/1.6 var(--body); }
+  header.page { max-width: 1240px; margin: 0 auto; padding: 48px 24px 16px; }
+  header.page h1 { font: 600 clamp(2rem, 1.5rem + 2vw, 3rem)/1.05 var(--display); letter-spacing: -.03em; margin: 0; }
+  header.page p { max-width: 62ch; color: var(--muted); font-size: 17px; }
+  .banner { display: inline-flex; gap: 8px; align-items: center; border: 1px dashed var(--muted); border-radius: 999px; padding: 4px 14px; font-size: 14px; color: var(--ink-soft); }
+  main { max-width: 1240px; margin: 0 auto; padding: 16px 24px 80px; display: grid; gap: 40px 28px; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); }
+  figure { margin: 0; }
+  figcaption { margin-top: 12px; font-size: 15px; color: var(--muted); }
+  figcaption b { display: block; color: var(--forest); font: 600 17px/1.3 var(--display); margin-bottom: 2px; }
+
+  /* Device frame: the wallet runs in a browser window on the user's computer, 380px wide popup */
+  .screen { background: var(--forest); color: var(--ivory); border-radius: 26px; padding: 18px; min-height: 640px; display: flex; flex-direction: column; box-shadow: 0 1px 2px rgba(16,40,32,.08), 0 22px 44px -16px rgba(16,40,32,.4); }
+  .bar { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: var(--muted-dark); }
+  .brand { display: flex; align-items: center; gap: 8px; color: var(--ivory); font: 600 16px var(--display); }
+  .logo { width: 24px; height: 24px; }
+  .net { display: inline-flex; gap: 6px; align-items: center; border-radius: 999px; padding: 3px 10px; font-size: 13px; font-weight: 700; }
+  .net.main { background: rgba(215,242,118,.14); color: var(--lime); }
+  .net.test { background: rgba(232,181,71,.16); color: var(--gold); border: 1px dashed var(--gold); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .label { font-size: 14px; color: var(--muted-dark); margin: 0; }
+  .balance { font: 600 46px/1 var(--display); letter-spacing: -.035em; margin: 6px 0 4px; }
+  .balance small { font-size: 20px; color: var(--muted-dark); letter-spacing: 0; }
+  .fiat { font-size: 14px; color: var(--muted-dark); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btn { display: flex; justify-content: center; align-items: center; gap: 6px; min-height: 46px; border-radius: 999px; font-weight: 700; font-size: 15px; border: 1px solid transparent; }
+  .btn.lime { background: var(--lime); color: var(--forest); }
+  .btn.ghost { border-color: rgba(246,245,237,.25); color: var(--ivory); }
+  .btn.danger { border-color: rgba(240,138,122,.5); color: var(--red); }
+  .panel { background: var(--forest-2); border-radius: 18px; padding: 4px 14px; }
+  .tx { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line-dark); font-size: 15px; }
+  .tx:last-child { border: 0; }
+  .tx span small { display: block; color: var(--muted-dark); font-size: 13px; }
+  .mono { font-family: var(--mono); font-size: 13.5px; }
+  .in { color: var(--lime); }
+  .chip { display: inline-flex; gap: 4px; align-items: center; font-size: 12.5px; font-weight: 700; border-radius: 999px; padding: 1px 8px; }
+  .chip.shield { background: rgba(232,181,71,.16); color: var(--gold); }
+  .chip.public { background: rgba(42,86,198,.25); color: #b9c9f5; }
+  .chip.concept { border: 1px dashed var(--muted-dark); color: var(--muted-dark); }
+  .field { background: var(--forest-2); border: 1px solid var(--line-dark); border-radius: 14px; padding: 12px 14px; }
+  .field .label { font-size: 13px; }
+  .big { font: 600 34px/1.1 var(--display); letter-spacing: -.03em; }
+  .hatch { background-image: repeating-linear-gradient(-45deg, rgba(215,242,118,.07) 0 2px, transparent 2px 9px); }
+  .qr { width: 168px; height: 168px; margin: 0 auto; border-radius: 14px; background: var(--paper); padding: 12px; }
+  .qr div { width: 100%; height: 100%; background:
+    conic-gradient(from 90deg at 30% 30%, var(--forest) 25%, transparent 0) 0 0/24px 24px,
+    repeating-linear-gradient(90deg, var(--forest) 0 6px, transparent 6px 12px); opacity: .9; border-radius: 4px; }
+  .lock { flex: 1; display: grid; place-items: center; text-align: center; }
+  .lock .shield { width: 84px; height: 84px; border-radius: 26px; display: grid; place-items: center; background: var(--forest-2); border: 1px solid rgba(215,242,118,.3); margin: 0 auto 18px; }
+  .pin { display: flex; gap: 12px; justify-content: center; margin: 20px 0; }
+  .pin i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--muted-dark); }
+  .pin i.f { background: var(--lime); border-color: var(--lime); }
+  .set { display: flex; justify-content: space-between; align-items: center; padding: 13px 0; border-bottom: 1px solid var(--line-dark); font-size: 15px; }
+  .set:last-child { border: 0; }
+  .set em { font-style: normal; color: var(--muted-dark); font-size: 14px; }
+  .switch { width: 40px; height: 24px; border-radius: 999px; background: var(--lime); position: relative; }
+  .switch::after { content: ""; position: absolute; right: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--forest); }
+  .switch.off { background: var(--forest-3); }
+  .switch.off::after { left: 3px; right: auto; background: var(--muted-dark); }
+  .stack { display: grid; gap: 12px; }
+  .grow { flex: 1; }
+  .site { display: flex; gap: 10px; align-items: center; }
+  .fav { width: 32px; height: 32px; border-radius: 10px; background: var(--forest-3); display: grid; place-items: center; font: 700 14px var(--display); color: var(--ivory); }
+  .notice { border: 1px solid rgba(232,181,71,.45); background: rgba(232,181,71,.08); border-radius: 14px; padding: 10px 12px; font-size: 14px; color: #f3dca6; }
+  h2.screen-title { font: 600 22px/1.2 var(--display); letter-spacing: -.02em; margin: 0; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line-dark); font-size: 14px; }
+  .tabs span { padding: 8px 10px; color: var(--muted-dark); border-bottom: 2px solid transparent; }
+  .tabs span.on { color: var(--ivory); border-color: var(--lime); font-weight: 700; }
+  @media (prefers-reduced-motion: no-preference) { .pulse { animation: p 2.4s ease-in-out infinite; } @keyframes p { 50% { opacity: .45; } } }
+</style>
+</head>
+<body>
+<header class="page">
+  <span class="banner">Design prototype. Sample data. Not connected to any wallet.</span>
+  <h1>ZecOne Wallet</h1>
+  <p>Visual direction for the local ZecOne Wallet, aligned with the ZecOne Pay site. Screens marked <b>Conceptual</b> describe capabilities that do not exist yet. See <code>README.md</code> in this folder for the full specification.</p>
+</header>
+
+<main>
+  <!-- 1 Locked -->
+  <figure>
+    <div class="screen" role="img" aria-label="Locked screen mockup">
+      <div class="bar"><span class="brand"><svg class="logo" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#d7f276"/><path d="M9 9.5h14l-10.6 13H23" fill="none" stroke="#102820" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="23.5" cy="9.5" r="2.1" fill="#e8b547"/></svg>ZecOne</span><span class="net main"><span class="dot"></span>Mainnet</span></div>
+      <div class="lock">
+        <div>
+          <div class="shield hatch"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#d7f276" stroke-width="1.8"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+          <h2 class="screen-title">Wallet locked</h2>
+          <p class="label" style="margin-top:6px">Enter your passphrase to unlock this device's wallet.</p>
+          <div class="pin"><i class="f"></i><i class="f"></i><i class="f"></i><i></i><i></i><i></i></div>
+        </div>
+      </div>
+      <div class="stack"><div class="btn lime">Unlock</div><p class="label" style="text-align:center">Keys never leave this computer.</p></div>
+    </div>
+    <figcaption><b>Locked screen</b>Shown on launch and after idle. Network chip stays visible even when locked.</figcaption>
+  </figure>
+
+  <!-- 2 Overview -->
+  <figure>
+    <div class="screen" role="img" aria-label="Wallet overview mockup">
+      <div class="bar"><span class="brand">Main account</span><span class="net main"><span class="dot"></span>Mainnet</span></div>
+      <div style="margin:26px 0 20px">
+        <p class="label">Shielded balance</p>
+        <p class="balance">12.4800 <small>ZEC</small></p>
+        <p class="fiat">Spendable 12.4700 ZEC, 0.0100 ZEC confirming</p>
+      </div>
+      <div class="row2"><div class="btn lime">Send</div><div class="btn ghost">Receive</div></div>
+      <p class="label" style="margin:22px 0 8px">Recent activity</p>
+      <div class="panel grow">
+        <div class="tx"><span>Received<small>Today, 14:02</small></span><span class="mono in">+2.0000</span></div>
+        <div class="tx"><span>Paid Pixel Pass<small>Yesterday, via ZecOne Pay</small></span><span class="mono">−0.1000</span></div>
+        <div class="tx"><span>Received<small>Oct 20</small></span><span class="mono in">+0.5000</span></div>
+        <div class="tx"><span>Sent<small>Oct 18</small></span><span class="mono">−1.2500</span></div>
+      </div>
+    </div>
+    <figcaption><b>Overview and ZEC balance</b>One number first: the shielded balance. Pending funds are named, never hidden in the total.</figcaption>
+  </figure>
+
+  <!-- 3 Send -->
+  <figure>
+    <div class="screen" role="img" aria-label="Send screen mockup">
+      <div class="bar"><span class="brand">Send ZEC</span><span class="net main"><span class="dot"></span>Mainnet</span></div>
+      <div class="stack" style="margin-top:22px">
+        <div class="field"><p class="label">To</p><p class="mono" style="margin:4px 0 0;word-break:break-all">u1qqq8z5…r2 <span class="chip shield">Shielded</span></p></div>
+        <div class="field"><p class="label">Amount</p><p class="big" style="margin:2px 0 0">0.2500 <span style="font-size:18px;color:var(--muted-dark)">ZEC</span></p><p class="label">Available 12.4700 ZEC</p></div>
+        <div class="field"><p class="label">Memo (encrypted)</p><p style="margin:4px 0 0">Invoice 1042</p></div>
+        <div class="panel"><div class="tx"><span>Network fee</span><span class="mono">0.0001</span></div><div class="tx"><span><b>Total leaving wallet</b></span><span class="mono"><b>0.2501 ZEC</b></span></div></div>
+      </div>
+      <div class="grow"></div>
+      <div class="btn lime" style="margin-top:16px">Review and confirm</div>
+    </div>
+    <figcaption><b>Send</b>The total leaving the wallet, including the fee, is the last thing read before confirming.</figcaption>
+  </figure>
+
+  <!-- 4 Receive -->
+  <figure>
+    <div class="screen" role="img" aria-label="Receive screen mockup">
+      <div class="bar"><span class="brand">Receive ZEC</span><span class="net main"><span class="dot"></span>Mainnet</span></div>
+      <div class="tabs" style="margin-top:18px"><span class="on">Shielded</span><span>Transparent</span></div>
+      <div style="margin:22px auto" class="qr" title="QR placeholder"><div></div></div>
+      <div class="field"><p class="label">Your shielded address</p><p class="mono" style="margin:4px 0 0;word-break:break-all">u1qqq8z5wnpx5yft50ahvm2cq3rzumnszs2r53ccruhnk4xrv3…</p></div>
+      <div class="grow"></div>
+      <div class="row2" style="margin-top:16px"><div class="btn lime">Copy address</div><div class="btn ghost">Share</div></div>
+    </div>
+    <figcaption><b>Receive</b>Shielded is the default tab. A transparent address is available but clearly secondary.</figcaption>
+  </figure>
+
+  <!-- 5 History -->
+  <figure>
+    <div class="screen" role="img" aria-label="Transaction history mockup">
+      <div class="bar"><span class="brand">Activity</span><span class="net main"><span class="dot"></span>Mainnet</span></div>
+      <div class="tabs" style="margin-top:18px"><span class="on">All</span><span>Received</span><span>Sent</span><span>Payments</span></div>
+      <div class="panel grow" style="margin-top:14px">
+        <div class="tx"><span>Received <span class="chip shield">Shielded</span><small>Today, 14:02 · 18 confirmations</small></span><span class="mono in">+2.0000</span></div>
+        <div class="tx"><span>Paid Pixel Pass <span class="chip public">Payout on Base</span><small>Merchant received ETH publicly</small></span><span class="mono">−0.1000</span></div>
+        <div class="tx"><span>Received <span class="chip shield">Shielded</span><small>Oct 20 · confirmed</small></span><span class="mono in">+0.5000</span></div>
+        <div class="tx"><span>Sent <span class="chip shield">Shielded</span><small>Oct 18 · confirmed</small></span><span class="mono">−1.2500</span></div>
+        <div class="tx"><span>Received <span class="chip shield">Shielded</span><small>Oct 02 · confirmed</small></span><span class="mono in">+11.0000</span></div>
+      </div>
+    </div>
+    <figcaption><b>Transaction history</b>Every row says whether it stayed shielded or touched a public chain.</figcaption>
+  </figure>
+
+  <!-- 6 Network indicator -->
+  <figure>
+    <div class="screen" role="img" aria-label="Network indicator states mockup">
+      <div class="bar"><span class="brand">Network</span><span class="net test"><span class="dot pulse"></span>Testnet</span></div>
+      <div class="notice" style="margin-top:18px">You are on <b>Zcash testnet</b>. Coins here have no value. Do not send mainnet ZEC to these addresses.</div>
+      <div class="stack" style="margin-top:18px">
+        <div class="field" style="display:flex;justify-content:space-between;align-items:center"><span>Zcash mainnet</span><span class="net main"><span class="dot"></span>Mainnet</span></div>
+        <div class="field" style="display:flex;justify-content:space-between;align-items:center;border-color:var(--gold)"><span>Zcash testnet</span><span class="net test"><span class="dot"></span>Testnet</span></div>
+      </div>
+      <p class="label" style="margin-top:18px">Rules: mainnet uses the chartreuse solid chip. Testnet uses a gold dashed chip and a persistent notice. The chip appears on every screen, including locked.</p>
+    </div>
+    <figcaption><b>Mainnet / testnet indicator</b>Two shapes, not just two colours, so the difference survives colour blindness.</figcaption>
+  </figure>
+
+  <!-- 7 Settings -->
+  <figure>
+    <div class="screen" role="img" aria-label="Settings mockup">
+      <div class="bar"><span class="brand">Settings</span><span class="net main"><span class="dot"></span>Mainnet</span></div>
+      <div class="panel" style="margin-top:18px">
+        <div class="set"><span>Lock after idle<br /><em>5 minutes</em></span><span>›</span></div>
+        <div class="set"><span>Hide balances</span><span class="switch off"></span></div>
+        <div class="set"><span>Network<br /><em>Zcash mainnet</em></span><span>›</span></div>
+        <div class="set"><span>Recovery phrase<br /><em>Shown only after unlocking</em></span><span>›</span></div>
+        <div class="set"><span>Approved websites<br /><em>2 sites</em></span><span>›</span></div>
+      </div>
+      <div class="grow"></div>
+      <div class="btn danger" style="margin-top:16px">Lock wallet now</div>
+    </div>
+    <figcaption><b>Wallet settings</b>Security settings first. Destructive or revealing actions sit behind an unlock.</figcaption>
+  </figure>
+
+  <!-- 8 Connected DApps (conceptual) -->
+  <figure>
+    <div class="screen" role="img" aria-label="Connected DApps conceptual mockup">
+      <div class="bar"><span class="brand">Connected sites</span><span class="chip concept">Conceptual</span></div>
+      <p class="label" style="margin-top:18px">Sites that can ask this wallet for payments or signatures. They can never move funds without your approval.</p>
+      <div class="panel" style="margin-top:14px">
+        <div class="set"><span class="site"><span class="fav">P</span><span>pixelpass.example<br /><em>Can request payments</em></span></span><span class="chip concept">Revoke</span></div>
+        <div class="set"><span class="site"><span class="fav">A</span><span>access-pass.example<br /><em>Can request payments, sign in</em></span></span><span class="chip concept">Revoke</span></div>
+      </div>
+      <div class="field" style="margin-top:16px">
+        <p class="label">Pending request</p>
+        <p style="margin:4px 0">pixelpass.example asks for <b>0.1000 ZEC</b></p>
+        <p class="label">Pay to shielded address u1qqq8…r2, quote valid 14:32</p>
+      </div>
+      <div class="grow"></div>
+      <div class="row2" style="margin-top:16px"><div class="btn ghost">Reject</div><div class="btn lime">Review</div></div>
+    </div>
+    <figcaption><b>Connected DApps (conceptual)</b>Future browser-extension surface. Not implemented; shown to agree the visual language early.</figcaption>
+  </figure>
+</main>
+</body>
+</html>

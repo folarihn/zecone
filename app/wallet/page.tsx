@@ -2,7 +2,7 @@ import Wallet from "../wallet";
 export const dynamic = "force-dynamic";
 export default function Page() {
   return (
-    <div className="wallet-scope">
+    <div className="wallet-scope" data-theme="zecone">
       <Wallet />
     </div>
   );
