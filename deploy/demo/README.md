@@ -15,6 +15,13 @@ Base relayer key, submitter, broadcaster, or live settlement configuration.
 - Named volumes persist the SQLite demo database, Access Pass state, and Caddy
   certificates. The local real wallet and watcher are never mounted.
 
+On the shared Contabo host, existing Nginx already owns ports 80/443 and the
+dedicated ZecOne Docker daemon intentionally has no bridge network. Use
+`compose.nginx.yaml` there: the demo services use host networking while binding
+only to `127.0.0.1:4321` and `127.0.0.1:4333`; existing Nginx remains the sole
+public ingress. The Caddy service is disabled unless the explicit
+`standalone-caddy` profile is selected.
+
 ## Prepare (no deployment)
 
 1. Create `.secrets/deployment/demo.env` locally with:
@@ -38,7 +45,8 @@ Base relayer key, submitter, broadcaster, or live settlement configuration.
 
 ## Operator-reviewed launch
 
-From the checked-out release commit on the VPS, after explicit approval:
+On a standalone host where Caddy owns ports 80/443, use the base file as shown
+below. From the checked-out release commit on the VPS, after explicit approval:
 
 ```powershell
 docker compose --project-directory deploy/demo -f deploy/demo/compose.yaml config
@@ -46,6 +54,20 @@ docker compose --project-directory deploy/demo -f deploy/demo/compose.yaml build
 docker compose --project-directory deploy/demo -f deploy/demo/compose.yaml up -d
 docker compose --project-directory deploy/demo -f deploy/demo/compose.yaml ps
 ```
+
+For the reviewed shared Contabo host, use both files and the dedicated daemon:
+
+```powershell
+$env:DOCKER_HOST = "unix:///run/zecone-docker/docker.sock"
+docker compose --project-directory deploy/demo -f deploy/demo/compose.yaml -f deploy/demo/compose.nginx.yaml config
+docker compose --project-directory deploy/demo -f deploy/demo/compose.yaml -f deploy/demo/compose.nginx.yaml build --pull
+docker compose --project-directory deploy/demo -f deploy/demo/compose.yaml -f deploy/demo/compose.nginx.yaml up -d
+docker compose --project-directory deploy/demo -f deploy/demo/compose.yaml -f deploy/demo/compose.nginx.yaml ps
+```
+
+Install `nginx/zecone-demo.conf` only after both API DNS records resolve to the
+host. Run `nginx -t` before reloading Nginx, then use Certbot to add HTTPS. Do
+not replace or restart unrelated Nginx sites.
 
 Confirm both public HTTPS health endpoints and assert the payment health body has
 `mode: "demo"`, `livePayoutEnabled: false`, `zcashBroadcastEnabled: false`, and

@@ -19,8 +19,8 @@ Nothing has been deployed. Every item below needs the owner's approval before a 
 - [ ] `npm ci && npm run sdk:build && npm run typecheck && npm run typecheck:web && npm run lint && npm test`
 - [ ] `npm run build:web && npm run test:integration`
 - [ ] Persistent volume for `ZECONE_PAYMENTS_DB`; WAL files included in backups.
-- [ ] Caddy terminates TLS for the demo API and Access Pass backend; Vercel terminates TLS for both frontends.
-- [ ] `ZECONE_TRUST_PROXY=1` only in the Compose stack where Caddy is the sole network ingress.
+- [ ] Caddy terminates TLS on a standalone host, or the reviewed shared-host Nginx override terminates TLS without replacing unrelated sites; Vercel terminates TLS for both frontends.
+- [ ] `ZECONE_TRUST_PROXY=1` only where Caddy or Nginx is the sole network ingress and the application ports remain loopback-only.
 - [ ] Access Pass Vercel contains only static files and the narrow `/api/*` proxy. API key, webhook secret and persistent state stay in the VPS backend.
 - [ ] Rate limits are per-process and in memory — run a single API instance or add a shared limiter.
 

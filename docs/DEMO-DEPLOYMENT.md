@@ -5,10 +5,13 @@ payable Zcash address and cannot authorize a Base payout or Zcash broadcast.
 
 The website and Access Pass frontend are prepared for separate Vercel projects.
 The Payment API and Access Pass merchant backend are prepared for the isolated
-Contabo Compose stack in `deploy/demo`. Only those demo services sit behind
-Caddy. Persistent storage is limited to a demo SQLite database and Access Pass
-merchant state. The real wallet, mainnet watcher, relayer, submitter, operator
-tokens, signing keys, and keystores remain local and are not deployment inputs.
+Contabo Compose stack in `deploy/demo`. On a standalone host, those demo
+services sit behind Caddy. On the reviewed shared Contabo host, the
+`compose.nginx.yaml` override binds both containers to loopback and preserves
+the host's existing Nginx TLS edge. Persistent storage is limited to a demo
+SQLite database and Access Pass merchant state. The real wallet, mainnet
+watcher, relayer, submitter, operator tokens, signing keys, and keystores remain
+local and are not deployment inputs.
 
 `ZECONE_PAYMENTS_MODE=demo` maps the checkout receiver to
 `demo:no-payable-address`. Production startup additionally requires a fresh

@@ -1,0 +1,23 @@
+# Shared-host override for the existing Contabo Nginx deployment.
+# The dedicated ZecOne Docker daemon has no bridge network, so both demo
+# services use host networking but remain bound to loopback. Existing Nginx is
+# the sole public ingress and TLS terminator. The base Caddy service is placed
+# behind an explicit profile and therefore stays stopped by default.
+services:
+  payments:
+    network_mode: host
+    build:
+      network: host
+    environment:
+      ZECONE_PAYMENTS_HOST: 127.0.0.1
+
+  access-pass:
+    network_mode: host
+    build:
+      network: host
+    environment:
+      ACCESS_PASS_HOST: 127.0.0.1
+      ZECONE_BASE_URL: http://127.0.0.1:4321
+
+  caddy:
+    profiles: [standalone-caddy]
