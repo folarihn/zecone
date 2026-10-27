@@ -1,0 +1,19 @@
+# Exact reviewed false positives only. Do not replace these with path or rule
+# wildcards. Each entry is either a synthetic test fixture, a public on-chain
+# identifier/fingerprint, or an artifact hash; none is an authentication secret.
+4928a3f5d8cf22d6cc8453c649519ad365419a7e:tests/mainnet-block-source.test.ts:generic-api-key:118
+291f12bfa84c8fef2ef080533669c9486c966e0b:PROGRESS.md:generic-api-key:5
+3614d6708bfad177c8dd3d3d708528ad026cf072:services/solana/cpmm.ts:generic-api-key:39
+9af83eea9fdff9678302d95033b2a2e662fb95c8:docs/phase52-evidence/fresh-wallets.json:generic-api-key:11
+9af83eea9fdff9678302d95033b2a2e662fb95c8:docs/phase52-evidence/fresh-wallets.json:generic-api-key:27
+9af83eea9fdff9678302d95033b2a2e662fb95c8:docs/phase52-evidence/fresh-wallets.json:generic-api-key:43
+69755984f8449bd0b967915d43c47700d4c74bda:docs/phase5-evidence/completion-test-wallets.json:generic-api-key:10
+69755984f8449bd0b967915d43c47700d4c74bda:docs/phase5-evidence/completion-test-wallets.json:generic-api-key:16
+69755984f8449bd0b967915d43c47700d4c74bda:docs/phase5-evidence/completion-test-wallets.json:generic-api-key:22
+69755984f8449bd0b967915d43c47700d4c74bda:docs/phase5-evidence/watch-only-real-chain.json:generic-api-key:9
+324a677f954bc56b1efff29f1cf6ff10d8df95f3:docs/phase4d-evidence/preservation.json:generic-api-key:183
+16b209b125f1c19d60d8637855ff243424c5d6c9:docs/phase4c-evidence/base/deployment.json:generic-api-key:61
+9f79d866e35eddd430854043ec1eb369e2b9a98c:docs/phase4b-evidence/base/deployment.json:generic-api-key:9
+9f79d866e35eddd430854043ec1eb369e2b9a98c:docs/phase4b-evidence/base/live-verification.json:generic-api-key:11
+9f79d866e35eddd430854043ec1eb369e2b9a98c:docs/phase4b-evidence/base/live-verification.json:generic-api-key:50
+9f79d866e35eddd430854043ec1eb369e2b9a98c:docs/phase4b-evidence/deployment-artifact-hashes.json:generic-api-key:2
