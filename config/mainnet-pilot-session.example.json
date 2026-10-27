@@ -1,0 +1,31 @@
+{
+  "profiles": "C:/protected/mainnet-profiles.production.json",
+  "stateDirectory": "D:/protected/zecone-pilot-session",
+  "watchWallet": "D:/protected/watch-profile",
+  "watchBinary": "C:/trusted/zecone-zcash-watch.exe",
+  "authenticatedBlocks": "D:/protected/authenticated-blocks",
+  "watchBinding": {
+    "orderId": "REVIEWED_64_HEX_ORDER_ID",
+    "account": "REVIEWED_64_HEX_NATIVE_ACCOUNT",
+    "address": "REVIEWED_NATIVE_PAYMENT_ADDRESS",
+    "zatoshis": "645937",
+    "sourceEvidenceDigest": "e3b833361c1c8b386cd1d3a76ecf924239e4a6778ed20e0e352681f8a93c8c1e",
+    "expires": 0
+  },
+  "sourceEvidenceDigest": "e3b833361c1c8b386cd1d3a76ecf924239e4a6778ed20e0e352681f8a93c8c1e",
+  "sourceCommitment": "DERIVE_FROM_AUTHENTICATED_WATCH_JOURNAL_NEVER_COPY_PROOF_DIGEST",
+  "sourceZatoshis": "645937",
+  "recipient": "0x4b5750d7675f14eB844B74477015302Bf31AE2dB",
+  "expectedNonce": 0,
+  "retiredTransactionIds": [
+    "0xc543d4c9346d60c131433e928b8bfae69e57bffc06301ce8211f2956e47f54cc"
+  ],
+  "networkFee": "500000000000",
+  "l1DataFee": "1000000000000",
+  "authorityKeystore": "D:/protected/execution-authority.keystore.json",
+  "authorityPublicKey": "D:/protected/execution-authority.public.pem",
+  "recipientKeystore": "D:/protected/base-recipient.keystore.json",
+  "relayerKeystore": "D:/protected/base-relayer.keystore.json",
+  "passphraseFile": "D:/protected/passphrase.txt",
+  "signerLedger": "D:/protected/base-signer-ledger.sqlite"
+}

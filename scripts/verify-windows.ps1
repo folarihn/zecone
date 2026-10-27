@@ -1,4 +1,4 @@
-# ZecOne — Windows / Node 24 verification.
+# ZecOne - Windows / Node 24 verification.
 #
 # Safe by design: never signs, broadcasts, funds or moves ZEC/ETH, never touches
 # .secrets/, never creates wallet seeds, and never edits your .state/payments.sqlite.
@@ -36,7 +36,7 @@ $results = New-Object System.Collections.Generic.List[object]
 function Record($name, $status, $detail) {
   $results.Add([pscustomobject]@{ Check = $name; Result = $status; Detail = $detail })
   $color = @{ PASS = 'Green'; FAIL = 'Red'; WARN = 'Yellow'; INFO = 'Gray' }[$status]
-  Write-Host ("[{0}] {1} — {2}" -f $status, $name, $detail) -ForegroundColor $color
+  Write-Host ("[{0}] {1} -- {2}" -f $status, $name, $detail) -ForegroundColor $color
 }
 function Check($name, $ok, $detail) { if ($ok) { Record $name 'PASS' $detail } else { Record $name 'FAIL' $detail } }
 
@@ -129,13 +129,13 @@ foreach ($port in 3000, 3210, 3211, 4321, 4333) {
   $detail = "pid $($owner.Pid) $($owner.Name): $identity | $($owner.CommandLine)"
   if ($stale -and $fromRepo -and $StopStaleZecOne) {
     StopTree $owner.Pid
-    Record "port $port ($($known[$port]))" 'WARN' "stopped outdated ZecOne service — $detail"
+    Record "port $port ($($known[$port]))" 'WARN' "stopped outdated ZecOne service -- $detail"
   } elseif ($stale) {
-    Record "port $port ($($known[$port]))" 'WARN' "outdated ZecOne service; restart it (or re-run with -StopStaleZecOne) — $detail"
+    Record "port $port ($($known[$port]))" 'WARN' "outdated ZecOne service; restart it (or re-run with -StopStaleZecOne) -- $detail"
   } elseif ($fromRepo -or $identity -like 'zecone-*') {
-    Record "port $port ($($known[$port]))" 'INFO' "existing ZecOne service, left running — $detail"
+    Record "port $port ($($known[$port]))" 'INFO' "existing ZecOne service, left running -- $detail"
   } else {
-    Record "port $port ($($known[$port]))" 'WARN' "used by another application; this script uses isolated ports — $detail"
+    Record "port $port ($($known[$port]))" 'WARN' "used by another application; this script uses isolated ports -- $detail"
   }
 }
 foreach ($port in $ApiPort, $WebPort, $DappPort, 4391, 3091, 4393) {

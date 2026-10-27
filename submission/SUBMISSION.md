@@ -55,7 +55,7 @@ See `CHECKLIST.md` for the evidence behind each line.
 ## Suggested screenshots
 
 1. Homepage hero + verified mainnet transactions.
-2. Checkout page with shielded address + quote + lifecycle steps.
+2. Demo checkout with quote + lifecycle steps and an explicit non-payable simulation label.
 3. Example DApp: locked → unlocked content.
 4. Explorer with the three mainnet transactions.
 5. Security page architecture diagram.
@@ -72,8 +72,9 @@ npm run start:web            # website — http://localhost:3000
 npm run dapp:start           # reference DApp — http://127.0.0.1:4333
 ```
 
-Configuration: `.env.example`. Public deployment has **not** been done; see
-`docs/DEPLOYMENT-CHECKLIST.md`.
+Configuration: `.env.example`. Public deployment has **not** been done. The
+prepared Vercel + Contabo topology, secret handling and rollback procedure are
+documented in `docs/DEMO-DEPLOYMENT.md` and `deploy/demo/README.md`.
 
 ### Environment variables
 
@@ -81,7 +82,7 @@ Configuration: `.env.example`. Public deployment has **not** been done; see
 |---|---|---|
 | `ZECONE_PAYMENTS_PORT` / `HOST` | payment API bind | `4321` / `127.0.0.1` |
 | `ZECONE_PAYMENTS_DB` | payment DB path | `.state/payments.sqlite` |
-| `ZECONE_DEMO_SECRET` | demo merchant secret | `demo-merchant-secret-change-me` |
+| `ZECONE_DEMO_SECRET` | demo merchant secret | must be fresh and 32+ characters in production |
 | `ZECONE_BASE_URL` | SDK/website → payment API | `http://127.0.0.1:4321` |
 | `ZECONE_API_KEY` | merchant API key (server-side) | demo key |
 | `ACCESS_PASS_PORT` | example DApp bind | `4333` |
@@ -97,7 +98,7 @@ excluded from the frontend build; the demo works without private credentials.
 - CORS and security headers set on the payment API.
 - No live broadcast credentials in public hosting; live payout is disabled.
 - Demo data is explicitly labeled; no fabricated volume or metrics.
-- Rollback: `git checkout` the prior revision and rebuild (`npm run build`).
+- Rollback: redeploy the prior reviewed revision against the preserved demo volumes; never delete state as part of rollback.
 
 ## Final checklist
 
@@ -107,5 +108,5 @@ excluded from the frontend build; the demo works without private credentials.
 - [x] Signed webhooks + payment lifecycle implemented.
 - [x] Base wallet connectivity implemented.
 - [x] Security controls preserved; live payout disabled.
-- [x] All 598 Node tests + 33 Rust tests pass; typecheck + build pass.
+- [x] Final local matrix: 634 Node tests, 73 Rust tests (including the normally ignored expensive synthetic proof), 36 wallet UI tests and 9 payment browser tests passed; Windows verifier finished with 0 FAIL.
 - [ ] Public deployment (not performed; requires explicit authorization).

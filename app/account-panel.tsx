@@ -1,11 +1,57 @@
 "use client";
 import { useState } from "react";
-export default function AccountPanel({ address }: { address: string }) {
+import type { ZcashNetworkView } from "../services/wallet/zcash-networks";
+export default function AccountPanel({
+  address,
+  zcash,
+}: {
+  address: string;
+  zcash?: ZcashNetworkView | null;
+}) {
   const [network, setNetwork] = useState("84532"),
     [copied, setCopied] = useState(false),
     [error, setError] = useState("");
   return (
     <section className="panel account-panel" aria-label="Send and receive">
+      {zcash?.network === "zcash-mainnet" && (
+        <>
+          <p className="eyebrow">ZCASH MAINNET · READ ONLY</p>
+          <h2>Receive shielded ZEC</h2>
+          <p className="mono break">{zcash.receivingAddress}</p>
+          <button
+            className="secondary"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(zcash.receivingAddress!);
+                setCopied(true);
+                setError("");
+              } catch {
+                setError(
+                  "Clipboard unavailable. Select and copy the address manually.",
+                );
+              }
+            }}
+          >
+            {copied ? "Address copied" : "Copy Zcash mainnet address"}
+          </button>
+          <p className="muted">
+            ZIP-316 verified against the existing wallet identity. Receivers:{" "}
+            {[
+              zcash.receivers?.orchard && "Orchard",
+              zcash.receivers?.sapling && "Sapling",
+              zcash.receivers?.transparent && "transparent",
+            ]
+              .filter(Boolean)
+              .join(", ")}
+            .
+          </p>
+          <button disabled>Send mainnet ZEC unavailable</button>
+          <p className="notice" role="status">
+            {zcash.sendUnavailableReason}
+          </p>
+          <hr />
+        </>
+      )}
       <p className="eyebrow">YOUR ACCOUNT</p>
       <h2>Receive on an EVM testnet</h2>
       <label htmlFor="receive-network">Receive network</label>
@@ -49,9 +95,8 @@ export default function AccountPanel({ address }: { address: string }) {
       </p>
       <button disabled>General-purpose Zcash send unavailable</button>
       <p className="muted">
-        A general receive/send interface for the quarantined historical Zcash
-        wallet is disabled. Existing recovery markers and inputs remain
-        untouched.
+        Browser Zcash signing and broadcasting are disabled. Existing recovery
+        markers, approval gates and wallet inputs remain untouched.
       </p>
     </section>
   );

@@ -1,0 +1,54 @@
+(node:27408) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ keyless wallet local consent grants no ownership proof or financial methods (9.5539ms)
+✔ local review HTTP handler binds profile, session and CSRF and exposes no execution route (88.2776ms)
+✔ SPL delivery reviews the pinned mint and stays non-financial until exact approval (3.8765ms)
+✔ opt-in wallet creates one reviewed financial order and reveals a payment request without paying (24.3163ms)
+✔ financial creation stays closed unless the operator enables it (11.8197ms)
+✔ swap handoff preserves reviewed route and economic limits in original engine (5.6716ms)
+✔ changed swap terms require a new review without financial creation (3.7757ms)
+✔ a second review cannot adopt or reopen an existing paid-order identifier (3.4838ms)
+✔ wallet economic review creates no financial order and discloses demo pricing (2.8474ms)
+✔ explicit fixture authorization hands off to original engine once without execution (5.049ms)
+✔ wrong session, digest, late review and depleted liquidity fail closed (3.4175ms)
+✔ interrupted financial handoff is reconciliation-only after restart (1.9776ms)
+(node:20288) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ production configuration rejects missing corroboration, fake isolation and disabled execution (4.4389ms)
+✔ production single writer fails closed across connections and restart (41.2655ms)
+✔ production reservations enforce pause, per day and inventory without aging uncertain spend (5.8253ms)
+✔ production payment commitment cannot move to another order or be executed twice (3.6104ms)
+✔ production policy changes and unallowlisted destinations cannot reserve (2.1393ms)
+✔ production price uses signed rational feeds and rounds upward without floating point (6.7016ms)
+✔ production RPC surface cannot sign, broadcast, unlock or send Zcash (1.0165ms)
+✔ readiness never upgrades single-provider or fixture evidence to production readiness (8.15ms)
+✔ provider disagreement and wrong genesis fail closed (4.631ms)
+(node:5692) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ delivery policy rejects wrong network, bad address, self-payment and unsupported amount (12.6635ms)
+✔ one immutable checkout binds recipient and amount; expiry blocks authorization (10.3628ms)
+✔ unconfirmed, underpaid and missing owned notes cannot authorize spending (13.1973ms)
+✔ duplicate notes never double-count; overpayment enters recovery (5.4335ms)
+✔ insufficient relayer balance, RPC outage and simulation failure enter recovery (32.0542ms)
+✔ fresh verified payment prepares, exact approval signs once, finalized exact effects complete (90.5236ms)
+✔ lost broadcast response persists original signature and never signs a replacement (14.6991ms)
+✔ expired blockhash and payment reorganization veto execution (11.4146ms)
+✔ failed or mismatched finalized effects cannot complete (40.0281ms)
+✔ durable restart retains construction claim and refund/execution exclusion (55.149ms)
+(node:18828) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ SOL wallet signature to owned payment to exact executor and finalized effects (197.2424ms)
+✔ SOL grants reject wrong signatures, session changes and changed terms (21.4876ms)
+✔ SOL raw imported observations and failed scans cannot unlock preparation (33.2148ms)
+✔ SOL watch leases exclude concurrent prepare; underpayments and extra payments fail closed (62.9798ms)
+✔ SOL late exact approval and expired blockhash never invoke signer (83.3073ms)
+✔ SOL lost broadcast response and actual restart reconcile one original signature (147.0106ms)
+✔ SOL unsupported tokens, duplicate grants and cross-session status stay blocked (15.5498ms)
+ℹ tests 38
+ℹ suites 0
+ℹ pass 38
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4014.2744

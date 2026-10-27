@@ -4,6 +4,7 @@
 use anyhow::{Result, ensure};
 use sha2::{Digest, Sha256};
 use std::io::Read;
+use zcash_keys::address::UnifiedAddress;
 use zcash_keys::keys::{UnifiedAddressRequest, UnifiedFullViewingKey};
 use zcash_protocol::consensus::Network;
 
@@ -16,12 +17,35 @@ fn run() -> Result<()> {
         .map_err(|_| anyhow::anyhow!("invalid_mainnet_ufvk"))?;
     ensure!(ufvk.orchard().is_some(), "orchard_viewing_key_required");
     let (address, _) = ufvk.default_address(UnifiedAddressRequest::SHIELDED)?;
+    let (all, _) = ufvk.default_address(UnifiedAddressRequest::AllAvailableKeys)?;
+    let (orchard, _) = ufvk.default_address(UnifiedAddressRequest::ORCHARD)?;
+    let target = std::env::args()
+        .nth(1)
+        .map(|s| {
+            UnifiedAddress::decode(&Network::MainNetwork, &s)
+                .map_err(|_| anyhow::anyhow!("invalid_target_address"))
+        })
+        .transpose()?;
+    let configured = std::env::args()
+        .nth(2)
+        .map(|s| {
+            UnifiedAddress::decode(&Network::MainNetwork, &s)
+                .map_err(|_| anyhow::anyhow!("invalid_configured_address"))
+        })
+        .transpose()?;
     println!(
         "{}",
         serde_json::json!({
             "network": "zcash-mainnet",
             "account": hex::encode(Sha256::digest(text.as_bytes())),
             "address": address.encode(&Network::MainNetwork),
+            "allReceiversAddress": all.encode(&Network::MainNetwork),
+            "orchardOnlyAddress": orchard.encode(&Network::MainNetwork),
+            "targetMatchesAllReceiversDefault": target.as_ref().map(|t|t.encode(&Network::MainNetwork)==all.encode(&Network::MainNetwork)),
+            "targetOrchardReceiverMatchesDefault": target.as_ref().map(|t|t.orchard().is_some()&&t.orchard()==orchard.orchard()),
+            "targetShieldedDiversifierOwned": target.as_ref().map(|t|!ufvk.to_unified_incoming_viewing_key().decrypt_diversifiers(t).is_empty()),
+            "configuredDefaultShieldedDiversifierOwned": configured.as_ref().map(|t|!ufvk.to_unified_incoming_viewing_key().decrypt_diversifiers(t).is_empty()),
+            "targetAndConfiguredOrchardReceiverEqual": target.as_ref().zip(configured.as_ref()).map(|(t,c)|t.orchard().is_some()&&t.orchard()==c.orchard()),
             "ufvkValid": true,
             "spendingKeyRetained": false
         })

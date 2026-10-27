@@ -13,6 +13,12 @@ import type {
 } from "../services/settlement/production-safety.ts";
 
 const now = 100000;
+test("production quote lifetime remains capped at 120 seconds", () => {
+  assert.throws(
+    () => mainnetQuote({ ...input(), ttlSeconds: 300 }),
+    /INVALID_QUOTE_INPUT/,
+  );
+});
 const profile = (): ProductionProfile => ({
   network: "solana",
   enabled: true,

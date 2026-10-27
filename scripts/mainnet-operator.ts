@@ -486,6 +486,7 @@ async function execute(values: Map<string, string>) {
         ),
         [],
         required(values, "watch-authenticated-blocks"),
+        binding.address,
       ),
       payment = await observeMainnetWatch(watch, scanner, binding);
     if (payment.orderId !== executionAuth.orderId)

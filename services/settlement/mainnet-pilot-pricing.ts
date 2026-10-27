@@ -7,6 +7,7 @@
 import { createHash, createPublicKey, sign, verify } from "node:crypto";
 import {
   singleDevicePilotActive,
+  pilotQuoteMaximumSeconds,
   type ProductionProfile,
 } from "./production-safety.ts";
 
@@ -59,7 +60,9 @@ export function usdToScaled(value: string, label = "USD"): bigint {
   const [whole, frac = ""] = value.trim().split(".");
   if (whole.replace(/^0+/, "").length > 12) throw Error(`${label}_OVERFLOW`);
   const wholePart = BigInt(whole.replace(/^0+(?=\d)/, "") || "0");
-  const fracPart = BigInt(frac.slice(0, USD_SCALE).padEnd(USD_SCALE, "0") || "0");
+  const fracPart = BigInt(
+    frac.slice(0, USD_SCALE).padEnd(USD_SCALE, "0") || "0",
+  );
   const scaled = wholePart * 10n ** BigInt(USD_SCALE) + fracPart;
   if (scaled <= 0n) throw Error(`INVALID_${label}`);
   return scaled;
@@ -132,6 +135,7 @@ export function buildSingleOperatorPilotPriceStatement(
   now: number,
   expires: number,
   maximumSpreadBps = DEFAULT_MAX_SPREAD_BPS,
+  profile?: ProductionProfile,
 ): SingleOperatorPilotPriceStatement {
   if (!operator.trim()) throw Error("PILOT_PRICE_OPERATOR_REQUIRED");
   if (!/^[a-f0-9]{64}$/.test(quoteContext))
@@ -140,7 +144,11 @@ export function buildSingleOperatorPilotPriceStatement(
   if (
     !Number.isSafeInteger(expires) ||
     expires <= now ||
-    expires > now + MAX_EXPIRY_WINDOW_SECONDS
+    expires >
+      now +
+        (profile
+          ? pilotQuoteMaximumSeconds(profile, now)
+          : MAX_EXPIRY_WINDOW_SECONDS)
   )
     throw Error("PILOT_PRICE_EXPIRY_INVALID");
   const { numerator, denominator } = validatePilotObservations(
@@ -195,6 +203,7 @@ export function verifySingleOperatorPilotPrice(
   const authority = profile.executionAuthority;
   if (!authority) throw Error("PILOT_PRICE_IDENTITY_REQUIRED");
   const s = price.statement;
+  const maximumWindow = pilotQuoteMaximumSeconds(profile, now);
   if (
     s.version !== 1 ||
     s.policy !== PILOT_PRICING_POLICY ||
@@ -205,9 +214,9 @@ export function verifySingleOperatorPilotPrice(
     !Number.isSafeInteger(s.at) ||
     !Number.isSafeInteger(s.expires) ||
     s.at > now + 5 ||
-    now - s.at > MAX_OBSERVATION_AGE_SECONDS ||
+    now - s.at > (maximumWindow === 300 ? 300 : MAX_OBSERVATION_AGE_SECONDS) ||
     s.expires <= now ||
-    s.expires - s.at > MAX_EXPIRY_WINDOW_SECONDS
+    s.expires - s.at > maximumWindow
   )
     throw Error("PILOT_PRICE_STATEMENT_INVALID");
   let key: ReturnType<typeof createPublicKey>;

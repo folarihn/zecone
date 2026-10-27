@@ -374,12 +374,15 @@ async function basePreparation(
   terms: MainnetTransferTerms,
   fetcher: typeof fetch,
   now: number,
+  anchor?: { number: string; hash: string },
 ): Promise<BaseUnsigned> {
   const providers = profile.providers.slice(0, 2),
     reads = [];
-  for (const p of providers) {
-    const [chainId, block, code, nonce, balance, gas, gasPrice] =
-      await Promise.all([
+  // Finalized aliases can advance between requests. Establish a height finalized
+  // by both operators, then compare canonical state at that exact height.
+  const heads = await Promise.all(
+    providers.map(async (p) => {
+      const [chainId, block] = await Promise.all([
         readProductionRpc(p, "eth_chainId", [], fetcher),
         readProductionRpc(
           p,
@@ -387,10 +390,33 @@ async function basePreparation(
           ["finalized", false],
           fetcher,
         ),
+      ]);
+      if (chainId !== "0x2105") throw Error("WRONG_NETWORK");
+      if (!block?.hash || !block?.number)
+        throw Error("FINALIZED_HEAD_UNAVAILABLE");
+      if (Math.abs(now - safeInt(block.timestamp)) > 1800)
+        throw Error("STALE_FINALIZED_HEAD");
+      return safeInt(block.number);
+    }),
+  );
+  const commonHeight = anchor ? safeInt(anchor.number) : Math.min(...heads),
+    blockTag = hex(BigInt(commonHeight));
+  if (commonHeight > Math.min(...heads))
+    throw Error("PREPARED_BLOCK_NOT_FINALIZED_BY_BOTH_PROVIDERS");
+  for (const p of providers) {
+    const [chainId, block, code, nonce, balance, gas, gasPrice] =
+      await Promise.all([
+        readProductionRpc(p, "eth_chainId", [], fetcher),
+        readProductionRpc(
+          p,
+          "eth_getBlockByNumber",
+          [blockTag, false],
+          fetcher,
+        ),
         readProductionRpc(
           p,
           "eth_getCode",
-          [terms.recipient, "finalized"],
+          [terms.recipient, blockTag],
           fetcher,
         ),
         readProductionRpc(
@@ -402,7 +428,7 @@ async function basePreparation(
         readProductionRpc(
           p,
           "eth_getBalance",
-          [terms.relayer, "finalized"],
+          [terms.relayer, blockTag],
           fetcher,
         ),
         readProductionRpc(
@@ -415,7 +441,7 @@ async function basePreparation(
               value: hex(BigInt(terms.amount)),
               data: "0x",
             },
-            "finalized",
+            blockTag,
           ],
           fetcher,
         ),
@@ -425,8 +451,20 @@ async function basePreparation(
     if (code !== "0x") throw Error("EOA_RECIPIENT_REQUIRED");
     if (!block?.hash || !block?.number)
       throw Error("FINALIZED_HEAD_UNAVAILABLE");
+    if (anchor && block.hash !== anchor.hash)
+      throw Error("PREPARED_BLOCK_HASH_CHANGED");
+    if (safeInt(block.number) !== commonHeight)
+      throw Error("PROVIDER_DISAGREEMENT:eth_getBlockByNumber:number");
     const blockTime = safeInt(block.timestamp);
     if (Math.abs(now - blockTime) > 1800) throw Error("STALE_FINALIZED_HEAD");
+    const after = await readProductionRpc(
+      p,
+      "eth_getBlockByNumber",
+      [blockTag, false],
+      fetcher,
+    );
+    if (after?.hash !== block.hash)
+      throw Error("PROVIDER_DISAGREEMENT:eth_getBlockByNumber:changed_hash");
     reads.push({
       blockHash: String(block.hash),
       blockNumber: safeInt(block.number),
@@ -437,24 +475,28 @@ async function basePreparation(
     });
   }
   const first = reads[0];
-  if (
-    reads.some(
-      (r) =>
-        r.blockHash !== first.blockHash ||
-        r.blockNumber !== first.blockNumber ||
-        r.nonce !== first.nonce ||
-        r.balance !== first.balance ||
-        r.gas !== first.gas,
-    )
-  )
-    throw Error("PROVIDER_DISAGREEMENT");
+  for (const r of reads.slice(1)) {
+    for (const [field, method] of [
+      ["blockHash", "eth_getBlockByNumber"],
+      ["blockNumber", "eth_getBlockByNumber"],
+      ["nonce", "eth_getTransactionCount"],
+      ["balance", "eth_getBalance"],
+      ["gas", "eth_estimateGas"],
+    ] as const) {
+      if (r[field] !== first[field])
+        throw Error(
+          `PROVIDER_DISAGREEMENT:${method}:${field}:${first[field]}:${r[field]}`,
+        );
+    }
+  }
   const gasPrice = reads.reduce(
       (n, r) => (r.gasPrice > n ? r.gasPrice : n),
       0n,
     ),
     gasFee = first.gas * gasPrice,
     totalFeeCap = gasFee + BigInt(terms.l1DataFeeBound),
-    required = BigInt(terms.amount) + totalFeeCap;
+    // Liquidity must cover the full authorized debit, not just today's fee estimate.
+    required = BigInt(terms.maximumDestinationDebit);
   if (totalFeeCap > BigInt(terms.feeCap)) throw Error("TOTAL_FEE_CAP");
   if (first.balance < required) throw Error("INSUFFICIENT_RELAYER_LIQUIDITY");
   const prepared: BaseUnsigned = {
@@ -710,12 +752,13 @@ export async function prepareMainnetTransfer(
   terms: MainnetTransferTerms,
   fetcher: typeof fetch = fetch,
   now = Math.floor(Date.now() / 1000),
+  baseAnchor?: { number: string; hash: string },
 ): Promise<MainnetPrepared> {
   assertTerms(profile, terms, now);
   independentProviders(profile);
   const prepared =
     terms.network === "base"
-      ? await basePreparation(profile, terms, fetcher, now)
+      ? await basePreparation(profile, terms, fetcher, now, baseAnchor)
       : await solanaPreparation(profile, terms, fetcher, now);
   return prepared;
 }

@@ -121,6 +121,9 @@ enum Command {
         /// External directory containing raw `height-hash.bin` mainnet blocks.
         #[arg(long)]
         authenticated_block_dir: PathBuf,
+        /// Select an already authenticated owned-note address, never rewrite the wallet default.
+        #[arg(long)]
+        receiving_address: Option<String>,
     },
 }
 #[derive(Serialize, Deserialize)]
@@ -985,6 +988,7 @@ async fn observe_mainnet(
     minimum_confirmations: u32,
     checkpoint_height: Option<u32>,
     authenticated_block_dir: &Path,
+    receiving_address: Option<&str>,
 ) -> Result<Value> {
     ensure!(server != peer, "independent_mainnet_peer_required");
     ensure!(minimum_confirmations > 0, "invalid_confirmations");
@@ -1151,9 +1155,30 @@ async fn observe_mainnet(
             && peer_tip_after.orchard_tree()? == remote.orchard_tree()?,
         "chain_changed_retry_scan"
     );
+    let selected_address =
+        select_authenticated_receiving_address(&manifest.address, receiving_address, &payments)?;
     Ok(
-        json!({"network":"zcash-mainnet","watchOnly":true,"liveChain":true,"liveRefundsEnabled":false,"source":server,"peerSource":peer,"account":id,"address":manifest.address,"birthday":manifest.birthday,"tip":tip,"scanned":tip,"blockHash":hex::encode(hash),"observedAt":SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),"minimumConfirmations":minimum_confirmations,"anchor":hex::encode(anchor.to_bytes()),"anchorHeight":anchor_height,"checkpoint":checkpoint_value,"payments":payments}),
+        json!({"network":"zcash-mainnet","watchOnly":true,"liveChain":true,"liveRefundsEnabled":false,"source":server,"peerSource":peer,"account":id,"address":selected_address,"defaultAddress":manifest.address,"birthday":manifest.birthday,"tip":tip,"scanned":tip,"blockHash":hex::encode(hash),"observedAt":SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),"minimumConfirmations":minimum_confirmations,"anchor":hex::encode(anchor.to_bytes()),"anchorHeight":anchor_height,"checkpoint":checkpoint_value,"payments":payments}),
     )
+}
+// `payments` is populated exclusively by verify_mainnet_payment above, including
+// UFVK trial decryption and exact receiver equality for the note's shielded pool.
+fn select_authenticated_receiving_address(
+    default: &str,
+    requested: Option<&str>,
+    payments: &[Value],
+) -> Result<String> {
+    match requested {
+        None => Ok(default.to_string()),
+        Some(address) => {
+            ensure!(
+                payments.iter().any(|p| p["address"] == address
+                    && p["ownershipEvidence"]["scheme"] == "zcash-full-transaction-ufvk-v3"),
+                "receiving_address_not_authenticated"
+            );
+            Ok(address.to_string())
+        }
+    }
 }
 #[tokio::main]
 async fn main() {
@@ -1197,6 +1222,7 @@ async fn main() {
             minimum_confirmations,
             checkpoint_height,
             authenticated_block_dir,
+            receiving_address,
         } => {
             observe_mainnet(
                 &c.wallet,
@@ -1205,6 +1231,7 @@ async fn main() {
                 minimum_confirmations,
                 checkpoint_height,
                 &authenticated_block_dir,
+                receiving_address.as_deref(),
             )
             .await
         }
@@ -1415,6 +1442,7 @@ mod tests {
                 10,
                 None,
                 d.path(),
+                None,
             )
             .await
             .is_err()
@@ -1427,6 +1455,7 @@ mod tests {
                 0,
                 None,
                 d.path(),
+                None,
             )
             .await
             .is_err()
@@ -1442,6 +1471,7 @@ mod tests {
             20,
             None,
             d.path(),
+            None,
         )
         .await;
         assert!(result.is_err());
@@ -1461,5 +1491,29 @@ mod tests {
         assert!(source.contains("mainnet_compact_block_provider_disagreement"));
         assert!(source.contains("decrypt_transaction("));
         assert!(source.contains("mainnet_owned_note_decryption_failed"));
+    }
+
+    #[test]
+    fn receiving_address_selection_requires_a_verified_owned_note() {
+        let default = "default-account-address";
+        let note = json!({"address":"authenticated-note-address","ownershipEvidence":{"scheme":"zcash-full-transaction-ufvk-v3"}});
+        assert_eq!(
+            select_authenticated_receiving_address(default, None, &[]).unwrap(),
+            default
+        );
+        assert_eq!(
+            select_authenticated_receiving_address(
+                default,
+                Some("authenticated-note-address"),
+                &[note.clone()]
+            )
+            .unwrap(),
+            "authenticated-note-address"
+        );
+        assert!(
+            select_authenticated_receiving_address(default, Some("unrelated-address"), &[note])
+                .is_err()
+        );
+        assert!(select_authenticated_receiving_address(default, Some(default), &[]).is_err());
     }
 }

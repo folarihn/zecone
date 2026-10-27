@@ -139,6 +139,105 @@ async function nativeScan(s: MainnetWatchSnapshot) {
   return nativeScanner(s).observe();
 }
 
+test("native proof identity and canonical execution commitment are distinct and both enforced", async () => {
+  const t = liveNow(),
+    s = await nativeScan(snapshot({ observedAt: t, payments: [payment()] })),
+    b = binding({ expires: t + 600, sourceEvidenceDigest: "7".repeat(64) }),
+    j = new MainnetWatchJournal(":memory:", () => t);
+  try {
+    const observation = j.observe(b, s),
+      canonical = verifyOwnedNote(s, b, s.payments[0]).paymentDigest;
+    assert.equal(observation.paymentDigest, canonical);
+    assert.notEqual(canonical, b.sourceEvidenceDigest);
+    assert.equal(
+      assertMainnetPaymentAuthorization(
+        observation,
+        { orderId: b.orderId, paymentDigest: canonical, zatoshis: b.zatoshis },
+        t,
+      ),
+      true,
+    );
+    assert.throws(
+      () =>
+        assertMainnetPaymentAuthorization(
+          observation,
+          {
+            orderId: b.orderId,
+            paymentDigest: b.sourceEvidenceDigest!,
+            zatoshis: b.zatoshis,
+          },
+          t,
+        ),
+      /VERIFIED_MAINNET/,
+    );
+    assert.throws(
+      () => j.bind({ ...b, sourceEvidenceDigest: "8".repeat(64) }),
+      /IMMUTABLE/,
+    );
+  } finally {
+    j.close();
+  }
+});
+
+test("an unrelated authenticated deposit cannot replace the pinned native proof", async () => {
+  const t = liveNow(),
+    other = payment({
+      txid: "9".repeat(64),
+      ownershipEvidence: {
+        ...payment().ownershipEvidence,
+        digest: "8".repeat(64),
+      },
+    }),
+    s = await nativeScan(snapshot({ observedAt: t, payments: [other] })),
+    j = new MainnetWatchJournal(":memory:", () => t),
+    b = binding({ expires: t + 600, sourceEvidenceDigest: "7".repeat(64) });
+  try {
+    const rejected = j.observe(b, s);
+    assert.equal(rejected.status, "invalid");
+    assert.equal(rejected.paymentDigest, null);
+    assert.throws(
+      () =>
+        assertMainnetPaymentAuthorization(
+          rejected,
+          {
+            orderId: b.orderId,
+            paymentDigest: "7".repeat(64),
+            zatoshis: b.zatoshis,
+          },
+          t,
+        ),
+      /VERIFIED_MAINNET/,
+    );
+  } finally {
+    j.close();
+  }
+});
+
+test("native selected receiver must exactly match the approved address", async () => {
+  const t = liveNow(),
+    scanner = nativeScanner(snapshot({ observedAt: t, payments: [payment()] }));
+  const selected = new MainnetWatchScanner(
+    scanner.wallet,
+    scanner.source,
+    scanner.peer,
+    {
+      network: "zcash",
+      enabled: true,
+      providers: [
+        { endpoint: scanner.source, operator: "primary" },
+        { endpoint: scanner.peer, operator: "secondary" },
+      ],
+      independenceAcknowledged: true,
+      confirmations: 20,
+    },
+    scanner.executable,
+    scanner.executableArgsPrefix,
+    scanner.authenticatedBlockDirectory,
+    "u1" + "p".repeat(60),
+  );
+  await assert.rejects(selected.observe(), /SNAPSHOT_POLICY_MISMATCH/);
+});
+
 test("native scanner requires authenticated raw-block storage", async () => {
   await assert.rejects(
     new MainnetWatchScanner(

@@ -1,0 +1,30 @@
+{
+  email {$ACME_EMAIL:off}
+  admin off
+}
+
+{$ZECONE_API_DOMAIN} {
+  encode zstd gzip
+  reverse_proxy payments:4321
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options nosniff
+  }
+  log {
+    output stdout
+    format json
+  }
+}
+
+{$ACCESS_PASS_API_DOMAIN} {
+  encode zstd gzip
+  reverse_proxy access-pass:4333
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options nosniff
+  }
+  log {
+    output stdout
+    format json
+  }
+}

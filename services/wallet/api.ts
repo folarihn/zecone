@@ -11,6 +11,7 @@ import type { SeaportPurchases } from "../seaport/service.ts";
 import type { OpenSeaPreviews } from "../opensea/service.ts";
 import { DiscoveryError } from "../opensea/api.ts";
 import { marketReferences } from "../pricing/service.ts";
+import type { ZcashNetworkViews } from "./zcash-networks.ts";
 import {
   CheckoutScopes,
   checkoutBrowserView,
@@ -41,6 +42,7 @@ export function api(
   swaps?: Swaps,
   seaport?: SeaportPurchases,
   opensea?: OpenSeaPreviews,
+  zcashNetworks?: ZcashNetworkViews,
 ) {
   const attempts = new Map<string, { at: number; count: number }>();
   const scopes = new CheckoutScopes(sessions.now),
@@ -58,7 +60,13 @@ export function api(
         mutation = method !== "GET";
       requireLocal(req.headers as Record<string, string | undefined>, mutation);
       if (method === "GET" && path === "/api/health") {
-        send(200, { ok: true });
+        send(200, {
+          ok: true,
+          mainnetReadOnly:
+            zcashNetworks
+              ?.list()
+              .some((n) => n.id === "mainnet" && n.available) ?? false,
+        });
         return;
       }
       if (!["GET", "POST"].includes(method))
@@ -476,6 +484,34 @@ export function api(
           if (!session.connected || !dapps)
             throw new ApiError(403, "Verify wallet ownership first.");
           data = { networks: await portfolio(dapps.user) };
+          break;
+        case "GET /api/zcash/networks":
+          data = {
+            networks: zcashNetworks?.list() ?? [
+              {
+                id: "testnet",
+                label: "Testnet",
+                available: true,
+                mode: "TESTNET",
+              },
+              {
+                id: "mainnet",
+                label: "Mainnet",
+                available: false,
+                mode: "READ_ONLY",
+              },
+            ],
+          };
+          break;
+        case "GET /api/zcash/view/testnet":
+          if (!zcashNetworks)
+            throw new ApiError(503, "Zcash network views are unavailable.");
+          data = zcashNetworks.testnet(engine.dashboard());
+          break;
+        case "GET /api/zcash/view/mainnet":
+          if (!zcashNetworks)
+            throw new ApiError(503, "Mainnet read-only wallet is unavailable.");
+          data = await zcashNetworks.mainnet();
           break;
         case "GET /api/dashboard":
           data = dashboardBrowserView(

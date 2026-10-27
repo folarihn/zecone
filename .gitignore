@@ -16,4 +16,8 @@ test-results/
 *.log
 *.sqlite*
 *.db*
+services/zcash/target-phase2/
+deploy/.stage1-bundle.tar.gz
+deploy/.stage1-context/
+Claude outputs/
 

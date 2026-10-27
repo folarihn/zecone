@@ -102,6 +102,8 @@ export type MainnetOrderBinding = {
   zatoshis: string;
   expires: number;
   memoHex?: string;
+  // Native proof identity is distinct from the canonical execution commitment.
+  sourceEvidenceDigest?: string;
 };
 
 export type MainnetWatchStatus =
@@ -327,6 +329,8 @@ export function verifyOwnedNote(
     payment.locked ||
     payment.height > s.anchorHeight ||
     payment.zatoshis !== binding.zatoshis ||
+    (binding.sourceEvidenceDigest !== undefined &&
+      payment.ownershipEvidence.digest !== binding.sourceEvidenceDigest) ||
     (memo !== undefined && payment.memo !== memo)
   )
     throw Error("OWNED_NOTE_REQUIREMENTS_NOT_MET");
@@ -366,6 +370,7 @@ export class MainnetWatchScanner {
     ),
     readonly executableArgsPrefix: string[] = [],
     readonly authenticatedBlockDirectory = "",
+    readonly receivingAddress?: string,
   ) {
     this.policy = validateMainnetWatchPolicy(policy);
     if (
@@ -397,6 +402,11 @@ export class MainnetWatchScanner {
       if (!positive(checkpointHeight)) throw Error("INVALID_CHECKPOINT_HEIGHT");
       args.push("--checkpoint-height", String(checkpointHeight));
     }
+    if (this.receivingAddress !== undefined) {
+      if (!UNIFIED.test(this.receivingAddress))
+        throw Error("INVALID_RECEIVING_ADDRESS");
+      args.push("--receiving-address", this.receivingAddress);
+    }
     let stdout: string;
     try {
       ({ stdout } = await exec(
@@ -421,7 +431,9 @@ export class MainnetWatchScanner {
     if (
       canonicalEndpoint(snapshot.source) !== this.policy.source ||
       canonicalEndpoint(snapshot.peerSource) !== this.policy.peer ||
-      snapshot.minimumConfirmations !== this.policy.minimumConfirmations
+      snapshot.minimumConfirmations !== this.policy.minimumConfirmations ||
+      (this.receivingAddress !== undefined &&
+        snapshot.address !== this.receivingAddress)
     )
       throw Error("MAINNET_WATCH_SNAPSHOT_POLICY_MISMATCH");
     if (snapshot.checkpoint) Object.freeze(snapshot.checkpoint);
@@ -501,6 +513,9 @@ export class MainnetWatchJournal {
         zatoshis: binding.zatoshis,
         expires: binding.expires,
         ...(binding.memoHex === undefined ? {} : { memoHex: binding.memoHex }),
+        ...(binding.sourceEvidenceDigest === undefined
+          ? {}
+          : { sourceEvidenceDigest: binding.sourceEvidenceDigest }),
       },
       digestValue = digest(body);
     if (
@@ -510,6 +525,8 @@ export class MainnetWatchJournal {
       !amountOk(binding.zatoshis) ||
       !Number.isSafeInteger(binding.expires) ||
       binding.expires <= this.now() ||
+      (binding.sourceEvidenceDigest !== undefined &&
+        !HEX64.test(binding.sourceEvidenceDigest)) ||
       (binding.memoHex !== undefined &&
         !/^(?:[a-f0-9]{2})+$/.test(binding.memoHex))
     )

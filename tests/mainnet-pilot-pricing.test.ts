@@ -14,10 +14,20 @@ import {
 } from "../services/settlement/mainnet-pilot-pricing.ts";
 import {
   mainnetQuote,
+  assertMainnetQuote,
   mainnetQuoteContext,
   type MainnetQuoteInput,
 } from "../services/settlement/mainnet-quote.ts";
 import type { ProductionProfile } from "../services/settlement/production-safety.ts";
+import {
+  validateProductionProfile,
+  pilotQuoteMaximumSeconds,
+} from "../services/settlement/production-safety.ts";
+import {
+  assertPilotMarketMovement,
+  verifyPilotBroadcastMarket,
+} from "../services/settlement/mainnet-pilot-market.ts";
+import type { MainnetTransferTerms } from "../services/settlement/mainnet-transfer.ts";
 
 const now = Math.floor(Date.now() / 1000);
 const quoteContext = "a".repeat(64);
@@ -120,6 +130,261 @@ function baseInput(
     ttlSeconds: 60,
   };
 }
+
+function extendedPriceFixture() {
+  const { profile, privateKey } = pilotProfile();
+  profile.pilot!.quoteValiditySeconds = 300;
+  profile.pilot!.marketMovementBps = 200;
+  const input = baseInput(profile, 1_000_000_000_000_000n);
+  input.ttlSeconds = 300;
+  const statement = buildSingleOperatorPilotPriceStatement(
+    profile.executionAuthority!.identity,
+    mainnetQuoteContext(input),
+    [obs("coingecko", "2000", "100"), obs("coinpaprika", "2000", "100")],
+    now,
+    now + 300,
+    200,
+    profile,
+  );
+  input.pilotPrice = {
+    statement,
+    signature: signSingleOperatorPilotPrice(statement, privateKey).signature,
+    publicKey: profile.executionAuthority!.publicKey,
+  };
+  const quote = mainnetQuote(input);
+  const terms = {
+    quoteDigest: quote.quoteDigest,
+    amount: quote.destinationUnits,
+    sourceZatoshis: quote.sourceZatoshis,
+    maximumDestinationDebit: quote.maximumDestinationDebit,
+  } as MainnetTransferTerms;
+  return { profile, input, quote, terms, statement };
+}
+
+test("300-second quotes require explicit active Base pilot opt-in and expire exactly", () => {
+  const f = extendedPriceFixture();
+  assert.equal(f.quote.expires, now + 300);
+  assert.doesNotThrow(() => assertMainnetQuote(f.quote, f.input, now + 299));
+  assert.throws(
+    () => assertMainnetQuote(f.quote, f.input, now + 300),
+    /EXPIRED/,
+  );
+  assert.throws(
+    () => mainnetQuote({ ...f.input, ttlSeconds: 301 }),
+    /INVALID_QUOTE_INPUT/,
+  );
+  const legacy = structuredClone(f.profile);
+  delete legacy.pilot!.quoteValiditySeconds;
+  assert.equal(pilotQuoteMaximumSeconds(legacy, now), 120);
+  assert.throws(
+    () => mainnetQuote({ ...f.input, profile: legacy }),
+    /INVALID_QUOTE_INPUT/,
+  );
+  const disabled = structuredClone(f.profile);
+  disabled.enabled = false;
+  assert.equal(pilotQuoteMaximumSeconds(disabled, now), 120);
+  const production = structuredClone(f.profile);
+  delete production.pilot;
+  assert.equal(pilotQuoteMaximumSeconds(production, now), 120);
+  const expired = structuredClone(f.profile);
+  expired.pilot!.expires = now;
+  assert.throws(
+    () => validateProductionProfile(expired, now),
+    /INVALID_OR_EXPIRED/,
+  );
+  const bad = structuredClone(f.profile);
+  bad.pilot!.quoteValiditySeconds = 301 as 300;
+  assert.throws(
+    () => validateProductionProfile(bad, now),
+    /INVALID_OR_EXPIRED/,
+  );
+});
+
+test("extended pilot retains signed price context, source cap and independent providers", () => {
+  const f = extendedPriceFixture();
+  assert.throws(
+    () =>
+      verifySingleOperatorPilotPrice(
+        f.profile,
+        { ...f.input.pilotPrice!, signature: "broken" },
+        f.statement.quoteContext,
+        BigInt(f.terms.amount),
+        now,
+      ),
+    /SIGNATURE/,
+  );
+  assert.throws(
+    () =>
+      verifySingleOperatorPilotPrice(
+        f.profile,
+        f.input.pilotPrice!,
+        "0".repeat(64),
+        BigInt(f.terms.amount),
+        now,
+      ),
+    /INVALID/,
+  );
+  assert.throws(
+    () => mainnetQuote({ ...f.input, destinationUnits: 10n ** 18n }),
+    /CONTEXT|INVALID|CAP|MISMATCH/,
+  );
+  assert.throws(
+    () =>
+      validatePilotObservations(
+        [obs("coingecko", "2000", "100"), obs("coingecko", "2000", "100")],
+        now,
+      ),
+    /DIFFER/,
+  );
+});
+
+test("market movement rejects either direction beyond tolerance without integer-rounding escape", () => {
+  const f = extendedPriceFixture();
+  for (const eth of ["2040.001", "1959.999"])
+    assert.throws(
+      () =>
+        assertPilotMarketMovement(
+          f.profile,
+          f.statement,
+          [obs("coingecko", eth, "100"), obs("coinpaprika", eth, "100")],
+          now,
+        ),
+      /PRICE_MOVED/,
+    );
+  for (const eth of ["2040", "1960", "2000"])
+    assert.doesNotThrow(() =>
+      assertPilotMarketMovement(
+        f.profile,
+        f.statement,
+        [obs("coingecko", eth, "100"), obs("coinpaprika", eth, "100")],
+        now,
+      ),
+    );
+  assert.throws(
+    () =>
+      assertPilotMarketMovement(
+        f.profile,
+        f.statement,
+        [
+          obs("coingecko", "2000", "100", now - 91),
+          obs("coinpaprika", "2000", "100"),
+        ],
+        now,
+      ),
+    /STALE/,
+  );
+  assert.throws(
+    () =>
+      assertPilotMarketMovement(
+        f.profile,
+        f.statement,
+        [obs("coingecko", "2000", "100"), obs("coinpaprika", "2100", "100")],
+        now,
+      ),
+    /DISAGREEMENT/,
+  );
+});
+
+test("broadcast market gate requires exact signed quote and fetches fresh independent sources", async () => {
+  const f = extendedPriceFixture();
+  let calls = 0;
+  const market =
+    (eth: number): typeof fetch =>
+    async (url) => {
+      calls++;
+      const u = String(url);
+      return new Response(
+        JSON.stringify(
+          u.includes("coingecko")
+            ? { ethereum: { usd: eth }, zcash: { usd: 100 } }
+            : {
+                quotes: {
+                  USD: { price: u.includes("eth-ethereum") ? eth : 100 },
+                },
+              },
+        ),
+      );
+    };
+  await assert.rejects(
+    verifyPilotBroadcastMarket(
+      f.profile,
+      f.terms,
+      undefined,
+      market(2000),
+      () => now,
+    ),
+    /CONTEXT_REQUIRED/,
+  );
+  assert.equal(calls, 0);
+  await assert.rejects(
+    verifyPilotBroadcastMarket(
+      f.profile,
+      { ...f.terms, quoteDigest: "0".repeat(64) },
+      { quote: f.quote, input: f.input },
+      market(2000),
+      () => now,
+    ),
+    /CONTEXT_REQUIRED/,
+  );
+  await assert.rejects(
+    verifyPilotBroadcastMarket(
+      f.profile,
+      f.terms,
+      { quote: f.quote, input: f.input },
+      market(2100),
+      () => now,
+    ),
+    /PRICE_MOVED/,
+  );
+  await verifyPilotBroadcastMarket(
+    f.profile,
+    f.terms,
+    { quote: f.quote, input: f.input },
+    market(2000),
+    () => now + 299,
+  );
+  await assert.rejects(
+    verifyPilotBroadcastMarket(
+      f.profile,
+      f.terms,
+      { quote: f.quote, input: f.input },
+      market(2000),
+      () => now + 300,
+    ),
+    /EXPIRED/,
+  );
+});
+
+test("expiry during broadcast market fetch aborts before submission", async () => {
+  const f = extendedPriceFixture();
+  let clock = now + 299;
+  const fetcher: typeof fetch = async (url) => {
+    clock = now + 300;
+    return new Response(
+      JSON.stringify(
+        String(url).includes("coingecko")
+          ? { ethereum: { usd: 2000 }, zcash: { usd: 100 } }
+          : {
+              quotes: {
+                USD: {
+                  price: String(url).includes("eth-ethereum") ? 2000 : 100,
+                },
+              },
+            },
+      ),
+    );
+  };
+  await assert.rejects(
+    verifyPilotBroadcastMarket(
+      f.profile,
+      f.terms,
+      { quote: f.quote, input: f.input },
+      fetcher,
+      () => clock,
+    ),
+    /EXPIRED|INVALID/,
+  );
+});
 
 test("usdToScaled parses decimals with exact precision and rejects malformed input", () => {
   assert.equal(usdToScaled("2370.71").toString(), "237071000000");

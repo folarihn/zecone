@@ -1,0 +1,5 @@
+{
+  "network": "zcash-mainnet",
+  "liveBroadcastEnabled": false,
+  "emergencyPaused": true
+}

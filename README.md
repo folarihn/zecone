@@ -1,6 +1,18 @@
-# ZecOne — local testnet wallet
+# ZecOne — wallet and shielded-payment demo
 
-Next.js wallet application over a native Rust Zcash wallet, durable TypeScript/SQLite order service, and prefunded Base Sepolia settlement. Supports fixed NFT minting, origin-bound dApp requests, and shielded-ZEC-funded purchases from an independent fixed-price NFT marketplace. **Testnets only. No bridge or real asset exchange.**
+**Current launch status (26 October 2026):** the paired local browser wallet can
+switch explicitly between Testnet and a read-only projection of the existing
+verified Mainnet wallet. Mainnet receive, balance, history and sync freshness are
+visible; browser mainnet signing and broadcasting remain disabled. The public
+merchant experience is a demo-only replay with no payable address and no live
+settlement. See [wallet audit](docs/WALLET-MAINNET-AUDIT.md), [demo deployment](docs/DEMO-DEPLOYMENT.md), and [submission package](submission/README.md).
+
+The historical prototype is a Next.js wallet over a native Rust Zcash wallet,
+durable TypeScript/SQLite order service, and prefunded Base Sepolia settlement.
+Its minting, dApp requests, and marketplace purchase features remain **testnet
+only**; mainnet is limited to the read-only wallet projection and separately
+documented operator-controlled pilot evidence. There is no bridge or public
+real-asset exchange.
 
 **Latest: Phase 4E.** Actual OpenSea discovered the installed extension, connected the local test account, accepted an explicitly approved Base Sepolia login signature, and revoked access on logout. The public test profile is `zecone-test-c714`. No asset transaction occurred. See [results](docs/PHASE4E-RESULTS.md), [installation/runbook](docs/PHASE4E-RUNBOOK.md), [security](docs/PHASE4E-SECURITY.md), and [limitations](docs/PHASE4E-LIMITATIONS.md). The [Phase 4D read-only API preview](docs/PHASE4D-RESULTS.md) and earlier testnet functionality are preserved. Phase 5 has not begun.
 

@@ -8,6 +8,8 @@ import {
   type ProductionProfile,
 } from "./production-safety.ts";
 import { readProductionRpc } from "./mainnet-probe.ts";
+import { type MainnetQuote, type MainnetQuoteInput } from "./mainnet-quote.ts";
+import { verifyPilotBroadcastMarket } from "./mainnet-pilot-market.ts";
 import {
   preparedDigest,
   termsDigest,
@@ -366,6 +368,7 @@ export async function executeMainnetTransfer(
   fetcher: typeof fetch = fetch,
   now = Math.floor(Date.now() / 1000),
   guard: () => void = () => {},
+  pilotMarket?: { quote: MainnetQuote; input: MainnetQuoteInput },
 ) {
   guard();
   if (!profile.enabled || terms.expires <= now)
@@ -394,6 +397,9 @@ export async function executeMainnetTransfer(
   );
   await assertStillExecutable(profile, terms, prepared, verified, fetcher);
   const known = await priorSubmission(profile, verified.transactionId, fetcher);
+  await verifyPilotBroadcastMarket(profile, terms, pilotMarket, fetcher, () =>
+    Math.max(now, Math.floor(Date.now() / 1000)),
+  );
   assertMainnetPaymentAuthorization(
     payment,
     expectedPayment,
@@ -404,6 +410,13 @@ export async function executeMainnetTransfer(
   const claim = journal.claim(authorization.orderId);
   try {
     guard();
+    // RPC verification and the durable claim can consume the remaining window.
+    // Check the live clock immediately before the sole network submission.
+    if (
+      Math.max(now, Math.floor(Date.now() / 1000)) >=
+      Math.min(terms.expires, authorization.expires)
+    )
+      throw Error("MAINNET_APPROVAL_EXPIRED");
     if (!known) await sendOnce(profile, verified, fetcher);
     journal.markBroadcast(authorization.orderId, claim.transactionId);
     return Object.freeze({

@@ -1,0 +1,77 @@
+[
+  {
+    "status": "BLOCKED",
+    "authorizationGranted": false,
+    "terms": {
+      "version": 1,
+      "sourceNetwork": "zcash-mainnet",
+      "destinationNetwork": "eip155:8453",
+      "asset": "ETH",
+      "recipient": null,
+      "destinationBinding": null,
+      "addressOwnershipProof": null,
+      "amount": "90000000000000",
+      "maximumDestinationDebit": "100000000000000",
+      "feeCap": "10000000000000",
+      "relayer": null,
+      "signerIdentity": null,
+      "sourceZatoshis": null,
+      "priceExpires": null,
+      "sourcePaymentAddress": null,
+      "sourceSendingFee": null
+    },
+    "digest": "a01f014782d14acecdc284cbf1f0eb3f7a8f8faa661a1ee45699c5ea917fba26",
+    "requires": [
+      "Exact dedicated mainnet relayer and authorized recipient; never inherit testnet keys or addresses",
+      "Recipient-signed destination ownership challenge bound into the exact transfer terms",
+      "Fresh independently signed production pricing covering destination amount, fees and approved margin",
+      "Mainnet shielded receiving profile, source sending fee and independently corroborated owned-note evidence",
+      "Separate-device signer identity and policy validation; configuration alone is insufficient",
+      "Fail-closed single-writer deployment on one local durable database with no competing signer",
+      "Network-specific executor mainnet activation review and a separately approved exact bounded live plan",
+      "Fresh full Base execution, L1 data and operator fee bound accepted explicitly"
+    ],
+    "verificationPlan": "Two independent providers agree on canonical finalized block, exact signed transaction, receipt success, destination value and total relayer fee/debit.",
+    "recovery": "Persist signed bytes and transaction identity before the sole submission. If any result is uncertain, pause and reconcile that identity only. Never release its reservation, replace it automatically or initiate a refund.",
+    "emergencyStop": "Persist emergency pause before further execution claims; stop wallet worker and independently lock the external signer. A pause cannot revoke already signed or submitted bytes.",
+    "signing": false,
+    "broadcast": false
+  },
+  {
+    "status": "BLOCKED",
+    "authorizationGranted": false,
+    "terms": {
+      "version": 1,
+      "sourceNetwork": "zcash-mainnet",
+      "destinationNetwork": "solana:mainnet",
+      "asset": "SOL",
+      "recipient": null,
+      "destinationBinding": null,
+      "addressOwnershipProof": null,
+      "amount": "1000000",
+      "maximumDestinationDebit": "1010000",
+      "feeCap": "10000",
+      "relayer": null,
+      "signerIdentity": null,
+      "sourceZatoshis": null,
+      "priceExpires": null,
+      "sourcePaymentAddress": null,
+      "sourceSendingFee": null
+    },
+    "digest": "5dd0359e60d0807830a236e6f65fc16191cec6d1b13a945237a39e1387cb2b80",
+    "requires": [
+      "Exact dedicated mainnet relayer and authorized recipient; never inherit testnet keys or addresses",
+      "Recipient-signed destination ownership challenge bound into the exact transfer terms",
+      "Fresh independently signed production pricing covering destination amount, fees and approved margin",
+      "Mainnet shielded receiving profile, source sending fee and independently corroborated owned-note evidence",
+      "Separate-device signer identity and policy validation; configuration alone is insufficient",
+      "Fail-closed single-writer deployment on one local durable database with no competing signer",
+      "Network-specific executor mainnet activation review and a separately approved exact bounded live plan"
+    ],
+    "verificationPlan": "Two independent providers agree on genesis, finalized signature/message, exact recipient SOL delta and relayer amount plus fee delta.",
+    "recovery": "Persist signed bytes and transaction identity before the sole submission. If any result is uncertain, pause and reconcile that identity only. Never release its reservation, replace it automatically or initiate a refund.",
+    "emergencyStop": "Persist emergency pause before further execution claims; stop wallet worker and independently lock the external signer. A pause cannot revoke already signed or submitted bytes.",
+    "signing": false,
+    "broadcast": false
+  }
+]

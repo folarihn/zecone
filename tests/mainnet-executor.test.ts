@@ -17,6 +17,15 @@ import {
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { keccak256 } from "viem";
 import {
+  mainnetQuote,
+  mainnetQuoteContext,
+  type MainnetQuoteInput,
+} from "../services/settlement/mainnet-quote.ts";
+import {
+  buildSingleOperatorPilotPriceStatement,
+  signSingleOperatorPilotPrice,
+} from "../services/settlement/mainnet-pilot-pricing.ts";
+import {
   executeMainnetTransfer,
   executionAuthorizationPayload,
   reconcileMainnetTransfer,
@@ -184,7 +193,11 @@ function ed25519Pem(raw: Uint8Array) {
     .toString();
 }
 
-async function fixture(loseResponse = false) {
+async function fixture(
+  loseResponse = false,
+  extended = false,
+  priceMoved = false,
+) {
   const paymentState = await verifiedPayment(),
     { payment } = paymentState,
     relayer = privateKeyToAccount(generatePrivateKey()),
@@ -208,7 +221,7 @@ async function fixture(loseResponse = false) {
         identity: "disposable-offline-signer",
         publicKey: secp256k1Pem(relayer.publicKey),
         transport: "offline-bundle",
-        separateDeviceValidated: true,
+        separateDeviceValidated: !extended,
         attestationReference: "disposable-test",
       },
       executionAuthority: {
@@ -216,10 +229,61 @@ async function fixture(loseResponse = false) {
         publicKey: authority.publicKey
           .export({ format: "pem", type: "spki" })
           .toString(),
-        separateDeviceValidated: true,
+        separateDeviceValidated: !extended,
         attestationReference: "disposable-test",
       },
+      ...(extended
+        ? ({
+            pilot: {
+              enabled: true,
+              isolation: "single-device-process-isolation",
+              operator: "test",
+              expires: now + 3600,
+              riskAccepted: "disposable-test",
+              quoteValiditySeconds: 300,
+              marketMovementBps: 200,
+            },
+          } as const)
+        : {}),
     },
+    marketContext = extended
+      ? (() => {
+          const input: MainnetQuoteInput = {
+            network: "base",
+            profile,
+            pair: "ETH/ZEC",
+            destinationUnits: 1000n,
+            networkFee: 49900n,
+            l1DataFee: 100n,
+            serviceFee: 0n,
+            now,
+            ttlSeconds: 300,
+          };
+          const statement = buildSingleOperatorPilotPriceStatement(
+            profile.executionAuthority!.identity,
+            mainnetQuoteContext(input),
+            ["coingecko", "coinpaprika"].map((provider) => ({
+              provider,
+              ethUsd: "100000000000",
+              zecUsd: "0.1",
+              at: now,
+            })),
+            now,
+            now + 300,
+            200,
+            profile,
+          );
+          input.pilotPrice = {
+            statement,
+            signature: signSingleOperatorPilotPrice(
+              statement,
+              authority.privateKey,
+            ).signature,
+            publicKey: profile.executionAuthority!.publicKey,
+          };
+          return { quote: mainnetQuote(input), input };
+        })()
+      : undefined,
     terms = mainnetTransferTerms(
       profile,
       {
@@ -230,8 +294,8 @@ async function fixture(loseResponse = false) {
         sourceZatoshis: "100000",
         sourcePaymentCommitment: payment.paymentDigest!,
         destinationBinding: addressBinding("base", recipient.address),
-        quoteDigest: "b".repeat(64),
-        expires: now + 600,
+        quoteDigest: marketContext?.quote.quoteDigest ?? "b".repeat(64),
+        expires: marketContext?.quote.expires ?? now + 600,
       },
       now,
     ),
@@ -275,6 +339,22 @@ async function fixture(loseResponse = false) {
     };
   let sends = 0;
   const fetcher: typeof fetch = async (_url, init) => {
+    if (!init?.body) {
+      const eth = priceMoved ? 105000000000 : 100000000000;
+      return new Response(
+        JSON.stringify(
+          String(_url).includes("coingecko")
+            ? { ethereum: { usd: eth }, zcash: { usd: 0.1 } }
+            : {
+                quotes: {
+                  USD: {
+                    price: String(_url).includes("eth-ethereum") ? eth : 0.1,
+                  },
+                },
+              },
+        ),
+      );
+    }
     const request = JSON.parse(String(init?.body));
     if (request.method === "eth_call")
       return new Response(
@@ -348,10 +428,64 @@ async function fixture(loseResponse = false) {
     prepared,
     bundle,
     authorization,
+    marketContext,
     fetcher,
     sends: () => sends,
   };
 }
+
+test("extended pilot executor requires the fresh market gate and rejects moved prices before sending", async () => {
+  for (const priceMoved of [false, true]) {
+    const f = await fixture(false, true, priceMoved),
+      journal = new MainnetSubmissionJournal(
+        ":memory:",
+        { perTransaction: "1000000", daily: "2000000", confirmations: 1 },
+        () => now,
+      );
+    journal.resume();
+    try {
+      await assert.rejects(
+        executeMainnetTransfer(
+          journal,
+          f.payment,
+          f.profile,
+          f.terms,
+          f.prepared,
+          f.bundle,
+          f.authorization,
+          f.fetcher,
+          now,
+        ),
+        /MARKET_CONTEXT_REQUIRED/,
+      );
+      assert.equal(f.sends(), 0);
+      const execute = () =>
+        executeMainnetTransfer(
+          journal,
+          f.payment,
+          f.profile,
+          f.terms,
+          f.prepared,
+          f.bundle,
+          f.authorization,
+          f.fetcher,
+          now,
+          () => {},
+          f.marketContext,
+        );
+      if (priceMoved) {
+        await assert.rejects(execute(), /PRICE_MOVED/);
+        assert.equal(f.sends(), 0);
+      } else {
+        await execute();
+        assert.equal(f.sends(), 1);
+      }
+    } finally {
+      journal.close();
+      f.watch.close();
+    }
+  }
+});
 
 test("independently authorized exact bytes persist before one Base submission", async () => {
   const f = await fixture(),
@@ -453,6 +587,42 @@ test("single-writer guard stops before journal preparation and again before send
       /MAINNET_EXECUTION_LEASE_LOST/,
     );
     assert.equal(guards, 3);
+    assert.equal(f.sends(), 0);
+    assert.equal(journal.status(f.payment.orderId).state, "uncertain");
+  } finally {
+    journal.close();
+    f.watch.close();
+  }
+});
+
+test("expiry after the durable claim still prevents the sole network send", async (t) => {
+  const f = await fixture(),
+    journal = new MainnetSubmissionJournal(
+      ":memory:",
+      { perTransaction: "1000000", daily: "2000000", confirmations: 1 },
+      () => now,
+    );
+  let guards = 0;
+  try {
+    journal.resume();
+    await assert.rejects(
+      executeMainnetTransfer(
+        journal,
+        f.payment,
+        f.profile,
+        f.terms,
+        f.prepared,
+        f.bundle,
+        f.authorization,
+        f.fetcher,
+        now,
+        () => {
+          if (++guards === 3)
+            t.mock.method(Date, "now", () => f.terms.expires * 1000);
+        },
+      ),
+      /MAINNET_APPROVAL_EXPIRED/,
+    );
     assert.equal(f.sends(), 0);
     assert.equal(journal.status(f.payment.orderId).state, "uncertain");
   } finally {

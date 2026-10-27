@@ -109,6 +109,7 @@ async function execute() {
       ),
       [],
       required(values, "authenticated-blocks"),
+      order.address,
     );
     const observation = await observeMainnetWatch(journal, scanner, order);
     process.stdout.write(JSON.stringify(observation, null, 2) + "\n");

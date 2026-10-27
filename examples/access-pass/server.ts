@@ -27,6 +27,8 @@ const HOST = process.env.ACCESS_PASS_HOST ?? "127.0.0.1";
 const ZECONE_URL = (process.env.ZECONE_BASE_URL ?? "http://127.0.0.1:4321").replace(/\/+$/, "");
 const ZECONE_WEB = (process.env.ZECONE_WEB_URL ?? "http://localhost:3000").replace(/\/+$/, "");
 const PUBLIC_URL = (process.env.ACCESS_PASS_PUBLIC_URL ?? `http://${HOST}:${PORT}`).replace(/\/+$/, "");
+const BACKEND_URL = (process.env.ACCESS_PASS_BACKEND_URL ?? PUBLIC_URL).replace(/\/+$/, "");
+const PUBLIC_ORIGIN = new URL(PUBLIC_URL).origin;
 const STATE_FILE = resolve(process.env.ACCESS_PASS_STATE ?? ".state/access-pass.json");
 const PRICE_USD = process.env.ACCESS_PASS_PRICE_USD ?? "1.00";
 const PRODUCT = "Access Pass · 30 days";
@@ -118,7 +120,12 @@ function ownedOrder(req: IncomingMessage, orderId: string | null): Order | null 
 
 function sameOrigin(req: IncomingMessage): boolean {
   const origin = req.headers.origin;
-  return !!origin && new URL(origin).host === req.headers.host;
+  if (!origin) return false;
+  try {
+    return new URL(origin).origin === PUBLIC_ORIGIN;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -149,9 +156,19 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "no-referrer");
-  const url = new URL(req.url ?? "/", PUBLIC_URL);
+  const url = new URL(req.url ?? "/", BACKEND_URL);
   const path = url.pathname;
   const method = req.method ?? "GET";
+
+  if (path === "/healthz" && method === "GET") {
+    return send(res, 200, {
+      status: "ok",
+      service: "zecone-access-pass",
+      mode: "demo",
+      configured: !!(state.apiKey && state.merchant),
+      webhookConfigured: !!state.webhookSecret,
+    });
+  }
 
   if (method === "GET" && (path === "/" || path === "/app.js")) {
     const file = path === "/" ? "index.html" : "app.js";
@@ -185,7 +202,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
       const challenge = await ZecOne.onboarding.challenge(ZECONE_URL, {
         address: String(body.address ?? ""),
         chainId: Number(body.chainId) === 84532 ? 84532 : 8453,
-        domain: req.headers.host ?? `${HOST}:${PORT}`,
+        domain: new URL(PUBLIC_URL).host,
         uri: `${PUBLIC_URL}/`,
       });
       return send(res, 201, { message: challenge.message });
@@ -219,7 +236,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
       state.apiKey = apiKey;
       state.merchant = { id: r.merchant.id, name: r.merchant.name, payoutAddress: r.merchant.payoutAddress ?? "" };
       // 2. Register our webhook endpoint; keep the signing secret server-side.
-      const wh = await new ZecOne({ apiKey, baseUrl: ZECONE_URL }).webhooks.register(`${PUBLIC_URL}/webhooks/zecone`);
+      const wh = await new ZecOne({ apiKey, baseUrl: ZECONE_URL }).webhooks.register(`${BACKEND_URL}/webhooks/zecone`);
       state.webhookSecret = wh.secret;
       await save();
       return send(res, 200, { merchant: state.merchant, webhookConfigured: true });
@@ -267,7 +284,9 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
           zecAmount: payment.quote?.zecAmount,
           expiresAt: payment.expiresAt,
         },
-        { "Set-Cookie": `ap_${orderId.slice(0, 8)}=${buyerSecret}; HttpOnly; SameSite=Strict; Path=/; Max-Age=2592000` },
+        {
+          "Set-Cookie": `ap_${orderId.slice(0, 8)}=${buyerSecret}; HttpOnly; SameSite=Strict; Path=/; Max-Age=2592000${PUBLIC_URL.startsWith("https://") ? "; Secure" : ""}`,
+        },
       );
     } catch (e) {
       const err = e as ZecOneError;
@@ -364,6 +383,6 @@ server.on("error", (e: NodeJS.ErrnoException) => {
   process.exit(1);
 });
 server.listen(PORT, HOST, () => {
-  console.log(`[access-pass] ${PUBLIC_URL} (demo mode) · ZecOne API ${ZECONE_URL} · checkout UI ${ZECONE_WEB}`);
+  console.log(`[access-pass] ${PUBLIC_URL} (demo mode) · backend ${BACKEND_URL} · ZecOne API ${ZECONE_URL} · checkout UI ${ZECONE_WEB}`);
   console.log(`[access-pass] state: ${STATE_FILE} (API key + webhook secret stay here, server-side)`);
 });

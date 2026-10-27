@@ -168,6 +168,112 @@ test("malformed network data shows an error without crashing the wallet", async 
   ).toContainText("Invalid response from the local service");
 });
 
+test("Zcash network switching keeps mainnet identity and balance read-only and isolated", async ({
+  page,
+}) => {
+  const mainnetAddress = `u1${"q".repeat(120)}`;
+  await page.route("**/api/zcash/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const body = path.endsWith("/networks")
+      ? {
+          networks: [
+            {
+              id: "testnet",
+              label: "Testnet",
+              available: true,
+              mode: "TESTNET",
+            },
+            {
+              id: "mainnet",
+              label: "Mainnet",
+              available: true,
+              mode: "READ_ONLY",
+            },
+          ],
+        }
+      : path.endsWith("/mainnet")
+        ? {
+            network: "zcash-mainnet",
+            label: "Zcash Mainnet",
+            mode: "READ_ONLY",
+            receivingAddress: mainnetAddress,
+            accountFingerprint: "ab".repeat(32),
+            addressStandard: "ZIP-316",
+            receivers: {
+              orchard: true,
+              sapling: false,
+              transparent: false,
+              unknownTypecodes: [],
+            },
+            summary: {
+              ...fixture.zcash,
+              totalZatoshis: "645937",
+              spendableZatoshis: "535937",
+            },
+            sync: {
+              tip: 4491431,
+              scanned: 4491431,
+              complete: true,
+              source: "fixture",
+            },
+            capabilities: {
+              receive: true,
+              balance: true,
+              history: true,
+              sign: false,
+              broadcast: false,
+            },
+            sendUnavailableReason:
+              "Mainnet browser signing and broadcasting are disabled.",
+            secretMaterialLoaded: false,
+            broadcast: false,
+          }
+        : {
+            network: "zcash-testnet",
+            label: "Zcash Testnet",
+            mode: "TESTNET",
+            receivingAddress: null,
+            accountFingerprint: null,
+            addressStandard: "ZIP-316",
+            receivers: null,
+            summary: fixture.zcash,
+            sync: {
+              tip: 4491431,
+              scanned: 4491431,
+              complete: true,
+              source: "fixture",
+            },
+            capabilities: {
+              receive: false,
+              balance: true,
+              history: true,
+              sign: false,
+              broadcast: false,
+            },
+            sendUnavailableReason: "General-purpose sending disabled.",
+            secretMaterialLoaded: false,
+            broadcast: false,
+          };
+    await route.fulfill({ json: body });
+  });
+  await page.goto("/");
+  await page.getByLabel("Zcash network").selectOption("mainnet");
+  await expect(page.getByText("Zcash Mainnet", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Wallet balances")).toContainText(
+    "0.00645937ZEC",
+  );
+  await page.getByRole("button", { name: "Send / Receive" }).click();
+  await expect(page.getByLabel("Send and receive")).toContainText(
+    mainnetAddress,
+  );
+  await expect(
+    page.getByRole("button", { name: "Send mainnet ZEC unavailable" }),
+  ).toBeDisabled();
+  await page.getByLabel("Zcash network").selectOption("testnet");
+  await page.getByRole("button", { name: "Overview" }).click();
+  await expect(page.getByLabel("Wallet balances")).toContainText("0.1148TAZ");
+});
+
 test("token swap requires exact intent approval and a separate native payment approval", async ({
   page,
 }) => {

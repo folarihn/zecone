@@ -10,13 +10,18 @@ import { mainnetQuoteContext } from "../services/settlement/mainnet-quote.ts";
 import {
   buildSingleOperatorPilotPriceStatement,
   signSingleOperatorPilotPrice,
+  validatePilotObservations,
   type PilotMarketObservation,
 } from "../services/settlement/mainnet-pilot-pricing.ts";
 import {
   openMainnetCredential,
   readMainnetKeystore,
 } from "../services/provisioning/mainnet-keystore.ts";
-import type { ProductionProfile } from "../services/settlement/production-safety.ts";
+import {
+  pilotQuoteTtlSeconds,
+  type ProductionProfile,
+} from "../services/settlement/production-safety.ts";
+import { fetchPilotMarketObservations } from "../services/settlement/mainnet-pilot-market.ts";
 
 function args() {
   const values = new Map<string, string>();
@@ -34,47 +39,6 @@ function required(values: Map<string, string>, key: string) {
     throw Error(`${key.replaceAll("-", "_").toUpperCase()}_REQUIRED`);
   return value;
 }
-
-const PROVIDERS = {
-  coingecko: async () => {
-    const r = await fetch(
-      "https://api.coingecko.com/api/v3/simple/price?ids=ethereum,zcash&vs_currencies=usd",
-      { signal: AbortSignal.timeout(15000) },
-    );
-    if (!r.ok) throw Error("COINGECKO_UNAVAILABLE");
-    const j = (await r.json()) as {
-      ethereum?: { usd?: number };
-      zcash?: { usd?: number };
-    };
-    const ethUsd = j.ethereum?.usd,
-      zecUsd = j.zcash?.usd;
-    if (typeof ethUsd !== "number" || typeof zecUsd !== "number")
-      throw Error("COINGECKO_MALFORMED");
-    return { ethUsd: ethUsd.toString(), zecUsd: zecUsd.toString() };
-  },
-  coinpaprika: async () => {
-    const eth = await fetch(
-      "https://api.coinpaprika.com/v1/tickers/eth-ethereum?quotes=USD",
-      { signal: AbortSignal.timeout(15000) },
-    );
-    const zec = await fetch(
-      "https://api.coinpaprika.com/v1/tickers/zec-zcash?quotes=USD",
-      { signal: AbortSignal.timeout(15000) },
-    );
-    if (!eth.ok || !zec.ok) throw Error("COINPAPRIKA_UNAVAILABLE");
-    const e = (await eth.json()) as { quotes?: { USD?: { price?: number } } };
-    const z = (await zec.json()) as { quotes?: { USD?: { price?: number } } };
-    if (
-      typeof e.quotes?.USD?.price !== "number" ||
-      typeof z.quotes?.USD?.price !== "number"
-    )
-      throw Error("COINPAPRIKA_MALFORMED");
-    return {
-      ethUsd: e.quotes.USD.price.toString(),
-      zecUsd: z.quotes.USD.price.toString(),
-    };
-  },
-} as const;
 
 function profileFor(file: string): ProductionProfile {
   const profiles = JSON.parse(
@@ -99,7 +63,8 @@ async function main() {
     throw Error("PILOT_PRICE_CONFIRMATION_REQUIRED");
   const profilesFile = required(values, "profiles"),
     profile = profileFor(profilesFile),
-    amount = required(values, "amount"),
+    amount = values.get("amount"),
+    sourceZatoshis = values.get("source-zatoshis"),
     networkFee = required(values, "network-fee"),
     l1DataFee = required(values, "l1-data-fee"),
     serviceFee = required(values, "service-fee"),
@@ -107,23 +72,39 @@ async function main() {
     passphraseFile = resolve(required(values, "passphrase-file")),
     publicKeyFile = resolve(required(values, "public-key")),
     out = resolve(required(values, "out"));
-  if (!/^[1-9][0-9]{0,30}$/.test(amount)) throw Error("INVALID_AMOUNT");
+  if (!amount && !sourceZatoshis)
+    throw Error("AMOUNT_OR_SOURCE_ZATOSHIS_REQUIRED");
+  if (amount && sourceZatoshis) throw Error("AMOUNT_AND_SOURCE_ARE_EXCLUSIVE");
+  if (sourceZatoshis && !/^[1-9][0-9]{0,30}$/.test(sourceZatoshis))
+    throw Error("INVALID_SOURCE_ZATOSHIS");
+  if (amount && !/^[1-9][0-9]{0,30}$/.test(amount))
+    throw Error("INVALID_AMOUNT");
   if (serviceFee !== "0") throw Error("QUOTE_FEE_POLICY_REJECTED");
 
   const now = Math.floor(Date.now() / 1000);
-  const [cg, cc] = await Promise.all([
-    PROVIDERS.coingecko(),
-    PROVIDERS.coinpaprika(),
-  ]);
-  const observations: PilotMarketObservation[] = [
-    { provider: "coingecko", ethUsd: cg.ethUsd, zecUsd: cg.zecUsd, at: now },
-    { provider: "coinpaprika", ethUsd: cc.ethUsd, zecUsd: cc.zecUsd, at: now },
-  ];
+  const observations = await fetchPilotMarketObservations();
+  const ttlSeconds = pilotQuoteTtlSeconds(profile, now);
+  // When the operator fixes the source spend (zatoshis), derive the exact
+  // destination wei from the freshly fetched rate so the signed quote rounds to
+  // that source value deterministically.
+  let destinationUnits: bigint;
+  if (sourceZatoshis) {
+    const { numerator, denominator } = validatePilotObservations(
+      observations,
+      now,
+    );
+    const n = BigInt(numerator),
+      d = BigInt(denominator),
+      source = BigInt(sourceZatoshis);
+    destinationUnits = (source * 10n ** 18n * d) / (n * 10n ** 8n);
+  } else {
+    destinationUnits = BigInt(amount!);
+  }
   const context = mainnetQuoteContext({
     network: "base",
     profile,
     pair: "ETH/ZEC",
-    destinationUnits: BigInt(amount),
+    destinationUnits,
     networkFee: BigInt(networkFee),
     l1DataFee: BigInt(l1DataFee),
     serviceFee: BigInt(serviceFee),
@@ -133,7 +114,9 @@ async function main() {
     context,
     observations,
     now,
-    now + 60,
+    Math.min(now + ttlSeconds, profile.pilot!.expires),
+    200,
+    profile,
   );
 
   const passphrase = readFileSync(passphraseFile);
@@ -161,17 +144,19 @@ async function main() {
     const pricing = {
       pilotPrice: { statement, signature, publicKey: publicPem },
       pair: "ETH/ZEC",
+      destinationUnits: destinationUnits.toString(),
       maximumSpreadBps: 200,
       networkFee,
       l1DataFee,
       serviceFee,
-      ttlSeconds: 60,
+      ttlSeconds,
     };
     writeFileSync(out, JSON.stringify(pricing, null, 2) + "\n");
     process.stdout.write(
       JSON.stringify({
         status: "PILOT_PRICE_SIGNED",
         policy: statement.policy,
+        destinationUnits: destinationUnits.toString(),
         providerObservations: observations.map((o) => ({
           provider: o.provider,
           ethUsd: o.ethUsd,

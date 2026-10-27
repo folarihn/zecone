@@ -13,6 +13,8 @@ export type SingleDevicePilot = {
   operator: string;
   expires: number;
   riskAccepted: string;
+  quoteValiditySeconds?: 300;
+  marketMovementBps?: number;
 };
 export type ProductionProfile = {
   network: ProductionNetwork;
@@ -85,6 +87,25 @@ export function singleDevicePilotActive(
   );
 }
 
+export function pilotQuoteMaximumSeconds(
+  profile: ProductionProfile,
+  now = Math.floor(Date.now() / 1000),
+) {
+  return profile.network === "base" &&
+    profile.enabled &&
+    singleDevicePilotActive(profile, now) &&
+    profile.pilot?.quoteValiditySeconds === 300
+    ? 300
+    : 120;
+}
+
+export function pilotQuoteTtlSeconds(
+  profile: ProductionProfile,
+  now = Math.floor(Date.now() / 1000),
+) {
+  return pilotQuoteMaximumSeconds(profile, now) === 300 ? 300 : 60;
+}
+
 export function validateProductionProfile(
   p: ProductionProfile,
   now = Math.floor(Date.now() / 1000),
@@ -118,7 +139,13 @@ export function validateProductionProfile(
       !p.pilot.riskAccepted.trim() ||
       !Number.isSafeInteger(p.pilot.expires) ||
       p.pilot.expires <= now ||
-      p.pilot.expires > now + MAX_PILOT_WINDOW_SECONDS
+      p.pilot.expires > now + MAX_PILOT_WINDOW_SECONDS ||
+      (p.pilot.quoteValiditySeconds !== undefined &&
+        (p.network !== "base" || p.pilot.quoteValiditySeconds !== 300)) ||
+      (p.pilot.marketMovementBps !== undefined &&
+        (!Number.isSafeInteger(p.pilot.marketMovementBps) ||
+          p.pilot.marketMovementBps < 0 ||
+          p.pilot.marketMovementBps > 200))
     )
       throw Error("SINGLE_DEVICE_PILOT_INVALID_OR_EXPIRED");
   }

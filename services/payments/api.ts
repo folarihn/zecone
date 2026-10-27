@@ -19,6 +19,7 @@
 //     the quote preview are CORS-readable.
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { isIP } from "node:net";
 import { getAddress, isAddress } from "viem";
 import { PaymentStore, StoreError, hashSecret } from "./store.ts";
 import { DemoQuoteEngine } from "./quote.ts";
@@ -65,6 +66,8 @@ export interface PaymentsConfig {
   demoObserver: { enabled: boolean; startAfterSeconds: number; stepSeconds: number };
   allowLoopbackHttpWebhooks: boolean;
   sessionTtlSeconds: number;
+  /** Honor the first X-Forwarded-For hop only behind the private demo reverse proxy. */
+  trustedProxy?: boolean;
   fetcher?: Fetcher;
   /** Injectable clock for tests. */
   now?: () => number;
@@ -360,6 +363,13 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
   }
 
   function clientKey(req: IncomingMessage): string {
+    if (config.trustedProxy) {
+      const header = req.headers["x-forwarded-for"];
+      const forwarded = (Array.isArray(header) ? header[0] : header)
+        ?.split(",")[0]
+        ?.trim();
+      if (forwarded && isIP(forwarded)) return forwarded;
+    }
     return req.socket.remoteAddress ?? "unknown";
   }
 
@@ -930,23 +940,49 @@ function toHttpError(e: unknown): HttpError {
 
 /** Build a config from environment variables (demo-safe defaults). */
 export function configFromEnv(env: NodeJS.ProcessEnv = process.env): PaymentsConfig {
+  const mode = (env.ZECONE_PAYMENTS_MODE ?? "demo") as
+    | "demo"
+    | "monitor"
+    | "live";
   const allowed = (env.ZECONE_SIWE_DOMAINS ?? "localhost:3000,127.0.0.1:3000,localhost:4333,127.0.0.1:4333")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
   const demoSecret = env.ZECONE_DEMO_SECRET ?? "demo-merchant-secret-change-me";
+  const publicUrl = env.ZECONE_PUBLIC_URL ?? "http://localhost:3000";
+  const production = env.NODE_ENV === "production";
+  if (production && mode === "demo") {
+    if (
+      demoSecret === "demo-merchant-secret-change-me" ||
+      demoSecret.length < 32
+    )
+      throw new Error(
+        "ZECONE_DEMO_SECRET must be a non-default 32+ character secret in production",
+      );
+    if (!publicUrl.startsWith("https://"))
+      throw new Error("ZECONE_PUBLIC_URL must use HTTPS in production");
+    if (env.ZECONE_ALLOW_HTTP_WEBHOOKS !== "0")
+      throw new Error("ZECONE_ALLOW_HTTP_WEBHOOKS must be 0 in production");
+    if (env.ZECONE_OPERATOR_TOKEN)
+      throw new Error("ZECONE_OPERATOR_TOKEN must be empty in demo production");
+  }
+  if (mode === "monitor" && !env.ZECONE_CHECKOUT_ADDRESS)
+    throw new Error("ZECONE_CHECKOUT_ADDRESS is required in monitor mode");
   const relayer = env.ZECONE_RELAYER_AVAILABLE_WEI ?? "50000000000000000"; // 0.05 ETH demo snapshot
   if (!/^\d+$/.test(relayer)) throw new Error("ZECONE_RELAYER_AVAILABLE_WEI must be an integer wei amount");
   return {
     dbPath: env.ZECONE_PAYMENTS_DB ?? ".state/payments.sqlite",
-    checkoutAddress: env.ZECONE_CHECKOUT_ADDRESS ?? DEFAULT_CHECKOUT_ADDRESS,
-    mode: (env.ZECONE_PAYMENTS_MODE ?? "demo") as "demo" | "monitor" | "live",
+    checkoutAddress:
+      mode === "demo"
+        ? "demo:no-payable-address"
+        : (env.ZECONE_CHECKOUT_ADDRESS ?? DEFAULT_CHECKOUT_ADDRESS),
+    mode,
     demoMerchant:
       env.ZECONE_DEMO_MERCHANT === "0" || env.ZECONE_PAYMENTS_MODE === "monitor"
         ? null
         : { secret: demoSecret, payoutAddress: env.ZECONE_DEMO_PAYOUT_ADDRESS ?? BASE_RECIPIENT_DEFAULT },
     siwe: { allowedDomains: allowed, ttlSeconds: 600, baseRpcUrl: env.ZECONE_BASE_RPC_URL || undefined },
-    publicCheckoutBaseUrl: env.ZECONE_PUBLIC_URL ?? "http://localhost:3000",
+    publicCheckoutBaseUrl: publicUrl,
     operatorToken: env.ZECONE_OPERATOR_TOKEN || null,
     exclusiveAllocation: env.ZECONE_EXCLUSIVE_ALLOCATION !== "0",
     quoteTtlSeconds: Number(env.ZECONE_QUOTE_TTL_SECONDS ?? 900),
@@ -959,5 +995,6 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): PaymentsCon
     },
     allowLoopbackHttpWebhooks: env.ZECONE_ALLOW_HTTP_WEBHOOKS !== "0",
     sessionTtlSeconds: Number(env.ZECONE_SESSION_TTL_SECONDS ?? 8 * 3600),
+    trustedProxy: env.ZECONE_TRUST_PROXY === "1",
   };
 }

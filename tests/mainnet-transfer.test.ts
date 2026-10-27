@@ -132,6 +132,136 @@ function baseRpc() {
   return { fetcher, methods };
 }
 
+test("Base preparation pins state to a common finalized height without masking disagreement", async () => {
+  const profile = baseProfile(),
+    terms = mainnetTransferTerms(profile, request(), now);
+  for (const mismatch of [
+    "none",
+    "hash",
+    "nonce",
+    "balance",
+    "gas",
+    "chain",
+    "stale",
+    "changed",
+  ]) {
+    const blockReads = new Map<string, number>();
+    const fetcher: typeof fetch = async (url, init) => {
+      const second = String(url).includes("second"),
+        { method, params } = JSON.parse(String(init?.body));
+      const base = baseRpc();
+      let result = (await (await base.fetcher(url, init)).json()).result;
+      if (method === "eth_getBlockByNumber") {
+        if (params[0] === "finalized") result.number = second ? "0x65" : "0x64";
+        else {
+          assert.equal(params[0], "0x64");
+          const key = String(url),
+            count = (blockReads.get(key) ?? 0) + 1;
+          blockReads.set(key, count);
+          if (
+            second &&
+            (mismatch === "hash" || (mismatch === "changed" && count > 1))
+          )
+            result.hash = `0x${"2".repeat(64)}`;
+        }
+        if (mismatch === "stale" && second)
+          result.timestamp = `0x${(now - 1801).toString(16)}`;
+      }
+      if (["eth_getCode", "eth_getBalance"].includes(method))
+        assert.equal(params[1], "0x64");
+      if (method === "eth_estimateGas") assert.equal(params[1], "0x64");
+      if (method === "eth_getTransactionCount")
+        assert.equal(params[1], "pending");
+      if (second) {
+        if (mismatch === "nonce" && method === "eth_getTransactionCount")
+          result = "0x1";
+        if (mismatch === "balance" && method === "eth_getBalance")
+          result = "0x1";
+        if (mismatch === "gas" && method === "eth_estimateGas")
+          result = "0x5209";
+        if (mismatch === "chain" && method === "eth_chainId") result = "0x1";
+      }
+      return new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result }));
+    };
+    if (mismatch === "none") {
+      const prepared = await prepareMainnetTransfer(
+        profile,
+        terms,
+        fetcher,
+        now,
+      );
+      assert.equal(prepared.kind, "base-unsigned");
+      if (prepared.kind === "base-unsigned")
+        assert.equal(prepared.blockNumber, "100");
+    } else
+      await assert.rejects(
+        prepareMainnetTransfer(profile, terms, fetcher, now),
+        /PROVIDER_DISAGREEMENT|WRONG_NETWORK|STALE_FINALIZED_HEAD/,
+        mismatch,
+      );
+  }
+});
+
+test("Base liquidity covers the full authorized maximum, not only estimated fees", async () => {
+  const profile = baseProfile(),
+    terms = mainnetTransferTerms(profile, request(), now);
+  for (const balance of [
+    BigInt(terms.maximumDestinationDebit) - 1n,
+    BigInt(terms.maximumDestinationDebit),
+  ]) {
+    const fetcher: typeof fetch = async (url, init) => {
+      const { method } = JSON.parse(String(init?.body));
+      if (method === "eth_getBalance")
+        return new Response(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            result: `0x${balance.toString(16)}`,
+          }),
+        );
+      return baseRpc().fetcher(url, init);
+    };
+    if (balance < BigInt(terms.maximumDestinationDebit))
+      await assert.rejects(
+        prepareMainnetTransfer(profile, terms, fetcher, now),
+        /INSUFFICIENT_RELAYER_LIQUIDITY/,
+      );
+    else await prepareMainnetTransfer(profile, terms, fetcher, now);
+  }
+});
+
+test("revalidation pins the approved finalized block while nonce and liquidity stay live", async () => {
+  const profile = baseProfile(),
+    terms = mainnetTransferTerms(profile, request(), now),
+    original = baseRpc();
+  const prepared = await prepareMainnetTransfer(
+    profile,
+    terms,
+    original.fetcher,
+    now,
+  );
+  if (prepared.kind !== "base-unsigned") throw Error();
+  for (const wrongHash of [false, true]) {
+    const fetcher: typeof fetch = async (url, init) => {
+      const { method, params } = JSON.parse(String(init?.body));
+      const response = await original.fetcher(url, init),
+        j = await response.json();
+      if (method === "eth_getBlockByNumber" && params[0] === "finalized")
+        j.result.number = "0x65";
+      else if (method === "eth_getBlockByNumber" && wrongHash)
+        j.result.hash = "0x" + "2".repeat(64);
+      return new Response(JSON.stringify(j));
+    };
+    const check = (): ReturnType<typeof prepareMainnetTransfer> =>
+      prepareMainnetTransfer(profile, terms, fetcher, now, {
+        number: prepared.blockNumber,
+        hash: prepared.blockHash,
+      });
+    if (wrongHash) await assert.rejects(check(), /PREPARED_BLOCK_HASH_CHANGED/);
+    else assert.equal(preparedDigest(await check()), preparedDigest(prepared));
+  }
+});
+
 test("mainnet destination ownership is proven with the supplied public address only", async () => {
   const nonce = `0x${"b".repeat(64)}`,
     expires = now + 300,

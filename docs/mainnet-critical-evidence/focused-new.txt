@@ -1,0 +1,33 @@
+(node:10668) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ production configuration rejects missing corroboration, fake isolation and disabled execution (3.8904ms)
+✔ production single writer fails closed across connections and restart (35.3994ms)
+✔ production reservations enforce pause, per day and inventory without aging uncertain spend (5.2444ms)
+✔ production payment commitment cannot move to another order or be executed twice (1.9612ms)
+✔ production policy changes and unallowlisted destinations cannot reserve (1.3161ms)
+✔ production price uses signed rational feeds and rounds upward without floating point (3.6871ms)
+✔ production RPC surface cannot sign, broadcast, unlock or send Zcash (0.6846ms)
+✔ readiness never upgrades single-provider or fixture evidence to production readiness (5.0934ms)
+✔ provider disagreement and wrong genesis fail closed (2.1606ms)
+✔ unsigned mainnet SOL simulation is read-only and validates both provider fee results (9.4728ms)
+✔ missing production configuration produces blocked packages without inventing recipients or costs (0.4395ms)
+(node:26824) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ SOL wallet signature to owned payment to exact executor and finalized effects (122.0624ms)
+✔ SOL grants reject wrong signatures, session changes and changed terms (19.3195ms)
+✔ SOL raw imported observations and failed scans cannot unlock preparation (36.9145ms)
+✔ SOL watch leases exclude concurrent prepare; underpayments and extra payments fail closed (98.5505ms)
+✔ SOL late exact approval and expired blockhash never invoke signer (84.6976ms)
+✔ SOL lost broadcast response and actual restart reconcile one original signature (114.9923ms)
+✔ SOL unsupported tokens, duplicate grants and cross-session status stay blocked (9.3711ms)
+✔ SOL exact approval is checked again after asynchronous preflight (28.6772ms)
+✔ SOL concurrent execution makes one claim and one submission (36.2684ms)
+✔ shared source journal prevents two state owners reserving the same SOL relayer (28.2851ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3027.095

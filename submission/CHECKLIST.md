@@ -1,4 +1,4 @@
-# ZecOne — final submission checklist (28 October 2026)
+# ZecOne — final submission checklist (26 October 2026)
 
 ## What each claim rests on
 
@@ -14,8 +14,8 @@ No live merchant usage, transaction volume or third-party integrations are claim
 
 ## Before submitting
 
-- [ ] Run `scripts/verify-windows.ps1` on the Windows machine (Node 24) and keep its summary.
-- [ ] `npm run build:web && npm run test:integration` passes locally (Edge).
+- [x] `scripts/verify-windows.ps1` passed on Windows/Node 24 with 0 FAIL; local logs remain gitignored.
+- [x] Production builds and `npm run test:integration` passed locally in Edge (9/9).
 - [ ] Record the 3-minute demo following `DEMO-SCRIPT.md` (demo mode only).
 - [ ] Attach screenshots from `screenshots/` (taken in demo mode; they contain no keys or secrets).
 - [ ] Description and pitch from `SUBMISSION.md`; limitations from `LIMITATIONS.md`.

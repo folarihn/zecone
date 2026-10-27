@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import type { Dashboard, CheckoutView } from "../services/wallet/view";
+import type { ZcashNetworkView } from "../services/wallet/zcash-networks";
 import CheckoutTracker from "./checkout/tracker";
 import AccountPanel from "./account-panel";
 import NetworksPanel from "./networks/panel";
@@ -210,7 +211,12 @@ export default function Wallet() {
   const [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [pairCode, setPairCode] = useState("");
+    [pairCode, setPairCode] = useState(""),
+    [zcashNetwork, setZcashNetwork] = useState<"testnet" | "mainnet">(
+      "testnet",
+    ),
+    [zcashView, setZcashView] = useState<ZcashNetworkView | null>(null),
+    [mainnetAvailable, setMainnetAvailable] = useState(false);
   const [apps, setApps] = useState<{
     connections: { origin: string; created: number }[];
     requests: {
@@ -271,7 +277,23 @@ export default function Wallet() {
     }
   }
   async function load() {
-    setData(await call("dashboard"));
+    const dashboard = await call("dashboard");
+    setData(dashboard);
+    try {
+      const networks = await call("zcash/networks");
+      setMainnetAvailable(
+        Array.isArray(networks.networks) &&
+          networks.networks.some(
+            (n: { id?: string; available?: boolean }) =>
+              n.id === "mainnet" && n.available === true,
+          ),
+      );
+      setZcashView(await call(`zcash/view/${zcashNetwork}`));
+    } catch {
+      if (zcashNetwork === "mainnet")
+        throw Error("Mainnet read-only wallet is unavailable.");
+      setZcashView(null);
+    }
   }
   async function loadApps() {
     setApps(await call("dapps/list"));
@@ -285,7 +307,21 @@ export default function Wallet() {
         const s = token ? await call("pair", { token }) : await call("session");
         if (active) {
           setSession(s);
-          setData(await call("dashboard"));
+          const dashboard = await call("dashboard");
+          setData(dashboard);
+          try {
+            const networks = await call("zcash/networks");
+            setMainnetAvailable(
+              Array.isArray(networks.networks) &&
+                networks.networks.some(
+                  (n: { id?: string; available?: boolean }) =>
+                    n.id === "mainnet" && n.available === true,
+                ),
+            );
+            setZcashView(await call("zcash/view/testnet"));
+          } catch {
+            setZcashView(null);
+          }
         }
       } catch (e) {
         if (active && token)
@@ -304,7 +340,11 @@ export default function Wallet() {
       load().catch((e) => setError(e.message));
     }, 5000);
     return () => clearInterval(timer);
-  }, [session]);
+  }, [session, zcashNetwork]);
+  const zcashSummary = zcashView?.summary ?? data?.zcash ?? null;
+  const zcashLabel =
+    zcashNetwork === "mainnet" ? "Zcash Mainnet" : "Zcash Testnet";
+  const zcashTicker = zcashNetwork === "mainnet" ? "ZEC" : "TAZ";
   const checkout =
     data?.checkouts.find((c) => c.id === selected) ?? data?.checkouts[0];
   const activeCheckout = data?.checkouts.find(
@@ -315,7 +355,7 @@ export default function Wallet() {
   }
   async function refresh() {
     await task(async () => {
-      await call("refresh", {});
+      if (zcashNetwork === "testnet") await call("refresh", {});
       await load();
     });
   }
@@ -343,7 +383,7 @@ export default function Wallet() {
         </span>
       </div>
       <span className="testnet-tag">
-        <span /> TESTNET ONLY
+        <span /> {zcashNetwork === "mainnet" ? "MAINNET READ ONLY" : "TESTNET"}
       </span>
     </>
   );
@@ -374,7 +414,8 @@ export default function Wallet() {
           </h1>
           <p className="muted">
             Open <strong>Launch-ZecOne.cmd</strong> to securely connect this
-            browser to your local testnet wallet.
+            browser to your local wallet. Mainnet opens read-only; testnet
+            execution keeps its existing approval flow.
           </p>
           <form
             onSubmit={(e) => {
@@ -487,9 +528,26 @@ export default function Wallet() {
             >
               <LockKeyhole size={17} />
             </button>
-            <span className="network-pill">
-              <span /> Testnet workspace
-            </span>
+            <label className="network-pill" htmlFor="zcash-network-select">
+              <span />
+              <select
+                id="zcash-network-select"
+                aria-label="Zcash network"
+                value={zcashNetwork}
+                onChange={(event) => {
+                  const next = event.target.value as "testnet" | "mainnet";
+                  setZcashNetwork(next);
+                  task(async () =>
+                    setZcashView(await call(`zcash/view/${next}`)),
+                  );
+                }}
+              >
+                <option value="testnet">Testnet</option>
+                <option value="mainnet" disabled={!mainnetAvailable}>
+                  Mainnet (read only)
+                </option>
+              </select>
+            </label>
             <button
               className={`account-pill ${session.connected ? "verified" : ""}`}
               onClick={connect}
@@ -675,7 +733,7 @@ export default function Wallet() {
               {tab === "Send / Receive" && (
                 <>
                   <NativeTransferPanel connected={!!session?.connected} />
-                  <AccountPanel address={data.address} />
+                  <AccountPanel address={data.address} zcash={zcashView} />
                 </>
               )}
               {tab === "Settings" && (
@@ -758,28 +816,34 @@ export default function Wallet() {
                           <span className="asset-symbol">Ƶ</span>
                           <div>
                             <h2>Shielded Zcash</h2>
-                            <p>Zcash Testnet</p>
+                            <p>{zcashLabel}</p>
                           </div>
                         </div>
                         <Badge>Shielded</Badge>
                       </div>
                       <div className="balance-value">
-                        {data.zcash ? units(data.zcash.totalZatoshis) : "—"}
-                        <span>TAZ</span>
+                        {zcashSummary ? units(zcashSummary.totalZatoshis) : "—"}
+                        <span>{zcashTicker}</span>
                       </div>
                       <p className="balance-detail">
-                        {data.zcash
-                          ? data.readOnlyNotice
-                            ? `Historical total ${units(data.zcash.totalZatoshis)} TAZ · spending disabled`
-                            : `${units(data.zcash.spendableZatoshis)} TAZ available · ${units((BigInt(data.zcash.totalZatoshis) > BigInt(data.zcash.spendableZatoshis) ? BigInt(data.zcash.totalZatoshis) - BigInt(data.zcash.spendableZatoshis) : 0n).toString())} TAZ unavailable / pending`
+                        {zcashSummary
+                          ? zcashNetwork === "mainnet" || data.readOnlyNotice
+                            ? `${units(zcashSummary.totalZatoshis)} ${zcashTicker} verified balance · browser spending disabled`
+                            : `${units(zcashSummary.spendableZatoshis)} TAZ available · ${units((BigInt(zcashSummary.totalZatoshis) > BigInt(zcashSummary.spendableZatoshis) ? BigInt(zcashSummary.totalZatoshis) - BigInt(zcashSummary.spendableZatoshis) : 0n).toString())} TAZ unavailable / pending`
                           : "Waiting for a verified wallet sync"}
                       </p>
                       <div className="balance-footer">
                         <span>
                           <LockKeyhole size={13} /> Shielded on Zcash
                         </span>
-                        <button onClick={() => navigate("Checkout")}>
-                          Use test ZEC <ArrowUpRight size={17} />
+                        <button
+                          disabled={zcashNetwork === "mainnet"}
+                          onClick={() => navigate("Checkout")}
+                        >
+                          {zcashNetwork === "mainnet"
+                            ? "Sending unavailable"
+                            : "Use test ZEC"}{" "}
+                          <ArrowUpRight size={17} />
                         </button>
                       </div>
                     </div>
@@ -839,8 +903,8 @@ export default function Wallet() {
                       />
                       <strong>Zcash</strong>
                       <span>
-                        {data.zcash
-                          ? `Block ${data.zcash.scanned.toLocaleString()}`
+                        {zcashSummary
+                          ? `Block ${zcashSummary.scanned.toLocaleString()}`
                           : "Syncing wallet"}
                       </span>
                     </div>
@@ -858,10 +922,10 @@ export default function Wallet() {
                     <span className="health-time">
                       {data.health.busy
                         ? "Checking networks…"
-                        : data.zcash
+                        : zcashSummary
                           ? data.readOnlyNotice
-                            ? `Historical Zcash scan height ${data.zcash.scanned}; no fresh sync`
-                            : `Zcash synced at ${time(data.zcash.observedAt)}`
+                            ? `Historical Zcash scan height ${zcashSummary.scanned}; no fresh sync`
+                            : `${zcashLabel} wallet state observed at ${time(zcashSummary.observedAt)}`
                           : "Initial sync in progress"}
                     </span>
                   </div>
@@ -955,7 +1019,11 @@ export default function Wallet() {
                         View all <ArrowRight size={16} />
                       </button>
                     </div>
-                    <Activity data={data} compact />
+                    <Activity
+                      data={{ ...data, zcash: zcashSummary }}
+                      compact
+                      zcashNetwork={zcashNetwork}
+                    />
                   </section>
                 </>
               )}
@@ -1411,7 +1479,10 @@ export default function Wallet() {
                     <Badge publicActivity>Public Base</Badge>
                     <span>Local wallet history + ZecOne mint receipts</span>
                   </div>
-                  <Activity data={data} />
+                  <Activity
+                    data={{ ...data, zcash: zcashSummary }}
+                    zcashNetwork={zcashNetwork}
+                  />
                   <p className="tiny activity-foot">
                     Coverage: this local Zcash wallet and mints recorded by
                     ZecOne. This is not a complete index of Base transfers or
@@ -1754,9 +1825,11 @@ function CheckoutProgress({ c }: { c: CheckoutView }) {
 function Activity({
   data,
   compact = false,
+  zcashNetwork = "testnet",
 }: {
   data: Dashboard;
   compact?: boolean;
+  zcashNetwork?: "testnet" | "mainnet";
 }) {
   const z = (data.zcash?.history ?? []).map((t) => ({
     key: t.txid,
@@ -1764,8 +1837,8 @@ function Activity({
       BigInt(t.deltaZatoshis) > 0n
         ? "Received shielded Zcash"
         : "Shielded payment",
-    network: "Zcash Testnet",
-    amount: `${BigInt(t.deltaZatoshis) > 0n ? "+" : ""}${units(t.deltaZatoshis)} TAZ`,
+    network: zcashNetwork === "mainnet" ? "Zcash Mainnet" : "Zcash Testnet",
+    amount: `${BigInt(t.deltaZatoshis) > 0n ? "+" : ""}${units(t.deltaZatoshis)} ${zcashNetwork === "mainnet" ? "ZEC" : "TAZ"}`,
     status: t.expired
       ? "Expired · unmined"
       : t.height

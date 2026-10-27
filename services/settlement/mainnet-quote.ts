@@ -1,6 +1,7 @@
 import { createHash, createPublicKey } from "node:crypto";
 import {
   productionPrice,
+  pilotQuoteMaximumSeconds,
   validateProductionProfile,
   type ProductionProfile,
   type SignedPrice,
@@ -109,7 +110,7 @@ export function mainnetQuote(input: MainnetQuoteInput): MainnetQuote {
     (input.network === "solana" && input.pair !== "SOL/ZEC") ||
     !Number.isSafeInteger(ttl) ||
     ttl < 1 ||
-    ttl > 120 ||
+    ttl > (input.pilotPrice ? pilotQuoteMaximumSeconds(p, input.now) : 120) ||
     !Number.isSafeInteger(input.now) ||
     input.destinationUnits <= 0n ||
     input.networkFee < 0n ||
@@ -194,7 +195,8 @@ export function assertMainnetQuote(
     !Number.isSafeInteger(quote.expires) ||
     quote.createdAt > now + 5 ||
     quote.expires <= now ||
-    quote.expires - quote.createdAt > 120
+    quote.expires - quote.createdAt >
+      (input.pilotPrice ? pilotQuoteMaximumSeconds(input.profile, now) : 120)
   )
     throw Error("MAINNET_QUOTE_EXPIRED");
   const expected = mainnetQuote({ ...input, now: quote.createdAt });

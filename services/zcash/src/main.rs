@@ -1,4 +1,5 @@
 mod cache;
+mod mainnet_spend;
 mod phase52_payment;
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use clap::{Parser, Subcommand};
@@ -11,7 +12,7 @@ use secrecy::{ExposeSecret, SecretVec};
 use serde_json::{Value, json};
 use std::{
     fs::{self, OpenOptions},
-    io::Write,
+    io::{Read, Write},
     num::NonZeroUsize,
     path::{Path, PathBuf},
     str::FromStr,
@@ -179,6 +180,13 @@ enum Command {
     },
     /// Read already generated public addresses only.
     Addresses,
+    /// Unlock the mainnet Zcash seed keystore (passphrase via stdin) and report
+    /// only the derived account fingerprint and shielded address. Never prints
+    /// seed material, the viewing key, or the spending key.
+    MainnetIdentity {
+        #[arg(long)]
+        keystore: PathBuf,
+    },
 }
 
 struct WalletLock(PathBuf);
@@ -643,6 +651,25 @@ async fn run() -> Result<()> {
         .install_default()
         .map_err(|_| anyhow!("TLS provider initialization failed"))?;
     let args = Cli::parse();
+    if let Command::MainnetIdentity { keystore } = &args.command {
+        use sha2::{Digest, Sha256};
+        let ks: Value = serde_json::from_slice(&fs::read(keystore)?)?;
+        let mut pass = Vec::new();
+        std::io::stdin()
+            .take(1024)
+            .read_to_end(&mut pass)
+            .context("passphrase via stdin required")?;
+        let seed = mainnet_spend::unlock_seed(&ks, &pass, "mainnet:zcash:receiver")?;
+        pass.fill(0);
+        let ufvk = mainnet_spend::derive_ufvk(seed.expose_secret())?;
+        let account = hex::encode(Sha256::digest(ufvk.as_bytes()));
+        let address = mainnet_spend::derive_address(seed.expose_secret())?;
+        println!(
+            "{}",
+            json!({"network":"zcash-mainnet","account":account,"address":address,"ufvkPrefix":&ufvk[..8],"unlocked":true,"spendingKeyRetained":true})
+        );
+        return Ok(());
+    }
     match &args.command {
         Command::PreparePhase7bPayment {profile_id,request_id,birthday} => {
             let v=phase52_payment::prepare_for(&args.wallet,&args.server,*profile_id,*request_id,*birthday,"phase7b").await?;
