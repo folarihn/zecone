@@ -23,6 +23,7 @@ import type { ProductionProfile } from "../services/settlement/production-safety
 import {
   validateProductionProfile,
   pilotQuoteMaximumSeconds,
+  SINGLE_DEVICE_PILOT_BASE_FEE_CAP,
 } from "../services/settlement/production-safety.ts";
 import {
   assertPilotMarketMovement,
@@ -54,7 +55,7 @@ function pilotProfile(): {
     recipients: ["0x0000000000000000000000000000000000000002"],
     perTransaction: "100000000000000000000",
     daily: "200000000000000000000",
-    feeCap: "1000000000000000",
+    feeCap: "10000000000000",
     sourceMaximumZatoshis: "2000000",
     confirmations: 1,
     signer: {
@@ -199,6 +200,35 @@ test("300-second quotes require explicit active Base pilot opt-in and expire exa
     () => validateProductionProfile(bad, now),
     /INVALID_OR_EXPIRED/,
   );
+});
+
+test("active Base pilot rejects a fee ceiling above its authorized limit", () => {
+  const { profile } = pilotProfile();
+  assert.equal(SINGLE_DEVICE_PILOT_BASE_FEE_CAP, 10_000_000_000_000n);
+  profile.feeCap = SINGLE_DEVICE_PILOT_BASE_FEE_CAP.toString();
+  assert.doesNotThrow(() => validateProductionProfile(profile, now));
+  for (const feeCap of [
+    (SINGLE_DEVICE_PILOT_BASE_FEE_CAP + 1n).toString(),
+    "1000000000000000",
+  ]) {
+    const over = structuredClone(profile);
+    over.feeCap = feeCap;
+    assert.throws(
+      () => validateProductionProfile(over, now),
+      /SINGLE_DEVICE_PILOT_FEE_CAP_EXCEEDED/,
+    );
+  }
+  // Without an active pilot the limit does not apply (other rules still do).
+  const production = structuredClone(profile);
+  delete production.pilot;
+  production.feeCap = "1000000000000000";
+  let message = "";
+  try {
+    validateProductionProfile(production, now);
+  } catch (e) {
+    message = (e as Error).message;
+  }
+  assert.doesNotMatch(message, /PILOT_FEE_CAP/);
 });
 
 test("extended pilot retains signed price context, source cap and independent providers", () => {

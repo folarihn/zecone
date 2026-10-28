@@ -16,6 +16,8 @@ COPY --from=build /app/sdk/dist ./sdk/dist
 COPY sdk/package.json ./sdk/package.json
 COPY services/payments ./services/payments
 COPY services/settlement/mainnet-watch.ts ./services/settlement/mainnet-watch.ts
+COPY services/settlement/mainnet-pilot-pricing.ts ./services/settlement/mainnet-pilot-pricing.ts
+COPY services/settlement/production-safety.ts ./services/settlement/production-safety.ts
 COPY services/operations/mainnet-watch-worker.ts ./services/operations/mainnet-watch-worker.ts
 COPY examples/access-pass ./examples/access-pass
 RUN find /app -type d -exec chmod 0555 {} + && find /app -type f -exec chmod 0444 {} +

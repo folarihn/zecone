@@ -70,6 +70,8 @@ export function independentProviders(p: ProductionProfile) {
 }
 const MAX_PILOT_WINDOW_SECONDS = 30 * 86400;
 const SINGLE_DEVICE_ISOLATION = "single-device-process-isolation" as const;
+/** Authorized fee ceiling for an active single-device Base pilot (wei). */
+export const SINGLE_DEVICE_PILOT_BASE_FEE_CAP = 10_000_000_000_000n;
 
 export function singleDevicePilotActive(
   profile: ProductionProfile,
@@ -150,6 +152,14 @@ export function validateProductionProfile(
       throw Error("SINGLE_DEVICE_PILOT_INVALID_OR_EXPIRED");
   }
   const pilotActive = singleDevicePilotActive(p, now);
+  // The pilot's worst-case relayer debit is payout + feeCap, so its fee ceiling
+  // is held to the authorized limit. Profiles without an active pilot are unchanged.
+  if (
+    pilotActive &&
+    p.network === "base" &&
+    integer(p.feeCap) > SINGLE_DEVICE_PILOT_BASE_FEE_CAP
+  )
+    throw Error("SINGLE_DEVICE_PILOT_FEE_CAP_EXCEEDED");
   if (
     !p.signer ||
     p.signer.transport !== "offline-bundle" ||
