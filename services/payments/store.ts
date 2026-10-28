@@ -657,6 +657,29 @@ export class PaymentStore {
     });
   }
 
+  /**
+   * Operator mirror only: copy a real order from the public API into a local
+   * store so the in-process watcher bridge can attribute it. Never overwrites.
+   */
+  mirrorPayment(p: Payment): boolean {
+    if (p.mode !== "monitor") throw new StoreError("only real orders are mirrored", "invalid_state");
+    return this.tx(() => {
+      const r = this.db
+        .prepare(
+          `INSERT OR IGNORE INTO payments(id,merchant_id,state,request_json,quote_json,zcash_address,created_at,updated_at,expires_at,mode,allocation_tip)
+           VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
+        )
+        .run(p.id, p.merchantId, p.state, JSON.stringify(p.request), p.quote ? JSON.stringify(p.quote) : null, p.zcashAddress,
+          p.createdAt, p.updatedAt, p.expiresAt, p.mode, p.allocationTip);
+      if (r.changes === 1 && p.state === "AWAITING_PAYMENT" && p.zcashAddress) {
+        const holder = this.allocationHolder(p.zcashAddress);
+        if (holder && holder.id !== p.id) throw new StoreError("mirror allocation conflict", "checkout_busy");
+        this.db.prepare(`INSERT OR REPLACE INTO allocations(address,payment_id,allocated_at) VALUES(?,?,?)`).run(p.zcashAddress, p.id, p.createdAt);
+      }
+      return r.changes === 1;
+    });
+  }
+
   setChainEvidence(id: string, evidence: ChainEvidence, now = nowSeconds()): void {
     this.db
       .prepare(`UPDATE payments SET chain_evidence_json=?, confirmations=?, updated_at=? WHERE id=?`)

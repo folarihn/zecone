@@ -29,6 +29,7 @@ import { WebhookDispatcher, validateWebhookUrl, type Fetcher } from "./webhooks.
 import { SiweError, createChallenge, verifyChallenge, type SiweConfig } from "./siwe.ts";
 import { InsufficientLiquidityError, assertLiquidity } from "./liquidity.ts";
 import { PaymentWatchBridge, type SnapshotSource } from "./watch-bridge.ts";
+import { OperatorFeedError, OperatorWatchFeed, basePayoutCheck, type BasePayoutCheck } from "./operator-feed.ts";
 import { DEFAULT_API_SCOPES } from "./types.ts";
 import type { ApiError, Merchant, Payment, PaymentRequest, PaymentState, Principal } from "./types.ts";
 
@@ -44,12 +45,26 @@ export interface PaymentsConfig {
    */
   monitor?: {
     authorized: boolean;
-    source: SnapshotSource;
+    /** In-process watcher, or "operator": results pushed by the operator machine (no viewing key here). */
+    source: SnapshotSource | "operator";
     minimumConfirmations: number;
     intervalSeconds: number;
     maxSnapshotAgeSeconds?: number;
     lock?: { acquire(): void; release(): void };
   } | null;
+  /**
+   * Restricted mainnet pilot (operator-fed monitor mode): real orders only for the
+   * one approved merchant, capped per order, settled by the operator workflow.
+   * Other merchants are refused; the demo storefront keeps creating simulated orders.
+   */
+  pilot?: {
+    merchantOwner: string;
+    maxAmountUsd: string;
+    maxPayoutWei: bigint;
+    payout: BasePayoutCheck;
+  } | null;
+  /** Serve operator routes only on the separate loopback operator listener. */
+  operatorListenerOnly?: boolean;
   /** Demo storefront merchant used by the ZecOne website and examples (optional). */
   demoMerchant?: { secret: string; payoutAddress: string; name?: string } | null;
   siwe: SiweConfig;
@@ -93,6 +108,9 @@ class HttpError extends Error {
 
 export interface PaymentsApp {
   handle(req: IncomingMessage, res: ServerResponse): Promise<void>;
+  /** Handler for the loopback-only operator listener (never behind the public proxy). */
+  handleOperator(req: IncomingMessage, res: ServerResponse): Promise<void>;
+  feed: OperatorWatchFeed | null;
   store: PaymentStore;
   dispatcher: WebhookDispatcher;
   observer: DemoObserver;
@@ -115,7 +133,13 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
     if (!config.monitor?.authorized)
       throw new Error("MONITOR_NOT_AUTHORIZED: monitor mode shows a real receiving address and requires explicit operator authorization");
     if (config.monitor.minimumConfirmations < 20) throw new Error("MONITOR_CONFIRMATIONS_TOO_LOW");
-    if (config.demoMerchant) throw new Error("MONITOR_DEMO_MERCHANT_FORBIDDEN: the demo storefront cannot run against a real address");
+    // Simulated demo orders may share the API only when real orders are restricted to one
+    // approved merchant: demo payments never receive the real address (per-payment mode).
+    if (config.demoMerchant && !config.pilot)
+      throw new Error("MONITOR_DEMO_MERCHANT_FORBIDDEN: the demo storefront cannot run against a real address");
+    if (config.monitor.source === "operator" && (!config.pilot || !config.operatorToken || config.operatorToken.length < 32))
+      throw new Error("OPERATOR_FEED_REQUIRES_PILOT_AND_OPERATOR_TOKEN");
+    if (config.pilot && !isAddress(config.pilot.merchantOwner)) throw new Error("PILOT_MERCHANT_OWNER_INVALID");
   }
   const MODE: "demo" | "monitor" = config.mode;
   const clock = config.now ?? (() => Math.floor(Date.now() / 1000));
@@ -175,9 +199,19 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
     startAfterSeconds: config.demoObserver.startAfterSeconds,
     stepSeconds: config.demoObserver.stepSeconds,
   });
+  const feed =
+    MODE === "monitor" && config.monitor?.source === "operator" && config.pilot
+      ? new OperatorWatchFeed(store, {
+          minimumConfirmations: config.monitor.minimumConfirmations,
+          maxPayoutWei: config.pilot.maxPayoutWei,
+          payout: config.pilot.payout,
+          now: clock,
+        })
+      : null;
+  const pilotCents = config.pilot ? parseUnits(config.pilot.maxAmountUsd, "usd") : null;
   const bridge =
-    MODE === "monitor" && config.monitor
-      ? new PaymentWatchBridge(store, config.monitor.source, {
+    MODE === "monitor" && config.monitor && config.monitor.source !== "operator"
+      ? new PaymentWatchBridge(store, config.monitor.source as SnapshotSource, {
           receivingAddress: config.checkoutAddress,
           minimumConfirmations: config.monitor.minimumConfirmations,
           lock: config.monitor.lock,
@@ -214,7 +248,7 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
       mode: p.mode,
       livemode: p.mode === "live",
       simulated: p.mode === "demo",
-      settlement: p.mode === "live" || p.payoutTxHash ? "operator-approved" : "disabled",
+      settlement: p.mode === "live" || p.payoutTxHash || (p.mode === "monitor" && feed) ? "operator-approved" : "disabled",
       request: { amountUsd: p.request.amountUsd, payoutChain: p.request.payoutChain, recipient: p.request.recipient },
       description: p.request.description ?? null,
       metadata: p.request.metadata ?? null,
@@ -267,7 +301,7 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
       paymentDetected: p.detectedTxid !== null,
       confirmations: p.mode === "demo" ? null : p.confirmations,
       minimumConfirmations: p.mode === "demo" ? null : (p.chainEvidence?.minimumConfirmations ?? config.monitor?.minimumConfirmations ?? null),
-      settlement: p.mode === "live" || p.payoutTxHash ? "operator-approved" : "disabled",
+      settlement: p.mode === "live" || p.payoutTxHash || (p.mode === "monitor" && feed) ? "operator-approved" : "disabled",
       evidenceKind: p.evidenceKind,
       payoutTxHash: p.payoutTxHash,
       payoutExplorerUrl: p.payoutTxHash ? BASE_EXPLORER_TX(p.payoutTxHash) : null,
@@ -462,7 +496,10 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
   }
 
   // ---- routes ----
-  async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const watcherHealth = () =>
+    bridge ? bridge.health(config.monitor?.maxSnapshotAgeSeconds) : feed ? feed.health(config.monitor?.maxSnapshotAgeSeconds) : null;
+
+  async function route(req: IncomingMessage, res: ServerResponse, viaOperatorListener = false): Promise<void> {
     const url = new URL(req.url ?? "/", "http://zecone.local");
     const path = url.pathname.replace(/\/+$/, "") || "/";
     const seg = path.split("/").filter(Boolean);
@@ -492,12 +529,13 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
           mode: MODE,
           livePayoutEnabled: false,
           zcashBroadcastEnabled: false,
-          settlement: "disabled",
+          settlement: feed ? "operator-approved" : "disabled",
+          realPayments: feed ? "restricted-pilot" : MODE === "monitor" ? "monitor-only" : "none",
           network: "zcash-mainnet",
           payoutChain: "base",
           attribution: MODE === "monitor" ? "single-active-checkout" : "none-simulated",
-          demoObserver: MODE === "demo" && config.demoObserver.enabled,
-          watcher: bridge ? bridge.health(config.monitor?.maxSnapshotAgeSeconds) : null,
+          demoObserver: (MODE === "demo" || !!config.demoMerchant) && config.demoObserver.enabled,
+          watcher: watcherHealth(),
           now,
         },
         publicCors,
@@ -634,7 +672,11 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
     // ---- operator (loopback + bearer token) ----
     if (seg[0] === "api" && seg[1] === "v1" && seg[2] === "operator") {
       const token = (req.headers.authorization ?? "").replace(/^Bearer\s+/, "");
-      if (!config.operatorToken || !isLoopback(req) || token.length !== config.operatorToken.length ||
+      // A loopback socket is not enough: behind the shared-host Nginx every public
+      // request arrives from 127.0.0.1. Forwarded requests are never operator calls.
+      const forwarded = req.headers["x-forwarded-for"] !== undefined || req.headers["x-real-ip"] !== undefined;
+      const reachable = viaOperatorListener || (!config.operatorListenerOnly && isLoopback(req) && !forwarded);
+      if (!config.operatorToken || !reachable || token.length !== config.operatorToken.length ||
         !timingSafeEqual(Buffer.from(token), Buffer.from(config.operatorToken)))
         throw new HttpError(404, "not_found", "unknown endpoint");
       if (seg[3] === "demo-replay" && seg[4] && method === "POST") {
@@ -648,7 +690,23 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
         });
       }
       if (seg[3] === "unattributed" && method === "GET") return send(res, 200, { deposits: store.listUnattributed() });
-      if (seg[3] === "watcher" && method === "POST" && bridge) return send(res, 200, { result: await bridge.tick(), health: bridge.health() });
+      if (seg[3] === "watcher" && seg.length === 4 && method === "POST" && bridge)
+        return send(res, 200, { result: await bridge.tick(), health: bridge.health() });
+      if (feed) {
+        try {
+          if (seg[3] === "watcher" && seg[4] === "heartbeat" && method === "POST")
+            return send(res, 200, { health: feed.heartbeat((await readBody(req)) as never) });
+          if (seg[3] === "real-orders" && seg.length === 4 && method === "GET")
+            return send(res, 200, { orders: feed.realOrders() });
+          if (seg[3] === "real-orders" && seg[4] && seg[5] === "observation" && method === "POST")
+            return send(res, 200, { payment: merchantPayment(feed.observe(seg[4], await readBody(req))) });
+          if (seg[3] === "real-orders" && seg[4] && seg[5] === "payout" && method === "POST")
+            return send(res, 200, { payment: merchantPayment(await feed.payout(seg[4], await readBody(req))) });
+        } catch (e) {
+          if (e instanceof OperatorFeedError) throw new HttpError(e.status, e.code.toLowerCase(), e.code);
+          throw e;
+        }
+      }
       throw new HttpError(404, "not_found", "unknown endpoint");
     }
 
@@ -764,12 +822,27 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
       const pr = authenticate(req, "payments:create");
       const body = await readBody(req);
       const request = validateCreate(body, pr.merchant);
+      // Per-payment mode. With a restricted pilot, only the approved merchant (SIWE-verified
+      // payout = owner) gets real orders; the demo storefront stays simulated; others are refused.
+      let paymentMode: "demo" | "monitor" = MODE;
+      if (MODE === "monitor" && config.pilot) {
+        const m = pr.merchant;
+        const owner = getAddress(config.pilot.merchantOwner);
+        if (m.keyId === DEMO_KEY_ID && config.demoMerchant) paymentMode = "demo";
+        else if (
+          m.ownerAddress && getAddress(m.ownerAddress) === owner &&
+          m.baseRecipient && getAddress(m.baseRecipient) === owner && m.payoutVerification === "siwe"
+        ) {
+          if (parseUnits(request.amountUsd, "usd") > pilotCents!)
+            throw new HttpError(400, "amount_too_large", `real payments are limited to ${config.pilot.maxAmountUsd} USD during the restricted pilot`);
+        } else throw new HttpError(403, "real_payments_restricted", "Real mainnet payments are currently limited to one approved pilot merchant.");
+      }
       const idempotencyKey = idempotencyKeyOf(req, body);
       const result = store.tx(() => {
         const { payment, created } = store.createPayment({
           merchantId: pr.merchant.id,
           request,
-          mode: MODE,
+          mode: paymentMode,
           idempotencyKey,
           now,
         });
@@ -777,14 +850,14 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
         const quote = { ...quoteEngine.quote({ amountUsd: request.amountUsd, payoutChain: "base", now }) };
         // Liquidity guard: real (monitor) checkouts promise a payout the relayer must be able
         // to cover. Simulated demo checkouts promise nothing, so they are not counted.
-        if (MODE !== "demo") assertLiquidity(store, MODE, BigInt(quote.ethPayoutWei), config.relayerAvailableWei);
-        if (MODE === "demo") {
+        if (paymentMode !== "demo") assertLiquidity(store, paymentMode, BigInt(quote.ethPayoutWei), config.relayerAvailableWei);
+        if (paymentMode === "demo") {
           // Simulated checkout: no payable address, no allocation, no payment URI.
           store.setQuote(payment.id, quote, null, quote.expiresAt, now);
         } else {
           // Real address: only with a fresh watcher checkpoint, so notes mined before
           // this checkout (height <= allocation tip) can never be attributed to it.
-          const health = bridge!.health(config.monitor?.maxSnapshotAgeSeconds);
+          const health = watcherHealth()!;
           if (!health.ready || health.tip === null)
             throw new HttpError(503, "watcher_not_ready", "The mainnet watcher has no fresh verified snapshot; real checkouts are paused.");
           store.setQuote(payment.id, quote, config.checkoutAddress, quote.expiresAt, now, {
@@ -853,7 +926,7 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
     throw new HttpError(404, "not_found", "unknown endpoint");
   }
 
-  async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  async function handle(req: IncomingMessage, res: ServerResponse, viaOperatorListener = false): Promise<void> {
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "no-referrer");
@@ -861,7 +934,7 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
     res.setHeader("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
     res.setHeader("X-Request-Id", randomBytes(8).toString("hex"));
     try {
-      await route(req, res);
+      await route(req, res, viaOperatorListener);
     } catch (e) {
       if (res.headersSent) {
         res.end();
@@ -879,12 +952,15 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
   async function tick() {
     const now = clock();
     store.expireDue(now);
-    if (MODE === "demo" && config.demoObserver.enabled) observer.tick(now);
+    // Demo payments replay recorded evidence; with a restricted pilot they share the API with real orders.
+    if ((MODE === "demo" || config.demoMerchant) && config.demoObserver.enabled) observer.tick(now);
     await dispatcher.drain(now);
   }
 
   return {
-    handle,
+    handle: (req, res) => handle(req, res, false),
+    handleOperator: (req, res) => handle(req, res, true),
+    feed,
     store,
     dispatcher,
     observer,
@@ -968,6 +1044,26 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): PaymentsCon
   }
   if (mode === "monitor" && !env.ZECONE_CHECKOUT_ADDRESS)
     throw new Error("ZECONE_CHECKOUT_ADDRESS is required in monitor mode");
+  // Restricted mainnet pilot: real orders for one approved merchant, fed by the operator watcher.
+  let pilot: PaymentsConfig["pilot"] = null;
+  if (mode === "monitor" && env.ZECONE_PILOT_MERCHANT_OWNER) {
+    const owner = env.ZECONE_PILOT_MERCHANT_OWNER;
+    const relayerAddress = env.ZECONE_RELAYER_ADDRESS ?? "";
+    const maxPayout = env.ZECONE_PILOT_MAX_PAYOUT_WEI ?? "";
+    if (!isAddress(owner) || !isAddress(relayerAddress)) throw new Error("ZECONE_PILOT_MERCHANT_OWNER and ZECONE_RELAYER_ADDRESS must be Base addresses");
+    if (!/^[1-9]\d{0,20}$/.test(maxPayout)) throw new Error("ZECONE_PILOT_MAX_PAYOUT_WEI must be a positive integer wei amount");
+    const maxAmountUsd = env.ZECONE_PILOT_MAX_AMOUNT_USD ?? "0.01";
+    if (!/^\d{1,3}(\.\d{1,2})?$/.test(maxAmountUsd)) throw new Error("ZECONE_PILOT_MAX_AMOUNT_USD must be a small USD amount");
+    pilot = {
+      merchantOwner: getAddress(owner),
+      maxAmountUsd,
+      maxPayoutWei: BigInt(maxPayout),
+      payout: basePayoutCheck(
+        (env.ZECONE_BASE_PAYOUT_RPCS ?? "").split(",").map((u) => u.trim()).filter(Boolean),
+        getAddress(relayerAddress),
+      ),
+    };
+  }
   const relayer = env.ZECONE_RELAYER_AVAILABLE_WEI ?? "50000000000000000"; // 0.05 ETH demo snapshot
   if (!/^\d+$/.test(relayer)) throw new Error("ZECONE_RELAYER_AVAILABLE_WEI must be an integer wei amount");
   return {
@@ -978,12 +1074,14 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): PaymentsCon
         : (env.ZECONE_CHECKOUT_ADDRESS ?? DEFAULT_CHECKOUT_ADDRESS),
     mode,
     demoMerchant:
-      env.ZECONE_DEMO_MERCHANT === "0" || env.ZECONE_PAYMENTS_MODE === "monitor"
+      env.ZECONE_DEMO_MERCHANT === "0" || (mode === "monitor" && !pilot)
         ? null
         : { secret: demoSecret, payoutAddress: env.ZECONE_DEMO_PAYOUT_ADDRESS ?? BASE_RECIPIENT_DEFAULT },
     siwe: { allowedDomains: allowed, ttlSeconds: 600, baseRpcUrl: env.ZECONE_BASE_RPC_URL || undefined },
     publicCheckoutBaseUrl: publicUrl,
     operatorToken: env.ZECONE_OPERATOR_TOKEN || null,
+    pilot,
+    operatorListenerOnly: !!pilot,
     exclusiveAllocation: env.ZECONE_EXCLUSIVE_ALLOCATION !== "0",
     quoteTtlSeconds: Number(env.ZECONE_QUOTE_TTL_SECONDS ?? 900),
     maxAmountUsd: env.ZECONE_MAX_AMOUNT_USD ?? "500.00",

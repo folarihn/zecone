@@ -159,18 +159,22 @@ export function ZecOneCheckout(props: ZecOneCheckoutProps) {
   }
 
   const current = stepIndex(checkout.state);
-  const mode = checkout.simulated ? "simulated" : checkout.mode === "monitor" ? "monitor" : "live";
+  // Restricted mainnet pilot: real order, Base payout prepared and approved by the operator.
+  const pilot = !checkout.simulated && checkout.mode === "monitor" && checkout.settlement === "operator-approved";
+  const mode = checkout.simulated ? "simulated" : pilot ? "pilot" : checkout.mode === "monitor" ? "monitor" : "live";
   const modeTone = mode === "live" ? t.success : mode === "monitor" ? t.warning : t.muted;
   return (
     <div className={props.className} style={s.root} data-zecone-checkout={phase} data-state={checkout.state}>
       <div style={s.modeStrip(modeTone, mode === "simulated")}>
         <span style={{ fontWeight: 700 }}>
-          {mode === "simulated" ? "Simulated demo" : mode === "monitor" ? "Mainnet monitoring" : "Live checkout"}
+          {mode === "simulated" ? "Simulated demo" : mode === "pilot" ? "Mainnet pilot" : mode === "monitor" ? "Mainnet monitoring" : "Live checkout"}
         </span>
         <span>
           {mode === "simulated"
             ? "Nothing to pay. No funds move."
-            : mode === "monitor"
+            : mode === "pilot"
+              ? "Real ZEC. The Base payout is approved by the ZecOne operator after confirmation."
+              : mode === "monitor"
               ? "Real ZEC is detected. Automatic payout is off."
               : "Payment settles to the merchant on Base."}
         </span>
@@ -182,11 +186,13 @@ export function ZecOneCheckout(props: ZecOneCheckoutProps) {
             {checkout.quote?.zecAmount ?? "…"} <span style={{ fontSize: 16, color: t.muted, fontWeight: 600 }}>ZEC</span>
           </div>
           <div style={s.muted}>
-            ${checkout.amountUsd}, merchant receives {checkout.quote ? shortAmount(checkout.quote.ethPayout) : "…"} ETH on Base
+            {pilot
+              ? `$${checkout.amountUsd}; the merchant's ETH on Base is priced live at settlement`
+              : <>${checkout.amountUsd}, merchant receives {checkout.quote ? shortAmount(checkout.quote.ethPayout) : "…"} ETH on Base</>}
           </div>
         </div>
         <span style={s.badge(checkout.mode === "live" ? t.success : t.warning)}>
-          {checkout.simulated ? "Simulated" : checkout.mode === "monitor" ? "Mainnet, payout off" : "Live"}
+          {checkout.simulated ? "Simulated" : pilot ? "Mainnet pilot" : checkout.mode === "monitor" ? "Mainnet, payout off" : "Live"}
         </span>
       </div>
 
@@ -206,7 +212,14 @@ export function ZecOneCheckout(props: ZecOneCheckoutProps) {
         </div>
       )}
 
-      {checkout.mode === "monitor" && phase === "awaiting" && checkout.zcashAddress && (
+      {pilot && phase === "awaiting" && checkout.zcashAddress && (
+        <div role="note" style={s.notice(t.warning)}>
+          Real Zcash mainnet address. Send exactly the amount shown, once. After 20 confirmations the operator reviews and
+          approves the Base payout; this page then shows both transactions.
+        </div>
+      )}
+
+      {!pilot && checkout.mode === "monitor" && phase === "awaiting" && checkout.zcashAddress && (
         <div role="note" style={s.notice(t.warning)}>
           Real Zcash mainnet address. ZecOne will detect and confirm your payment, but automatic payout to the merchant is
           disabled in this build. Only pay if the merchant asked you to.
@@ -265,6 +278,7 @@ export function ZecOneCheckout(props: ZecOneCheckoutProps) {
         <div style={{ ...s.muted, marginTop: 14 }} data-testid="zecone-confirmations">
           Confirmations: {Math.min(checkout.confirmations, checkout.minimumConfirmations)} / {checkout.minimumConfirmations}
           {checkout.state === "ZEC_CONFIRMED" && checkout.settlement === "disabled" ? ". ZEC confirmed; Base payout is disabled in this build." : ""}
+          {checkout.state === "ZEC_CONFIRMED" && pilot ? ". ZEC confirmed; awaiting operator-approved Base payout." : ""}
         </div>
       )}
 

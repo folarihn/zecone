@@ -21,14 +21,31 @@ if (config.mode === "monitor") {
   // Read-only mainnet monitoring: real deposits are observed, nothing is ever paid out.
   const ack = process.env.ZECONE_MONITOR_AUTHORIZED === "I_UNDERSTAND_NO_AUTOMATIC_PAYOUT";
   const workerConfig = process.env.ZECONE_WATCH_WORKER_CONFIG;
-  if (!ack || !workerConfig) {
+  const operatorFed = process.env.ZECONE_WATCH_SOURCE === "operator";
+  if (operatorFed) {
+    // Restricted pilot on a public host: no viewing key or wallet here. The operator
+    // machine pushes verified watcher results through the loopback operator listener.
+    if (!ack || !config.pilot || !process.env.ZECONE_OPERATOR_PORT) {
+      console.error(
+        "[zecone-payments] operator-fed monitor mode needs ZECONE_MONITOR_AUTHORIZED, ZECONE_PILOT_MERCHANT_OWNER (+ relayer, payout limit, Base RPCs), ZECONE_OPERATOR_TOKEN and ZECONE_OPERATOR_PORT.",
+      );
+      process.exit(1);
+    }
+    config.monitor = {
+      authorized: true,
+      source: "operator",
+      minimumConfirmations: 20,
+      intervalSeconds: 120,
+      maxSnapshotAgeSeconds: Number(process.env.ZECONE_WATCH_MAX_AGE_SECONDS ?? 900),
+    };
+  } else if (!ack || !workerConfig) {
     console.error(
       "[zecone-payments] monitor mode needs ZECONE_MONITOR_AUTHORIZED=I_UNDERSTAND_NO_AUTOMATIC_PAYOUT and ZECONE_WATCH_WORKER_CONFIG (the mainnet watch worker config).",
     );
     process.exit(1);
   }
-  try {
-    const w = watcherFromWorkerConfig(workerConfig, config.checkoutAddress);
+  if (!operatorFed) try {
+    const w = watcherFromWorkerConfig(workerConfig!, config.checkoutAddress);
     config.monitor = {
       authorized: true,
       source: w.source,
@@ -56,9 +73,22 @@ server.on("error", (e: NodeJS.ErrnoException) => {
   app.close();
   process.exit(1);
 });
+// Operator listener: loopback only and never proxied by the public Nginx site.
+// Reached from the operator machine through an SSH tunnel.
+const OPERATOR_PORT = Number(process.env.ZECONE_OPERATOR_PORT ?? 0);
+const operatorServer = OPERATOR_PORT && config.pilot ? createServer((req, res) => void app.handleOperator(req, res)) : null;
+if (operatorServer) {
+  if (OPERATOR_PORT === PORT) {
+    console.error("[zecone-payments] ZECONE_OPERATOR_PORT must differ from the public port");
+    process.exit(1);
+  }
+  operatorServer.listen(OPERATOR_PORT, "127.0.0.1", () =>
+    console.log(`[zecone-payments] operator listener http://127.0.0.1:${OPERATOR_PORT} (loopback only)`),
+  );
+}
 server.listen(PORT, HOST, () => {
   console.log(
-    `[zecone-payments] http://${HOST}:${PORT} (${config.mode} mode; live payout and Zcash broadcast disabled${config.mode === "monitor" ? "; real deposits observed read-only" : "; simulated checkouts"})`,
+    `[zecone-payments] http://${HOST}:${PORT} (${config.mode} mode; no keys or broadcast in this process${config.pilot ? "; RESTRICTED PILOT: real orders for one approved merchant, operator-approved settlement" : config.mode === "monitor" ? "; real deposits observed read-only" : "; simulated checkouts"})`,
   );
   console.log(`[zecone-payments] hosted checkout base: ${config.publicCheckoutBaseUrl}`);
   console.log(
@@ -71,6 +101,7 @@ server.listen(PORT, HOST, () => {
 
 const shutdown = () => {
   server.close();
+  operatorServer?.close();
   app.close();
   process.exit(0);
 };

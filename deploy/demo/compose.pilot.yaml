@@ -1,0 +1,27 @@
+# Restricted public mainnet pilot (layer on top of compose.yaml + compose.nginx.yaml).
+#
+# The public payment API creates REAL orders only for the one approved merchant
+# (SIWE-verified payout = ZECONE_PILOT_MERCHANT_OWNER), capped per order, one
+# active checkout on the shared address. The demo storefront keeps creating
+# simulated orders. No viewing key, wallet, keystore or signer is on this host:
+# the operator machine runs the existing watcher and payout session and reports
+# through the loopback-only operator listener (127.0.0.1:4322, not proxied by
+# Nginx; reached over SSH). Payout reports are re-verified on two Base RPCs.
+#
+# Values marked ?: come from deploy/demo/.env on the VPS (chmod 600).
+services:
+  payments:
+    environment:
+      ZECONE_PAYMENTS_MODE: monitor
+      ZECONE_WATCH_SOURCE: operator
+      ZECONE_MONITOR_AUTHORIZED: I_UNDERSTAND_NO_AUTOMATIC_PAYOUT
+      ZECONE_CHECKOUT_ADDRESS: ${ZECONE_CHECKOUT_ADDRESS:?set the reviewed watch-wallet unified address}
+      ZECONE_PILOT_MERCHANT_OWNER: "0x4b5750d7675f14eB844B74477015302Bf31AE2dB"
+      ZECONE_RELAYER_ADDRESS: "0x0BccE2De6b41522a68e7A7915C6947CFE37B9f18"
+      ZECONE_PILOT_MAX_AMOUNT_USD: "0.01"
+      ZECONE_PILOT_MAX_PAYOUT_WEI: "300000000000000"
+      ZECONE_RELAYER_AVAILABLE_WEI: "314918223806759"
+      ZECONE_BASE_PAYOUT_RPCS: https://mainnet.base.org,https://base-rpc.publicnode.com
+      ZECONE_EXCLUSIVE_ALLOCATION: "1"
+      ZECONE_OPERATOR_PORT: "4322"
+      ZECONE_OPERATOR_TOKEN: ${ZECONE_OPERATOR_TOKEN:?set a 48+ character random operator token}
