@@ -70,6 +70,14 @@ pub struct PreparedInput {
     pub zatoshis: u64,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FinalizedFundingSpend {
+    pub txid: String,
+    pub mined_height: u32,
+    pub selected_notes: Vec<PreparedInput>,
+    pub change_zatoshis: u64,
+}
+
 #[derive(Clone, Debug)]
 pub struct ProviderAgreement {
     pub common_height: u32,
@@ -634,8 +642,8 @@ pub fn verify_expected_deposit(
 }
 
 /// Returns the exact expected note's current spent state without assuming the
-/// answer. Reconciliation uses this after authenticated inclusion; preparation
-/// continues to use `verify_expected_deposit`, which requires unspent.
+/// answer. Preparation separately proves that any selected change descends
+/// from this authenticated deposit through finalized journal entries.
 pub fn expected_deposit_status(
     path: &Path,
     txid: &str,
@@ -663,11 +671,243 @@ pub fn expected_deposit_status(
         matches.len() == 1,
         "expected deposit not found exactly once"
     );
+    let confirmations = tip.saturating_sub(mined_height) + 1;
+    ensure!(
+        confirmations >= MIN_CONFIRMATIONS,
+        "insufficient confirmations"
+    );
     Ok(json!({
         "txid": txid, "pool": pool, "index": index, "zatoshis": zatoshis.to_string(),
-        "height": mined_height, "confirmations": tip.saturating_sub(mined_height) + 1,
+        "height": mined_height, "confirmations": confirmations,
         "spent": matches[0]["spent"], "verified": true,
     }))
+}
+
+fn txid_display(mut bytes: Vec<u8>) -> String {
+    bytes.reverse();
+    hex::encode(bytes)
+}
+
+fn funding_rows(path: &Path) -> Result<Value> {
+    let conn = rusqlite::Connection::open_with_flags(
+        path.join("wallet.sqlite"),
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )?;
+    let mut stmt = conn.prepare(
+        "SELECT t.txid,t.mined_height,r.pool,r.output_index,r.value,r.is_change,
+                (SELECT st.txid FROM v_received_output_spends s
+                  JOIN transactions st ON st.id_tx=s.transaction_id
+                 WHERE s.pool=r.pool AND s.received_output_id=r.id_within_pool_table)
+         FROM v_received_outputs r JOIN transactions t ON t.id_tx=r.transaction_id
+         WHERE r.value>0 ORDER BY t.mined_height,r.pool,r.output_index",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        let txid = txid_display(row.get(0)?);
+        let spent_by = row.get::<_, Option<Vec<u8>>>(6)?.map(txid_display);
+        Ok(json!({
+            "txid": txid,
+            "height": row.get::<_, Option<u32>>(1)?,
+            "pool": row.get::<_, u32>(2)?,
+            "index": row.get::<_, u16>(3)?,
+            "zatoshis": row.get::<_, u64>(4)?.to_string(),
+            "change": row.get::<_, bool>(5)?,
+            "spentBy": spent_by,
+        }))
+    })?;
+    Ok(Value::Array(rows.collect::<Result<Vec<_>, _>>()?))
+}
+
+fn funding_key(txid: &str, pool: &str, index: u16) -> String {
+    format!("{}:{}:{}", txid.to_ascii_lowercase(), pool, index)
+}
+
+fn funding_pool(pool: u32) -> Result<&'static str> {
+    match pool {
+        2 => Ok("sapling"),
+        3 => Ok("orchard"),
+        4 => Ok("ironwood"),
+        _ => bail!("unsupported funding pool"),
+    }
+}
+
+fn verify_funding_rows(
+    rows: &Value,
+    tip: u32,
+    finalized: &[FinalizedFundingSpend],
+    selected: &[PreparedInput],
+    deposit_txid: &str,
+    deposit_pool: u32,
+    deposit_index: u16,
+    deposit_zatoshis: u64,
+    deposit_height: u32,
+) -> Result<Value> {
+    let rows = rows.as_array().context("funding rows are not an array")?;
+    let mut by_key = std::collections::HashMap::<String, &Value>::new();
+    for row in rows {
+        let key = funding_key(
+            row["txid"].as_str().context("funding txid missing")?,
+            funding_pool(row["pool"].as_u64().context("funding pool missing")? as u32)?,
+            u16::try_from(row["index"].as_u64().context("funding index missing")?)?,
+        );
+        ensure!(
+            by_key.insert(key, row).is_none(),
+            "duplicate funding output"
+        );
+    }
+
+    let deposit_key = funding_key(deposit_txid, funding_pool(deposit_pool)?, deposit_index);
+    let deposit = by_key
+        .get(&deposit_key)
+        .context("authenticated deposit output missing")?;
+    ensure!(
+        deposit["zatoshis"].as_str() == Some(&deposit_zatoshis.to_string()),
+        "authenticated deposit value mismatch"
+    );
+    ensure!(
+        deposit["height"] == deposit_height,
+        "authenticated deposit height mismatch"
+    );
+    ensure!(
+        deposit["change"] == false,
+        "authenticated deposit marked as change"
+    );
+    ensure!(
+        tip.saturating_sub(deposit_height) + 1 >= MIN_CONFIRMATIONS,
+        "authenticated deposit has insufficient confirmations"
+    );
+
+    let mut authorized = std::collections::HashSet::from([deposit_key]);
+    let mut finalized = finalized.to_vec();
+    finalized.sort_by_key(|spend| spend.mined_height);
+    let mut finalized_txids = std::collections::HashSet::new();
+    for spend in finalized {
+        ensure!(
+            finalized_txids.insert(spend.txid.to_ascii_lowercase()),
+            "duplicate finalized funding transaction"
+        );
+        ensure!(
+            tip.saturating_sub(spend.mined_height) + 1 >= MIN_CONFIRMATIONS,
+            "finalized funding transaction has insufficient confirmations"
+        );
+        for input in &spend.selected_notes {
+            let key = funding_key(&input.txid, &input.pool, input.output_index);
+            ensure!(
+                authorized.contains(&key),
+                "unrelated note entered funding lineage"
+            );
+            let row = by_key
+                .get(&key)
+                .context("finalized input missing from wallet")?;
+            ensure!(
+                row["zatoshis"].as_str() == Some(&input.zatoshis.to_string()),
+                "finalized input value mismatch"
+            );
+            ensure!(
+                row["spentBy"]
+                    .as_str()
+                    .is_some_and(|txid| txid.eq_ignore_ascii_case(&spend.txid)),
+                "finalized transaction does not spend its reviewed input"
+            );
+        }
+        let change = rows
+            .iter()
+            .filter(|row| {
+                row["change"] == true
+                    && row["txid"]
+                        .as_str()
+                        .is_some_and(|txid| txid.eq_ignore_ascii_case(&spend.txid))
+            })
+            .collect::<Vec<_>>();
+        ensure!(
+            !change.is_empty(),
+            "finalized transaction change is missing"
+        );
+        let change_total = change.iter().try_fold(0u64, |sum, row| {
+            sum.checked_add(
+                row["zatoshis"]
+                    .as_str()
+                    .context("change value missing")?
+                    .parse::<u64>()?,
+            )
+            .context("change value overflow")
+        })?;
+        ensure!(
+            change_total == spend.change_zatoshis,
+            "finalized change value mismatch"
+        );
+        for row in change {
+            ensure!(
+                row["height"] == spend.mined_height,
+                "finalized change height mismatch"
+            );
+            authorized.insert(funding_key(
+                row["txid"].as_str().context("change txid missing")?,
+                funding_pool(row["pool"].as_u64().context("change pool missing")? as u32)?,
+                u16::try_from(row["index"].as_u64().context("change index missing")?)?,
+            ));
+        }
+    }
+
+    ensure!(!selected.is_empty(), "proposal has no funding inputs");
+    let mut selected_total = 0u64;
+    for input in selected {
+        let key = funding_key(&input.txid, &input.pool, input.output_index);
+        ensure!(
+            authorized.contains(&key),
+            "proposal selected an unrelated deposit"
+        );
+        let row = by_key
+            .get(&key)
+            .context("proposal input missing from wallet")?;
+        ensure!(
+            row["zatoshis"].as_str() == Some(&input.zatoshis.to_string()),
+            "proposal input value mismatch"
+        );
+        ensure!(row["spentBy"].is_null(), "proposal input is already spent");
+        let height = u32::try_from(
+            row["height"]
+                .as_u64()
+                .context("proposal input height missing")?,
+        )?;
+        ensure!(
+            tip.saturating_sub(height) + 1 >= MIN_CONFIRMATIONS,
+            "proposal input has insufficient confirmations"
+        );
+        selected_total = selected_total
+            .checked_add(input.zatoshis)
+            .context("selected input total overflow")?;
+    }
+    Ok(json!({
+        "authenticatedDeposit": deposit_txid,
+        "finalizedDescendants": finalized_txids.len(),
+        "selectedInputs": selected.len(),
+        "selectedZatoshis": selected_total.to_string(),
+        "verified": true,
+    }))
+}
+
+pub fn verify_funding_lineage(
+    path: &Path,
+    finalized: &[FinalizedFundingSpend],
+    selected: &[PreparedInput],
+    deposit_txid: &str,
+    deposit_pool: u32,
+    deposit_index: u16,
+    deposit_zatoshis: u64,
+    deposit_height: u32,
+) -> Result<Value> {
+    let tip = summary(path)?["tip"].as_u64().context("tip missing")? as u32;
+    verify_funding_rows(
+        &funding_rows(path)?,
+        tip,
+        finalized,
+        selected,
+        deposit_txid,
+        deposit_pool,
+        deposit_index,
+        deposit_zatoshis,
+        deposit_height,
+    )
 }
 
 fn verify_note_rows(
@@ -1144,5 +1384,54 @@ mod tests {
         spent["spent"] = json!(true);
         assert!(verify_note_rows(&json!([spent]), 119, "ab", 4, 0, 645_937, 100).is_err());
         assert!(verify_note_rows(&one, 118, "ab", 4, 0, 645_937, 100).is_err());
+    }
+
+    #[test]
+    fn funding_lineage_accepts_finalized_change_and_rejects_substitution() {
+        let rows = json!([
+            {"txid":"deposit","height":100,"pool":4,"index":0,"zatoshis":"645937","change":false,"spentBy":"withdrawal"},
+            {"txid":"withdrawal","height":130,"pool":4,"index":1,"zatoshis":"535937","change":true,"spentBy":null},
+            {"txid":"unrelated","height":140,"pool":4,"index":0,"zatoshis":"535937","change":false,"spentBy":null}
+        ]);
+        let finalized = [FinalizedFundingSpend {
+            txid: "withdrawal".into(),
+            mined_height: 130,
+            selected_notes: vec![PreparedInput {
+                txid: "deposit".into(),
+                pool: "ironwood".into(),
+                output_index: 0,
+                zatoshis: 645_937,
+            }],
+            change_zatoshis: 535_937,
+        }];
+        let change = [PreparedInput {
+            txid: "withdrawal".into(),
+            pool: "ironwood".into(),
+            output_index: 1,
+            zatoshis: 535_937,
+        }];
+        verify_funding_rows(
+            &rows, 160, &finalized, &change, "deposit", 4, 0, 645_937, 100,
+        )
+        .unwrap();
+
+        let unrelated = [PreparedInput {
+            txid: "unrelated".into(),
+            pool: "ironwood".into(),
+            output_index: 0,
+            zatoshis: 535_937,
+        }];
+        assert!(
+            verify_funding_rows(
+                &rows, 160, &finalized, &unrelated, "deposit", 4, 0, 645_937, 100,
+            )
+            .is_err()
+        );
+        let mut wrong = finalized[0].clone();
+        wrong.change_zatoshis -= 1;
+        assert!(
+            verify_funding_rows(&rows, 160, &[wrong], &change, "deposit", 4, 0, 645_937, 100,)
+                .is_err()
+        );
     }
 }

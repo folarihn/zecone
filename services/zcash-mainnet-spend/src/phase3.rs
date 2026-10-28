@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use crate::{
     CommonWallet, DEPOSIT_HEIGHT, DEPOSIT_INDEX, DEPOSIT_POOL, DEPOSIT_TXID, DEPOSIT_ZATOSHIS,
     broadcast, construct_with_prover_stack, exact_approval, initialize_and_sync, journal,
-    lock_wallet, now, runtime, unlock, wallet,
+    lock_wallet, now, runtime, unlock, verify_prepared_funding, wallet,
 };
 
 #[derive(Args)]
@@ -167,6 +167,8 @@ pub fn prepare(args: PrepareArgs) -> Result<()> {
         args.max_fee,
         &args.common.expected_account,
     )?;
+    let mut store = journal::SessionStore::open(&args.journal)?;
+    let funding = verify_prepared_funding(&args.common.wallet, &store, &prepared.inputs)?;
     let created = now()?;
     let session_id = uuid::Uuid::new_v4().simple().to_string();
     let session = reviewed(
@@ -182,14 +184,13 @@ pub fn prepare(args: PrepareArgs) -> Result<()> {
         std::fs::create_dir_all(parent)?;
     }
     wallet::snapshot_wallet(&args.common.wallet, &snapshot)?;
-    let mut store = journal::SessionStore::open(&args.journal)?;
     if let Err(error) = store.prepare(&session, created) {
         let _ = std::fs::remove_dir_all(&snapshot);
         return Err(error);
     }
     println!(
         "{}",
-        json!({"stage":"SIGN_REVIEW","identity":identity,"sync":sync,"deposit":deposit,
+        json!({"stage":"SIGN_REVIEW","identity":identity,"sync":sync,"deposit":deposit,"fundingLineage":funding,
         "prepared":prepared,"preparedDigest":digest,"sessionId":session_id,"sessionExpires":session.expires,
         "signReviewDigest":journal::sign_review_digest(&session)?,"signed":false,"broadcast":false})
     );
@@ -217,6 +218,18 @@ pub fn sign(args: SessionArgs) -> Result<()> {
         store.record_sign(&status.session, now()?)?;
     }
     let (_identity, sync, _deposit) = initialize_and_sync(&rt, &args.common, &seed)?;
+    let selected = status
+        .session
+        .selected_notes
+        .iter()
+        .map(|note| wallet::PreparedInput {
+            txid: note.txid.clone(),
+            pool: note.pool.clone(),
+            output_index: note.output_index,
+            zatoshis: note.zatoshis,
+        })
+        .collect::<Vec<_>>();
+    verify_prepared_funding(&args.common.wallet, &store, &selected)?;
     let tip = sync["tip"].as_u64().context("sync tip missing")? as u32;
     ensure!(
         tip < status.session.expiry_height,
@@ -341,6 +354,18 @@ pub fn broadcast(args: BroadcastArgs) -> Result<()> {
     let review = journal::broadcast_review_digest(&approval)?;
     exact_approval("BROADCAST", &args.session.session, &review)?;
     let (_identity, sync, _deposit) = initialize_and_sync(&rt, common, &seed)?;
+    let selected = status
+        .session
+        .selected_notes
+        .iter()
+        .map(|note| wallet::PreparedInput {
+            txid: note.txid.clone(),
+            pool: note.pool.clone(),
+            output_index: note.output_index,
+            zatoshis: note.zatoshis,
+        })
+        .collect::<Vec<_>>();
+    verify_prepared_funding(&common.wallet, &store, &selected)?;
     let tip = sync["tip"].as_u64().context("sync tip missing")? as u32;
     ensure!(
         tip < status.session.expiry_height,

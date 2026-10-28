@@ -58,7 +58,7 @@ test("public site: every route renders and every internal link resolves", async 
   expect(errors).toEqual([]);
 });
 
-test("unified site and functional wallet fit desktop and mobile viewports", async ({
+test("unified site and secure local-wallet handoff fit desktop and mobile viewports", async ({
   page,
 }) => {
   const routes = [
@@ -87,8 +87,15 @@ test("unified site and functional wallet fit desktop and mobile viewports", asyn
   }
   await page.goto(WEB + "/wallet");
   await expect(
-    page.locator('.wallet-scope[data-theme="zecone"]'),
+    page.getByRole("heading", { name: "Open ZecOne on this computer" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /Open local wallet/ }),
+  ).toHaveAttribute("href", "http://127.0.0.1:3210");
+  await expect(page.getByLabel("Have a local pairing code?")).toHaveCount(0);
+  await expect(page.locator('.wallet-scope[data-theme="zecone"]')).toHaveCount(
+    0,
+  );
 });
 
 test("homepage widget: live quote preview, then a hosted demo checkout that completes server-side", async ({

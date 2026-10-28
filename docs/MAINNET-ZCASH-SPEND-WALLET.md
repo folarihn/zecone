@@ -43,7 +43,9 @@ unlocked seed derives address `u1qqq8z5wnpx…`, matching `provisioning.json`.
 ## 3. Live-spend procedure (two approvals)
 
 1. **SYNC** — open the mainnet wallet, sync to tip, and confirm the note is
-   unspent (nullifier not seen, not spent, ≥20 confirmations, no reorg).
+   mature and canonical. If the original authenticated deposit was spent by a
+   prior finalized ZecOne transaction, reconstruct its journal-backed change
+   lineage and require the newly selected input to be an unspent descendant.
 2. **PROPOSE** — select the owned note, build the shielded proposal, report
    recipient, amount, fee, change, and expiry height for human review.
 3. **SIGN approval** (single-use, exact): recipient, amount, fee ceiling,
@@ -57,6 +59,11 @@ unlocked seed derives address `u1qqq8z5wnpx…`, matching `provisioning.json`.
    spendability checks and both height/time expiry checks.
 6. **Reconcile** — never blind-resend; reconcile the exact txid against two
    lightwalletd peers before any retry.
+
+Every successor spend rechecks the original deposit, each finalized parent
+transaction, exact reviewed inputs, wallet-recorded spend edges, mined heights,
+change totals and the current unspent input. A note from an unrelated deposit
+cannot enter the lineage merely because it belongs to the same wallet.
 
 Mock mode advances the same durable journal using deterministic outcomes but
 cannot invoke a network submission. Live broadcast remains disabled unless all

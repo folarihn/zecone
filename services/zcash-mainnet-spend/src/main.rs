@@ -228,7 +228,7 @@ fn initialize_and_sync(
         &common.peer,
     ))?;
     let sync = rt.block_on(wallet::sync(&common.wallet, &common.server, &common.peer))?;
-    let deposit = wallet::verify_expected_deposit(
+    let deposit = wallet::expected_deposit_status(
         &common.wallet,
         DEPOSIT_TXID,
         DEPOSIT_POOL,
@@ -237,6 +237,48 @@ fn initialize_and_sync(
         DEPOSIT_HEIGHT,
     )?;
     Ok((identity, sync, deposit))
+}
+
+fn verify_prepared_funding(
+    wallet_path: &Path,
+    store: &journal::SessionStore,
+    selected: &[wallet::PreparedInput],
+) -> Result<Value> {
+    let finalized = store
+        .history()?
+        .into_iter()
+        .filter(|status| status.state == journal::State::Finalized)
+        .map(|status| {
+            Ok(wallet::FinalizedFundingSpend {
+                txid: status.txid.context("finalized transaction id missing")?,
+                mined_height: status
+                    .mined_height
+                    .context("finalized transaction height missing")?,
+                selected_notes: status
+                    .session
+                    .selected_notes
+                    .into_iter()
+                    .map(|note| wallet::PreparedInput {
+                        txid: note.txid,
+                        pool: note.pool,
+                        output_index: note.output_index,
+                        zatoshis: note.zatoshis,
+                    })
+                    .collect(),
+                change_zatoshis: status.session.change_zatoshis,
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    wallet::verify_funding_lineage(
+        wallet_path,
+        &finalized,
+        selected,
+        DEPOSIT_TXID,
+        DEPOSIT_POOL,
+        u16::try_from(DEPOSIT_INDEX)?,
+        DEPOSIT_ZATOSHIS,
+        DEPOSIT_HEIGHT,
+    )
 }
 
 fn exact_approval(prefix: &str, session_id: &str, digest: &str) -> Result<()> {
@@ -413,6 +455,9 @@ fn main() -> Result<()> {
                 max_fee,
                 &common.expected_account,
             )?;
+            let lineage_store = journal::SessionStore::open(&journal)?;
+            let funding =
+                verify_prepared_funding(&common.wallet, &lineage_store, &prepared.inputs)?;
             // Freeze the exact reviewed wallet state before waiting for SIGN.
             // Later chain growth must not silently rewrite target/anchor heights.
             let snapshot_parent = common.wallet.parent().context("wallet has no parent")?;
@@ -444,6 +489,7 @@ fn main() -> Result<()> {
                     "identity":identity,
                     "sync":sync,
                     "deposit":deposit,
+                    "fundingLineage":funding,
                     "prepared":prepared,
                     "preparedDigest":prepared_digest,
                     "sessionId":session_id,
