@@ -350,6 +350,22 @@ const receipt = await zecone.payments.receipt(id);     // COMPLETED only
                 payments through <code>payment.detected</code> to <code>payment.zec_confirmed</code> with chain evidence (txid,
                 height, confirmations, tip, ownership digest). It never triggers a payout: <code>settlement: &quot;disabled&quot;</code>.
               </p>
+              <p>
+                <strong>Restricted mainnet pilot</strong>: an operator-fed monitor checkout for one approved merchant reports{" "}
+                <code>settlement: &quot;operator-approved&quot;</code>. After the required confirmations the ZecOne operator approves the
+                Base payout through its separate workflow; the checkout completes only once that Base transaction is verified final.
+              </p>
+              <p>
+                The hosted page, the <code>/embed</code> view and <code>@zecone/sdk/react</code> validate every checkout view and show
+                exactly one labelled status: <strong>SIMULATED DEMO</strong> (no funds move, no address);{" "}
+                <strong>MAINNET PAYMENT</strong> with <strong>OBSERVING</strong> (exact ZEC amount, shielded address, ZIP-321 QR and quote
+                countdown), <strong>CONFIRMING</strong> (current / required confirmations), <strong>PAYOUT PENDING</strong> (ZEC confirmed,
+                Base transaction not final) and <strong>COMPLETED</strong> (only with the finalized Base receipt); and the fail-closed{" "}
+                <strong>MANUAL REVIEW</strong>, <strong>REORG</strong>, <strong>PROVIDER DISAGREEMENT</strong>,{" "}
+                <strong>WATCHER PAUSED</strong>, <strong>EXPIRED</strong>, <strong>FAILED</strong> and <strong>CANNOT VERIFY</strong>.
+                Payment details are hidden whenever the quote has expired, the watcher is not ready, the connection is lost or the
+                view is inconsistent. Customers pay from any compatible Zcash wallet; the website is not a wallet.
+              </p>
               <Callout tone="warning" title="Live settlement is disabled in this build">
                 Base payouts stay behind the operator&apos;s separate SIGN and BROADCAST approvals, liquidity checks and the paused
                 submitter.
