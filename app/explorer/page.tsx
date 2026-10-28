@@ -12,8 +12,9 @@ function parseLink(input: string): { id: string; token: string } | null {
   return m ? { id: m[1], token: m[2] } : null;
 }
 
-// The recorded ZecOne mainnet pilot, in the order it happened. Values come from
-// app/evidence.ts and are exactly as recorded on chain; nothing here is live.
+// Intentionally public, recorded Mainnet evidence. The first three entries are
+// the historical cross-chain pilot; the fourth is a separate Zcash execution
+// test. Values come from app/evidence.ts; nothing here is a live wallet feed.
 const TIMELINE = [
   {
     chain: "zcash" as const,
@@ -49,6 +50,18 @@ const TIMELINE = [
     sub: `fee ${EVIDENCE.zcashWithdrawal.feeZat} zat, change ${EVIDENCE.zcashWithdrawal.changeZat} zat`,
     hash: EVIDENCE.zcashWithdrawal.txid,
     href: zcashTx(EVIDENCE.zcashWithdrawal.txid),
+    explorer: "zcashblockexplorer.com",
+  },
+  {
+    chain: "zcash" as const,
+    title: "Operator-approved Mainnet execution test",
+    explain: "A separate, real Zcash mainnet transfer proved the guarded local workflow can synchronize, prepare, require exact SIGN and BROADCAST approvals, submit once and reconcile to finality. It was not created by the hosted checkout and did not trigger a Base payout.",
+    network: "Zcash mainnet",
+    block: EVIDENCE.zcashExecutionTest.block,
+    amount: "0.0001 ZEC",
+    sub: `fee ${EVIDENCE.zcashExecutionTest.feeZat} zat, change ${EVIDENCE.zcashExecutionTest.changeZat} zat · FINALIZED (${EVIDENCE.zcashExecutionTest.finalityThreshold}+ confirmations)`,
+    hash: EVIDENCE.zcashExecutionTest.txid,
+    href: zcashTx(EVIDENCE.zcashExecutionTest.txid),
     explorer: "zcashblockexplorer.com",
   },
 ];
@@ -137,11 +150,12 @@ export default function Explorer() {
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div className="max-w-2xl">
               <h2 id="evidence-h" className="zc-h2 text-ink">
-                Mainnet pilot evidence
+                Mainnet transaction evidence
               </h2>
               <p className="mt-3 text-[16.5px] leading-relaxed text-muted">
-                The full ZecOne path ran once on Zcash and Base mainnet. These are those transactions, exactly as recorded. Every
-                demo checkout replays them and is labelled as a replay. This is a record, not a live feed.
+                The first three records document the historical Zcash-to-Base pilot. The fourth is a separate, operator-approved
+                Zcash mainnet execution test. Demo checkouts replay the historical pilot and are labelled as simulations; they do
+                not create these transactions. This is intentionally public evidence, not a live wallet feed.
               </p>
             </div>
             <Pill tone="green" dot>

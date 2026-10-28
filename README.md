@@ -1,11 +1,15 @@
 # ZecOne — wallet and shielded-payment demo
 
-**Current launch status (26 October 2026):** the paired local browser wallet can
+**Current launch status (28 October 2026):** the paired local browser wallet can
 switch explicitly between Testnet and a read-only projection of the existing
 verified Mainnet wallet. Mainnet receive, balance, history and sync freshness are
-visible; browser mainnet signing and broadcasting remain disabled. The public
-merchant experience is a demo-only replay with no payable address and no live
-settlement. See [wallet audit](docs/WALLET-MAINNET-AUDIT.md), [demo deployment](docs/DEMO-DEPLOYMENT.md), and [submission package](submission/README.md).
+visible locally; the public website cannot pair with that wallet or request a
+signature. A separate operator-reviewed workflow executed and finalized a real
+Zcash mainnet transfer (`0f0e9442…1def47`) with exact SIGN and BROADCAST gates.
+The public merchant experience remains a demo-only replay with no payable
+address or live cross-chain settlement. See [wallet audit](docs/WALLET-MAINNET-AUDIT.md),
+[mainnet evidence](submission/EVIDENCE.md), [demo deployment](docs/DEMO-DEPLOYMENT.md),
+and [submission package](submission/README.md).
 
 The historical prototype is a Next.js wallet over a native Rust Zcash wallet,
 durable TypeScript/SQLite order service, and prefunded Base Sepolia settlement.

@@ -1,7 +1,8 @@
 # ZecOne — Mainnet evidence
 
-All values below are real, verified on-chain facts from the ZecOne mainnet
-pilot. Nothing is simulated or fabricated.
+All values below are real, verified on-chain facts from the historical ZecOne
+mainnet pilot and the separate operator-approved Zcash execution test. Nothing
+is simulated or fabricated.
 
 ---
 
@@ -47,6 +48,27 @@ pilot. Nothing is simulated or fabricated.
 - The durable journal advanced `PREPARED → SIGNED → SUBMITTED → CONFIRMED →
   FINALIZED` with a 20-confirmation threshold.
 
+## 4. Operator-approved Zcash mainnet execution test
+
+This is a separate real transfer proving the guarded execution workflow. It is
+not a hosted-checkout payment and did not trigger a Base payout.
+
+| Field | Value |
+|---|---|
+| Transaction | `0f0e944238b7649fa927876875011cc97ea7972eeb8da6ba445898ce3c1def47` |
+| Sent | 10,000 zatoshis (0.0001 ZEC) |
+| Network fee | 10,000 zatoshis |
+| Shielded change | 515,937 zatoshis (returned to wallet) |
+| Mined height | 3,533,388 |
+| Confirmations at verification | 11 |
+| Required finality threshold | 10 confirmations |
+| Status | **FINALIZED**; provider agreement **PASS** |
+| Explorer | https://zcashblockexplorer.com/transactions/0f0e944238b7649fa927876875011cc97ea7972eeb8da6ba445898ce3c1def47 |
+
+The durable journal records one accepted submission attempt. Exact SIGN and
+BROADCAST approvals were independently bound to the prepared transaction; the
+public website never received the keystore, passphrase or signed bundle.
+
 ## Honest distinction: real vs. simulated
 
 | Transaction | Real or simulated |
@@ -54,6 +76,7 @@ pilot. Nothing is simulated or fabricated.
 | Shielded deposit | **Real** (mainnet) |
 | Base payout | **Real** (mainnet, finalized) |
 | Shielded withdrawal | **Real** (mainnet, finalized) |
+| Operator-approved Zcash execution test | **Real** (mainnet, finalized; separate from checkout settlement) |
 | Checkout/DApp demo orders | **Simulated** (replays the recorded evidence; clearly labeled; no new funds) |
 
 ## Working configuration

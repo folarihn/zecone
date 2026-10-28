@@ -63,6 +63,9 @@ component** (`@zecone/sdk/react`), an **iframe** (`/embed/:id`) or a
   — 0.003284955372432969 ETH, block 53,065,894 (finalized).
 - **Shielded withdrawal**: `0316e2140f5a3440c2755e3f92c748a5f215d509d690d52b4858bfcc9a8af02f`
   — sent 100,000 zat, fee 10,000 zat, change 535,937 zat, block 3,531,047 (finalized, 20+ conf).
+- **Separate Zcash execution test**: `0f0e944238b7649fa927876875011cc97ea7972eeb8da6ba445898ce3c1def47`
+  — sent 10,000 zat, fee 10,000 zat, change 515,937 zat, block 3,533,388
+  (finalized at the required 10 confirmations). This transfer did not trigger a Base payout.
 
 See [`EVIDENCE.md`](./EVIDENCE.md) for full finality details and explorer links.
 
@@ -96,6 +99,10 @@ Three separated modes:
 | **Demo** (default) | Simulated checkout; a server-side observer replays the recorded mainnet pilot transactions, labelled `recorded-mainnet-replay` / `simulated: true` | None — a labelled example interface | None |
 | **Monitor** (operator-authorized) | Real deposits observed read-only via the authenticated watcher; attribution, 20 confirmations, reorg handling, chain evidence | Real receiving address | None — stops at `ZEC_CONFIRMED` |
 | **Live settlement** | Disabled in this build | — | Operator SIGN/BROADCAST gates only |
+
+The guarded local Zcash workflow has executed a real transfer. That does not
+make the hosted checkout live: public checkout-triggered Zcash execution and
+automatic Base settlement remain under development and disabled.
 
 No browser action can complete a payment. Full guide: [`INTEGRATION.md`](./INTEGRATION.md).
 

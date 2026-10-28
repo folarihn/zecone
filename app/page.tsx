@@ -86,7 +86,7 @@ function Marketing() {
             <div className="mt-9 flex flex-wrap gap-3">
               <ButtonLink href="/wallet-app">See the wallet</ButtonLink>
             </div>
-            <p className="mt-4 text-[14px] text-muted">Mainnet wallet support is in development; the current wallet build runs on testnets.</p>
+            <p className="mt-4 text-[14px] text-muted">The local launcher provides Testnet functionality and a verified read-only Mainnet wallet view. The public website cannot pair with it or request real Mainnet signatures.</p>
           </div>
           <WalletPreview />
         </Container>
@@ -174,8 +174,8 @@ function Marketing() {
             <SectionHeading
               tone="dark"
               eyebrow="Verified on mainnet"
-              title="The full path already ran once, for real"
-              subtitle="During the ZecOne pilot a shielded mainnet payment was received and the merchant was paid ETH on Base mainnet. Open each transaction on its block explorer. The demo checkout replays exactly these, and says so."
+              title="Real transactions, clearly separated from the demo"
+              subtitle="The historical pilot proves the shielded ZEC-to-Base path. A separate operator-approved Zcash transfer proves the guarded execution workflow. The demo checkout replays only the historical pilot and is labelled as a simulation."
               className="mb-6"
             />
             <Link href="/explorer#evidence" className="inline-flex items-center gap-2 font-semibold text-lime hover:underline underline-offset-4">
@@ -207,6 +207,14 @@ function Marketing() {
                 amount="0.001 ZEC"
                 href={zcashTx(EVIDENCE.zcashWithdrawal.txid)}
                 hash={EVIDENCE.zcashWithdrawal.txid}
+              />
+              <TxRow
+                chain="zcash"
+                title="Operator-approved Mainnet execution test"
+                meta={<span>Zcash block {fmt(EVIDENCE.zcashExecutionTest.block)} · finalized at 10 confirmations</span>}
+                amount="0.0001 ZEC"
+                href={zcashTx(EVIDENCE.zcashExecutionTest.txid)}
+                hash={EVIDENCE.zcashExecutionTest.txid}
               />
             </div>
           </div>

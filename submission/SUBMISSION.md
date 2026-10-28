@@ -13,11 +13,12 @@ operator approval gates.
 
 ## What is real, what is simulated
 
-- **Real, verified on mainnet:** the pilot's shielded deposit, Base payout and shielded spend (`EVIDENCE.md`).
+- **Real Zcash execution:** a separately approved Mainnet transfer (`0f0e9442…1def47`) was prepared, signed, broadcast once and finalized after the required 10 confirmations.
+- **Historical cross-chain evidence:** the earlier pilot's shielded deposit, Base payout and shielded wallet-control spend are real finalized Mainnet transactions (`EVIDENCE.md`).
 - **Real, read-only (built and tested with a synthetic chain; not yet run on mainnet):** monitor mode — the authenticated Zcash watcher feeding the payment API.
 - **Demonstrated:** the full merchant integration (onboarding → SDK → hosted/embedded checkout → signed webhook → server-side unlock), in demo mode.
-- **Simulated:** demo checkouts (no payable address; completion is a labelled replay of the pilot transactions).
-- **Disabled:** live settlement (Base payouts, Zcash broadcast).
+- **Working simulation:** hosted and embedded demo checkouts create real demo orders, but show no payable address; completion is a labelled replay of the historical pilot.
+- **Under development:** live hosted ZEC-to-Base settlement. Public checkout-triggered Zcash signing, Base payout and automatic settlement remain disabled.
 
 See `CHECKLIST.md` for the evidence behind each line.
 
@@ -57,7 +58,7 @@ See `CHECKLIST.md` for the evidence behind each line.
 1. Homepage hero + verified mainnet transactions.
 2. Demo checkout with quote + lifecycle steps and an explicit non-payable simulation label.
 3. Example DApp: locked → unlocked content.
-4. Explorer with the three mainnet transactions.
+4. Explorer with the three historical pilot transactions plus the separate finalized Zcash execution test.
 5. Security page architecture diagram.
 6. Developer docs SDK snippet.
 
@@ -72,9 +73,10 @@ npm run start:web            # website — http://localhost:3000
 npm run dapp:start           # reference DApp — http://127.0.0.1:4333
 ```
 
-Configuration: `.env.example`. Public deployment has **not** been done. The
-prepared Vercel + Contabo topology, secret handling and rollback procedure are
-documented in `docs/DEMO-DEPLOYMENT.md` and `deploy/demo/README.md`.
+Configuration: `.env.example`. The reviewed demo is deployed at
+`https://zecone.xyz`; Vercel serves the website and the Contabo service remains
+demo-only. The topology, secret handling and rollback procedure are documented
+in `docs/DEMO-DEPLOYMENT.md` and `deploy/demo/README.md`.
 
 ### Environment variables
 
@@ -109,4 +111,4 @@ excluded from the frontend build; the demo works without private credentials.
 - [x] Base wallet connectivity implemented.
 - [x] Security controls preserved; live payout disabled.
 - [x] Final local matrix: 634 Node tests, 73 Rust tests (including the normally ignored expensive synthetic proof), 36 wallet UI tests and 9 payment browser tests passed; Windows verifier finished with 0 FAIL.
-- [ ] Public deployment (not performed; requires explicit authorization).
+- [x] Public demo deployment verified at `https://zecone.xyz`; live settlement remains disabled.

@@ -1,7 +1,7 @@
 {
   "network": "zcash-mainnet",
   "payoutChain": "base-mainnet",
-  "generatedAt": "2026-10-26",
+  "generatedAt": "2026-10-28",
   "sanitized": true,
   "containsSecrets": false,
   "zcashDeposit": {
@@ -29,6 +29,18 @@
     "finalityThreshold": 20,
     "status": "FINALIZED",
     "providerAgreement": "PASS"
+  },
+  "zcashExecutionTest": {
+    "txid": "0f0e944238b7649fa927876875011cc97ea7972eeb8da6ba445898ce3c1def47",
+    "sentZatoshis": "10000",
+    "feeZatoshis": "10000",
+    "changeZatoshis": "515937",
+    "minedHeight": 3533388,
+    "confirmationsAtVerification": 11,
+    "finalityThreshold": 10,
+    "status": "FINALIZED",
+    "providerAgreement": "PASS",
+    "hostedCheckoutSettlement": false
   },
   "wallet": {
     "accountFingerprint": "c89c7cda1189ef6eaac30df339e43b74142e49dfd1340bad213c10e356eac6b9",

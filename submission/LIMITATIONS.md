@@ -9,8 +9,10 @@ An honest account of what is not yet implemented or is intentionally limited.
   relayer's available liquidity.
 - **Manual relayer liquidity replenishment.** The operator tops up the relayer
   out of band (`services/settlement/mainnet-liquidity`).
-- **Live payout is disabled by default.** Real relayer signing and broadcasting
-  require operator-armed controls plus exact SIGN/BROADCAST approvals.
+- **Live hosted payout is disabled.** A separate local workflow has executed a
+  real operator-approved Zcash transfer, but public checkout-triggered signing,
+  Base payout and automatic settlement are not enabled. Any real relayer action
+  still requires operator-armed controls plus exact SIGN/BROADCAST approvals.
 
 ## Privacy
 

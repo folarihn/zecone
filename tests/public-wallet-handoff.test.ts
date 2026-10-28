@@ -12,3 +12,14 @@ test("public wallet route hands off to the loopback gateway and never renders cl
     /if \(process\.env\.ZECONE_SURFACE !== "wallet"\) return <LocalWalletHandoff \/>/,
   );
 });
+
+test("public wallet copy distinguishes the verified local Mainnet view", () => {
+  const handoff = readFileSync("app/wallet/page.tsx", "utf8");
+  const overview = readFileSync("app/wallet-app/page.tsx", "utf8");
+  const home = readFileSync("app/page.tsx", "utf8");
+  assert.match(handoff, /Verified Mainnet receiving, balance, history and sync views run in the local wallet/);
+  assert.match(overview, /Verified local Mainnet view/);
+  assert.match(overview, /public website cannot pair with the local wallet/);
+  assert.match(home, /verified read-only Mainnet wallet view/);
+  assert.doesNotMatch(overview, /current build runs on testnets/);
+});

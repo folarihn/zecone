@@ -20,6 +20,16 @@ export const EVIDENCE = {
     changeZat: "535937",
     block: 3531047,
   },
+  zcashExecutionTest: {
+    txid: "0f0e944238b7649fa927876875011cc97ea7972eeb8da6ba445898ce3c1def47",
+    sentZat: "10000",
+    feeZat: "10000",
+    changeZat: "515937",
+    block: 3533388,
+    finalityThreshold: 10,
+    confirmationsAtVerification: 11,
+    status: "FINALIZED",
+  },
 } as const;
 
 export const zcashTx = (txid: string) => `https://zcashblockexplorer.com/transactions/${txid}`;

@@ -23,7 +23,7 @@ function LocalWalletHandoff() {
       <PageHeader
         crumbs={[{ label: "Home", href: "/" }, { label: "Wallet" }]}
         title="Open ZecOne on this computer"
-        lead="The spending wallet and its pairing service run only on your Windows PC. The live website never receives your seed, keystore passphrase, pairing code or wallet database."
+        lead="Verified Mainnet receiving, balance, history and sync views run in the local wallet on your Windows PC. This public page is only a secure handoff: it never receives your seed, keystore passphrase, pairing code, balance, history or wallet database."
         actions={
           <ButtonLink href="http://127.0.0.1:3210" external>
             Open local wallet <ExternalLink size={17} aria-hidden="true" />

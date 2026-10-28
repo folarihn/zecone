@@ -23,16 +23,25 @@ Customer → shielded Zcash → ZecOne verification → prefunded Base relayer �
 One sentence on each: the Zcash leg is shielded and private; the Base leg is
 public; the operator (trusted relayer) correlates the two.
 
-## 3. Real mainnet evidence (45s)
+## 3. Real mainnet evidence (55s)
 
 Open `/explorer` (or the homepage "Verified mainnet transactions" section):
 
+Historical cross-chain pilot:
+
 1. **Shielded deposit** — `8f512d50…6b5f86c`, 0.00645937 ZEC (block 3,529,711).
 2. **Base payout** — `0xc677e9fa…648a7`, 0.003284955372432969 ETH (block 53,065,894).
-3. **Shielded withdrawal** — `0316e214…8af02f`, sent 0.001 ZEC + change (block 3,531,047).
+3. **Shielded wallet-control spend** — `0316e214…8af02f`, sent 0.001 ZEC + change (block 3,531,047).
 
-Click through to the block explorers. Emphasize: these are real on-chain
-transactions, not simulated.
+Separate real execution test:
+
+4. **Operator-approved Zcash transfer** — `0f0e9442…1def47`, sent 0.0001 ZEC,
+   fee 10,000 zat, change 515,937 zat (block 3,533,388; finalized at the required 10 confirmations).
+
+Click through to the block explorers. Emphasize: all four are real on-chain
+transactions. The first three are historical cross-chain pilot evidence; the
+fourth proves the guarded Zcash execution workflow. It is not another Base
+payout and was not initiated by the hosted checkout.
 
 ## 4. ZecOne Checkout (30s)
 
@@ -54,7 +63,8 @@ Open `/docs`. Show the five-line create-payment snippet. Emphasize:
 - Amounts are strings — no floating-point money math.
 - The API key lives server-side; it is never in the browser.
 
-Then open the reference DApp (`http://127.0.0.1:4333`): connect a Base
+If recording on the prepared operator machine, open the local reference DApp
+(`http://127.0.0.1:4333`): connect a Base
 wallet → sign ZecOne's ownership message (no transaction) → Buy with ZEC →
 embedded checkout → content unlocks. Emphasize that it unlocks only after the
 DApp's server verified the signed `payment.completed` webhook and re-read the
@@ -80,6 +90,6 @@ public beta).
 
 ---
 
-**Total: ~3 minutes.** The through-line is honesty: real mainnet evidence, a
-working demo that is clearly labeled, and privacy claims that are technically
-accurate.
+**Total: ~3 minutes.** The through-line is honesty: real Zcash execution,
+historical cross-chain evidence, a working simulated checkout, and live hosted
+cross-chain settlement that remains under development.
