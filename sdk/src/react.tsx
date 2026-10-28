@@ -10,15 +10,21 @@
 // The component never sees an API key and cannot change a payment. Treat
 // `onCompleted` as a prompt to ask YOUR backend, which must confirm settlement
 // from a verified webhook or `zecone.payments.retrieve()` before unlocking value.
+// Every status shown comes from presentCheckout(), which validates the view and
+// fails closed; there is no control here that marks anything paid.
 "use client";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   CHECKOUT_STEPS,
+  fetchWatcherHealth,
   formatCountdown,
-  phaseOf,
+  presentCheckout,
+  presentStatus,
   qrSvg,
   stepIndex,
   watchCheckout,
+  type CheckoutPresentation,
+  type CheckoutTone,
   type CheckoutView,
 } from "./checkout.ts";
 import type { ZecOneError } from "./types.ts";
@@ -28,6 +34,9 @@ function shortAmount(v: string, places = 8): string {
   const [w, f = ""] = v.split(".");
   return f.length > places ? `≈${w}.${f.slice(0, places)}` : v;
 }
+
+const TERMINAL = new Set(["COMPLETED", "SIMULATED_COMPLETE", "EXPIRED", "FAILED", "INVALID_LINK"]);
+const WATCHER_POLL_MS = 30_000;
 
 export interface ZecOneTheme {
   background?: string;
@@ -102,6 +111,11 @@ export function ZecOneCheckout(props: ZecOneCheckoutProps) {
   }, [props.theme]);
   const [checkout, setCheckout] = useState<CheckoutView | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Set when the link itself is refused (wrong or missing token, unknown id).
+  const [linkInvalid, setLinkInvalid] = useState(false);
+  // An error arrived after the last verified update: hide payment details until re-verified.
+  const [stale, setStale] = useState(false);
+  const [watcher, setWatcher] = useState<{ ready: boolean } | null>(null);
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
   const [skew, setSkew] = useState(0);
   const [copied, setCopied] = useState<string | null>(null);
@@ -110,22 +124,39 @@ export function ZecOneCheckout(props: ZecOneCheckoutProps) {
   useEffect(() => {
     setCheckout(null);
     setError(null);
-    return watchCheckout(apiBaseUrl, paymentId, checkoutToken, {
+    setLinkInvalid(false);
+    setStale(false);
+    let stop = () => {};
+    stop = watchCheckout(apiBaseUrl, paymentId, checkoutToken, {
       intervalMs,
       onUpdate: (c) => {
+        const local = Math.floor(Date.now() / 1000);
+        const serverTime = Number.isSafeInteger(c.serverTime) ? c.serverTime : local;
         setError(null);
-        setSkew(c.serverTime - Math.floor(Date.now() / 1000));
+        setStale(false);
+        setSkew(serverTime - local);
         setCheckout(c);
         onStatusChange?.(c);
-        if (c.state === "COMPLETED") onCompleted?.(c);
-        if (c.state === "EXPIRED") onExpired?.(c);
-        if (c.state === "FAILED") onFailed?.(c);
+        // Callbacks follow the verified presentation, never the raw state alone.
+        const p = presentCheckout(c, { now: serverTime, expectedId: paymentId });
+        if (p.status === "COMPLETED" || p.status === "SIMULATED_COMPLETE") onCompleted?.(c);
+        if (p.status === "EXPIRED") onExpired?.(c);
+        if (p.status === "FAILED") onFailed?.(c);
       },
       onError: (e) => {
-        setError(e.status === 404 ? "This checkout link is invalid." : "Connection lost. Retrying…");
+        if (e.status === 400 || e.status === 401 || e.status === 403 || e.status === 404) {
+          // The token is wrong or the checkout does not exist: stop and never show cached details.
+          setLinkInvalid(true);
+          setCheckout(null);
+          stop();
+        } else {
+          setStale(true);
+          setError("Connection lost. Payment details are hidden until this checkout is verified again. Retrying…");
+        }
         onError?.(e);
       },
     });
+    return () => stop();
     // Callbacks are intentionally excluded: re-subscribing on every render would restart polling.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiBaseUrl, paymentId, checkoutToken, intervalMs]);
@@ -135,9 +166,28 @@ export function ZecOneCheckout(props: ZecOneCheckoutProps) {
     return () => clearInterval(id);
   }, []);
 
-  const phase = phaseOf(checkout?.state ?? null);
-  const remaining = checkout?.expiresAt ? checkout.expiresAt - (now + skew) : null;
-  const qr = useMemo(() => (checkout?.paymentUri ? qrSvg(checkout.paymentUri) : null), [checkout?.paymentUri]);
+  const p: CheckoutPresentation = linkInvalid
+    ? presentStatus("INVALID_LINK")
+    : !checkout
+      ? presentStatus("LOADING")
+      : presentCheckout(checkout, { now: now + skew, expectedId: paymentId, watcher, stale });
+
+  // Real checkouts only: follow the public watcher health so a paused or
+  // disagreeing provider set hides the payment request.
+  const followWatcher = (p.mode === "mainnet" || p.mode === "live") && !TERMINAL.has(p.status);
+  useEffect(() => {
+    if (!followWatcher) return;
+    const controller = new AbortController();
+    const check = () => void fetchWatcherHealth(apiBaseUrl, { signal: controller.signal }).then((h) => !controller.signal.aborted && setWatcher(h));
+    check();
+    const id = setInterval(check, WATCHER_POLL_MS);
+    return () => {
+      controller.abort();
+      clearInterval(id);
+    };
+  }, [apiBaseUrl, followWatcher]);
+
+  const qr = useMemo(() => (p.payment ? qrSvg(p.payment.uri) : null), [p.payment?.uri]);
 
   const copy = async (label: string, value: string) => {
     try {
@@ -150,187 +200,189 @@ export function ZecOneCheckout(props: ZecOneCheckoutProps) {
   };
 
   const s = styles(t);
-  if (!checkout) {
+  const toneColor = (tone: CheckoutTone) =>
+    tone === "success" ? t.success : tone === "danger" ? t.danger : tone === "warning" ? t.warning : tone === "info" ? t.text : t.muted;
+  const statusBanner = (
+    <div role="status" data-testid="zecone-status" data-status={p.status} style={s.notice(toneColor(p.tone))}>
+      <strong style={{ letterSpacing: "0.04em" }}>{p.statusLabel}</strong>
+      <span> — {p.statusDetail}</span>
+      {p.issues.includes("completed_without_finalized_receipt") && (
+        <span> The payment service reported completion without a finalized Base receipt, so it is not shown as paid.</span>
+      )}
+      {p.issues.includes("quote_expired_locally") && <span> The quote window has closed.</span>}
+    </div>
+  );
+
+  if (p.status === "LOADING" || p.status === "INVALID_LINK") {
     return (
-      <div className={props.className} style={s.root} data-zecone-checkout="loading" aria-busy="true">
-        <div style={{ ...s.muted, padding: "28px 0", textAlign: "center" }}>{error ?? "Loading checkout…"}</div>
+      <div className={props.className} style={s.root} data-zecone-checkout={p.phase} data-status={p.status} aria-busy={p.status === "LOADING"}>
+        {p.status === "LOADING" ? (
+          <div style={{ ...s.muted, padding: "28px 0", textAlign: "center" }}>{error ?? "Loading checkout…"}</div>
+        ) : (
+          statusBanner
+        )}
       </div>
     );
   }
 
-  const current = stepIndex(checkout.state);
-  // Restricted mainnet pilot: real order, Base payout prepared and approved by the operator.
-  const pilot = !checkout.simulated && checkout.mode === "monitor" && checkout.settlement === "operator-approved";
-  const mode = checkout.simulated ? "simulated" : pilot ? "pilot" : checkout.mode === "monitor" ? "monitor" : "live";
-  const modeTone = mode === "live" ? t.success : mode === "monitor" ? t.warning : t.muted;
+  // A view that failed validation shows nothing from it: no merchant, amount or address.
+  if (p.status === "UNVERIFIED" && p.mode === "unknown") {
+    return (
+      <div className={props.className} style={s.root} data-zecone-checkout={p.phase} data-status={p.status}>
+        {statusBanner}
+      </div>
+    );
+  }
+
+  const c = checkout!;
+  const simulated = p.mode === "simulated";
+  const pilot = p.mode === "mainnet" && c.settlement === "operator-approved";
+  const completed = p.status === "COMPLETED" || p.status === "SIMULATED_COMPLETE";
+  // Never advance the progress list to "Completed" without a verified completion.
+  const current = completed ? CHECKOUT_STEPS.length : Math.min(stepIndex(c.state), CHECKOUT_STEPS.length - 2);
+  const modeTone = simulated ? t.muted : p.mode === "live" ? t.success : t.warning;
+  const pay = p.payment;
   return (
-    <div className={props.className} style={s.root} data-zecone-checkout={phase} data-state={checkout.state}>
-      <div style={s.modeStrip(modeTone, mode === "simulated")}>
-        <span style={{ fontWeight: 700 }}>
-          {mode === "simulated" ? "Simulated demo" : mode === "pilot" ? "Mainnet pilot" : mode === "monitor" ? "Mainnet monitoring" : "Live checkout"}
-        </span>
-        <span>
-          {mode === "simulated"
-            ? "Nothing to pay. No funds move."
-            : mode === "pilot"
-              ? "Real ZEC. The Base payout is approved by the ZecOne operator after confirmation."
-              : mode === "monitor"
-              ? "Real ZEC is detected. Automatic payout is off."
-              : "Payment settles to the merchant on Base."}
-        </span>
+    <div className={props.className} style={s.root} data-zecone-checkout={p.phase} data-state={c.state} data-status={p.status} data-mode={p.mode}>
+      <div style={s.modeStrip(modeTone, simulated)} data-testid="zecone-mode">
+        <span style={{ fontWeight: 700, letterSpacing: "0.04em" }}>{p.modeLabel}</span>
+        <span>{p.modeDetail}</span>
       </div>
       <div style={s.row}>
-        <div>
-          <div style={s.label}>Pay {checkout.merchant.name}</div>
+        <div style={{ minWidth: 0 }}>
+          <div style={s.label}>Pay {c.merchant.name}</div>
           <div style={s.amount}>
-            {checkout.quote?.zecAmount ?? "…"} <span style={{ fontSize: 16, color: t.muted, fontWeight: 600 }}>ZEC</span>
+            {simulated || !pay ? (c.quote?.zecAmount ?? "…") : pay.zecAmount} <span style={{ fontSize: 16, color: t.muted, fontWeight: 600 }}>ZEC</span>
           </div>
           <div style={s.muted}>
             {pilot
-              ? `$${checkout.amountUsd}; the merchant's ETH on Base is priced live at settlement`
-              : <>${checkout.amountUsd}, merchant receives {checkout.quote ? shortAmount(checkout.quote.ethPayout) : "…"} ETH on Base</>}
+              ? `$${c.amountUsd}; the merchant's ETH on Base is priced live at settlement`
+              : <>${c.amountUsd}, merchant receives {c.quote ? shortAmount(c.quote.ethPayout) : "…"} ETH on Base</>}
           </div>
         </div>
-        <span style={s.badge(checkout.mode === "live" ? t.success : t.warning)}>
-          {checkout.simulated ? "Simulated" : pilot ? "Mainnet pilot" : checkout.mode === "monitor" ? "Mainnet, payout off" : "Live"}
-        </span>
+        <span style={s.badge(modeTone)}>{simulated ? "Simulated" : p.mode === "live" ? "Live" : pilot ? "Mainnet pilot" : "Mainnet, payout off"}</span>
       </div>
 
-      {checkout.description && <div style={{ ...s.muted, marginTop: 6 }}>{checkout.description}</div>}
+      {c.description && <div style={{ ...s.muted, marginTop: 6 }}>{c.description}</div>}
 
-      {checkout.simulated && phase === "awaiting" && (
+      {simulated && p.status === "SIMULATED" && p.phase === "awaiting" && (
         <div data-testid="zecone-example" style={s.example}>
           <div style={{ ...s.label, color: t.text }}>Example payment interface, simulated</div>
           <p style={{ margin: "6px 0 0", fontSize: 14 }}>
-            This is a demo checkout, so there is nothing to pay and no address to send to. In a live checkout, the shielded
+            This is a demo checkout, so there is nothing to pay and no address to send to. In a real checkout, the shielded
             Zcash address, the exact amount and a QR code for your wallet appear here.
           </p>
           <p style={{ ...s.muted, margin: "8px 0 0" }}>
             In a few seconds ZecOne replays the recorded mainnet pilot transactions through each step below. No funds move.
-            {remaining !== null && remaining > 0 ? ` Quote window: ${formatCountdown(remaining)}.` : ""}
           </p>
         </div>
       )}
 
-      {pilot && phase === "awaiting" && checkout.zcashAddress && (
-        <div role="note" style={s.notice(t.warning)}>
-          Real Zcash mainnet address. Send exactly the amount shown, once. After 20 confirmations the operator reviews and
-          approves the Base payout; this page then shows both transactions.
-        </div>
-      )}
+      {statusBanner}
 
-      {!pilot && checkout.mode === "monitor" && phase === "awaiting" && checkout.zcashAddress && (
-        <div role="note" style={s.notice(t.warning)}>
-          Real Zcash mainnet address. ZecOne will detect and confirm your payment, but automatic payout to the merchant is
-          disabled in this build. Only pay if the merchant asked you to.
-        </div>
-      )}
-
-      {phase === "awaiting" && !checkout.simulated && checkout.zcashAddress && (
-        <div style={{ display: "grid", gap: 14, marginTop: 16, gridTemplateColumns: props.compact ? "1fr" : "auto 1fr", alignItems: "center" }}>
-          {qr && (
-            <svg
-              role="img"
-              aria-label="Zcash payment QR code"
-              viewBox={`0 0 ${qr.size} ${qr.size}`}
-              width={props.compact ? 160 : 148}
-              height={props.compact ? 160 : 148}
-              style={{ background: "#fff", borderRadius: 12, border: `1px solid ${t.border}`, justifySelf: "center" }}
-              shapeRendering="crispEdges"
-            >
-              <path d={qr.path} fill="#102820" />
-            </svg>
-          )}
-          <div style={{ minWidth: 0 }}>
-            <div style={s.label}>Send exactly</div>
-            <div style={s.field}>
-              <span style={{ fontWeight: 700 }}>{checkout.quote?.zecAmount} ZEC</span>
-              <button type="button" style={s.link} onClick={() => copy("amount", checkout.quote?.zecAmount ?? "")}>
-                {copied === "amount" ? "Copied" : "Copy"}
-              </button>
-            </div>
-            <div style={{ ...s.label, marginTop: 10 }}>To this shielded address</div>
-            <div style={{ ...s.field, alignItems: "flex-start" }}>
-              <span style={s.mono} data-testid="zecone-address">
-                {checkout.zcashAddress}
-              </span>
-              <button type="button" style={s.link} onClick={() => copy("address", checkout.zcashAddress ?? "")}>
-                {copied === "address" ? "Copied" : "Copy"}
-              </button>
-            </div>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10, flexWrap: "wrap" }}>
-              {checkout.paymentUri && (
-                <a href={checkout.paymentUri} style={s.button}>
+      {pay && (
+        <div data-testid="zecone-payment-request" style={{ marginTop: 16 }}>
+          <div role="note" style={{ ...s.notice(t.warning), marginTop: 0 }}>
+            Real Zcash mainnet payment. Send exactly the amount shown, once, from any compatible Zcash wallet (or the separately
+            launched local ZecOne wallet). This website is not a wallet and will never ask for your keys or seed.
+            {pilot ? ` After ${c.minimumConfirmations ?? "the required"} confirmations the operator reviews and approves the Base payout.` : ""}
+          </div>
+          <div style={{ display: "grid", gap: 14, marginTop: 14, gridTemplateColumns: props.compact ? "1fr" : "repeat(auto-fit, minmax(148px, auto))", alignItems: "center" }}>
+            {qr && (
+              <svg
+                role="img"
+                aria-label="Zcash payment QR code"
+                viewBox={`0 0 ${qr.size} ${qr.size}`}
+                width={props.compact ? 160 : 148}
+                height={props.compact ? 160 : 148}
+                style={{ background: "#fff", borderRadius: 12, border: `1px solid ${t.border}`, justifySelf: "center" }}
+                shapeRendering="crispEdges"
+                data-testid="zecone-qr"
+              >
+                <path d={qr.path} fill="#102820" />
+              </svg>
+            )}
+            <div style={{ minWidth: 0 }}>
+              <div style={s.label}>Send exactly</div>
+              <div style={s.field}>
+                <span style={{ fontWeight: 700 }} data-testid="zecone-amount">
+                  {pay.zecAmount} ZEC
+                </span>
+                <button type="button" style={s.link} aria-label="Copy amount" onClick={() => copy("amount", pay.zecAmount)}>
+                  {copied === "amount" ? "Copied" : "Copy"}
+                </button>
+              </div>
+              <div style={{ ...s.muted, fontSize: 12.5, marginTop: 2 }}>{pay.zecAmountZat} zatoshis</div>
+              <div style={{ ...s.label, marginTop: 10 }}>To this shielded address</div>
+              <div style={{ ...s.field, alignItems: "flex-start" }}>
+                <span style={s.mono} data-testid="zecone-address">
+                  {pay.address}
+                </span>
+                <button type="button" style={s.link} aria-label="Copy address" onClick={() => copy("address", pay.address)}>
+                  {copied === "address" ? "Copied" : "Copy"}
+                </button>
+              </div>
+              <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10, flexWrap: "wrap" }}>
+                <a href={pay.uri} style={s.button} data-testid="zecone-uri">
                   Open in Zcash wallet
                 </a>
-              )}
-              {remaining !== null && (
-                <span style={{ ...s.muted, color: remaining < 120 ? t.warning : t.muted }}>
-                  Quote expires in {formatCountdown(remaining)}
+                <span data-testid="zecone-expiry" style={{ ...s.muted, color: pay.secondsLeft < 120 ? t.warning : t.muted }}>
+                  Quote expires in {formatCountdown(pay.secondsLeft)}
                 </span>
-              )}
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {!checkout.simulated && checkout.confirmations !== null && checkout.minimumConfirmations !== null && phase !== "awaiting" && (
-        <div style={{ ...s.muted, marginTop: 14 }} data-testid="zecone-confirmations">
-          Confirmations: {Math.min(checkout.confirmations, checkout.minimumConfirmations)} / {checkout.minimumConfirmations}
-          {checkout.state === "ZEC_CONFIRMED" && checkout.settlement === "disabled" ? ". ZEC confirmed; Base payout is disabled in this build." : ""}
-          {checkout.state === "ZEC_CONFIRMED" && pilot ? ". ZEC confirmed; awaiting operator-approved Base payout." : ""}
+      {p.confirmations && (
+        <div style={{ marginTop: 14 }} data-testid="zecone-confirmations">
+          <div style={s.muted}>
+            Confirmations: {p.confirmations.current} / {p.confirmations.required}
+          </div>
+          <div
+            role="progressbar"
+            aria-label="Zcash confirmations"
+            aria-valuemin={0}
+            aria-valuemax={p.confirmations.required}
+            aria-valuenow={p.confirmations.current}
+            style={{ height: 6, borderRadius: 999, background: t.border, marginTop: 6, overflow: "hidden" }}
+          >
+            <div style={{ height: "100%", width: `${(100 * p.confirmations.current) / p.confirmations.required}%`, background: t.success }} />
+          </div>
         </div>
       )}
 
       <ol style={s.steps} aria-label="Payment progress">
         {CHECKOUT_STEPS.map((step, i) => {
-          const done = phase === "completed" || i < current;
-          const active = !done && i === current && (phase === "processing" || phase === "awaiting");
+          const done = completed || i < current;
+          const active = !done && i === current && (p.phase === "processing" || p.phase === "awaiting");
           return (
             <li key={step.key} style={s.step} data-done={done} data-active={active}>
               <span style={s.dot(done ? t.success : active ? t.accent : t.border, done || active, active ? t.accentText : t.background)}>{done ? "✓" : i + 1}</span>
               <span style={{ color: done || active ? t.text : t.muted, fontWeight: active ? 650 : 500 }}>
                 {step.label}
-                {active && phase === "processing" ? "…" : ""}
+                {active && p.phase === "processing" ? "…" : ""}
               </span>
             </li>
           );
         })}
       </ol>
 
-      {phase === "completed" && (
-        <div role="status" style={s.notice(t.success)}>
-          {checkout.simulated
-            ? "Simulated payment complete: a replay of recorded mainnet pilot transactions. No funds moved for this checkout."
-            : "Payment complete."}
-          {checkout.payoutExplorerUrl && (
-            <>
-              {" "}
-              <a href={checkout.payoutExplorerUrl} target="_blank" rel="noreferrer" style={{ color: "inherit", fontWeight: 650 }}>
-                {checkout.simulated ? "View the recorded Base payout ↗" : "View Base payout ↗"}
-              </a>
-            </>
-          )}
-        </div>
-      )}
-      {phase === "expired" && (
-        <div role="status" style={s.notice(t.danger)}>
-          This payment request expired before a payment arrived. Do not send ZEC to it. Ask the merchant for a new link.
-        </div>
-      )}
-      {phase === "failed" && (
-        <div role="status" style={s.notice(t.danger)}>
-          This payment failed. The merchant has been notified.
-        </div>
-      )}
-      {phase === "review" && (
-        <div role="status" style={s.notice(t.warning)}>
-          Your payment is under manual review (for example, an amount mismatch). The merchant will follow up.
+      {p.receipt && (
+        <div data-testid="zecone-receipt" style={s.notice(p.receipt.recorded ? t.muted : t.success)}>
+          {p.receipt.recorded ? "Recorded pilot payout (replay, not for this checkout): " : "Finalized Base payout: "}
+          <a href={p.receipt.explorerUrl} target="_blank" rel="noreferrer" style={{ color: "inherit", fontWeight: 650 }}>
+            {p.receipt.recorded ? "View the recorded Base payout ↗" : "View Base payout ↗"}
+          </a>
+          <div style={{ ...s.mono, marginTop: 4 }}>{p.receipt.txHash}</div>
         </div>
       )}
       {error && <div style={{ ...s.muted, marginTop: 10, color: t.warning }}>{error}</div>}
       <div style={{ ...s.muted, marginTop: 16, paddingTop: 12, borderTop: `1px solid ${t.border}`, fontSize: 12.5 }}>
-        Shielded on Zcash, public on Base, settled by a trusted ZecOne relayer.
+        {simulated
+          ? "Simulated demo. No funds move and no payout is made for this checkout."
+          : "Shielded on Zcash, public on Base, settled by a trusted ZecOne relayer. This page cannot sign, send or complete a payment."}
       </div>
     </div>
   );

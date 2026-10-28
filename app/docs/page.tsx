@@ -178,8 +178,9 @@ export async function POST() {
 }`}
               />
               <p>
-                The response includes the exact quote (<code>quote.zecAmount</code>, <code>quote.ethPayout</code>), a 15-minute{" "}
-                <code>expiresAt</code> and, on real (monitor or live) checkouts only, the shielded address and a ZIP-321{" "}
+                The response includes the exact quote (<code>quote.zecAmount</code>, <code>quote.ethPayout</code>), an{" "}
+                <code>expiresAt</code> (15 minutes for the demo; at most 5 minutes for the restricted pilot) and, on real monitor{" "}
+                checkouts only, the shielded address and a ZIP-321{" "}
                 <code>paymentUri</code> for QR codes. Demo payments have <code>simulated: true</code> and no address. The SDK refuses to
                 run in a browser because it holds your secret key.
               </p>
@@ -349,6 +350,22 @@ const receipt = await zecone.payments.receipt(id);     // COMPLETED only
                 authenticated mainnet watcher (UFVK-only wallet, two independent providers, authenticated block corpus) and moves
                 payments through <code>payment.detected</code> to <code>payment.zec_confirmed</code> with chain evidence (txid,
                 height, confirmations, tip, ownership digest). It never triggers a payout: <code>settlement: &quot;disabled&quot;</code>.
+              </p>
+              <p>
+                <strong>Restricted mainnet pilot</strong>: an operator-fed monitor checkout for one approved merchant reports{" "}
+                <code>settlement: &quot;operator-approved&quot;</code>. After the required confirmations the ZecOne operator approves the
+                Base payout through its separate workflow; the checkout completes only once that Base transaction is verified final.
+              </p>
+              <p>
+                The hosted page, the <code>/embed</code> view and <code>@zecone/sdk/react</code> validate every checkout view and show
+                exactly one labelled status: <strong>SIMULATED DEMO</strong> (no funds move, no address);{" "}
+                <strong>MAINNET PAYMENT</strong> with <strong>OBSERVING</strong> (exact ZEC amount, shielded address, ZIP-321 QR and quote
+                countdown), <strong>CONFIRMING</strong> (current / required confirmations), <strong>PAYOUT PENDING</strong> (ZEC confirmed,
+                Base transaction not final) and <strong>COMPLETED</strong> (only with the finalized Base receipt); and the fail-closed{" "}
+                <strong>MANUAL REVIEW</strong>, <strong>REORG</strong>, <strong>PROVIDER DISAGREEMENT</strong>,{" "}
+                <strong>WATCHER PAUSED</strong>, <strong>EXPIRED</strong>, <strong>FAILED</strong> and <strong>CANNOT VERIFY</strong>.
+                Payment details are hidden whenever the quote has expired, the watcher is not ready, the connection is lost or the
+                view is inconsistent. Customers pay from any compatible Zcash wallet; the website is not a wallet.
               </p>
               <Callout tone="warning" title="Live settlement is disabled in this build">
                 Base payouts stay behind the operator&apos;s separate SIGN and BROADCAST approvals, liquidity checks and the paused
