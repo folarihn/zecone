@@ -11,7 +11,6 @@
 // payment state machine. It has no access to spending keys, signers, the Base
 // relayer or any broadcast function, and it never advances a payment past
 // ZEC_CONFIRMED — settlement stays a separate, operator-approved, disabled path.
-import { createHash } from "node:crypto";
 import { join, resolve } from "node:path";
 import { readFileSync } from "node:fs";
 import {
@@ -24,6 +23,7 @@ import {
 import { ExclusiveFileLock } from "../operations/mainnet-watch-worker.ts";
 import type { PaymentStore } from "./store.ts";
 import { attributeDeposit } from "./attribution.ts";
+import { checkoutOrderId } from "./checkout-settlement.ts";
 import type { ChainEvidence } from "./types.ts";
 
 export interface SnapshotSource {
@@ -60,7 +60,6 @@ type NoteRow = {
 };
 
 const noteKey = (p: Pick<MainnetWatchPayment, "txid" | "pool" | "index">) => `${p.txid}:${p.pool}:${p.index}`;
-const orderIdFor = (paymentId: string) => createHash("sha256").update(`zecone-payment:${paymentId}`).digest("hex");
 const errorCode = (e: unknown) =>
   e instanceof Error && /^[A-Za-z0-9_]{1,96}$/.test(e.message) ? e.message : "WATCH_BRIDGE_FAILED";
 
@@ -243,7 +242,7 @@ export class PaymentWatchBridge {
             paymentDigest = verifyOwnedNote(
               s,
               {
-                orderId: orderIdFor(payment.id),
+                orderId: checkoutOrderId(payment.id),
                 account: s.account,
                 address: this.opts.receivingAddress,
                 zatoshis: payment.quote!.zecAmountZat,

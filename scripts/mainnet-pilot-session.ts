@@ -29,6 +29,7 @@ import {
   runPilotSession,
   type PilotPlan,
 } from "../services/settlement/mainnet-pilot-session.ts";
+import { checkoutOrderId } from "../services/payments/checkout-settlement.ts";
 import { readProductionRpc } from "../services/settlement/mainnet-probe.ts";
 import {
   assertMainnetQuote,
@@ -80,6 +81,7 @@ type Config = {
   relayerKeystore: string;
   passphraseFile: string;
   signerLedger: string;
+  checkoutPaymentId?: string;
 };
 const now = () => Math.floor(Date.now() / 1000);
 const json = <T>(path: string): T =>
@@ -129,9 +131,20 @@ async function main() {
     throw Error("ACTIVE_BASE_PILOT_REQUIRED");
   for (const p of [c.stateDirectory, c.signerLedger])
     assertExternalPath(resolve(p));
+  // Either the original first-pilot scope, or one confirmed checkout order bound
+  // by scripts/checkout-settlement.ts (its order id, source and recipient).
+  const checkoutScope =
+    c.checkoutPaymentId !== undefined &&
+    /^[A-Za-z0-9_]{1,64}$/.test(c.checkoutPaymentId) &&
+    c.watchBinding.orderId === checkoutOrderId(c.checkoutPaymentId) &&
+    Number.isSafeInteger(c.expectedNonce) &&
+    c.expectedNonce > 0 &&
+    /^[1-9][0-9]{0,15}$/.test(c.sourceZatoshis) &&
+    /^[a-f0-9]{64}$/.test(c.sourceCommitment);
   if (
-    c.expectedNonce !== 0 ||
-    c.sourceZatoshis !== "645937" ||
+    (checkoutScope
+      ? false
+      : c.expectedNonce !== 0 || c.sourceZatoshis !== "645937") ||
     c.watchBinding.zatoshis !== c.sourceZatoshis ||
     !/^[a-f0-9]{64}$/.test(c.sourceEvidenceDigest) ||
     c.watchBinding.sourceEvidenceDigest !== c.sourceEvidenceDigest ||
