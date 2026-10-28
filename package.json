@@ -17,6 +17,8 @@
     "mainnet:quote": "tsx scripts/mainnet-quote.ts",
     "mainnet:pilot-price": "tsx scripts/mainnet-pilot-price.ts",
     "mainnet:pilot-session": "tsx scripts/mainnet-pilot-session.ts",
+    "merchant:siwe-register": "tsx scripts/merchant-siwe-register.ts",
+    "checkout:settlement": "tsx scripts/checkout-settlement.ts",
     "mainnet:liquidity": "tsx scripts/mainnet-liquidity.ts",
     "mainnet:transfer": "tsx scripts/mainnet-transfer.ts",
     "mainnet:operator": "tsx scripts/mainnet-operator.ts",
