@@ -89,19 +89,29 @@ export class OperatorWatchFeed {
     observedAt: unknown;
   }) {
     const now = this.opts.now();
+    const source = typeof b.source === "string" ? b.source.trim().toLowerCase() : "";
+    const peerSource = typeof b.peerSource === "string" ? b.peerSource.trim().toLowerCase() : "";
     if (
       !Number.isSafeInteger(b.tip) ||
       (b.tip as number) < 1 ||
       typeof b.tipHash !== "string" ||
       !HEX64.test(b.tipHash) ||
-      typeof b.source !== "string" ||
-      typeof b.peerSource !== "string" ||
-      b.source === b.peerSource ||
+      !source ||
+      !peerSource ||
+      source === peerSource ||
       !Number.isSafeInteger(b.observedAt) ||
       (b.observedAt as number) > now + 60 ||
       (b.observedAt as number) < now - 900
     )
       fail("HEARTBEAT_INVALID", 400);
+    const prior = this.checkpoint();
+    if (
+      prior &&
+      ((b.tip as number) < prior.tip ||
+        ((b.tip as number) === prior.tip && b.tipHash !== prior.block_hash) ||
+        (b.observedAt as number) < prior.observed_at)
+    )
+      fail("HEARTBEAT_REGRESSION");
     this.store.db
       .prepare(
         `INSERT INTO watch_checkpoint(id,tip,block_hash,source,peer_source,observed_at,updated_at) VALUES(1,?,?,?,?,?,?)
@@ -187,6 +197,11 @@ export class OperatorWatchFeed {
       e.sources.length !== 2
     )
       fail("OBSERVATION_INVALID", 400);
+    if (
+      e.sources.some((source) => typeof source !== "string" || !source.trim()) ||
+      new Set(e.sources.map((source) => source.trim().toLowerCase())).size !== 2
+    )
+      fail("OBSERVATION_SOURCES_NOT_INDEPENDENT", 400);
     if (!p.quote || o.zat !== p.quote.zecAmountZat)
       fail("OBSERVATION_AMOUNT_MISMATCH");
     // Same attribution rule as the in-process bridge: only notes mined after allocation.
@@ -303,7 +318,17 @@ export function basePayoutCheck(
   relayer: string,
   fetcher: typeof fetch = fetch,
 ): BasePayoutCheck {
-  if (rpcUrls.length < 2 || rpcUrls.some((u) => !u.startsWith("https://")))
+  let providers: URL[];
+  try {
+    providers = rpcUrls.map((value) => new URL(value));
+  } catch {
+    throw Error("BASE_PAYOUT_RPCS_REQUIRED");
+  }
+  if (
+    providers.length < 2 ||
+    providers.some((u) => u.protocol !== "https:" || !!u.username || !!u.password) ||
+    new Set(providers.map((u) => u.hostname.toLowerCase())).size !== providers.length
+  )
     throw Error("BASE_PAYOUT_RPCS_REQUIRED");
   const rpc = async (url: string, method: string, params: unknown[]) => {
     const r = await fetcher(url, {
@@ -313,13 +338,16 @@ export function basePayoutCheck(
       redirect: "error",
       signal: AbortSignal.timeout(15_000),
     });
-    const j = (await r.json()) as { result?: any };
+    if (!r.ok) fail("BASE_RPC_HTTP_ERROR");
+    const j = (await r.json()) as { result?: any; error?: unknown };
+    if (j.error || !("result" in j)) fail("BASE_RPC_RESPONSE_INVALID");
     return j.result ?? null;
   };
   return {
     async verify(txHash, expected) {
       const results = await Promise.all(
-        rpcUrls.map(async (url) => {
+        providers.map(async (provider) => {
+          const url = provider.toString();
           const [chain, tx, receipt, finalized] = await Promise.all([
             rpc(url, "eth_chainId", []),
             rpc(url, "eth_getTransactionByHash", [txHash]),
@@ -328,7 +356,13 @@ export function basePayoutCheck(
           ]);
           if (chain !== "0x2105") fail("BASE_WRONG_NETWORK");
           if (!tx || !receipt) fail("BASE_PAYOUT_NOT_FOUND");
+          const blockHash = String(receipt.blockHash ?? "").toLowerCase();
           if (
+            String(tx.hash ?? "").toLowerCase() !== txHash.toLowerCase() ||
+            String(receipt.transactionHash ?? "").toLowerCase() !== txHash.toLowerCase() ||
+            !/^0x[a-f0-9]{64}$/.test(blockHash) ||
+            String(tx.blockHash ?? "").toLowerCase() !== blockHash ||
+            String(tx.blockNumber ?? "").toLowerCase() !== String(receipt.blockNumber ?? "").toLowerCase() ||
             String(tx.from).toLowerCase() !== relayer.toLowerCase() ||
             String(tx.to).toLowerCase() !== expected.to.toLowerCase() ||
             BigInt(tx.value) !== BigInt(expected.wei) ||
@@ -338,11 +372,12 @@ export function basePayoutCheck(
           const block = Number(BigInt(receipt.blockNumber));
           return {
             block,
+            blockHash,
             finalized: !!finalized && Number(BigInt(finalized.number)) >= block,
           };
         }),
       );
-      if (results.some((r) => r.block !== results[0].block))
+      if (results.some((r) => r.block !== results[0].block || r.blockHash !== results[0].blockHash))
         fail("BASE_PROVIDERS_DISAGREE");
       return {
         block: results[0].block,

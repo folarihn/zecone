@@ -48,8 +48,8 @@ function confirmedOrder(mode: "monitor" | "demo" = "monitor", recipient = RECIPI
 function journal(dir: string, orderId: string, terms: unknown, state: string, sourceCommitment = PAYMENT_DIGEST) {
   const path = join(dir, "submissions.sqlite");
   const db = new DatabaseSync(path);
-  db.exec("CREATE TABLE IF NOT EXISTS mainnet_submissions(order_id TEXT PRIMARY KEY, network TEXT, source_commitment TEXT, transaction_id TEXT, state TEXT, finalized_ref TEXT, terms_binding TEXT)");
-  db.prepare("INSERT OR REPLACE INTO mainnet_submissions VALUES(?,?,?,?,?,?,?)").run(orderId, "base", sourceCommitment, BASE_TX, state, state === "finalized" ? "53100000" : null, digest(terms));
+  db.exec("CREATE TABLE IF NOT EXISTS mainnet_submissions(order_id TEXT PRIMARY KEY, network TEXT, source_commitment TEXT, transaction_id TEXT, broadcast_txid TEXT, state TEXT, finalized_ref TEXT, terms_binding TEXT)");
+  db.prepare("INSERT OR REPLACE INTO mainnet_submissions VALUES(?,?,?,?,?,?,?,?)").run(orderId, "base", sourceCommitment, BASE_TX, state === "broadcast" || state === "finalized" ? BASE_TX : null, state, state === "finalized" ? "53100000" : null, digest(terms));
   db.close();
   return path;
 }
@@ -114,6 +114,12 @@ test("records the journal outcome idempotently and only when everything matches"
     const path = join(dir, "submissions.sqlite");
     assert.throws(() => recordCheckoutPayout(store, id, path, { ...terms, amount: "200000000000000" }, T0 + 2000), /PAYOUT_JOURNAL_DOES_NOT_MATCH_ORDER/);
     assert.equal(store.getPayment(id)!.state, "ZEC_CONFIRMED");
+
+    const db = new DatabaseSync(path);
+    db.prepare("UPDATE mainnet_submissions SET broadcast_txid=? WHERE order_id=?").run("0x" + "2".repeat(64), checkoutOrderId(id));
+    db.close();
+    assert.throws(() => recordCheckoutPayout(store, id, path, terms, T0 + 2000), /PAYOUT_JOURNAL_BROADCAST_TXID_MISMATCH/);
+    journal(dir, checkoutOrderId(id), terms, "broadcast");
 
     const submitted = recordCheckoutPayout(store, id, path, terms, T0 + 2000);
     assert.deepEqual(submitted, { status: "submitted", state: "PAYOUT_SUBMITTED", txHash: BASE_TX, wei: terms.amount });

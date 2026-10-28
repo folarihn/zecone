@@ -12,7 +12,7 @@ import type { Fetcher } from "../../services/payments/webhooks.ts";
 
 export const DEMO_SECRET = "test-demo-secret";
 export const DEMO_PAYOUT = "0x4b5750d7675f14eB844B74477015302Bf31AE2dB";
-export const OPERATOR_TOKEN = "op-token-for-tests-only-0123456789";
+export const OPERATOR_TOKEN = "op-token-for-tests-only-0123456789-abcdefghijklmnop";
 export const ORIGIN = { domain: "127.0.0.1:4333", uri: "http://127.0.0.1:4333/setup" };
 
 export interface Harness {

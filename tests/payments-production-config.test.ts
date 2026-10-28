@@ -46,3 +46,30 @@ test("monitor remains separately authorized and requires an explicit receiving a
   assert.equal(config.checkoutAddress, "u1-explicit-monitor-fixture");
   assert.equal(config.demoMerchant, null);
 });
+
+test("production monitor inherits HTTPS and webhook transport safeguards", () => {
+  const base: NodeJS.ProcessEnv = {
+    NODE_ENV: "production",
+    ZECONE_PAYMENTS_MODE: "monitor",
+    ZECONE_CHECKOUT_ADDRESS: "u1-explicit-monitor-fixture",
+    ZECONE_PUBLIC_URL: "https://pay.zecone.example",
+    ZECONE_ALLOW_HTTP_WEBHOOKS: "0",
+  };
+  assert.equal(configFromEnv(base).mode, "monitor");
+  assert.throws(() => configFromEnv({ ...base, ZECONE_PUBLIC_URL: "http://pay.zecone.example" }), /HTTPS/);
+  assert.throws(() => configFromEnv({ ...base, ZECONE_ALLOW_HTTP_WEBHOOKS: "1" }), /HTTP_WEBHOOKS/);
+});
+
+test("environment-only restricted pilot startup fails closed without a verified quote adapter", () => {
+  assert.throws(
+    () => configFromEnv({
+      NODE_ENV: "production",
+      ZECONE_PAYMENTS_MODE: "monitor",
+      ZECONE_CHECKOUT_ADDRESS: "u1-explicit-monitor-fixture",
+      ZECONE_PUBLIC_URL: "https://pay.zecone.example",
+      ZECONE_ALLOW_HTTP_WEBHOOKS: "0",
+      ZECONE_PILOT_MERCHANT_OWNER: "0x0000000000000000000000000000000000000001",
+    }),
+    /PILOT_LIVE_QUOTE_AUTHORITY_NOT_CONFIGURED/,
+  );
+});

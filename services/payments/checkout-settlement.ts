@@ -103,6 +103,7 @@ type SubmissionRow = {
   network: string;
   source_commitment: string;
   transaction_id: string;
+  broadcast_txid: string | null;
   state: string;
   finalized_ref: string | null;
   terms_binding: string | null;
@@ -159,6 +160,16 @@ export function recordCheckoutPayout(
     !BASE_TX.test(row.transaction_id)
   )
     fail("PAYOUT_JOURNAL_DOES_NOT_MATCH_ORDER");
+  if (
+    (row.state === "broadcast" || row.state === "finalized") &&
+    row.broadcast_txid !== row.transaction_id
+  )
+    fail("PAYOUT_JOURNAL_BROADCAST_TXID_MISMATCH");
+  if (
+    row.state === "finalized" &&
+    (row.finalized_ref === null || !/^[1-9][0-9]{0,15}$/.test(row.finalized_ref))
+  )
+    fail("PAYOUT_JOURNAL_FINALITY_INVALID");
   if (row.state !== "broadcast" && row.state !== "finalized")
     return {
       status: row.state === "prepared" ? "not_submitted" : "reconcile_required",

@@ -19,6 +19,7 @@ import { DEFAULT_CHECKOUT_ADDRESS } from "../services/payments/api.ts";
 import { PaymentStore } from "../services/payments/store.ts";
 import { PaymentWatchBridge } from "../services/payments/watch-bridge.ts";
 import type { BasePayoutCheck } from "../services/payments/operator-feed.ts";
+import { DemoQuoteEngine, type QuoteEngine } from "../services/payments/quote.ts";
 import { httpRemote, syncOnce } from "../scripts/operator-sync.ts";
 
 const ADDR = DEFAULT_CHECKOUT_ADDRESS;
@@ -32,11 +33,22 @@ const genesis = (): FakeChain => ({
   defaultAddress: ADDR,
 });
 
+const liveQuoteEngine: QuoteEngine = {
+  enabled: true,
+  quote(input) {
+    return {
+      ...new DemoQuoteEngine(300).quote(input),
+      rateSource: "live-authority" as const,
+    };
+  },
+};
+
 async function pilotHarness(check: BasePayoutCheck) {
   const pilotWallet = newWallet();
   const h = await startHarness({
     mode: "monitor",
     now: realNow,
+    quoteTtlSeconds: 300,
     monitor: {
       authorized: true,
       source: "operator",
@@ -48,6 +60,7 @@ async function pilotHarness(check: BasePayoutCheck) {
       maxAmountUsd: "1.00",
       maxPayoutWei: 10n ** 15n,
       payout: check,
+      quoteEngine: liveQuoteEngine,
     },
     operatorListenerOnly: true,
   });
@@ -132,6 +145,7 @@ test("public pilot: only the approved merchant gets real orders; demo stays simu
     assert.equal(real.body.payment.simulated, false);
     assert.equal(real.body.payment.zcashAddress, ADDR);
     assert.equal(real.body.payment.settlement, "operator-approved");
+    assert.equal(real.body.payment.quote.rateSource, "live-authority");
     // One active checkout on the shared address.
     assert.equal(
       (
@@ -373,6 +387,15 @@ test("public pilot: feed refuses mismatched or over-limit payouts and premature 
         chainEvidence: { ...evidence, height: 1000 },
       }),
       /REMOTE_OBSERVATION_BEFORE_ALLOCATION/,
+    );
+    await assert.rejects(
+      t.remote.observe(p.id, {
+        state: "VERIFYING",
+        txid: tx("3"),
+        zat: p.quote.zecAmountZat,
+        chainEvidence: { ...evidence, height: 1001, sources: ["provider-a", " Provider-A "] },
+      }),
+      /REMOTE_OBSERVATION_SOURCES_NOT_INDEPENDENT/,
     );
     // Reach ZEC_CONFIRMED legitimately, then a payout that Base does not confirm is refused.
     await t.remote.observe(p.id, {
