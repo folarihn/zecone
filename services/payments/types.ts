@@ -59,6 +59,8 @@ export interface Quote {
   feeZat: string; // network fee contribution, integer zatoshis
   rate: { numerator: string; denominator: string }; // ZEC->ETH rational rate
   rateSource?: "demo-fixed" | "live-authority";
+  /** SHA-256 of the verified signed live statement; absent for demo pricing. */
+  authorityDigest?: string;
   expiresAt: number; // unix seconds
   createdAt: number;
 }

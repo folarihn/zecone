@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { configFromEnv } from "../services/payments/api.ts";
+import { generateKeyPairSync } from "node:crypto";
 
 const production: NodeJS.ProcessEnv = {
   NODE_ENV: "production",
@@ -68,8 +69,35 @@ test("environment-only restricted pilot startup fails closed without a verified 
       ZECONE_CHECKOUT_ADDRESS: "u1-explicit-monitor-fixture",
       ZECONE_PUBLIC_URL: "https://pay.zecone.example",
       ZECONE_ALLOW_HTTP_WEBHOOKS: "0",
-      ZECONE_PILOT_MERCHANT_OWNER: "0x0000000000000000000000000000000000000001",
+      ZECONE_PILOT_MERCHANT_OWNER: "0x4b5750d7675f14eB844B74477015302Bf31AE2dB",
+      ZECONE_RELAYER_ADDRESS: "0x0BccE2De6b41522a68e7A7915C6947CFE37B9f18",
+      ZECONE_PILOT_MAX_PAYOUT_WEI: "300000000000000",
+      ZECONE_BASE_PAYOUT_RPCS: "https://mainnet.base.org,https://base-rpc.publicnode.com",
     }),
     /PILOT_LIVE_QUOTE_AUTHORITY_NOT_CONFIGURED/,
   );
+});
+
+test("restricted pilot config pins a public quote key and keeps private signing material absent", () => {
+  const { publicKey } = generateKeyPairSync("ed25519");
+  const config = configFromEnv({
+    NODE_ENV: "production",
+    ZECONE_PAYMENTS_MODE: "monitor",
+    ZECONE_CHECKOUT_ADDRESS: "u1-explicit-monitor-fixture",
+    ZECONE_PUBLIC_URL: "https://pay.zecone.example",
+    ZECONE_ALLOW_HTTP_WEBHOOKS: "0",
+    ZECONE_PILOT_MERCHANT_OWNER: "0x4b5750d7675f14eB844B74477015302Bf31AE2dB",
+    ZECONE_RELAYER_ADDRESS: "0x0BccE2De6b41522a68e7A7915C6947CFE37B9f18",
+    ZECONE_PILOT_MAX_AMOUNT_USD: "0.01",
+    ZECONE_PILOT_MAX_PAYOUT_WEI: "300000000000000",
+    ZECONE_RELAYER_AVAILABLE_WEI: "314918223806759",
+    ZECONE_BASE_PAYOUT_RPCS: "https://mainnet.base.org,https://base-rpc.publicnode.com",
+    ZECONE_PILOT_QUOTE_AUTHORITY: "single-device-pilot-operator",
+    ZECONE_PILOT_QUOTE_PUBLIC_KEY_B64: publicKey.export({ format: "der", type: "spki" }).toString("base64"),
+    ZECONE_QUOTE_TTL_SECONDS: "300",
+    ZECONE_OPERATOR_TOKEN: "x".repeat(48),
+  });
+  assert.equal(config.pilot?.quoteEngine.enabled, true);
+  assert.equal(config.pilot?.maxAmountUsd, "0.01");
+  assert.equal(JSON.stringify(config, (_, value) => typeof value === "bigint" ? value.toString() : value).includes("PRIVATE KEY"), false);
 });

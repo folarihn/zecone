@@ -207,3 +207,17 @@ export function assertMainnetQuote(
     throw Error("MAINNET_QUOTE_MISMATCH");
   return quote;
 }
+
+/** Actual authenticated source payment must cover the freshly priced requirement. */
+export function assertSourcePaymentCoversQuote(
+  actual: string,
+  required: string,
+) {
+  if (
+    !/^[1-9][0-9]{0,30}$/.test(actual) ||
+    !/^[1-9][0-9]{0,30}$/.test(required) ||
+    BigInt(actual) < BigInt(required)
+  )
+    throw Error("SOURCE_PAYMENT_DOES_NOT_COVER_QUOTE");
+  return actual;
+}

@@ -70,6 +70,7 @@ type Config = {
   sourceCommitment: string;
   sourceEvidenceDigest: string;
   sourceZatoshis: string;
+  quotedPayoutWei?: string;
   recipient: string;
   expectedNonce: number;
   retiredTransactionIds: string[];
@@ -140,6 +141,7 @@ async function main() {
     Number.isSafeInteger(c.expectedNonce) &&
     c.expectedNonce > 0 &&
     /^[1-9][0-9]{0,15}$/.test(c.sourceZatoshis) &&
+    /^[1-9][0-9]{0,30}$/.test(c.quotedPayoutWei ?? "") &&
     /^[a-f0-9]{64}$/.test(c.sourceCommitment);
   if (
     (checkoutScope
@@ -368,11 +370,13 @@ async function main() {
             pass.fill(0);
           }
           exclusiveJson(join(work, "ownership.json"), ownership);
+          const pricingAmount = checkoutScope
+            ? ["--amount", c.quotedPayoutWei!]
+            : ["--source-zatoshis", c.sourceZatoshis];
           const priced = child("scripts/mainnet-pilot-price.ts", [
             "--profiles",
             c.profiles,
-            "--source-zatoshis",
-            c.sourceZatoshis,
+            ...pricingAmount,
             "--network-fee",
             c.networkFee,
             "--l1-data-fee",
@@ -394,12 +398,15 @@ async function main() {
             join(work, "pricing.json"),
           );
           price = pricing.pilotPrice;
+          if (checkoutScope && priced.destinationUnits !== c.quotedPayoutWei)
+            throw Error("CHECKOUT_QUOTED_PAYOUT_CHANGED");
           exclusiveJson(join(work, "request.json"), {
             recipient: c.recipient,
             amount: priced.destinationUnits,
             feeCap: (BigInt(c.networkFee) + BigInt(c.l1DataFee)).toString(),
             l1DataFeeBound: c.l1DataFee,
             sourcePaymentCommitment: c.sourceCommitment,
+            sourceZatoshis: c.sourceZatoshis,
             expires: now() + 900,
           });
           child("scripts/mainnet-quote.ts", [

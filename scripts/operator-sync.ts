@@ -22,6 +22,7 @@ import {
 } from "../services/payments/watch-bridge.ts";
 import { assertLoopbackApi } from "../services/payments/merchant-register.ts";
 import type { Payment } from "../services/payments/types.ts";
+import type { SignedCheckoutPilotQuote } from "../services/payments/pilot-quote.ts";
 
 const now = () => Math.floor(Date.now() / 1000);
 function arg(name: string, fallback?: string) {
@@ -37,6 +38,7 @@ export interface Remote {
   heartbeat(b: Record<string, unknown>): Promise<unknown>;
   observe(id: string, b: Record<string, unknown>): Promise<unknown>;
   payout(id: string, b: Record<string, unknown>): Promise<unknown>;
+  quote(b: SignedCheckoutPilotQuote): Promise<unknown>;
 }
 
 export function httpRemote(
@@ -76,6 +78,7 @@ export function httpRemote(
       ),
     payout: (id, b) =>
       call(`/api/v1/operator/real-orders/${encodeURIComponent(id)}/payout`, b),
+    quote: (b) => call("/api/v1/operator/quote", b),
   };
 }
 

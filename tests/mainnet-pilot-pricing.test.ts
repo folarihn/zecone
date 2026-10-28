@@ -16,6 +16,7 @@ import {
   mainnetQuote,
   assertMainnetQuote,
   mainnetQuoteContext,
+  assertSourcePaymentCoversQuote,
   type MainnetQuoteInput,
 } from "../services/settlement/mainnet-quote.ts";
 import type { ProductionProfile } from "../services/settlement/production-safety.ts";
@@ -342,6 +343,21 @@ test("broadcast market gate requires exact signed quote and fetches fresh indepe
     { quote: f.quote, input: f.input },
     market(2000),
     () => now + 299,
+  );
+  await verifyPilotBroadcastMarket(
+    f.profile,
+    { ...f.terms, sourceZatoshis: (BigInt(f.terms.sourceZatoshis) + 1n).toString() },
+    { quote: f.quote, input: f.input },
+    market(2000),
+    () => now + 299,
+  );
+  assert.equal(
+    assertSourcePaymentCoversQuote((BigInt(f.quote.sourceZatoshis) + 1n).toString(), f.quote.sourceZatoshis),
+    (BigInt(f.quote.sourceZatoshis) + 1n).toString(),
+  );
+  assert.throws(
+    () => assertSourcePaymentCoversQuote((BigInt(f.quote.sourceZatoshis) - 1n).toString(), f.quote.sourceZatoshis),
+    /SOURCE_PAYMENT_DOES_NOT_COVER_QUOTE/,
   );
   await assert.rejects(
     verifyPilotBroadcastMarket(

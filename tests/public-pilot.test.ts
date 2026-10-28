@@ -20,6 +20,12 @@ import { PaymentStore } from "../services/payments/store.ts";
 import { PaymentWatchBridge } from "../services/payments/watch-bridge.ts";
 import type { BasePayoutCheck } from "../services/payments/operator-feed.ts";
 import { DemoQuoteEngine, type QuoteEngine } from "../services/payments/quote.ts";
+import { generateKeyPairSync } from "node:crypto";
+import {
+  OperatorPilotQuoteEngine,
+  buildCheckoutPilotQuoteStatement,
+  signCheckoutPilotQuote,
+} from "../services/payments/pilot-quote.ts";
 import { httpRemote, syncOnce } from "../scripts/operator-sync.ts";
 
 const ADDR = DEFAULT_CHECKOUT_ADDRESS;
@@ -39,12 +45,16 @@ const liveQuoteEngine: QuoteEngine = {
     return {
       ...new DemoQuoteEngine(300).quote(input),
       rateSource: "live-authority" as const,
+      authorityDigest: "a".repeat(64),
     };
   },
 };
 
-async function pilotHarness(check: BasePayoutCheck) {
-  const pilotWallet = newWallet();
+async function pilotHarness(
+  check: BasePayoutCheck,
+  quoteEngine: QuoteEngine = liveQuoteEngine,
+  pilotWallet = newWallet(),
+) {
   const h = await startHarness({
     mode: "monitor",
     now: realNow,
@@ -60,7 +70,7 @@ async function pilotHarness(check: BasePayoutCheck) {
       maxAmountUsd: "1.00",
       maxPayoutWei: 10n ** 15n,
       payout: check,
-      quoteEngine: liveQuoteEngine,
+      quoteEngine,
     },
     operatorListenerOnly: true,
   });
@@ -161,6 +171,48 @@ test("public pilot: only the approved merchant gets real orders; demo stays simu
     assert.equal(health.realPayments, "restricted-pilot");
     assert.equal(health.livePayoutEnabled, false);
     assert.equal(health.watcher.tip, 1000);
+  } finally {
+    await t.close();
+  }
+});
+
+test("public pilot: loopback operator uploads one exact signed live quote", async () => {
+  const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+  const pilotWallet = newWallet();
+  const quoteEngine = new OperatorPilotQuoteEngine({
+    authority: "pilot-operator",
+    publicKey: publicKey.export({ format: "der", type: "spki" }),
+    recipient: pilotWallet.address,
+    ttlSeconds: 300,
+  });
+  const t = await pilotHarness({ verify: async () => assert.fail("no payout") }, quoteEngine, pilotWallet);
+  try {
+    const pilot = await onboard(t.h, t.pilotWallet);
+    await syncOnce(t.mirror, t.bridge, t.remote);
+    const at = realNow();
+    const statement = buildCheckoutPilotQuoteStatement({
+      authority: "pilot-operator",
+      recipient: t.pilotWallet.address,
+      amountUsd: "0.01",
+      observations: [
+        { provider: "coingecko", ethUsd: "2500", zecUsd: "50", at },
+        { provider: "coinpaprika", ethUsd: "2501", zecUsd: "50.1", at },
+      ],
+      createdAt: at,
+      expiresAt: at + 300,
+    });
+    const envelope = signCheckoutPilotQuote(statement, privateKey);
+    await assert.rejects(
+      t.remote.quote({ ...envelope, signature: Buffer.alloc(64).toString("base64") }),
+      /REMOTE_PILOT_QUOTE_SIGNATURE_INVALID/,
+    );
+    await t.remote.quote(envelope);
+    const created = await t.h.call("/api/v1/payments", { key: pilot.apiKey, body: { amountUsd: "0.01" } });
+    assert.equal(created.status, 201);
+    assert.equal(created.body.payment.quote.rateSource, "live-authority");
+    assert.equal(created.body.payment.quote.zecAmountZat, "20000");
+    const replay = await t.h.call("/api/v1/payments", { key: pilot.apiKey, body: { amountUsd: "0.01" } });
+    assert.equal(replay.body.error.code, "live_quote_unavailable");
   } finally {
     await t.close();
   }

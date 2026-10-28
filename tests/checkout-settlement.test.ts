@@ -42,7 +42,7 @@ function confirmedOrder(mode: "monitor" | "demo" = "monitor", recipient = RECIPI
     }, T0 + 1500);
     assert.ok(store.transition(payment.id, "ZEC_CONFIRMED", {}, T0 + 1500));
   }
-  return { dir, store, id: payment.id, zat };
+  return { dir, store, id: payment.id, zat, payoutWei: quote.ethPayoutWei };
 }
 
 function journal(dir: string, orderId: string, terms: unknown, state: string, sourceCommitment = PAYMENT_DIGEST) {
@@ -54,8 +54,8 @@ function journal(dir: string, orderId: string, terms: unknown, state: string, so
   return path;
 }
 
-const termsFor = (zat: string, recipient = RECIPIENT) => ({
-  version: 1, network: "base", recipient, amount: "100000000000000", sourceZatoshis: zat, sourcePaymentCommitment: PAYMENT_DIGEST, expires: T0 + 4000,
+const termsFor = (zat: string, payoutWei: string, recipient = RECIPIENT) => ({
+  version: 1, network: "base", recipient, amount: payoutWei, sourceZatoshis: zat, sourcePaymentCommitment: PAYMENT_DIGEST, expires: T0 + 4000,
 });
 
 test("binds only a watcher-confirmed order to the allow-listed recipient", () => {
@@ -67,6 +67,7 @@ test("binds only a watcher-confirmed order to the allow-listed recipient", () =>
     assert.equal(b.sourceCommitment, PAYMENT_DIGEST);
     assert.equal(b.sourceEvidenceDigest, OWNERSHIP);
     assert.equal(b.sourceZatoshis, zat);
+    assert.match(b.quotedPayoutWei, /^[1-9][0-9]+$/);
     assert.equal(b.watchBinding.expires, T0 + 1600 + 3600);
     assert.throws(
       () => checkoutSettlementBinding(store, id, { account: ACCOUNT, allowedRecipient: "0x000000000000000000000000000000000000dEaD", windowSeconds: 3600, now: T0 }),
@@ -97,9 +98,9 @@ test("refuses demo, unconfirmed and digest-less orders", () => {
 });
 
 test("records the journal outcome idempotently and only when everything matches", () => {
-  const { dir, store, id, zat } = confirmedOrder();
+  const { dir, store, id, zat, payoutWei } = confirmedOrder();
   try {
-    const terms = termsFor(zat);
+    const terms = termsFor(zat, payoutWei);
     const missing = join(dir, "empty.sqlite");
     const empty = new DatabaseSync(missing);
     empty.exec("CREATE TABLE mainnet_submissions(order_id TEXT PRIMARY KEY)");
@@ -113,6 +114,10 @@ test("records the journal outcome idempotently and only when everything matches"
     journal(dir, checkoutOrderId(id), terms, "broadcast");
     const path = join(dir, "submissions.sqlite");
     assert.throws(() => recordCheckoutPayout(store, id, path, { ...terms, amount: "200000000000000" }, T0 + 2000), /PAYOUT_JOURNAL_DOES_NOT_MATCH_ORDER/);
+    const repriced = { ...terms, amount: (BigInt(terms.amount) + 1n).toString() };
+    journal(dir, checkoutOrderId(id), repriced, "broadcast");
+    assert.throws(() => recordCheckoutPayout(store, id, path, repriced, T0 + 2000), /PAYOUT_JOURNAL_DOES_NOT_MATCH_ORDER/);
+    journal(dir, checkoutOrderId(id), terms, "broadcast");
     assert.equal(store.getPayment(id)!.state, "ZEC_CONFIRMED");
 
     const db = new DatabaseSync(path);
@@ -145,9 +150,9 @@ test("records the journal outcome idempotently and only when everything matches"
 });
 
 test("an uncertain submission requires reconciliation and changes nothing", () => {
-  const { dir, store, id, zat } = confirmedOrder();
+  const { dir, store, id, zat, payoutWei } = confirmedOrder();
   try {
-    const terms = termsFor(zat);
+    const terms = termsFor(zat, payoutWei);
     const path = journal(dir, checkoutOrderId(id), terms, "uncertain");
     assert.equal(recordCheckoutPayout(store, id, path, terms, T0 + 2000).status, "reconcile_required");
     assert.equal(store.getPayment(id)!.state, "ZEC_CONFIRMED");

@@ -58,6 +58,7 @@ export interface CheckoutSettlementBinding {
   sourceEvidenceDigest: string;
   sourceCommitment: string;
   sourceZatoshis: string;
+  quotedPayoutWei: string;
   recipient: string;
 }
 
@@ -94,6 +95,7 @@ export function checkoutSettlementBinding(
     sourceEvidenceDigest: e.ownershipDigest,
     sourceCommitment: e.paymentDigest!,
     sourceZatoshis: e.zatoshis,
+    quotedPayoutWei: p.quote!.ethPayoutWei,
     recipient: getAddress(p.request.recipient),
   };
 }
@@ -154,6 +156,7 @@ export function recordCheckoutPayout(
     terms.sourcePaymentCommitment !== e.paymentDigest ||
     row.terms_binding !== digest(terms) ||
     terms.sourceZatoshis !== e.zatoshis ||
+    terms.amount !== p.quote!.ethPayoutWei ||
     !isAddress(terms.recipient) ||
     getAddress(terms.recipient) !== getAddress(p.request.recipient) ||
     !/^[1-9][0-9]{0,30}$/.test(terms.amount) ||

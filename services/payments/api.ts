@@ -29,7 +29,8 @@ import { WebhookDispatcher, validateWebhookUrl, type Fetcher } from "./webhooks.
 import { SiweError, createChallenge, verifyChallenge, type SiweConfig } from "./siwe.ts";
 import { InsufficientLiquidityError, assertLiquidity } from "./liquidity.ts";
 import { PaymentWatchBridge, type SnapshotSource } from "./watch-bridge.ts";
-import { OperatorFeedError, OperatorWatchFeed, type BasePayoutCheck } from "./operator-feed.ts";
+import { OperatorFeedError, OperatorWatchFeed, basePayoutCheck, type BasePayoutCheck } from "./operator-feed.ts";
+import { OperatorPilotQuoteEngine, PilotQuoteError } from "./pilot-quote.ts";
 import { DEFAULT_API_SCOPES } from "./types.ts";
 import type { ApiError, Merchant, Payment, PaymentRequest, PaymentState, Principal } from "./types.ts";
 import type { Quote } from "./types.ts";
@@ -236,6 +237,8 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
         quote.payoutChain === "base" &&
         /^q_[a-zA-Z0-9_-]{8,80}$/.test(quote.id) &&
         quote.rateSource === "live-authority" &&
+        typeof quote.authorityDigest === "string" &&
+        /^[a-f0-9]{64}$/.test(quote.authorityDigest) &&
         quote.amountUsd === amountUsd &&
         quote.createdAt <= now + 5 &&
         quote.createdAt >= now - 90 &&
@@ -739,6 +742,12 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
         return send(res, 200, { result: await bridge.tick(), health: bridge.health() });
       if (feed) {
         try {
+          if (seg[3] === "quote" && seg.length === 4 && method === "POST") {
+            if (!(config.pilot?.quoteEngine instanceof OperatorPilotQuoteEngine))
+              throw new HttpError(409, "pilot_quote_adapter_unavailable", "signed pilot quote adapter is unavailable");
+            const accepted = config.pilot.quoteEngine.accept((await readBody(req)) as never, now);
+            return send(res, 200, { accepted });
+          }
           if (seg[3] === "watcher" && seg[4] === "heartbeat" && method === "POST")
             return send(res, 200, { health: feed.heartbeat((await readBody(req)) as never) });
           if (seg[3] === "real-orders" && seg.length === 4 && method === "GET")
@@ -749,6 +758,7 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
             return send(res, 200, { payment: merchantPayment(await feed.payout(seg[4], await readBody(req))) });
         } catch (e) {
           if (e instanceof OperatorFeedError) throw new HttpError(e.status, e.code.toLowerCase(), e.code);
+          if (e instanceof PilotQuoteError) throw new HttpError(400, e.message.toLowerCase(), e.message);
           throw e;
         }
       }
@@ -897,7 +907,7 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
         // and that path must use the verified live authority.
         const engine = paymentMode === "demo" || !config.pilot ? demoQuoteEngine : config.pilot.quoteEngine;
         if (!engine) throw new HttpError(503, "live_quote_unavailable", "Verified live pricing is unavailable; real checkouts are paused.");
-        const quote = { ...engine.quote({ amountUsd: request.amountUsd, payoutChain: "base", now }) };
+        const quote = { ...engine.quote({ amountUsd: request.amountUsd, payoutChain: "base", recipient: request.recipient, now }) };
         if (
           paymentMode !== "demo" && !!config.pilot &&
           (!engine.enabled || !validLiveQuote(quote, request.amountUsd, now))
@@ -996,7 +1006,8 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
         return;
       }
       const err = toHttpError(e);
-      if (err.status >= 500 && !(e instanceof HttpError)) console.error("[payments] handler error:", e);
+      if (err.status >= 500 && !(e instanceof HttpError) && !(e instanceof PilotQuoteError))
+        console.error("[payments] handler error:", e);
       const body: ApiError = { error: { code: err.code, message: err.message, ...(err.details ? { details: err.details } : {}) } };
       send(res, err.status, body, err.headers);
     }
@@ -1065,6 +1076,8 @@ function toHttpError(e: unknown): HttpError {
   }
   if (e instanceof InsufficientLiquidityError)
     return new HttpError(409, "insufficient_liquidity", "The relayer cannot cover this payout right now. Try a smaller amount later.");
+  if (e instanceof PilotQuoteError)
+    return new HttpError(503, "live_quote_unavailable", e.message);
   if (e instanceof MoneyError) return new HttpError(400, e.code, e.message);
   return new HttpError(500, "internal", "internal error");
 }
@@ -1099,16 +1112,49 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): PaymentsCon
   }
   if (mode === "monitor" && !env.ZECONE_CHECKOUT_ADDRESS)
     throw new Error("ZECONE_CHECKOUT_ADDRESS is required in monitor mode");
+  const relayer = env.ZECONE_RELAYER_AVAILABLE_WEI ?? "50000000000000000"; // 0.05 ETH demo snapshot
+  if (!/^\d+$/.test(relayer)) throw new Error("ZECONE_RELAYER_AVAILABLE_WEI must be an integer wei amount");
   // Restricted mainnet pilot: real orders for one approved merchant, fed by the operator watcher.
   let pilot: PaymentsConfig["pilot"] = null;
   if (mode === "monitor" && env.ZECONE_PILOT_MERCHANT_OWNER) {
-    // The public process must never manufacture real economics from the demo
-    // rate. A separately verified operator quote adapter will be injected by
-    // the pilot launcher; environment-only startup remains fail-closed.
-    throw new Error("PILOT_LIVE_QUOTE_AUTHORITY_NOT_CONFIGURED");
+    const owner = env.ZECONE_PILOT_MERCHANT_OWNER;
+    const relayerAddress = env.ZECONE_RELAYER_ADDRESS ?? "";
+    const maxPayout = env.ZECONE_PILOT_MAX_PAYOUT_WEI ?? "";
+    const authority = env.ZECONE_PILOT_QUOTE_AUTHORITY ?? "";
+    const publicKey = env.ZECONE_PILOT_QUOTE_PUBLIC_KEY_B64 ?? "";
+    if (!isAddress(owner) || !isAddress(relayerAddress))
+      throw new Error("ZECONE_PILOT_MERCHANT_OWNER and ZECONE_RELAYER_ADDRESS must be Base addresses");
+    if (!/^[1-9]\d{0,20}$/.test(maxPayout))
+      throw new Error("ZECONE_PILOT_MAX_PAYOUT_WEI must be a positive integer wei amount");
+    const maxAmountUsd = env.ZECONE_PILOT_MAX_AMOUNT_USD ?? "0.01";
+    if (!/^\d{1,3}(\.\d{1,2})?$/.test(maxAmountUsd))
+      throw new Error("ZECONE_PILOT_MAX_AMOUNT_USD must be a small USD amount");
+    if (!authority || !publicKey) throw new Error("PILOT_LIVE_QUOTE_AUTHORITY_NOT_CONFIGURED");
+    let publicDer: Buffer;
+    try {
+      publicDer = Buffer.from(publicKey, "base64");
+      if (publicDer.length < 32) throw Error();
+    } catch {
+      throw new Error("ZECONE_PILOT_QUOTE_PUBLIC_KEY_B64_INVALID");
+    }
+    const quoteTtlSeconds = Number(env.ZECONE_QUOTE_TTL_SECONDS ?? 300);
+    pilot = {
+      merchantOwner: getAddress(owner),
+      maxAmountUsd,
+      maxPayoutWei: BigInt(maxPayout),
+      payout: basePayoutCheck(
+        (env.ZECONE_BASE_PAYOUT_RPCS ?? "").split(",").map((u) => u.trim()).filter(Boolean),
+        getAddress(relayerAddress),
+      ),
+      quoteEngine: new OperatorPilotQuoteEngine({
+        authority,
+        publicKey: publicDer,
+        recipient: getAddress(owner),
+        ttlSeconds: quoteTtlSeconds,
+        maximumSpreadBps: 200,
+      }),
+    };
   }
-  const relayer = env.ZECONE_RELAYER_AVAILABLE_WEI ?? "50000000000000000"; // 0.05 ETH demo snapshot
-  if (!/^\d+$/.test(relayer)) throw new Error("ZECONE_RELAYER_AVAILABLE_WEI must be an integer wei amount");
   return {
     dbPath: env.ZECONE_PAYMENTS_DB ?? ".state/payments.sqlite",
     checkoutAddress:

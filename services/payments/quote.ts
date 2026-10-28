@@ -26,6 +26,8 @@ export const WEI_PER_ETH = 10n ** 18n;
 export interface QuoteInput {
   amountUsd: string;
   payoutChain: "base";
+  /** Required by the signed restricted-pilot authority; ignored by demo pricing. */
+  recipient?: string;
   ttlSeconds?: number;
   now?: number;
 }

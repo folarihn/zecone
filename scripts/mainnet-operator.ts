@@ -43,6 +43,7 @@ import {
 } from "../services/settlement/mainnet-watch.ts";
 import {
   assertMainnetQuote,
+  assertSourcePaymentCoversQuote,
   mainnetQuoteContext,
   type MainnetQuote,
   type MainnetQuoteInput,
@@ -64,6 +65,8 @@ type RequestFile = {
   feeCap: string;
   l1DataFeeBound?: string;
   sourcePaymentCommitment: string;
+  /** Actual authenticated deposit. May exceed, but never trail, fresh pricing requirement. */
+  sourceZatoshis?: string;
   expires: number;
 };
 type PricingFile = {
@@ -252,6 +255,8 @@ async function prepare(values: Map<string, string>) {
     throw Error("DESTINATION_OWNERSHIP_REQUIRED");
   if (quote.sourceZatoshis !== price.zatoshis || quote.expires > price.expires)
     throw Error("QUOTE_PRICE_MISMATCH");
+  const actualSourceZatoshis = request.sourceZatoshis ?? quote.sourceZatoshis;
+  assertSourcePaymentCoversQuote(actualSourceZatoshis, quote.sourceZatoshis);
   const terms = mainnetTransferTerms(
     p,
     {
@@ -259,7 +264,7 @@ async function prepare(values: Map<string, string>) {
       amount: request.amount,
       feeCap: request.feeCap,
       l1DataFeeBound: request.l1DataFeeBound,
-      sourceZatoshis: quote.sourceZatoshis,
+      sourceZatoshis: actualSourceZatoshis,
       sourcePaymentCommitment: request.sourcePaymentCommitment,
       destinationBinding: ownership.binding,
       quoteDigest: quote.quoteDigest,
@@ -277,7 +282,7 @@ async function prepare(values: Map<string, string>) {
     termsDigest: termsDigest(terms),
     approvalPackage: mainnetApprovalPackage(
       p,
-      { zatoshis: price.zatoshis, expires: price.expires },
+      { zatoshis: actualSourceZatoshis, expires: price.expires },
       at,
     ),
     prepared,

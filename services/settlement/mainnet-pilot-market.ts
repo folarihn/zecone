@@ -135,7 +135,7 @@ export async function verifyPilotBroadcastMarket(
     !context?.input.pilotPrice ||
     context.quote.quoteDigest !== terms.quoteDigest ||
     context.quote.destinationUnits !== terms.amount ||
-    context.quote.sourceZatoshis !== terms.sourceZatoshis ||
+    BigInt(context.quote.sourceZatoshis) > BigInt(terms.sourceZatoshis) ||
     context.quote.maximumDestinationDebit !== terms.maximumDestinationDebit
   )
     throw Error("PILOT_BROADCAST_MARKET_CONTEXT_REQUIRED");

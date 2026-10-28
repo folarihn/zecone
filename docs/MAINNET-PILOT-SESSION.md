@@ -49,6 +49,41 @@ or executable broadcast approval, consumes no settlement and leaves the controls
 paused. The complete two-approval state machine, including simulated signing and
 submission boundaries, is covered separately by synthetic tests.
 
+### Restricted public-checkout quote handoff
+
+The hosted payment service never holds the pricing private key. Its pilot
+configuration pins only the execution authority identity and Ed25519 public key
+(`ZECONE_PILOT_QUOTE_AUTHORITY` and the SPKI-DER base64 value in
+`ZECONE_PILOT_QUOTE_PUBLIC_KEY_B64`). Generate one recipient- and amount-bound
+quote on the operator machine:
+
+```powershell
+npm run checkout:pilot-quote -- --profiles <profiles.json> --recipient <approved-base-address> --amount-usd 0.01 --keystore <authority.age> --passphrase-file <passphrase-file> --public-key <authority-public.pem> --out <new-quote.json> --confirm SIGN_CHECKOUT_PILOT_QUOTE
+```
+
+This fetches CoinGecko and CoinPaprika independently, enforces freshness and
+spread, and signs pricing evidence only. It does not sign a transaction. With
+the VPS operator port available only through the SSH loopback tunnel, upload
+the exact envelope:
+
+```powershell
+npm run operator:quote-push -- --remote http://127.0.0.1:14322 --token-file <operator-token.txt> --quote-file <new-quote.json>
+```
+
+The service consumes the quote once. It rejects a changed recipient or amount,
+an expired/stale statement, duplicate providers, a wrong key, replay after
+consumption, or a quote longer than 300 seconds. The resulting payment stores
+the full authority digest and exact ZEC and ETH amounts.
+
+After the authenticated deposit reaches the configured confirmation threshold,
+`checkout:settlement bind` copies the original quoted ETH payout into the pilot
+session. The settlement price refresh may prove that the received ZEC still
+covers that payout; it cannot change the payout. If current pricing requires
+more ZEC than was actually authenticated, preparation stops with
+`SOURCE_PAYMENT_DOES_NOT_COVER_QUOTE`. Immediately before broadcast, the
+existing market-movement and expiry checks still run. SIGN and BROADCAST remain
+separate exact interactive approvals.
+
 Starting a session grants no signature or broadcast approval. The CLI refuses
 noninteractive input. At each prompt it displays the exact chain, recipient,
 amount, maximum debit, fee ceiling, source commitment, expiry, terms digest and
