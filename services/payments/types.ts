@@ -124,6 +124,16 @@ export interface Payment {
   chainEvidence: ChainEvidence | null;
   /** Watcher chain tip when the receiving address was allocated (monitor mode). */
   allocationTip: number | null;
+  /**
+   * Real orders only. The address is shown until `paymentDeadline` (the quote
+   * expiry, at most 300 s). A deposit qualifies only if its authenticated
+   * inclusion height is in (allocationTip, paymentExpiryHeight]. The watcher
+   * runs behind the tip, so the order stays allocated until absence of such a
+   * deposit is proven or `observationDeadline` passes. Null for demo orders.
+   */
+  paymentDeadline: number | null;
+  observationDeadline: number | null;
+  paymentExpiryHeight: number | null;
   // Base payout leg.
   payoutTxHash: string | null;
   payoutWei: string | null;

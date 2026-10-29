@@ -454,6 +454,7 @@ fn main() -> Result<()> {
                 zatoshis,
                 max_fee,
                 &common.expected_account,
+                None,
             )?;
             let lineage_store = journal::SessionStore::open(&journal)?;
             let funding =

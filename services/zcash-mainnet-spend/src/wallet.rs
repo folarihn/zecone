@@ -993,6 +993,7 @@ fn proposal_for(
     zatoshis: u64,
     max_fee: u64,
     account_fingerprint: &str,
+    max_expiry_height: Option<u32>,
 ) -> Result<(
     PreparedTransaction,
     Proposal<StandardFeeRule, ReceivedNoteId>,
@@ -1080,9 +1081,7 @@ fn proposal_for(
         .context("input total overflow")?;
     validate_accounting(input_total, zatoshis, fee, change_total)?;
     let target = u32::from(proposal.min_target_height());
-    let expiry = target
-        .checked_add(zcash_primitives::transaction::builder::DEFAULT_TX_EXPIRY_DELTA)
-        .context("expiry height overflow")?;
+    let expiry = bounded_expiry(target, max_expiry_height)?;
     let prepared = PreparedTransaction {
         recipient: recipient.to_owned(),
         zatoshis,
@@ -1107,12 +1106,32 @@ pub fn prepared_digest(prepared: &PreparedTransaction) -> Result<String> {
     Ok(hex::encode(hasher.finalize()))
 }
 
+/// Zcash expiry height for a transaction targeting `target`: the SDK default
+/// delta, lowered to `max_expiry_height` when a checkout bound applies. Nodes
+/// refuse transactions expiring within 3 blocks (ZIP-203), so a bound that
+/// close is rejected here instead of producing an unbroadcastable transaction.
+pub fn bounded_expiry(target: u32, max_expiry_height: Option<u32>) -> Result<u32> {
+    let default = target
+        .checked_add(zcash_primitives::transaction::builder::DEFAULT_TX_EXPIRY_DELTA)
+        .context("expiry height overflow")?;
+    let Some(max) = max_expiry_height else {
+        return Ok(default);
+    };
+    let expiry = default.min(max);
+    ensure!(
+        expiry >= target.saturating_add(3),
+        "payment inclusion height is too close to the chain tip; request a new checkout"
+    );
+    Ok(expiry)
+}
+
 pub fn propose(
     path: &Path,
     recipient: &str,
     zatoshis: u64,
     max_fee: u64,
     account_fingerprint: &str,
+    max_expiry_height: Option<u32>,
 ) -> Result<(PreparedTransaction, String)> {
     let mut wallet = db(path)?;
     let (prepared, _) = proposal_for(
@@ -1121,6 +1140,7 @@ pub fn propose(
         zatoshis,
         max_fee,
         account_fingerprint,
+        max_expiry_height,
     )?;
     let digest = prepared_digest(&prepared)?;
     Ok((prepared, digest))
@@ -1146,6 +1166,7 @@ pub fn construct(
         expected.zatoshis,
         expected.max_fee_zatoshis,
         &expected.account_fingerprint,
+        Some(expected.expiry_height),
     )?;
     ensure!(
         prepared == *expected,
@@ -1237,6 +1258,25 @@ fn write_new(path: &Path, bytes: &[u8]) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn checkout_bound_lowers_expiry_and_refuses_unbroadcastable_bounds() {
+        let delta = zcash_primitives::transaction::builder::DEFAULT_TX_EXPIRY_DELTA;
+        assert_eq!(super::bounded_expiry(1_000, None).unwrap(), 1_000 + delta);
+        assert_eq!(super::bounded_expiry(1_000, Some(1_010)).unwrap(), 1_010);
+        // A bound above the default never extends it.
+        assert_eq!(
+            super::bounded_expiry(1_000, Some(1_000 + delta + 50)).unwrap(),
+            1_000 + delta
+        );
+        assert_eq!(super::bounded_expiry(1_000, Some(1_003)).unwrap(), 1_003);
+        for bound in [999, 1_000, 1_002] {
+            assert!(
+                super::bounded_expiry(1_000, Some(bound)).is_err(),
+                "{bound}"
+            );
+        }
+    }
+
     use super::*;
     use secrecy::SecretVec;
 

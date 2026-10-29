@@ -38,7 +38,9 @@ export const ALLOCATING_STATES: ReadonlySet<PaymentState> = new Set([
 const TRANSITIONS: Record<PaymentState, ReadonlySet<PaymentState>> = {
   CREATED: new Set(["QUOTED", "EXPIRED", "FAILED"]),
   QUOTED: new Set(["AWAITING_PAYMENT", "EXPIRED", "FAILED"]),
-  AWAITING_PAYMENT: new Set(["PAYMENT_DETECTED", "EXPIRED", "FAILED"]),
+  // MANUAL_REVIEW: a deposit mined after the inclusion height, or absence not
+  // provable by the observation deadline. Neither can authorize a payout.
+  AWAITING_PAYMENT: new Set(["PAYMENT_DETECTED", "EXPIRED", "FAILED", "MANUAL_REVIEW"]),
   PAYMENT_DETECTED: new Set(["VERIFYING", "EXPIRED", "FAILED", "MANUAL_REVIEW"]),
   VERIFYING: new Set(["ZEC_CONFIRMED", "FAILED", "MANUAL_REVIEW"]),
   // A confirmed deposit can still be invalidated by a deep reorganization.
@@ -231,6 +233,9 @@ export class PaymentStore {
     addColumn("payments", "completed_at", "completed_at INTEGER");
     addColumn("payments", "allocation_tip", "allocation_tip INTEGER");
     addColumn("payments", "chain_evidence_json", "chain_evidence_json TEXT");
+    addColumn("payments", "payment_deadline", "payment_deadline INTEGER");
+    addColumn("payments", "observation_deadline", "observation_deadline INTEGER");
+    addColumn("payments", "payment_expiry_height", "payment_expiry_height INTEGER");
     addColumn("idempotency", "fingerprint", "fingerprint TEXT");
     addColumn("webhook_deliveries", "status", "status TEXT NOT NULL DEFAULT 'pending'");
     addColumn("webhook_deliveries", "event_id", "event_id INTEGER");
@@ -601,8 +606,23 @@ export class PaymentStore {
     zcashAddress: string | null,
     expiresAt: number,
     now = nowSeconds(),
-    opts: { exclusive?: boolean; allocationTip?: number | null } = {},
+    opts: {
+      exclusive?: boolean;
+      allocationTip?: number | null;
+      /** Real orders: separate payment/observation deadlines and the inclusion height bound. */
+      window?: { paymentDeadline: number; observationDeadline: number; paymentExpiryHeight: number } | null;
+    } = {},
   ): void {
+    const w = opts.window ?? null;
+    if (
+      w &&
+      (w.paymentDeadline !== expiresAt ||
+        w.observationDeadline <= w.paymentDeadline ||
+        opts.allocationTip == null ||
+        !Number.isSafeInteger(w.paymentExpiryHeight) ||
+        w.paymentExpiryHeight <= opts.allocationTip)
+    )
+      throw new StoreError("invalid payment observation window", "invalid_state");
     this.tx(() => {
       // Demo payments have no payable address and therefore hold no allocation.
       if (opts.exclusive && zcashAddress !== null) {
@@ -610,7 +630,7 @@ export class PaymentStore {
         const holder = this.allocationHolder(zcashAddress);
         if (holder && holder.id !== id)
           throw new StoreError("another checkout currently holds the receiving address", "checkout_busy", {
-            retryAfter: Math.max(1, (holder.expiresAt ?? now) - now),
+            retryAfter: Math.max(1, (holder.observationDeadline ?? holder.expiresAt ?? now) - now),
           });
         this.db
           .prepare(`INSERT OR REPLACE INTO allocations(address,payment_id,allocated_at) VALUES(?,?,?)`)
@@ -618,9 +638,20 @@ export class PaymentStore {
       }
       const changed = this.db
         .prepare(
-          `UPDATE payments SET quote_json=?, zcash_address=?, expires_at=?, allocation_tip=?, updated_at=? WHERE id=? AND state='CREATED'`,
+          `UPDATE payments SET quote_json=?, zcash_address=?, expires_at=?, allocation_tip=?, payment_deadline=?,
+             observation_deadline=?, payment_expiry_height=?, updated_at=? WHERE id=? AND state='CREATED'`,
         )
-        .run(JSON.stringify(quote), zcashAddress, expiresAt, opts.allocationTip ?? null, now, id);
+        .run(
+          JSON.stringify(quote),
+          zcashAddress,
+          expiresAt,
+          opts.allocationTip ?? null,
+          w?.paymentDeadline ?? null,
+          w?.observationDeadline ?? null,
+          w?.paymentExpiryHeight ?? null,
+          now,
+          id,
+        );
       if (changed.changes !== 1) throw new StoreError("payment is not in CREATED state", "invalid_state");
       this.transition(id, "QUOTED", { quoteId: quote.id }, now);
       this.transition(id, "AWAITING_PAYMENT", { expiresAt }, now);
@@ -666,11 +697,13 @@ export class PaymentStore {
     return this.tx(() => {
       const r = this.db
         .prepare(
-          `INSERT OR IGNORE INTO payments(id,merchant_id,state,request_json,quote_json,zcash_address,created_at,updated_at,expires_at,mode,allocation_tip)
-           VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
+          `INSERT OR IGNORE INTO payments(id,merchant_id,state,request_json,quote_json,zcash_address,created_at,updated_at,expires_at,mode,allocation_tip,
+             payment_deadline,observation_deadline,payment_expiry_height)
+           VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         )
         .run(p.id, p.merchantId, p.state, JSON.stringify(p.request), p.quote ? JSON.stringify(p.quote) : null, p.zcashAddress,
-          p.createdAt, p.updatedAt, p.expiresAt, p.mode, p.allocationTip);
+          p.createdAt, p.updatedAt, p.expiresAt, p.mode, p.allocationTip,
+          p.paymentDeadline ?? null, p.observationDeadline ?? null, p.paymentExpiryHeight ?? null);
       if (r.changes === 1 && p.state === "AWAITING_PAYMENT" && p.zcashAddress) {
         const holder = this.allocationHolder(p.zcashAddress);
         if (holder && holder.id !== p.id) throw new StoreError("mirror allocation conflict", "checkout_busy");
@@ -727,16 +760,49 @@ export class PaymentStore {
     this.recordEvent(id, "payment.failed", "FAILED", { message }, now);
   }
 
-  /** Expire every unpaid payment whose quote window elapsed. Returns expired ids. */
+  /**
+   * Expire unpaid payments. Orders without an observation window (demo) expire
+   * at `expires_at`. A real order past its payment deadline keeps its
+   * allocation until the verified watcher tip reaches its inclusion height with
+   * no attributed deposit (absence proven: EXPIRED), or until its observation
+   * deadline (absence unproven: MANUAL_REVIEW, never a payout). Returns expired ids.
+   */
   expireDue(now = nowSeconds()): string[] {
-    const rows = this.db
+    const expired: string[] = [];
+    const simple = this.db
       .prepare(
-        `SELECT id FROM payments WHERE state IN ('CREATED','QUOTED','AWAITING_PAYMENT') AND expires_at IS NOT NULL AND expires_at <= ?`,
+        `SELECT id FROM payments WHERE state IN ('CREATED','QUOTED','AWAITING_PAYMENT') AND expires_at IS NOT NULL
+           AND expires_at <= ? AND observation_deadline IS NULL`,
       )
       .all(now) as { id: string }[];
-    const expired: string[] = [];
-    for (const r of rows) if (this.transition(r.id, "EXPIRED", { reason: "quote_expired" }, now)) expired.push(r.id);
+    for (const r of simple) if (this.transition(r.id, "EXPIRED", { reason: "quote_expired" }, now)) expired.push(r.id);
+    const observing = this.db
+      .prepare(
+        `SELECT id, payment_expiry_height AS bound, observation_deadline AS deadline FROM payments
+          WHERE state='AWAITING_PAYMENT' AND observation_deadline IS NOT NULL AND payment_deadline <= ?`,
+      )
+      .all(now) as { id: string; bound: number; deadline: number }[];
+    if (!observing.length) return expired;
+    // Written only after a verified snapshot (bridge) or heartbeat, which the
+    // operator sync sends after that snapshot's observations.
+    const tip = (this.db.prepare(`SELECT tip FROM watch_checkpoint WHERE id=1`).get() as { tip: number } | undefined)?.tip ?? null;
+    for (const r of observing) {
+      if (tip !== null && tip >= r.bound) {
+        if (this.transition(r.id, "EXPIRED", { reason: "no_payment_by_inclusion_height", inclusionHeight: r.bound, watcherTip: tip }, now))
+          expired.push(r.id);
+      } else if (r.deadline <= now) {
+        this.transition(r.id, "MANUAL_REVIEW", { reason: "observation_incomplete", inclusionHeight: r.bound, watcherTip: tip }, now);
+      }
+    }
     return expired;
+  }
+
+  /** Highest inclusion height of any real order ever allocated `address` (null if none). */
+  inclusionFloor(address: string): number | null {
+    const r = this.db
+      .prepare(`SELECT MAX(payment_expiry_height) AS h FROM payments WHERE zcash_address=? AND mode IN ('monitor','live')`)
+      .get(address) as { h: number | null } | undefined;
+    return r?.h ?? null;
   }
 
   /** Merchant-initiated cancellation of an unpaid payment. */
@@ -930,6 +996,9 @@ function rowToPayment(r: Record<string, unknown>): Payment {
     completedAt: (r.completed_at as number | null) ?? null,
     chainEvidence: r.chain_evidence_json ? (JSON.parse(r.chain_evidence_json as string) as ChainEvidence) : null,
     allocationTip: (r.allocation_tip as number | null) ?? null,
+    paymentDeadline: (r.payment_deadline as number | null) ?? null,
+    observationDeadline: (r.observation_deadline as number | null) ?? null,
+    paymentExpiryHeight: (r.payment_expiry_height as number | null) ?? null,
     mode: r.mode as PaymentMode,
     error: (r.error as string | null) ?? null,
   };

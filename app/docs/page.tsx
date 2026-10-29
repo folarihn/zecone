@@ -357,13 +357,27 @@ const receipt = await zecone.payments.receipt(id);     // COMPLETED only
                 Base payout through its separate workflow; the checkout completes only once that Base transaction is verified final.
               </p>
               <p>
+                <strong>Two deadlines.</strong> A real checkout shows its address and QR only until its <code>paymentDeadline</code>,
+                the signed quote&apos;s expiry (at most five minutes). When it is created, ZecOne also fixes an inclusion height from
+                the verified chain tip: the blocks expected before that deadline plus a five-block margin. A payment counts only if
+                authenticated chain evidence shows it was mined at or below that height; anything mined later is never attributed and
+                goes to manual review with no payout. Payments prepared by the ZecOne wallet carry that height as their Zcash expiry, so
+                they cannot be mined later. Because the watcher authenticates blocks about ten behind the tip, a payment mined in time
+                can be found after the deadline: until the <code>observationDeadline</code> the page shows{" "}
+                <strong>PAYMENT WINDOW CLOSED</strong> and the address stays reserved. The order expires once the watcher&apos;s
+                verified tip passes the inclusion height with no qualifying payment; if that cannot be proven by the observation
+                deadline, it goes to manual review instead. Payout still needs 20 confirmations and the separate SIGN and BROADCAST
+                approvals.
+              </p>
+              <p>
                 The hosted page, the <code>/embed</code> view and <code>@zecone/sdk/react</code> validate every checkout view and show
                 exactly one labelled status: <strong>SIMULATED DEMO</strong> (no funds move, no address);{" "}
                 <strong>MAINNET PAYMENT</strong> with <strong>OBSERVING</strong> (exact ZEC amount, shielded address, ZIP-321 QR and quote
                 countdown), <strong>CONFIRMING</strong> (current / required confirmations), <strong>PAYOUT PENDING</strong> (ZEC confirmed,
                 Base transaction not final) and <strong>COMPLETED</strong> (only with the finalized Base receipt); and the fail-closed{" "}
                 <strong>MANUAL REVIEW</strong>, <strong>REORG</strong>, <strong>PROVIDER DISAGREEMENT</strong>,{" "}
-                <strong>WATCHER PAUSED</strong>, <strong>EXPIRED</strong>, <strong>FAILED</strong> and <strong>CANNOT VERIFY</strong>.
+                <strong>WATCHER PAUSED</strong>, <strong>PAYMENT WINDOW CLOSED</strong>, <strong>EXPIRED</strong>,{" "}
+                <strong>FAILED</strong> and <strong>CANNOT VERIFY</strong>.
                 Payment details are hidden whenever the quote has expired, the watcher is not ready, the connection is lost or the
                 view is inconsistent. Customers pay from any compatible Zcash wallet; the website is not a wallet.
               </p>

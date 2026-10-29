@@ -201,6 +201,7 @@ export type CheckoutStatus =
   | "REORG"
   | "PROVIDER_DISAGREEMENT"
   | "WATCHER_PAUSED"
+  | "WINDOW_CLOSED"
   | "EXPIRED"
   | "FAILED";
 
@@ -329,6 +330,12 @@ export function validateCheckoutView(raw: unknown, expectedId?: string): string[
   if (!isInt(c.serverTime, 1)) issues.push("server_time");
   if (!isInt(c.updatedAt)) issues.push("updated_at");
   if (c.expiresAt != null && !isInt(c.expiresAt)) issues.push("expires_at");
+  if (c.paymentDeadline != null && !isInt(c.paymentDeadline)) issues.push("payment_deadline");
+  if (
+    c.observationDeadline != null &&
+    (!isInt(c.observationDeadline) || (isInt(c.paymentDeadline) && c.observationDeadline <= c.paymentDeadline))
+  )
+    issues.push("observation_deadline");
   if (c.confirmations != null && !isInt(c.confirmations)) issues.push("confirmations");
   if (c.minimumConfirmations != null && !isInt(c.minimumConfirmations, 1)) issues.push("minimum_confirmations");
   const quote = c.quote as Record<string, unknown> | null | undefined;
@@ -398,6 +405,11 @@ export const CHECKOUT_STATUS_COPY: Record<CheckoutStatus, { label: string; detai
     detail: "ZecOne cannot currently verify Zcash mainnet with its independent providers, so payment details are hidden. Do not send ZEC until this clears.",
     tone: "danger",
   },
+  WINDOW_CLOSED: {
+    label: "PAYMENT WINDOW CLOSED",
+    detail: "Payment window closed — checking for a payment mined before the deadline.",
+    tone: "info",
+  },
   EXPIRED: {
     label: "EXPIRED",
     detail: "This payment request expired. Do not send ZEC to it. Ask the merchant for a new link.",
@@ -426,6 +438,8 @@ function phaseFor(status: CheckoutStatus): CheckoutPhase {
     case "REORG":
     case "PROVIDER_DISAGREEMENT":
       return "review";
+    case "WINDOW_CLOSED":
+      return "processing";
     case "UNVERIFIED":
     case "INVALID_LINK":
       return "error";
@@ -506,8 +520,13 @@ export function presentCheckout(raw: unknown, ctx: PresentContext): CheckoutPres
     case "EXPIRED":
     case "FAILED":
       return presentStatus(c.state, m);
-    case "MANUAL_REVIEW":
-      return withConf(presentStatus(reviewStatus(c.reviewReason), m));
+    case "MANUAL_REVIEW": {
+      const p = withConf(presentStatus(reviewStatus(c.reviewReason), m));
+      if (c.reviewReason === "late_deposit")
+        p.statusDetail =
+          "A payment was mined after the payment deadline. It is held for manual review with no automatic payout. Do not pay again; the merchant will follow up.";
+      return p;
+    }
     case "COMPLETED": {
       // Completed only with a finalized Base receipt reported by the backend.
       const hash = c.payoutTxHash;
@@ -534,11 +553,16 @@ export function presentCheckout(raw: unknown, ctx: PresentContext): CheckoutPres
   }
 
   // AWAITING_PAYMENT: the only state with a payable request.
-  const expiries = [c.expiresAt, c.quote?.expiresAt].filter((v): v is number => typeof v === "number");
+  const expiries = [c.paymentDeadline, c.expiresAt, c.quote?.expiresAt].filter((v): v is number => typeof v === "number");
   if (!expiries.length) return presentStatus("UNVERIFIED", m, ["no_expiry"]);
   const expiresAt = Math.min(...expiries);
   const secondsLeft = expiresAt - ctx.now;
-  if (secondsLeft <= 0) return presentStatus("EXPIRED", m, ["quote_expired_locally"]);
+  if (secondsLeft <= 0)
+    // Real orders keep observing after the payment deadline: the watcher runs
+    // behind the tip and may still find a deposit mined in time. Never payable.
+    return typeof c.observationDeadline === "number"
+      ? presentStatus("WINDOW_CLOSED", m, ["payment_deadline_passed"])
+      : presentStatus("EXPIRED", m, ["quote_expired_locally"]);
   if (paused) return presentStatus("WATCHER_PAUSED", m, ["watcher_not_ready"]);
   if (ctx.stale) return presentStatus("OBSERVING", m, ["stale_view"]);
   if (!c.quote || !c.zcashAddress || !c.paymentUri) return presentStatus("UNVERIFIED", m, ["payment_request_missing"]);

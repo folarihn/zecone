@@ -126,11 +126,20 @@ Run the commands from the repository root:
 npm run zec-wallet:status -- @common
 npm run zec-wallet:sync -- @common
 npm run zec-wallet:prepare -- @common --journal $journal --recipient $address --zatoshis 100000 --max-fee 20000
+# Paying a restricted-pilot checkout: bind to its inclusion height and payment deadline.
+npm run zec-wallet:prepare -- @common --journal $journal --recipient '<checkout address>' --zatoshis '<exact zat>' --max-fee 20000 --max-expiry-height '<paymentExpiryHeight>' --approval-deadline '<paymentDeadline>'
 npm run zec-wallet:sign -- @common --journal $journal --session '<session-id>'
 npm run zec-wallet:broadcast -- @common --journal $journal --session '<session-id>' --mode disabled
 npm run zec-wallet:reconcile -- @common --journal $journal --session '<session-id>' --confirmations 10
 npm run zec-wallet:history -- --journal $journal
 ```
+
+`--max-expiry-height` lowers the transaction's Zcash expiry to the checkout's
+inclusion height, so the network cannot mine it later; preparation refuses a
+bound within 3 blocks of the target height (ZIP-203). `--approval-deadline`
+caps the approval session at the checkout's payment deadline, so the existing
+expiry checks refuse SIGN and BROADCAST after it. Both values are bound into the
+prepared and review digests.
 
 The disabled broadcast command fails before unlocking or consuming approval.
 Mock testing uses `--mode mock`. A separately authorized real transfer requires

@@ -89,6 +89,18 @@ export function attributeDeposit(
     if (holder.mode === "demo") return reject("holder_is_demo");
     if (holder.state !== "AWAITING_PAYMENT") return reject("holder_not_awaiting");
     if (holder.allocationTip === null || obs.height <= holder.allocationTip) return reject("note_predates_checkout");
+    // Mined after the agreed inclusion height: never this order's payment, even if
+    // the payment window display had not yet closed. Recovery plus manual review.
+    if (holder.paymentExpiryHeight !== null && obs.height > holder.paymentExpiryHeight) {
+      const r = reject("mined_after_inclusion_height");
+      store.transition(
+        holder.id,
+        "MANUAL_REVIEW",
+        { reason: "late_deposit", txid: obs.txid, height: obs.height, inclusionHeight: holder.paymentExpiryHeight, evidence: "mainnet-observed" },
+        now,
+      );
+      return r;
+    }
     try {
       store.markDetected(holder.id, obs.txid, obs.zat, now, "mainnet-observed");
     } catch (e) {

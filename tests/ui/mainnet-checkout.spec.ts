@@ -437,3 +437,47 @@ test("a lost connection hides payment details until an unchanged view is re-veri
   await expect(page.getByTestId("zecone-address")).toHaveText(ADDR);
   await expect(page.getByText(/Connection lost/)).toHaveCount(0);
 });
+
+test("real order: address and QR disappear at the payment deadline while observation continues", async ({
+  page,
+}) => {
+  const t = nowS();
+  const fixed = view({
+    expiresAt: t + 3,
+    paymentDeadline: t + 3,
+    observationDeadline: t + 3 + 2700,
+    quote: { ...view().quote, expiresAt: t + 3 },
+  });
+  await serve(page, {
+    checkout: () => ({ ...fixed, serverTime: nowS() }),
+    watcherReady: true,
+  });
+  await page.goto(`/pay/${ID}?t=${TOKEN}`);
+  await expect(page.getByTestId("zecone-address")).toHaveText(ADDR);
+  await expect(status(page)).toContainText("PAYMENT WINDOW CLOSED", {
+    timeout: 8000,
+  });
+  await expect(status(page)).toContainText(
+    "Payment window closed — checking for a payment mined before the deadline.",
+  );
+  await expectNoPaymentRequest(page);
+  await expect(panel(page)).toHaveAttribute(
+    "data-zecone-checkout",
+    "processing",
+  );
+  await expectNoCompletionControls(page);
+});
+
+test("late deposit is explained as manual review with no payout", async ({
+  page,
+}) => {
+  await serve(page, {
+    checkout: () =>
+      view({ ...after, state: "MANUAL_REVIEW", reviewReason: "late_deposit" }),
+  });
+  await page.goto(`/pay/${ID}?t=${TOKEN}`);
+  await expect(status(page)).toContainText("MANUAL REVIEW");
+  await expect(status(page)).toContainText("mined after the payment deadline");
+  await expect(status(page)).toContainText("no automatic payout");
+  await expectNoPaymentRequest(page);
+});

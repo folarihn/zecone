@@ -207,6 +207,9 @@ export class OperatorWatchFeed {
     // Same attribution rule as the in-process bridge: only notes mined after allocation.
     if (p.allocationTip === null || e.height <= p.allocationTip)
       fail("OBSERVATION_BEFORE_ALLOCATION");
+    // ...and only notes included at or below the agreed inclusion height.
+    if (p.paymentExpiryHeight !== null && e.height > p.paymentExpiryHeight)
+      fail("OBSERVATION_AFTER_INCLUSION_HEIGHT");
     this.store.tx(() => {
       if (p.state === "AWAITING_PAYMENT")
         this.store.markDetected(

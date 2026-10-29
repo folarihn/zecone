@@ -179,8 +179,13 @@ test("monitor: amount mismatch goes to manual review; a txid can never fund two 
     w.update((c) => c.notes.push({ txid: tx("3"), height: 1001, zatoshis: "1999999", address: ADDR }));
     await h.app.bridge!.tick();
     assert.equal((await h.call(`/api/v1/payments/${p1.id}`, { key: m.apiKey })).body.payment.state, "MANUAL_REVIEW");
-    // Allocation released by manual review; next checkout.
+    // Allocation released by manual review. The next checkout may allocate only
+    // once the chain passes p1's inclusion height, so p1's window cannot leak into it.
+    assert.equal((await pay(h, m.apiKey)).body.error.code, "checkout_busy");
+    w.mine(p1.paymentExpiryHeight - w.chain.tip + 1);
+    await h.app.bridge!.tick();
     const p2 = (await pay(h, m.apiKey)).body.payment;
+    assert.ok(h.app.store.getPayment(p2.id)!.allocationTip! > p1.paymentExpiryHeight);
     // A second output of the SAME transaction arrives later: never attributed to p2.
     w.mine(1);
     w.update((c) => c.notes.push({ txid: tx("3"), index: 1, height: 1002, zatoshis: "2000000", address: ADDR }));
@@ -243,6 +248,10 @@ test("monitor: provider/scan failure fails closed and reports health; checkouts 
     assert.equal((await pay(h, m.apiKey)).body.error.code, "watcher_not_ready");
     // Recovery.
     w.update((c) => delete c.fail);
+    assert.equal((await h.app.bridge!.tick()).ok, true);
+    // The canceled order's inclusion window must pass on chain before reallocation.
+    assert.equal((await pay(h, m.apiKey)).body.error.code, "checkout_busy");
+    w.mine(p.paymentExpiryHeight - w.chain.tip + 1);
     assert.equal((await h.app.bridge!.tick()).ok, true);
     assert.equal((await pay(h, m.apiKey)).status, 201);
   } finally {

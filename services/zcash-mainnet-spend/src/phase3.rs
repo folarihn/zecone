@@ -25,6 +25,12 @@ pub struct PrepareArgs {
     pub journal: PathBuf,
     #[arg(long, default_value_t = 1800)]
     pub approval_validity_seconds: u64,
+    /// Checkout inclusion height: the transaction expires at or below it.
+    #[arg(long)]
+    pub max_expiry_height: Option<u32>,
+    /// Checkout payment deadline (unix seconds): SIGN and BROADCAST are refused after it.
+    #[arg(long)]
+    pub approval_deadline: Option<u64>,
 }
 
 #[derive(Args)]
@@ -120,6 +126,21 @@ fn pending_snapshot(wallet_path: &Path, session_id: &str) -> PathBuf {
     wallet_path.join("pending-spends").join(session_id)
 }
 
+/// Approval session expiry: the validity window, never past a checkout payment
+/// deadline. The existing SIGN and BROADCAST expiry checks then refuse execution
+/// once the deadline has passed.
+fn session_expiry(created: u64, validity_seconds: u64, deadline: Option<u64>) -> Result<u64> {
+    let window = created
+        .checked_add(validity_seconds)
+        .context("expiry overflow")?;
+    let expires = deadline.map_or(window, |d| d.min(window));
+    ensure!(
+        expires > created,
+        "checkout payment deadline has already passed; request a new checkout"
+    );
+    Ok(expires)
+}
+
 fn reviewed(
     prepared: &wallet::PreparedTransaction,
     digest: String,
@@ -166,6 +187,7 @@ pub fn prepare(args: PrepareArgs) -> Result<()> {
         args.zatoshis,
         args.max_fee,
         &args.common.expected_account,
+        args.max_expiry_height,
     )?;
     let mut store = journal::SessionStore::open(&args.journal)?;
     let funding = verify_prepared_funding(&args.common.wallet, &store, &prepared.inputs)?;
@@ -175,9 +197,11 @@ pub fn prepare(args: PrepareArgs) -> Result<()> {
         &prepared,
         digest.clone(),
         session_id.clone(),
-        created
-            .checked_add(args.approval_validity_seconds)
-            .context("expiry overflow")?,
+        session_expiry(
+            created,
+            args.approval_validity_seconds,
+            args.approval_deadline,
+        )?,
     );
     let snapshot = pending_snapshot(&args.common.wallet, &session_id);
     if let Some(parent) = snapshot.parent() {
@@ -247,6 +271,7 @@ pub fn sign(args: SessionArgs) -> Result<()> {
         status.session.zatoshis,
         status.session.fee_ceiling,
         &args.common.expected_account,
+        Some(status.session.expiry_height),
     )?;
     ensure!(
         digest == status.session.prepared_digest,
@@ -557,4 +582,23 @@ pub fn expire(args: ExpireArgs) -> Result<()> {
         json!({"sessionId":args.session,"state":store.status(&args.session)?.map(|s|s.state),"reservationReleased":true,"networkSubmission":false})
     );
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::session_expiry;
+
+    #[test]
+    fn checkout_deadline_caps_the_approval_session() {
+        // No checkout deadline: the ordinary validity window.
+        assert_eq!(session_expiry(1_000, 1_800, None).unwrap(), 2_800);
+        // A checkout deadline earlier than the window wins, so SIGN or
+        // BROADCAST after the payment deadline is refused as expired.
+        assert_eq!(session_expiry(1_000, 1_800, Some(1_240)).unwrap(), 1_240);
+        // A later deadline never extends the window.
+        assert_eq!(session_expiry(1_000, 1_800, Some(9_000)).unwrap(), 2_800);
+        // A deadline that already passed refuses to prepare at all.
+        assert!(session_expiry(1_000, 1_800, Some(1_000)).is_err());
+        assert!(session_expiry(1_000, 1_800, Some(900)).is_err());
+    }
 }

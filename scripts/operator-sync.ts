@@ -117,26 +117,6 @@ export async function syncOnce(
 
   const tick = await bridge.tick();
   if (!tick.ok) return { ok: false, error: tick.error, pushed };
-  const cp = mirror.db
-    .prepare(`SELECT * FROM watch_checkpoint WHERE id=1`)
-    .get() as
-    | {
-        tip: number;
-        block_hash: string;
-        source: string;
-        peer_source: string;
-        observed_at: number;
-      }
-    | undefined;
-  if (cp)
-    await remote.heartbeat({
-      tip: cp.tip,
-      tipHash: cp.block_hash,
-      source: cp.source,
-      peerSource: cp.peer_source,
-      observedAt: cp.observed_at,
-    });
-
   for (const r of remoteOrders.values()) {
     const m = mirror.getPayment(r.id);
     if (!m) continue;
@@ -179,6 +159,29 @@ export async function syncOnce(
       pushed.push(`${m.id}:PAYOUT`);
     }
   }
+  // Heartbeat last: a verified tip reaches the API only after every deposit
+  // visible at that tip was reported, so the API can treat tip >= an order's
+  // inclusion height with no observation as proof that no qualifying deposit exists.
+  const cp = mirror.db
+    .prepare(`SELECT * FROM watch_checkpoint WHERE id=1`)
+    .get() as
+    | {
+        tip: number;
+        block_hash: string;
+        source: string;
+        peer_source: string;
+        observed_at: number;
+      }
+    | undefined;
+  if (cp)
+    await remote.heartbeat({
+      tip: cp.tip,
+      tipHash: cp.block_hash,
+      source: cp.source,
+      peerSource: cp.peer_source,
+      observedAt: cp.observed_at,
+    });
+
   return { ok: true, pushed };
 }
 

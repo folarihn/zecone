@@ -101,6 +101,12 @@ export interface Payment {
   createdAt: number;
   updatedAt: number;
   expiresAt: number | null;
+  /** Real orders: address shown until this time (the quote expiry). */
+  paymentDeadline?: number | null;
+  /** Real orders: the watcher may still prove a qualifying deposit until this time. */
+  observationDeadline?: number | null;
+  /** Real orders: a deposit qualifies only if included at or below this Zcash height. */
+  paymentExpiryHeight?: number | null;
   completedAt: number | null;
   error: string | null;
 }
@@ -174,6 +180,12 @@ export interface CheckoutView {
   payoutTxHash: string | null;
   payoutExplorerUrl: string | null;
   expiresAt: number | null;
+  /** Real orders: the address is shown only until this time. */
+  paymentDeadline?: number | null;
+  /** Real orders: after the payment deadline, the watcher may still find a deposit mined in time until this time. */
+  observationDeadline?: number | null;
+  /** MANUAL_REVIEW reason code, when the service reports one. */
+  reviewReason?: string | null;
   createdAt: number;
   updatedAt: number;
   serverTime: number;

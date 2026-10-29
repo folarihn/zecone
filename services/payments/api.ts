@@ -32,6 +32,13 @@ import { PaymentWatchBridge, type SnapshotSource } from "./watch-bridge.ts";
 import { OperatorFeedError, OperatorWatchFeed, basePayoutCheck, type BasePayoutCheck } from "./operator-feed.ts";
 import { OperatorPilotQuoteEngine, PilotQuoteError } from "./pilot-quote.ts";
 import { DEFAULT_API_SCOPES } from "./types.ts";
+import {
+  DEFAULT_OBSERVATION_GRACE_SECONDS,
+  MAX_OBSERVATION_GRACE_SECONDS,
+  MIN_OBSERVATION_GRACE_SECONDS,
+  PaymentWindowError,
+  paymentWindow,
+} from "./payment-window.ts";
 import type { ApiError, Merchant, Payment, PaymentRequest, PaymentState, Principal } from "./types.ts";
 import type { Quote } from "./types.ts";
 
@@ -82,6 +89,8 @@ export interface PaymentsConfig {
   /** Single-active-checkout enforcement for the shared receiving address. */
   exclusiveAllocation: boolean;
   quoteTtlSeconds: number;
+  /** Real orders: how long after the payment deadline the watcher may still prove a qualifying deposit. */
+  observationGraceSeconds?: number;
   maxAmountUsd: string;
   /** Operator-supplied relayer balance snapshot (wei) used by the liquidity guard. */
   relayerAvailableWei: bigint;
@@ -156,6 +165,9 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
         throw new Error("PILOT_LIVE_QUOTE_AUTHORITY_REQUIRED");
       if (!Number.isSafeInteger(config.quoteTtlSeconds) || config.quoteTtlSeconds < 1 || config.quoteTtlSeconds > 300)
         throw new Error("PILOT_QUOTE_TTL_INVALID");
+      const grace = config.observationGraceSeconds ?? DEFAULT_OBSERVATION_GRACE_SECONDS;
+      if (!Number.isSafeInteger(grace) || grace < MIN_OBSERVATION_GRACE_SECONDS || grace > MAX_OBSERVATION_GRACE_SECONDS)
+        throw new Error("PILOT_OBSERVATION_GRACE_INVALID");
       const pilotLimit = parseUnits(config.pilot.maxAmountUsd, "usd");
       if (pilotLimit < 1n || pilotLimit > 100n) throw new Error("PILOT_AMOUNT_LIMIT_INVALID");
       if (config.pilot.maxPayoutWei <= 0n || config.pilot.maxPayoutWei > config.relayerAvailableWei)
@@ -315,9 +327,34 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
       createdAt: p.createdAt,
       updatedAt: p.updatedAt,
       expiresAt: p.expiresAt,
+      paymentDeadline: p.paymentDeadline,
+      observationDeadline: p.observationDeadline,
+      paymentExpiryHeight: p.paymentExpiryHeight,
       completedAt: p.completedAt,
       error: p.error,
     };
+  }
+
+  /** Latest MANUAL_REVIEW reason, only if it is a public, non-identifying code. */
+  const PUBLIC_REVIEW_REASONS = new Set([
+    "chain_reorganization",
+    "late_deposit",
+    "observation_incomplete",
+    "owned_note_requirements_not_met",
+    "underpayment",
+    "overpayment",
+  ]);
+  function reviewReason(id: string): string | null {
+    const reason = [...store.listEvents(id)].reverse().find((e) => e.state === "MANUAL_REVIEW")?.data.reason;
+    return typeof reason === "string" && (PUBLIC_REVIEW_REASONS.has(reason) || /^[a-z_]{1,48}_disagreement$/.test(reason))
+      ? reason
+      : null;
+  }
+
+  /** Payable only while awaiting payment and before the payment deadline. */
+  function payable(p: Payment) {
+    const deadline = p.paymentDeadline ?? p.expiresAt;
+    return p.state === "AWAITING_PAYMENT" && deadline !== null && clock() < deadline;
   }
 
   /** Public, token-scoped checkout view: no metadata, no merchant ids, no source txid. */
@@ -343,9 +380,14 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
           }
         : null,
       simulated: p.mode === "demo",
-      // A real, payable address is only ever shown for an authorized monitor/live checkout.
-      zcashAddress: p.mode !== "demo" && p.state === "AWAITING_PAYMENT" ? p.zcashAddress : null,
-      paymentUri: p.state === "AWAITING_PAYMENT" ? zip321(p) : null,
+      // A real, payable address is only ever shown for an authorized monitor/live
+      // checkout, and only until its payment deadline, even while the watcher is
+      // still observing for a deposit mined before that deadline.
+      zcashAddress: p.mode !== "demo" && payable(p) ? p.zcashAddress : null,
+      paymentUri: payable(p) ? zip321(p) : null,
+      paymentDeadline: p.paymentDeadline ?? p.expiresAt,
+      observationDeadline: p.observationDeadline,
+      reviewReason: p.state === "MANUAL_REVIEW" ? reviewReason(p.id) : null,
       paymentDetected: p.detectedTxid !== null,
       confirmations: p.mode === "demo" ? null : p.confirmations,
       minimumConfirmations: p.mode === "demo" ? null : (p.chainEvidence?.minimumConfirmations ?? config.monitor?.minimumConfirmations ?? null),
@@ -925,9 +967,31 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
           const health = watcherHealth()!;
           if (!health.ready || health.tip === null)
             throw new HttpError(503, "watcher_not_ready", "The mainnet watcher has no fresh verified snapshot; real checkouts are paused.");
+          // A new order never allocates at or below a previous order's inclusion height,
+          // so a delayed deposit for that order can never be claimed by this one.
+          const floor = store.inclusionFloor(config.checkoutAddress);
+          if (floor !== null && health.tip <= floor)
+            throw new HttpError(409, "checkout_busy", "The previous checkout's on-chain payment window has not closed yet.", {
+              retryAfter: (floor - health.tip + 1) * 75,
+            });
+          let window: ReturnType<typeof paymentWindow>;
+          try {
+            window = paymentWindow({
+              now,
+              paymentDeadline: quote.expiresAt,
+              tip: health.tip,
+              tipObservedAt: health.observedAt ?? now,
+              observationGraceSeconds: config.observationGraceSeconds ?? DEFAULT_OBSERVATION_GRACE_SECONDS,
+            });
+          } catch (e) {
+            if (e instanceof PaymentWindowError)
+              throw new HttpError(503, "watcher_not_ready", "The verified watcher tip is too old to bound this payment; real checkouts are paused.");
+            throw e;
+          }
           store.setQuote(payment.id, quote, config.checkoutAddress, quote.expiresAt, now, {
             exclusive: config.exclusiveAllocation,
             allocationTip: health.tip,
+            window,
           });
         }
         return { payment: store.getPayment(payment.id)!, created };
@@ -1173,6 +1237,7 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): PaymentsCon
     operatorListenerOnly: !!pilot,
     exclusiveAllocation: env.ZECONE_EXCLUSIVE_ALLOCATION !== "0",
     quoteTtlSeconds: Number(env.ZECONE_QUOTE_TTL_SECONDS ?? 900),
+    observationGraceSeconds: Number(env.ZECONE_OBSERVATION_GRACE_SECONDS ?? DEFAULT_OBSERVATION_GRACE_SECONDS),
     maxAmountUsd: env.ZECONE_MAX_AMOUNT_USD ?? "500.00",
     relayerAvailableWei: BigInt(relayer),
     demoObserver: {
