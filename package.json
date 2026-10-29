@@ -20,6 +20,7 @@
     "merchant:siwe-register": "tsx scripts/merchant-siwe-register.ts",
     "checkout:settlement": "tsx scripts/checkout-settlement.ts",
     "operator:sync": "tsx scripts/operator-sync.ts",
+    "operator:supervise": "tsx scripts/operator-supervisor.ts",
     "checkout:pilot-quote": "tsx scripts/checkout-pilot-quote.ts",
     "operator:quote-push": "tsx scripts/operator-quote-push.ts",
     "mainnet:liquidity": "tsx scripts/mainnet-liquidity.ts",

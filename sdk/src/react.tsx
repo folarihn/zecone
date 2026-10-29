@@ -283,9 +283,10 @@ export function ZecOneCheckout(props: ZecOneCheckoutProps) {
       {pay && (
         <div data-testid="zecone-payment-request" style={{ marginTop: 16 }}>
           <div role="note" style={{ ...s.notice(t.warning), marginTop: 0 }}>
-            Real Zcash mainnet payment. Send exactly the amount shown, once, from any compatible Zcash wallet (or the separately
-            launched local ZecOne wallet). This website is not a wallet and will never ask for your keys or seed.
-            {pilot ? ` After ${c.minimumConfirmations ?? "the required"} confirmations the operator reviews and approves the Base payout.` : ""}
+            {pilot
+              ? `Restricted pilot. Only a payment sent from the pilot's integrated ZecOne wallet before the deadline is eligible for settlement; after ${c.minimumConfirmations ?? "the required"} confirmations the operator reviews and approves the Base payout. A payment from any other wallet is held for manual review, with no guaranteed payout or fixed price.`
+              : "Real Zcash mainnet payment. Send exactly the amount shown, once. ZecOne observes it read-only; automatic payout is off."}{" "}
+            This website is not a wallet and will never ask for your keys or seed.
           </div>
           <div style={{ display: "grid", gap: 14, marginTop: 14, gridTemplateColumns: props.compact ? "1fr" : "repeat(auto-fit, minmax(148px, auto))", alignItems: "center" }}>
             {qr && (

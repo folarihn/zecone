@@ -40,6 +40,8 @@ import { PaymentWatchBridge } from "../../services/payments/watch-bridge.ts";
 import type { BasePayoutCheck } from "../../services/payments/operator-feed.ts";
 import { DemoQuoteEngine, type QuoteEngine } from "../../services/payments/quote.ts";
 import { httpRemote, syncOnce } from "../../scripts/operator-sync.ts";
+import { readWalletJournalEvidence } from "../../services/payments/wallet-evidence.ts";
+import { fakeWalletJournal } from "../helpers/fake-wallet-journal.ts";
 
 const ADDR = DEFAULT_CHECKOUT_ADDRESS;
 const NOW = 1_800_000_000;
@@ -530,6 +532,7 @@ test("contract: pilot lifecycle from the real payment API renders the right labe
   await new Promise<void>((r) => op.listen(0, "127.0.0.1", () => r()));
   const dir = mkdtempSync(join(tmpdir(), "zecone-ux-mirror-"));
   const mirror = new PaymentStore(join(dir, "mirror.sqlite"));
+  const journal = fakeWalletJournal(join(dir, "zcash-spend-sessions.sqlite"));
   try {
     const w = fakeWatcher(genesis());
     const bridge = new PaymentWatchBridge(mirror, w.scanner, {
@@ -542,7 +545,9 @@ test("contract: pilot lifecycle from the real payment API renders the right labe
       OPERATOR_TOKEN,
     );
     const pilot = await onboard(h, pilotWallet);
-    await syncOnce(mirror, bridge, remote);
+    await syncOnce(mirror, bridge, remote, realNow(), {
+      walletEvidence: (txid) => readWalletJournalEvidence(journal.path, txid),
+    });
     assert.deepEqual(await fetchWatcherHealth(h.base), { ready: true });
     const p = (
       await h.call("/api/v1/payments", {
@@ -581,7 +586,22 @@ test("contract: pilot lifecycle from the real payment API renders the right labe
         address: ADDR,
       }),
     );
-    await syncOnce(mirror, bridge, remote);
+    // Sent by the integrated pilot wallet before the payment deadline.
+    journal.add({
+      sessionId: "2".repeat(32),
+      txid: "2".repeat(64),
+      destination: ADDR,
+      zatoshis: p.quote.zecAmountZat,
+      expiryHeight: p.paymentExpiryHeight,
+      expires: p.paymentDeadline,
+      signApprovedAt: p.createdAt + 5,
+      signedAt: p.createdAt + 6,
+      broadcastApprovedAt: p.createdAt + 7,
+      broadcastAttemptAt: p.createdAt + 8,
+    });
+    await syncOnce(mirror, bridge, remote, realNow(), {
+      walletEvidence: (txid) => readWalletJournalEvidence(journal.path, txid),
+    });
     s = await present();
     assert.deepEqual(
       [s.status, s.confirmations, s.payment],
@@ -589,7 +609,9 @@ test("contract: pilot lifecycle from the real payment API renders the right labe
     );
 
     w.mine(19);
-    await syncOnce(mirror, bridge, remote);
+    await syncOnce(mirror, bridge, remote, realNow(), {
+      walletEvidence: (txid) => readWalletJournalEvidence(journal.path, txid),
+    });
     s = await present();
     assert.deepEqual(
       [s.status, s.confirmations],
@@ -599,7 +621,9 @@ test("contract: pilot lifecycle from the real payment API renders the right labe
     mirror.transition(p.id, "PAYOUT_PENDING", {});
     mirror.setPayout(p.id, BASE_TX, "100000000000000");
     mirror.transition(p.id, "PAYOUT_SUBMITTED", {});
-    await syncOnce(mirror, bridge, remote);
+    await syncOnce(mirror, bridge, remote, realNow(), {
+      walletEvidence: (txid) => readWalletJournalEvidence(journal.path, txid),
+    });
     s = await present();
     assert.deepEqual(
       [s.status, s.receipt],
@@ -610,7 +634,9 @@ test("contract: pilot lifecycle from the real payment API renders the right labe
     finalized = true;
     mirror.transition(p.id, "PAYOUT_CONFIRMED", {});
     mirror.transition(p.id, "COMPLETED", {});
-    await syncOnce(mirror, bridge, remote);
+    await syncOnce(mirror, bridge, remote, realNow(), {
+      walletEvidence: (txid) => readWalletJournalEvidence(journal.path, txid),
+    });
     s = await present();
     assert.equal(s.status, "COMPLETED");
     assert.equal(s.receipt?.txHash, BASE_TX);
@@ -618,6 +644,7 @@ test("contract: pilot lifecycle from the real payment API renders the right labe
   } finally {
     await new Promise<void>((r) => op.close(() => r()));
     mirror.close();
+    journal.close();
     rmSync(dir, { recursive: true, force: true });
     await h.close();
   }

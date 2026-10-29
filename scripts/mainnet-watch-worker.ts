@@ -192,6 +192,7 @@ async function main() {
             error instanceof Error && /^[A-Z0-9_]{1,96}$/.test(error.message)
               ? error.message
               : "WATCH_WORKER_FAILED",
+          stage: stageOf(error),
         }) + "\n",
       );
     }
@@ -201,6 +202,13 @@ async function main() {
   }
 }
 
+function stageOf(error: unknown) {
+  const stage = (error as { stage?: unknown } | null)?.stage;
+  return stage === "probe" || stage === "export" || stage === "scan"
+    ? stage
+    : null;
+}
+
 main().catch((error: unknown) => {
   process.stderr.write(
     JSON.stringify({
@@ -208,6 +216,7 @@ main().catch((error: unknown) => {
         error instanceof Error && /^[A-Z0-9_]{1,96}$/.test(error.message)
           ? error.message
           : "WATCH_WORKER_FAILED",
+      stage: stageOf(error),
     }) + "\n",
   );
   process.exitCode = 1;

@@ -35,6 +35,13 @@ import {
 } from "../services/payments/payment-window.ts";
 import { httpRemote, syncOnce } from "../scripts/operator-sync.ts";
 import { presentCheckout } from "../sdk/src/checkout.ts";
+import {
+  assessWalletEvidence,
+  readWalletJournalEvidence,
+  type EvidenceOrder,
+} from "../services/payments/wallet-evidence.ts";
+import { checkoutSettlementBinding } from "../services/payments/checkout-settlement.ts";
+import { fakeWalletJournal } from "./helpers/fake-wallet-journal.ts";
 
 const ADDR = DEFAULT_CHECKOUT_ADDRESS;
 const GRACE = 900;
@@ -109,7 +116,11 @@ async function pilot(opts: { finalized?: boolean } = {}) {
     OPERATOR_TOKEN,
   );
   const merchant = await onboard(h, owner);
-  const sync = () => syncOnce(mirror, bridge, remote, now());
+  const journal = fakeWalletJournal(join(dir, "zcash-spend-sessions.sqlite"));
+  const sync = () =>
+    syncOnce(mirror, bridge, remote, now(), {
+      walletEvidence: (txid) => readWalletJournalEvidence(journal.path, txid),
+    });
   await sync();
   const create = () =>
     h.call("/api/v1/payments", {
@@ -125,10 +136,35 @@ async function pilot(opts: { finalized?: boolean } = {}) {
   const state = async (id: string) =>
     (await h.call(`/api/v1/payments/${id}`, { key: merchant.apiKey })).body
       .payment.state as string;
+  /** The integrated wallet signed and broadcast `txid` for order `p` in time. */
+  const walletPaid = (
+    p: {
+      createdAt: number;
+      paymentDeadline: number;
+      paymentExpiryHeight: number;
+      quote: { zecAmountZat: string };
+    },
+    txid: string,
+    at = p.createdAt + 20,
+  ) =>
+    journal.add({
+      sessionId: txid.slice(0, 32),
+      txid,
+      destination: ADDR,
+      zatoshis: p.quote.zecAmountZat,
+      expiryHeight: p.paymentExpiryHeight,
+      expires: p.paymentDeadline,
+      signApprovedAt: at,
+      signedAt: at + 1,
+      broadcastApprovedAt: at + 2,
+      broadcastAttemptAt: at + 3,
+    });
   return {
     h,
     w,
     clock,
+    journal,
+    walletPaid,
     now,
     remote,
     merchant,
@@ -148,6 +184,7 @@ async function pilot(opts: { finalized?: boolean } = {}) {
     async close() {
       await new Promise<void>((r) => op.close(() => r()));
       mirror.close();
+      journal.close();
       rmSync(dir, { recursive: true, force: true });
       await h.close();
     },
@@ -219,6 +256,7 @@ test("window: deposit mined before the deadline but detected later is accepted; 
         address: ADDR,
       }),
     );
+    t.walletPaid(p, tx("2")); // integrated wallet signed and broadcast at T0+20 s
     t.clock.offset = 400; // past the 300 s payment deadline
 
     // Address and QR are gone at the deadline; the order is still observing.
@@ -325,12 +363,27 @@ test("window: the public feed independently refuses observations outside (alloca
       sources: ["https://light.example.org", "https://peer.example.org"],
       observedAt: t.now(),
     });
+    const inTime = {
+      version: 1,
+      sessionId: tx("4").slice(0, 32),
+      txid: tx("4"),
+      signedDigest: "d".repeat(64),
+      destination: ADDR,
+      zatoshis: p.quote.zecAmountZat,
+      expiryHeight: bound,
+      approvalExpires: p.paymentDeadline,
+      signApprovedAt: p.createdAt + 20,
+      signedAt: p.createdAt + 21,
+      broadcastApprovedAt: p.createdAt + 22,
+      broadcastAttemptAt: p.createdAt + 23,
+    };
     const observe = (height: number) =>
       t.remote.observe(p.id, {
         state: "VERIFYING",
         txid: tx("4"),
         zat: p.quote.zecAmountZat,
         chainEvidence: evidence(height),
+        walletEvidence: inTime,
       });
     await assert.rejects(
       observe(bound + 1),
@@ -347,6 +400,7 @@ test("window: the public feed independently refuses observations outside (alloca
         txid: tx("4"),
         zat: p.quote.zecAmountZat,
         chainEvidence: evidence(bound),
+        walletEvidence: inTime,
       }),
       /NOT_CONFIRMED/,
     );
@@ -461,6 +515,7 @@ test("window: restart during observation preserves both deadlines and the bound"
         address: ADDR,
       }),
     );
+    t.walletPaid(p, tx("6"));
     await t.sync();
     assert.equal(await t.state(p.id), "VERIFYING");
   } finally {
@@ -481,6 +536,7 @@ test("window: reorganization invalidates a provisional delayed attribution", asy
         address: ADDR,
       }),
     );
+    t.walletPaid(p, tx("7"));
     t.clock.offset = 400;
     await t.sync();
     assert.equal(await t.state(p.id), "VERIFYING");
@@ -522,6 +578,345 @@ test("window: demo checkouts are unchanged (no observation window, plain expiry,
     assert.equal(
       presentCheckout(v, { now: t.now(), expectedId: d.id }).status,
       "EXPIRED",
+    );
+  } finally {
+    await t.close();
+  }
+});
+
+// ---- pre-deadline wallet evidence (the 300 s deadline itself) ----
+
+test("adversarial: signed and broadcast at T0+301 s, mined within the bound, found later — never a payout", async () => {
+  const t = await pilot();
+  try {
+    const p = (await t.create()).body.payment;
+    const T0 = p.createdAt;
+    assert.equal(p.paymentDeadline, T0 + 300);
+    // Mined at or below the allowed inclusion height: height alone would accept it.
+    mineTo(t.w, 1003);
+    assert.ok(1003 <= p.paymentExpiryHeight);
+    t.w.update((c) =>
+      c.notes.push({
+        txid: tx("8"),
+        height: 1003,
+        zatoshis: p.quote.zecAmountZat,
+        address: ADDR,
+      }),
+    );
+    // The wallet journal shows SIGN and broadcast only at T0+301 s.
+    t.walletPaid(p, tx("8"), T0 + 301);
+    t.clock.offset = 400;
+    await t.sync();
+    const m = t.mirror.getPayment(p.id)!;
+    assert.equal(m.state, "MANUAL_REVIEW");
+    assert.equal(m.walletEvidence, null);
+    const review = t.mirror
+      .listEvents(p.id)
+      .filter((e) => e.state === "MANUAL_REVIEW")
+      .at(-1)!;
+    assert.equal(review.data.reason, "no_predeadline_wallet_evidence");
+    assert.equal(review.data.detail, "signed_or_broadcast_after_deadline");
+    assert.equal(await t.state(p.id), "MANUAL_REVIEW");
+    assert.equal(
+      (await t.view(p)).reviewReason,
+      "no_predeadline_wallet_evidence",
+    );
+    // Twenty confirmations later it is still not confirmed and cannot be paid out or bound.
+    mineTo(t.w, 1003 + 19);
+    await t.sync();
+    assert.equal(await t.state(p.id), "MANUAL_REVIEW");
+    await assert.rejects(
+      t.remote.payout(p.id, { txHash: BASE_TX_A, wei: "1" }),
+      /ORDER_NOT_CONFIRMED/,
+    );
+    assert.throws(
+      () =>
+        checkoutSettlementBinding(t.mirror, p.id, {
+          account: "a".repeat(64),
+          allowedRecipient: p.request.recipient,
+          windowSeconds: 3600,
+          now: t.now(),
+        }),
+      /CHECKOUT_/,
+    );
+  } finally {
+    await t.close();
+  }
+});
+
+test("adversarial: forged late evidence pushed straight to the public feed is refused", async () => {
+  const t = await pilot();
+  try {
+    const p = (await t.create()).body.payment;
+    const late = {
+      version: 1,
+      sessionId: tx("9").slice(0, 32),
+      txid: tx("9"),
+      signedDigest: "d".repeat(64),
+      destination: ADDR,
+      zatoshis: p.quote.zecAmountZat,
+      expiryHeight: p.paymentExpiryHeight,
+      approvalExpires: p.paymentDeadline,
+      signApprovedAt: p.paymentDeadline + 1,
+      signedAt: p.paymentDeadline + 2,
+      broadcastApprovedAt: p.paymentDeadline + 3,
+      broadcastAttemptAt: p.paymentDeadline + 4,
+    };
+    const chainEvidence = {
+      noteKey: `${tx("9")}:3:0`,
+      txid: tx("9"),
+      pool: 3,
+      height: 1002,
+      blockHash: "1".repeat(64),
+      zatoshis: p.quote.zecAmountZat,
+      confirmations: 1,
+      minimumConfirmations: 20,
+      tip: 1002,
+      tipHash: "2".repeat(64),
+      ownershipDigest: "3".repeat(64),
+      paymentDigest: null,
+      sources: ["https://light.example.org", "https://peer.example.org"],
+      observedAt: t.now(),
+    };
+    const observe = (walletEvidence: unknown) =>
+      t.remote.observe(p.id, {
+        state: "VERIFYING",
+        txid: tx("9"),
+        zat: p.quote.zecAmountZat,
+        chainEvidence,
+        walletEvidence,
+      });
+    await assert.rejects(
+      observe(late),
+      /WALLET_EVIDENCE_SIGNED_OR_BROADCAST_AFTER_DEADLINE/,
+    );
+    await assert.rejects(
+      observe(undefined),
+      /WALLET_EVIDENCE_NO_WALLET_JOURNAL_EVIDENCE/,
+    );
+    // Signed in time but the broadcast attempt at exactly the deadline: refused.
+    await assert.rejects(
+      observe({
+        ...late,
+        signApprovedAt: p.createdAt + 1,
+        signedAt: p.createdAt + 2,
+        broadcastApprovedAt: p.createdAt + 3,
+        broadcastAttemptAt: p.paymentDeadline,
+      }),
+      /AFTER_DEADLINE/,
+    );
+    assert.equal(await t.state(p.id), "AWAITING_PAYMENT");
+  } finally {
+    await t.close();
+  }
+});
+
+test("adversarial: a payment from any other wallet (no journal session) is held for manual review", async () => {
+  const t = await pilot();
+  try {
+    const p = (await t.create()).body.payment;
+    mineTo(t.w, 1002);
+    t.w.update((c) =>
+      c.notes.push({
+        txid: tx("a"),
+        height: 1002,
+        zatoshis: p.quote.zecAmountZat,
+        address: ADDR,
+      }),
+    );
+    await t.sync();
+    assert.equal(await t.state(p.id), "MANUAL_REVIEW");
+    const review = t.mirror
+      .listEvents(p.id)
+      .filter((e) => e.state === "MANUAL_REVIEW")
+      .at(-1)!;
+    assert.equal(review.data.detail, "no_wallet_journal_evidence");
+  } finally {
+    await t.close();
+  }
+});
+
+test("evidence rule: exact txid, terms, height and strictly-before-deadline timing", () => {
+  const order: EvidenceOrder = {
+    createdAt: 1000,
+    zcashAddress: ADDR,
+    quote: { zecAmountZat: "250000" },
+    detectedTxid: tx("b"),
+    paymentDeadline: 1300,
+    paymentExpiryHeight: 2010,
+    chainEvidence: { txid: tx("b"), height: 2005 },
+  };
+  const ok = {
+    version: 1 as const,
+    sessionId: "c".repeat(32),
+    txid: tx("b"),
+    signedDigest: "d".repeat(64),
+    destination: ADDR,
+    zatoshis: "250000",
+    expiryHeight: 2010,
+    approvalExpires: 1300,
+    signApprovedAt: 1010,
+    signedAt: 1011,
+    broadcastApprovedAt: 1290,
+    broadcastAttemptAt: 1299,
+  };
+  assert.equal(assessWalletEvidence(order, ok), null);
+  const cases: [string, Partial<typeof ok> | null, Partial<typeof order>?][] = [
+    ["no_wallet_journal_evidence", null],
+    ["signed_or_broadcast_after_deadline", { broadcastAttemptAt: 1300 }],
+    [
+      "signed_or_broadcast_after_deadline",
+      { broadcastApprovedAt: 1300, broadcastAttemptAt: 1301 },
+    ],
+    ["wallet_journal_out_of_order", { signedAt: 1009 }],
+    ["wallet_txid_mismatch", { txid: tx("e") }],
+    ["wallet_terms_mismatch", { destination: "zs1" + "q".repeat(75) }],
+    ["wallet_terms_mismatch", { zatoshis: "250001" }],
+    ["wallet_expiry_above_inclusion_height", { expiryHeight: 2011 }],
+    ["wallet_session_not_bound_to_deadline", { approvalExpires: 1301 }],
+    ["wallet_session_predates_order", { signApprovedAt: 999 }],
+    ["wallet_evidence_malformed", { signedDigest: "nothex" }],
+    [
+      "chain_evidence_mismatch",
+      {},
+      { chainEvidence: { txid: tx("b"), height: 2011 } },
+    ],
+    ["order_has_no_payment_window", {}, { paymentDeadline: null }],
+  ];
+  for (const [reason, change, orderChange] of cases)
+    assert.equal(
+      assessWalletEvidence(
+        { ...order, ...orderChange },
+        change === null ? null : { ...ok, ...change },
+      ),
+      reason,
+      reason,
+    );
+});
+
+test("journal reader: reads the exact v3 schema and only the session that signed this txid", () => {
+  const dir = mkdtempSync(join(tmpdir(), "zecone-journal-"));
+  const j = fakeWalletJournal(join(dir, "j.sqlite"));
+  try {
+    j.add({
+      sessionId: "f".repeat(32),
+      txid: tx("c"),
+      destination: ADDR,
+      zatoshis: "250000",
+      expiryHeight: 2010,
+      expires: 1300,
+      signApprovedAt: 1010,
+      signedAt: 1011,
+      broadcastApprovedAt: 1012,
+      broadcastAttemptAt: 1013,
+    });
+    assert.deepEqual(readWalletJournalEvidence(j.path, tx("c")), {
+      version: 1,
+      sessionId: "f".repeat(32),
+      txid: tx("c"),
+      signedDigest: "d".repeat(64),
+      destination: ADDR,
+      zatoshis: "250000",
+      expiryHeight: 2010,
+      approvalExpires: 1300,
+      signApprovedAt: 1010,
+      signedAt: 1011,
+      broadcastApprovedAt: 1012,
+      broadcastAttemptAt: 1013,
+    });
+    assert.equal(readWalletJournalEvidence(j.path, tx("d")), null);
+    assert.equal(readWalletJournalEvidence(j.path, "not-a-txid"), null);
+  } finally {
+    j.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("settlement binding requires the recorded pre-deadline wallet evidence", async () => {
+  const t = await pilot();
+  try {
+    const p = (await t.create()).body.payment;
+    mineTo(t.w, 1002);
+    t.w.update((c) =>
+      c.notes.push({
+        txid: tx("e"),
+        height: 1002,
+        zatoshis: p.quote.zecAmountZat,
+        address: ADDR,
+      }),
+    );
+    t.walletPaid(p, tx("e"));
+    mineTo(t.w, 1002 + 19);
+    await t.sync();
+    assert.equal(t.mirror.getPayment(p.id)!.state, "ZEC_CONFIRMED");
+    const bind = () =>
+      checkoutSettlementBinding(t.mirror, p.id, {
+        account: "a".repeat(64),
+        allowedRecipient: p.request.recipient,
+        windowSeconds: 3600,
+        now: t.now(),
+      });
+    assert.equal(bind().checkoutPaymentId, p.id);
+    // Strip the evidence: binding refuses even though the chain evidence is complete.
+    t.mirror.db
+      .prepare(`UPDATE payments SET wallet_evidence_json=NULL WHERE id=?`)
+      .run(p.id);
+    assert.throws(bind, /CHECKOUT_WALLET_EVIDENCE_REQUIRED/);
+  } finally {
+    await t.close();
+  }
+});
+
+test("restart: re-running or restarting the sync never duplicates an observation or a settlement", async () => {
+  const t = await pilot();
+  try {
+    const p = (await t.create()).body.payment;
+    mineTo(t.w, 1002);
+    t.w.update((c) =>
+      c.notes.push({
+        txid: tx("f"),
+        height: 1002,
+        zatoshis: p.quote.zecAmountZat,
+        address: ADDR,
+      }),
+    );
+    t.walletPaid(p, tx("f"));
+    const first = await t.sync();
+    assert.deepEqual(first.pushed, [`${p.id}:VERIFYING`]);
+    // Same state again, and after an operator restart: nothing is pushed twice.
+    assert.deepEqual((await t.sync()).pushed, []);
+    t.restartMirror();
+    assert.deepEqual((await t.sync()).pushed, []);
+    const events = async () =>
+      (
+        await t.h.call(`/api/v1/payments/${p.id}/events`, {
+          key: t.merchant.apiKey,
+        })
+      ).body.events;
+    const detected = (await events()).filter(
+      (e: { type: string }) => e.type === "payment.detected",
+    ).length;
+    assert.equal(detected, 1);
+    // Confirm, settle once; a replayed or different payout identity changes nothing.
+    mineTo(t.w, 1002 + 19);
+    await t.sync();
+    assert.equal(await t.state(p.id), "ZEC_CONFIRMED");
+    await t.remote.payout(p.id, { txHash: BASE_TX_A, wei: "100000000000000" });
+    await t.remote.payout(p.id, { txHash: BASE_TX_A, wei: "100000000000000" });
+    await assert.rejects(
+      t.remote.payout(p.id, { txHash: BASE_TX_B, wei: "100000000000000" }),
+      /PAYOUT_ALREADY_RECORDED/,
+    );
+    t.restartMirror();
+    await t.sync();
+    const types = (await events()).map((e: { type: string }) => e.type);
+    assert.equal(
+      types.filter((x: string) => x === "payment.payout_submitted").length,
+      1,
+    );
+    assert.equal(
+      types.filter((x: string) => x === "payment.zec_confirmed").length,
+      1,
     );
   } finally {
     await t.close();

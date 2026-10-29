@@ -23,6 +23,7 @@ import type {
   WebhookDelivery,
 } from "./types.ts";
 import { PAYMENT_STATES } from "./types.ts";
+import type { WalletEvidence } from "./wallet-evidence.ts";
 
 const TERMINAL: ReadonlySet<PaymentState> = new Set(["COMPLETED", "EXPIRED", "FAILED"]);
 
@@ -236,6 +237,7 @@ export class PaymentStore {
     addColumn("payments", "payment_deadline", "payment_deadline INTEGER");
     addColumn("payments", "observation_deadline", "observation_deadline INTEGER");
     addColumn("payments", "payment_expiry_height", "payment_expiry_height INTEGER");
+    addColumn("payments", "wallet_evidence_json", "wallet_evidence_json TEXT");
     addColumn("idempotency", "fingerprint", "fingerprint TEXT");
     addColumn("webhook_deliveries", "status", "status TEXT NOT NULL DEFAULT 'pending'");
     addColumn("webhook_deliveries", "event_id", "event_id INTEGER");
@@ -719,6 +721,14 @@ export class PaymentStore {
       .run(JSON.stringify(evidence), evidence.confirmations, now, id);
   }
 
+  /** Record verified pre-deadline wallet evidence once; it can never be replaced. */
+  setWalletEvidence(id: string, evidence: WalletEvidence, now = nowSeconds()): void {
+    const r = this.db
+      .prepare(`UPDATE payments SET wallet_evidence_json=?, updated_at=? WHERE id=? AND (wallet_evidence_json IS NULL OR wallet_evidence_json=?)`)
+      .run(JSON.stringify(evidence), now, id, JSON.stringify(evidence));
+    if (r.changes !== 1) throw new StoreError("wallet evidence already recorded for another transaction", "invalid_state");
+  }
+
   setConfirmations(id: string, confirmations: number, now = nowSeconds()): void {
     this.db.prepare(`UPDATE payments SET confirmations=?, updated_at=? WHERE id=?`).run(confirmations, now, id);
   }
@@ -999,6 +1009,7 @@ function rowToPayment(r: Record<string, unknown>): Payment {
     paymentDeadline: (r.payment_deadline as number | null) ?? null,
     observationDeadline: (r.observation_deadline as number | null) ?? null,
     paymentExpiryHeight: (r.payment_expiry_height as number | null) ?? null,
+    walletEvidence: r.wallet_evidence_json ? JSON.parse(r.wallet_evidence_json as string) : null,
     mode: r.mode as PaymentMode,
     error: (r.error as string | null) ?? null,
   };

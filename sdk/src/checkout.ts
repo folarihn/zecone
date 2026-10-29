@@ -465,7 +465,7 @@ function modeOf(c: CheckoutView): ModeInfo {
     modeLabel: "MAINNET PAYMENT",
     modeDetail:
       c.settlement === "operator-approved"
-        ? "Real ZEC address and amount. Pay from any compatible Zcash wallet. The ZecOne operator approves the Base payout after confirmation."
+        ? "Real ZEC address and amount. Restricted pilot: only a payment from the pilot's integrated ZecOne wallet before the deadline is eligible for operator-approved settlement."
         : "Real ZEC address and amount. ZecOne observes the payment read-only; automatic payout is off.",
   };
 }
@@ -525,6 +525,9 @@ export function presentCheckout(raw: unknown, ctx: PresentContext): CheckoutPres
       if (c.reviewReason === "late_deposit")
         p.statusDetail =
           "A payment was mined after the payment deadline. It is held for manual review with no automatic payout. Do not pay again; the merchant will follow up.";
+      if (c.reviewReason === "no_predeadline_wallet_evidence")
+        p.statusDetail =
+          "A payment arrived, but it could not be proven to come from the pilot's integrated wallet before the payment deadline. It is held for manual review with no automatic payout. Do not pay again; the merchant will follow up.";
       return p;
     }
     case "COMPLETED": {

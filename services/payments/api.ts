@@ -339,6 +339,7 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
   const PUBLIC_REVIEW_REASONS = new Set([
     "chain_reorganization",
     "late_deposit",
+    "no_predeadline_wallet_evidence",
     "observation_incomplete",
     "owned_note_requirements_not_met",
     "underpayment",

@@ -15,6 +15,7 @@ import { DatabaseSync } from "node:sqlite";
 import { getAddress, isAddress } from "viem";
 import type { PaymentStore } from "./store.ts";
 import type { Payment } from "./types.ts";
+import { assessWalletEvidence } from "./wallet-evidence.ts";
 
 const HEX64 = /^[a-f0-9]{64}$/;
 const BASE_TX = /^0x[a-f0-9]{64}$/;
@@ -42,6 +43,9 @@ function confirmedOrder(p: Payment | null): Payment & { chainEvidence: NonNullab
   if (!p.quote || e.zatoshis !== p.quote.zecAmountZat || p.detectedZat !== p.quote.zecAmountZat || p.detectedTxid !== e.txid)
     return fail("CHECKOUT_AMOUNT_OR_SOURCE_MISMATCH");
   if (!isAddress(p.request.recipient)) return fail("CHECKOUT_RECIPIENT_INVALID");
+  // The integrated wallet must have signed and broadcast this exact txid before
+  // the payment deadline; height evidence alone never binds a payout.
+  if (assessWalletEvidence(p, p.walletEvidence)) return fail("CHECKOUT_WALLET_EVIDENCE_REQUIRED");
   return p as Payment & { chainEvidence: NonNullable<Payment["chainEvidence"]> };
 }
 

@@ -141,6 +141,14 @@ caps the approval session at the checkout's payment deadline, so the existing
 expiry checks refuse SIGN and BROADCAST after it. Both values are bound into the
 prepared and review digests.
 
+For the restricted pilot this journal is the deadline evidence. Chain data
+proves only the inclusion height, so the operator sync reads this journal
+(read-only) for the exact txid the watcher authenticated: the session must be
+bound to the order's deadline and height, and its SIGN, signing and broadcast
+attempt must all precede the payment deadline. Otherwise the order goes to
+manual review and no payout can be bound. Payments from any other wallet are not
+eligible for automatic settlement.
+
 The disabled broadcast command fails before unlocking or consuming approval.
 Mock testing uses `--mode mock`. A separately authorized real transfer requires
 all of the following in the same command: `--mode live`,

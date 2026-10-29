@@ -13,6 +13,7 @@
 import type { PaymentStore } from "./store.ts";
 import type { ChainEvidence, Payment } from "./types.ts";
 import type { WatchHealth } from "./watch-bridge.ts";
+import { assessWalletEvidence, type WalletEvidence } from "./wallet-evidence.ts";
 
 const HEX64 = /^[a-f0-9]{64}$/;
 const BASE_TX = /^0x[a-f0-9]{64}$/;
@@ -154,6 +155,7 @@ export class OperatorWatchFeed {
       zat?: unknown;
       chainEvidence?: unknown;
       reason?: unknown;
+      walletEvidence?: unknown;
     },
   ): Payment {
     const now = this.opts.now();
@@ -210,6 +212,17 @@ export class OperatorWatchFeed {
     // ...and only notes included at or below the agreed inclusion height.
     if (p.paymentExpiryHeight !== null && e.height > p.paymentExpiryHeight)
       fail("OBSERVATION_AFTER_INCLUSION_HEIGHT");
+    // Height alone cannot show the payment was made before the deadline: the
+    // integrated wallet's journal must prove this exact txid was signed and
+    // broadcast in time (see wallet-evidence.ts).
+    const ev = o.walletEvidence as WalletEvidence | undefined;
+    const evidenceFailure = assessWalletEvidence(
+      { ...p, detectedTxid: o.txid as string, chainEvidence: e },
+      ev,
+    );
+    if (evidenceFailure) fail(`WALLET_EVIDENCE_${evidenceFailure.toUpperCase()}`);
+    if (p.walletEvidence && JSON.stringify(p.walletEvidence) !== JSON.stringify(ev))
+      fail("WALLET_EVIDENCE_CHANGED");
     this.store.tx(() => {
       if (p.state === "AWAITING_PAYMENT")
         this.store.markDetected(
@@ -223,6 +236,7 @@ export class OperatorWatchFeed {
       const cur = this.store.getPayment(p.id)!;
       if (!["VERIFYING", "ZEC_CONFIRMED"].includes(cur.state))
         fail("TRANSITION_REFUSED");
+      if (!cur.walletEvidence) this.store.setWalletEvidence(p.id, ev!, now);
       this.store.setChainEvidence(p.id, { ...e, observedAt: now }, now);
       if (o.state === "ZEC_CONFIRMED" && cur.state === "VERIFYING") {
         if (
@@ -274,6 +288,8 @@ export class OperatorWatchFeed {
       ].includes(p.state)
     )
       fail("ORDER_NOT_CONFIRMED");
+    if (assessWalletEvidence(p, p.walletEvidence))
+      fail("WALLET_EVIDENCE_REQUIRED");
     if (
       p.payoutTxHash !== null &&
       (p.payoutTxHash !== b.txHash || p.payoutWei !== b.wei)

@@ -37,7 +37,12 @@ export type WatchCheckpoint = {
   finalizedTip: number | null;
   updatedAt: number;
   lastError: string | null;
+  /** Which stage the last failure came from (absent in older checkpoints). */
+  lastErrorStage?: WatchStage | null;
 };
+
+/** Stages of one watch cycle, reported so a failure can be located. */
+export type WatchStage = "probe" | "export" | "scan";
 
 export type WatchWorkerConfig = {
   enabled: boolean;
@@ -343,6 +348,7 @@ export class MainnetWatchWorker {
     if (!this.config.enabled) throw Error("WATCH_WORKER_DISABLED");
     this.lock.acquire();
     let failed: WatchCheckpoint | undefined;
+    let stage: WatchStage = "probe";
     try {
       let checkpoint = readCheckpoint(
         this.checkpointFile,
@@ -373,9 +379,11 @@ export class MainnetWatchWorker {
         finalizedTip,
         updatedAt: this.dependencies.now(),
         lastError: null,
+        lastErrorStage: null,
       };
       failed = checkpoint;
       if (checkpoint.nextHeight <= finalizedTip) {
+        stage = "export";
         const count = Math.min(
           this.config.batchSize,
           finalizedTip - checkpoint.nextHeight + 1,
@@ -410,6 +418,7 @@ export class MainnetWatchWorker {
         rmSync(batch, { recursive: true, force: true });
       }
       if (checkpoint.nextHeight > finalizedTip) {
+        stage = "scan";
         const scan = await this.retry(() =>
           this.dependencies.scan(
             this.corpus,
@@ -434,10 +443,15 @@ export class MainnetWatchWorker {
             : failed.providerAgreement,
           updatedAt: this.dependencies.now(),
           lastError: errorCode(error),
+          lastErrorStage: stage,
         };
         writeJsonAtomic(this.checkpointFile, failure);
       }
-      throw error;
+      // The code stays the same; the stage travels with it for supervisors.
+      throw Object.assign(
+        error instanceof Error ? error : Error(errorCode(error)),
+        { stage },
+      );
     } finally {
       this.lock.release();
     }
@@ -475,6 +489,10 @@ export class MainnetWatchWorker {
       lagBlocks: lag,
       scanAgeSeconds: scanAge,
       lastError: checkpoint.lastError,
+      lastErrorStage:
+        checkpoint.lastError === null
+          ? null
+          : (checkpoint.lastErrorStage ?? null),
       executionAvailable: false,
       signingAvailable: false,
       broadcastAvailable: false,

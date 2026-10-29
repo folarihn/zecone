@@ -3,6 +3,7 @@
 // A Payment is the durable record of one merchant-created checkout intent. It
 // progresses through a strictly ordered state machine. Amounts are stored as
 // fixed-point strings (see money.ts); never as numbers.
+import type { WalletEvidence } from "./wallet-evidence.ts";
 
 export const PAYMENT_STATES = [
   "CREATED",
@@ -134,6 +135,12 @@ export interface Payment {
   paymentDeadline: number | null;
   observationDeadline: number | null;
   paymentExpiryHeight: number | null;
+  /**
+   * Pilot only: integrated-wallet journal evidence that this exact transaction
+   * was signed and broadcast before the payment deadline. Required before any
+   * payout can be bound or recorded.
+   */
+  walletEvidence: WalletEvidence | null;
   // Base payout leg.
   payoutTxHash: string | null;
   payoutWei: string | null;

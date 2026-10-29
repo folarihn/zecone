@@ -31,10 +31,21 @@ function confirmedOrder(mode: "monitor" | "demo" = "monitor", recipient = RECIPI
   const m = store.createMerchant({ name: "Pilot", secret: "s".repeat(40), scopes: ["payments:create"], baseRecipient: recipient, now: T0 });
   const { payment } = store.createPayment({ merchantId: m.id, request: { amountUsd: "1.00", payoutChain: "base", recipient }, mode, now: T0 });
   const quote = new DemoQuoteEngine(900).quote({ amountUsd: "1.00", payoutChain: "base", now: T0 });
-  store.setQuote(payment.id, quote, mode === "demo" ? null : DEFAULT_CHECKOUT_ADDRESS, quote.expiresAt, T0, { exclusive: true, allocationTip: 100 });
+  const real = mode === "monitor";
+  store.setQuote(payment.id, quote, real ? DEFAULT_CHECKOUT_ADDRESS : null, quote.expiresAt, T0, {
+    exclusive: true,
+    allocationTip: real ? 100 : null,
+    window: real ? { paymentDeadline: quote.expiresAt, observationDeadline: quote.expiresAt + 2700, paymentExpiryHeight: 110 } : null,
+  });
   const zat = quote.zecAmountZat;
   if (mode === "monitor") {
     store.markDetected(payment.id, TXID, zat, T0 + 60, "mainnet-observed");
+    // The integrated pilot wallet signed and broadcast this exact txid before the deadline.
+    store.setWalletEvidence(payment.id, {
+      version: 1, sessionId: "5".repeat(32), txid: TXID, signedDigest: "6".repeat(64), destination: DEFAULT_CHECKOUT_ADDRESS,
+      zatoshis: zat, expiryHeight: 110, approvalExpires: quote.expiresAt, signApprovedAt: T0 + 10, signedAt: T0 + 11,
+      broadcastApprovedAt: T0 + 12, broadcastAttemptAt: T0 + 13,
+    }, T0 + 60);
     store.setChainEvidence(payment.id, {
       noteKey: `${TXID}:3:0`, txid: TXID, pool: 3, height: 101, blockHash: "b".repeat(64), zatoshis: zat,
       confirmations: 20, minimumConfirmations: 20, tip: 120, tipHash: "c".repeat(64), ownershipDigest: OWNERSHIP,

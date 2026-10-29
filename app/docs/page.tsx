@@ -357,17 +357,34 @@ const receipt = await zecone.payments.receipt(id);     // COMPLETED only
                 Base payout through its separate workflow; the checkout completes only once that Base transaction is verified final.
               </p>
               <p>
-                <strong>Two deadlines.</strong> A real checkout shows its address and QR only until its <code>paymentDeadline</code>,
-                the signed quote&apos;s expiry (at most five minutes). When it is created, ZecOne also fixes an inclusion height from
-                the verified chain tip: the blocks expected before that deadline plus a five-block margin. A payment counts only if
-                authenticated chain evidence shows it was mined at or below that height; anything mined later is never attributed and
-                goes to manual review with no payout. Payments prepared by the ZecOne wallet carry that height as their Zcash expiry, so
-                they cannot be mined later. Because the watcher authenticates blocks about ten behind the tip, a payment mined in time
-                can be found after the deadline: until the <code>observationDeadline</code> the page shows{" "}
-                <strong>PAYMENT WINDOW CLOSED</strong> and the address stays reserved. The order expires once the watcher&apos;s
-                verified tip passes the inclusion height with no qualifying payment; if that cannot be proven by the observation
-                deadline, it goes to manual review instead. Payout still needs 20 confirmations and the separate SIGN and BROADCAST
-                approvals.
+                <strong>What the five-minute deadline means.</strong> A real checkout shows its address and QR only until its{" "}
+                <code>paymentDeadline</code>, the signed quote&apos;s expiry (at most five minutes). Chain data proves where a payment
+                was mined, not when it was signed or sent, so the deadline is enforced by the restricted pilot&apos;s integrated ZecOne
+                wallet: its approval session ends at the deadline, so SIGN and BROADCAST are refused after it, and the transaction
+                expires at the order&apos;s inclusion height. A deposit settles only if that wallet&apos;s protected journal shows this
+                exact transaction id was signed and broadcast before the deadline <em>and</em> the authenticated watcher later finds
+                that same transaction mined at or below the inclusion height.
+              </p>
+              <ul>
+                <li>
+                  <strong>Integrated pilot wallet:</strong> the locally journaled SIGN and BROADCAST times bind the payment to the
+                  deadline; only these payments are eligible for operator-approved settlement.
+                </li>
+                <li>
+                  <strong>Authenticated watcher:</strong> it authenticates blocks about ten behind the tip, so a payment made in time
+                  may be found after the deadline. Until the <code>observationDeadline</code> the page shows{" "}
+                  <strong>PAYMENT WINDOW CLOSED</strong> and the address stays reserved. Payout still needs 20 confirmations and the
+                  separate SIGN and BROADCAST approvals.
+                </li>
+                <li>
+                  <strong>Other wallets (public QR checkout):</strong> not yet eligible for guaranteed settlement. Without pre-deadline
+                  transaction evidence, a payment is held for manual review with no fixed-price payout, even if it is mined in time.
+                </li>
+              </ul>
+              <p>
+                The order expires once the watcher&apos;s verified tip passes the inclusion height with no qualifying payment; if that
+                cannot be proven by the observation deadline it goes to manual review instead. Unrestricted public settlement is not
+                enabled.
               </p>
               <p>
                 The hosted page, the <code>/embed</code> view and <code>@zecone/sdk/react</code> validate every checkout view and show
@@ -379,7 +396,7 @@ const receipt = await zecone.payments.receipt(id);     // COMPLETED only
                 <strong>WATCHER PAUSED</strong>, <strong>PAYMENT WINDOW CLOSED</strong>, <strong>EXPIRED</strong>,{" "}
                 <strong>FAILED</strong> and <strong>CANNOT VERIFY</strong>.
                 Payment details are hidden whenever the quote has expired, the watcher is not ready, the connection is lost or the
-                view is inconsistent. Customers pay from any compatible Zcash wallet; the website is not a wallet.
+                view is inconsistent. The website is not a wallet.
               </p>
               <Callout tone="warning" title="Live settlement is disabled in this build">
                 Base payouts stay behind the operator&apos;s separate SIGN and BROADCAST approvals, liquidity checks and the paused

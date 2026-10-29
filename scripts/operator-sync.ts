@@ -12,8 +12,11 @@
 //
 //   npm run operator:sync -- --remote http://127.0.0.1:14322 --token-file <protected/operator-token.txt> \
 //     --mirror D:/zecone-mainnet/operator-mirror.sqlite --watch-worker-config <protected/watch-worker.json> \
-//     --checkout-address <u1...> [--once] [--interval 120]
-import { readFileSync } from "node:fs";
+//     --checkout-address <u1...> --wallet-journal <protected/zcash-spend-sessions.sqlite> [--once] [--interval 120]
+// A detected deposit is reported as the order's payment only with the
+// integrated wallet journal's proof that this exact txid was signed and
+// broadcast before the payment deadline; otherwise it goes to manual review.
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { PaymentStore } from "../services/payments/store.ts";
 import {
@@ -23,6 +26,11 @@ import {
 import { assertLoopbackApi } from "../services/payments/merchant-register.ts";
 import type { Payment } from "../services/payments/types.ts";
 import type { SignedCheckoutPilotQuote } from "../services/payments/pilot-quote.ts";
+import {
+  assessWalletEvidence,
+  readWalletJournalEvidence,
+  type WalletEvidence,
+} from "../services/payments/wallet-evidence.ts";
 
 const now = () => Math.floor(Date.now() / 1000);
 function arg(name: string, fallback?: string) {
@@ -102,6 +110,7 @@ export async function syncOnce(
   bridge: { tick(): Promise<{ ok: boolean; error?: string }> },
   remote: Remote,
   t = now(),
+  opts: { walletEvidence?: (txid: string) => WalletEvidence | null } = {},
 ) {
   const pushed: string[] = [];
   const remoteOrders = new Map((await remote.orders()).map((p) => [p.id, p]));
@@ -132,6 +141,30 @@ export async function syncOnce(
       continue;
     }
     if (m.detectedTxid && m.chainEvidence && OBSERVABLE_REMOTE.has(r.state)) {
+      // Height evidence alone never makes a deposit this order's payment.
+      const ev =
+        m.walletEvidence ?? opts.walletEvidence?.(m.detectedTxid) ?? null;
+      const failure = assessWalletEvidence(m, ev);
+      if (failure) {
+        mirror.transition(
+          m.id,
+          "MANUAL_REVIEW",
+          {
+            reason: "no_predeadline_wallet_evidence",
+            detail: failure,
+            txid: m.detectedTxid,
+            evidence: "mainnet-observed",
+          },
+          t,
+        );
+        await remote.observe(m.id, {
+          state: "MANUAL_REVIEW",
+          reason: "no_predeadline_wallet_evidence",
+        });
+        pushed.push(`${m.id}:MANUAL_REVIEW`);
+        continue;
+      }
+      if (!m.walletEvidence) mirror.setWalletEvidence(m.id, ev!, t);
       const state = CONFIRMED_OR_LATER.has(m.state)
         ? "ZEC_CONFIRMED"
         : "VERIFYING";
@@ -144,6 +177,7 @@ export async function syncOnce(
           txid: m.detectedTxid,
           zat: m.detectedZat,
           chainEvidence: m.chainEvidence,
+          walletEvidence: ev,
         });
         pushed.push(`${m.id}:${state}`);
       }
@@ -200,6 +234,9 @@ async function main() {
     minimumConfirmations: w.minimumConfirmations,
     lock: w.lock,
   });
+  // Required: without the integrated wallet journal no deposit can qualify.
+  const walletJournal = resolve(arg("wallet-journal"));
+  if (!existsSync(walletJournal)) throw Error("WALLET_JOURNAL_NOT_FOUND");
   const once = process.argv.includes("--once");
   const interval = Math.max(60, Number(arg("interval", "120")));
   try {
@@ -208,7 +245,10 @@ async function main() {
         console.log(
           JSON.stringify({
             at: new Date().toISOString(),
-            ...(await syncOnce(mirror, bridge, remote)),
+            ...(await syncOnce(mirror, bridge, remote, now(), {
+              walletEvidence: (txid) =>
+                readWalletJournalEvidence(walletJournal, txid),
+            })),
           }),
         );
       } catch (e) {

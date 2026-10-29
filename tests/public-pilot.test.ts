@@ -27,6 +27,27 @@ import {
   signCheckoutPilotQuote,
 } from "../services/payments/pilot-quote.ts";
 import { httpRemote, syncOnce } from "../scripts/operator-sync.ts";
+import { readWalletJournalEvidence } from "../services/payments/wallet-evidence.ts";
+import { fakeWalletJournal } from "./helpers/fake-wallet-journal.ts";
+
+/** Integrated-wallet evidence that `txid` was signed and broadcast in time for `p`. */
+const inTime = (
+  p: { createdAt: number; paymentDeadline: number; paymentExpiryHeight: number; quote: { zecAmountZat: string } },
+  txid: string,
+) => ({
+  version: 1 as const,
+  sessionId: txid.slice(0, 32),
+  txid,
+  signedDigest: "d".repeat(64),
+  destination: ADDR,
+  zatoshis: p.quote.zecAmountZat,
+  expiryHeight: p.paymentExpiryHeight,
+  approvalExpires: p.paymentDeadline,
+  signApprovedAt: p.createdAt + 20,
+  signedAt: p.createdAt + 21,
+  broadcastApprovedAt: p.createdAt + 22,
+  broadcastAttemptAt: p.createdAt + 23,
+});
 
 const ADDR = DEFAULT_CHECKOUT_ADDRESS;
 const realNow = () => Math.floor(Date.now() / 1000);
@@ -88,17 +109,24 @@ async function pilotHarness(
     now: realNow,
   });
   const remote = httpRemote(opBase, OPERATOR_TOKEN);
+  const journal = fakeWalletJournal(join(dir, "zcash-spend-sessions.sqlite"));
   return {
     h,
     w,
     mirror,
     bridge,
     remote,
+    journal,
+    sync: () =>
+      syncOnce(mirror, bridge, remote, realNow(), {
+        walletEvidence: (txid) => readWalletJournalEvidence(journal.path, txid),
+      }),
     pilotWallet,
     opBase,
     async close() {
       await new Promise<void>((r) => op.close(() => r()));
       mirror.close();
+      journal.close();
       rmSync(dir, { recursive: true, force: true });
       await h.close();
     },
@@ -136,7 +164,7 @@ test("public pilot: only the approved merchant gets real orders; demo stays simu
       ).body.error.code,
       "watcher_not_ready",
     );
-    assert.equal((await syncOnce(t.mirror, t.bridge, t.remote)).ok, true);
+    assert.equal((await t.sync()).ok, true);
     assert.equal(
       (
         await t.h.call("/api/v1/payments", {
@@ -188,7 +216,7 @@ test("public pilot: loopback operator uploads one exact signed live quote", asyn
   const t = await pilotHarness({ verify: async () => assert.fail("no payout") }, quoteEngine, pilotWallet);
   try {
     const pilot = await onboard(t.h, t.pilotWallet);
-    await syncOnce(t.mirror, t.bridge, t.remote);
+    await t.sync();
     const at = realNow();
     const statement = buildCheckoutPilotQuoteStatement({
       authority: "pilot-operator",
@@ -280,7 +308,7 @@ test("public pilot: deposit → confirmations → ZEC_CONFIRMED → verified Bas
   });
   try {
     const pilot = await onboard(t.h, t.pilotWallet);
-    await syncOnce(t.mirror, t.bridge, t.remote);
+    await t.sync();
     const p = (
       await t.h.call("/api/v1/payments", {
         key: pilot.apiKey,
@@ -306,7 +334,10 @@ test("public pilot: deposit → confirmations → ZEC_CONFIRMED → verified Bas
         address: ADDR,
       }),
     );
-    const s1 = await syncOnce(t.mirror, t.bridge, t.remote);
+    // Sent by the integrated pilot wallet before the payment deadline.
+    const ev = inTime(p, tx("2"));
+    t.journal.add({ ...ev, expires: ev.approvalExpires });
+    const s1 = await t.sync();
     assert.equal(s1.ok, true);
     let cur = await view();
     assert.equal(cur.state, "VERIFYING");
@@ -316,11 +347,11 @@ test("public pilot: deposit → confirmations → ZEC_CONFIRMED → verified Bas
     assert.equal(cur.zcashAddress, null);
 
     t.w.mine(18);
-    await syncOnce(t.mirror, t.bridge, t.remote);
+    await t.sync();
     assert.equal((await view()).confirmations, 19);
     assert.equal((await view()).state, "VERIFYING");
     t.w.mine(1);
-    await syncOnce(t.mirror, t.bridge, t.remote);
+    await t.sync();
     cur = await view();
     assert.equal(cur.state, "ZEC_CONFIRMED");
     assert.equal(cur.confirmations, 20);
@@ -336,7 +367,7 @@ test("public pilot: deposit → confirmations → ZEC_CONFIRMED → verified Bas
     t.mirror.transition(p.id, "PAYOUT_PENDING", {});
     t.mirror.setPayout(p.id, BASE_TX, "100000000000000");
     t.mirror.transition(p.id, "PAYOUT_SUBMITTED", {});
-    await syncOnce(t.mirror, t.bridge, t.remote);
+    await t.sync();
     cur = await view();
     assert.equal(cur.state, "PAYOUT_SUBMITTED");
     assert.equal(cur.payoutTxHash, BASE_TX);
@@ -350,7 +381,7 @@ test("public pilot: deposit → confirmations → ZEC_CONFIRMED → verified Bas
     finalized = true;
     t.mirror.transition(p.id, "PAYOUT_CONFIRMED", {});
     t.mirror.transition(p.id, "COMPLETED", {});
-    await syncOnce(t.mirror, t.bridge, t.remote);
+    await t.sync();
     assert.equal((await view()).state, "COMPLETED");
     const receipt = (
       await t.h.call(`/api/v1/payments/${p.id}/receipt`, { key: pilot.apiKey })
@@ -387,7 +418,7 @@ test("public pilot: feed refuses mismatched or over-limit payouts and premature 
   });
   try {
     const pilot = await onboard(t.h, t.pilotWallet);
-    await syncOnce(t.mirror, t.bridge, t.remote);
+    await t.sync();
     const p = (
       await t.h.call("/api/v1/payments", {
         key: pilot.apiKey,
@@ -421,6 +452,7 @@ test("public pilot: feed refuses mismatched or over-limit payouts and premature 
         state: "ZEC_CONFIRMED",
         txid: tx("3"),
         zat: p.quote.zecAmountZat,
+        walletEvidence: inTime(p, tx("3")),
         chainEvidence: evidence,
       }),
       /REMOTE_NOT_CONFIRMED/,
@@ -436,6 +468,7 @@ test("public pilot: feed refuses mismatched or over-limit payouts and premature 
         state: "VERIFYING",
         txid: tx("3"),
         zat: p.quote.zecAmountZat,
+        walletEvidence: inTime(p, tx("3")),
         chainEvidence: { ...evidence, height: 1000 },
       }),
       /REMOTE_OBSERVATION_BEFORE_ALLOCATION/,
@@ -445,6 +478,7 @@ test("public pilot: feed refuses mismatched or over-limit payouts and premature 
         state: "VERIFYING",
         txid: tx("3"),
         zat: p.quote.zecAmountZat,
+        walletEvidence: inTime(p, tx("3")),
         chainEvidence: { ...evidence, height: 1001, sources: ["provider-a", " Provider-A "] },
       }),
       /REMOTE_OBSERVATION_SOURCES_NOT_INDEPENDENT/,
@@ -455,6 +489,7 @@ test("public pilot: feed refuses mismatched or over-limit payouts and premature 
       txid: tx("3"),
       zat: p.quote.zecAmountZat,
       chainEvidence: { ...evidence, confirmations: 20, tip: 1020 },
+      walletEvidence: inTime(p, tx("3")),
     });
     await assert.rejects(
       t.remote.payout(p.id, { txHash: BASE_TX, wei: "10000000000000000" }),
