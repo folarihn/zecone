@@ -300,6 +300,7 @@ export class PaymentWatchBridge {
              peer_source=excluded.peer_source, observed_at=excluded.observed_at, updated_at=excluded.updated_at`,
         )
         .run(s.tip, s.blockHash, s.source, s.peerSource, s.observedAt, now);
+      changed += this.store.resolveObservationIncomplete(s.tip, now).length;
     });
     return { changed, reorg };
   }

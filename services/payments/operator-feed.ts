@@ -131,14 +131,30 @@ export class OperatorWatchFeed {
   }
 
   /** Real orders the operator watcher must follow (non-terminal monitor payments). */
-  realOrders(): Payment[] {
+  realOrders(): (Payment & { reviewReason: string | null })[] {
     return (
       this.store.db
         .prepare(
           `SELECT id FROM payments WHERE mode='monitor' AND state NOT IN ('COMPLETED','EXPIRED','FAILED') ORDER BY created_at`,
         )
         .all() as { id: string }[]
-    ).map((r) => this.store.getPayment(r.id)!);
+    ).map((r) => {
+      const payment = this.store.getPayment(r.id)!;
+      const reviewReason =
+        payment.state === "MANUAL_REVIEW"
+          ? ([...this.store.listEvents(payment.id)]
+              .reverse()
+              .find((e) => e.state === "MANUAL_REVIEW")?.data.reason ?? null)
+          : null;
+      return {
+        ...payment,
+        reviewReason:
+          typeof reviewReason === "string" &&
+          /^[a-z0-9_]{1,64}$/.test(reviewReason)
+            ? reviewReason
+            : null,
+      };
+    });
   }
 
   private real(id: string): Payment {
@@ -156,10 +172,44 @@ export class OperatorWatchFeed {
       chainEvidence?: unknown;
       reason?: unknown;
       walletEvidence?: unknown;
+      tip?: unknown;
     },
   ): Payment {
     const now = this.opts.now();
     const p = this.real(id);
+    if (o.state === "EXPIRED") {
+      const cp = this.checkpoint() ?? fail("ABSENCE_RESOLUTION_INVALID");
+      const latest = [...this.store.listEvents(p.id)]
+        .reverse()
+        .find((e) => e.state === "MANUAL_REVIEW");
+      if (
+        o.reason !== "no_payment_after_delayed_observation" ||
+        !Number.isSafeInteger(o.tip) ||
+        o.tip !== cp.tip ||
+        p.state !== "MANUAL_REVIEW" ||
+        p.detectedTxid !== null ||
+        p.paymentExpiryHeight === null ||
+        cp.tip < p.paymentExpiryHeight ||
+        latest?.data.reason !== "observation_incomplete"
+      )
+        fail("ABSENCE_RESOLUTION_INVALID");
+      const verifiedTip = cp.tip;
+      if (
+        !this.store.transition(
+          p.id,
+          "EXPIRED",
+          {
+            reason: "no_payment_after_delayed_observation",
+            inclusionHeight: p.paymentExpiryHeight,
+            watcherTip: verifiedTip,
+            evidence: "operator-authenticated-absence",
+          },
+          now,
+        )
+      )
+        fail("TRANSITION_REFUSED");
+      return this.store.getPayment(p.id)!;
+    }
     if (o.state === "MANUAL_REVIEW") {
       const reason =
         typeof o.reason === "string" && /^[a-z0-9_]{1,64}$/.test(o.reason)

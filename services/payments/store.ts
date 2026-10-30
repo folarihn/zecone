@@ -807,6 +807,75 @@ export class PaymentStore {
     return expired;
   }
 
+  /**
+   * Resolve only stalled-observation reviews for which a later authenticated
+   * wallet scan proves there was no note in this checkout's allocation window.
+   * A note of any amount keeps the order in manual review; callers must pass the
+   * exact verified tip represented by the watch_notes snapshot in this store.
+   */
+  resolveObservationIncomplete(tip: number, now = nowSeconds()): string[] {
+    if (!Number.isSafeInteger(tip) || tip < 1) return [];
+    return this.tx(() => {
+      const resolved: string[] = [];
+      const candidates = this.db
+        .prepare(
+          `SELECT id, zcash_address AS address, allocation_tip AS allocationTip,
+                  payment_expiry_height AS expiryHeight
+             FROM payments
+            WHERE mode='monitor' AND state='MANUAL_REVIEW'
+              AND detected_txid IS NULL
+              AND allocation_tip IS NOT NULL
+              AND payment_expiry_height IS NOT NULL
+              AND payment_expiry_height <= ?`,
+        )
+        .all(tip) as {
+        id: string;
+        address: string;
+        allocationTip: number;
+        expiryHeight: number;
+      }[];
+      for (const p of candidates) {
+        const latest = this.db
+          .prepare(
+            `SELECT data_json AS data FROM events
+              WHERE payment_id=? AND state='MANUAL_REVIEW'
+              ORDER BY id DESC LIMIT 1`,
+          )
+          .get(p.id) as { data: string } | undefined;
+        let reason: unknown = null;
+        try {
+          reason = latest ? (JSON.parse(latest.data) as { reason?: unknown }).reason : null;
+        } catch {
+          reason = null;
+        }
+        if (reason !== "observation_incomplete") continue;
+        const note = this.db
+          .prepare(
+            `SELECT 1 FROM watch_notes
+              WHERE address=? AND status!='reorged' AND height>? AND height<=?
+              LIMIT 1`,
+          )
+          .get(p.address, p.allocationTip, p.expiryHeight);
+        if (note) continue;
+        if (
+          this.transition(
+            p.id,
+            "EXPIRED",
+            {
+              reason: "no_payment_after_delayed_observation",
+              inclusionHeight: p.expiryHeight,
+              watcherTip: tip,
+              evidence: "authenticated-wallet-scan",
+            },
+            now,
+          )
+        )
+          resolved.push(p.id);
+      }
+      return resolved;
+    });
+  }
+
   /** Highest inclusion height of any real order ever allocated `address` (null if none). */
   inclusionFloor(address: string): number | null {
     const r = this.db

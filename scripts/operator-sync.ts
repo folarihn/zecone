@@ -42,7 +42,7 @@ function arg(name: string, fallback?: string) {
 }
 
 export interface Remote {
-  orders(): Promise<Payment[]>;
+  orders(): Promise<(Payment & { reviewReason?: string | null })[]>;
   heartbeat(b: Record<string, unknown>): Promise<unknown>;
   observe(id: string, b: Record<string, unknown>): Promise<unknown>;
   payout(id: string, b: Record<string, unknown>): Promise<unknown>;
@@ -115,7 +115,24 @@ export async function syncOnce(
   const pushed: string[] = [];
   const remoteOrders = new Map((await remote.orders()).map((p) => [p.id, p]));
   for (const p of remoteOrders.values())
-    if (p.mode === "monitor") mirror.mirrorPayment(p);
+    if (p.mode === "monitor") {
+      const inserted = mirror.mirrorPayment(p);
+      // If the operator was offline for the entire observation window, the
+      // first mirror copy can already be in manual review. Preserve only the
+      // authenticated finite reason needed by the delayed-absence resolver.
+      if (
+        inserted &&
+        p.state === "MANUAL_REVIEW" &&
+        p.reviewReason === "observation_incomplete"
+      )
+        mirror.recordEvent(
+          p.id,
+          "payment.manual_review",
+          "MANUAL_REVIEW",
+          { reason: p.reviewReason, evidence: "operator-authenticated-state" },
+          t,
+        );
+    }
   mirror.expireDue(t);
   // Orders the public API no longer lists while still unpaid here were canceled or expired there.
   for (const r of mirror.db
@@ -126,9 +143,18 @@ export async function syncOnce(
 
   const tick = await bridge.tick();
   if (!tick.ok) return { ok: false, error: tick.error, pushed };
+  const absenceResolved: string[] = [];
   for (const r of remoteOrders.values()) {
     const m = mirror.getPayment(r.id);
     if (!m) continue;
+    if (m.state === "EXPIRED" && r.state === "MANUAL_REVIEW") {
+      const latest = [...mirror.listEvents(m.id)]
+        .reverse()
+        .find((e) => e.state === "EXPIRED");
+      if (latest?.data.reason === "no_payment_after_delayed_observation")
+        absenceResolved.push(m.id);
+      continue;
+    }
     if (m.state === "MANUAL_REVIEW" && r.state !== "MANUAL_REVIEW") {
       const reason = [...mirror.listEvents(m.id)]
         .reverse()
@@ -215,6 +241,18 @@ export async function syncOnce(
       peerSource: cp.peer_source,
       observedAt: cp.observed_at,
     });
+  // A delayed absence resolution is sent only after the heartbeat above. The
+  // public API therefore validates the exact authenticated tip that the local
+  // full-wallet scan used before changing MANUAL_REVIEW to EXPIRED.
+  if (cp)
+    for (const id of absenceResolved) {
+      await remote.observe(id, {
+        state: "EXPIRED",
+        reason: "no_payment_after_delayed_observation",
+        tip: cp.tip,
+      });
+      pushed.push(`${id}:EXPIRED`);
+    }
 
   return { ok: true, pushed };
 }

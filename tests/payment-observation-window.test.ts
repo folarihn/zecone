@@ -476,6 +476,52 @@ test("window: absence not proven by the observation deadline goes to manual revi
       t.remote.payout(p.id, { txHash: BASE_TX_A, wei: "1" }),
       /ORDER_NOT_CONFIRMED/,
     );
+    // A later full authenticated scan above the bound proves absence and
+    // releases only this observation-incomplete review.
+    t.clock.offset = 0;
+    mineTo(t.w, p.paymentExpiryHeight);
+    await t.sync();
+    assert.equal(t.mirror.getPayment(p.id)!.state, "EXPIRED");
+    assert.equal(await t.state(p.id), "EXPIRED");
+    const events = (
+      await t.h.call(`/api/v1/payments/${p.id}/events`, {
+        key: t.merchant.apiKey,
+      })
+    ).body.events;
+    assert.equal(
+      events.at(-1).data.reason,
+      "no_payment_after_delayed_observation",
+    );
+  } finally {
+    await t.close();
+  }
+});
+
+test("window: a note in the delayed allocation window prevents absence resolution", async () => {
+  const t = await pilot();
+  try {
+    const p = (await t.create()).body.payment;
+    t.clock.offset = 300 + GRACE + 5;
+    assert.equal((await t.view(p)).state, "MANUAL_REVIEW");
+    t.clock.offset = 0;
+    const allocationTip = t.h.app.store.getPayment(p.id)!.allocationTip!;
+    t.w.update((c) => {
+      c.notes.push({
+        txid: tx("f"),
+        height: allocationTip + 1,
+        zatoshis: p.quote.zecAmountZat,
+        address: ADDR,
+      });
+    });
+    mineTo(t.w, p.paymentExpiryHeight);
+    await t.sync();
+    assert.equal(t.mirror.getPayment(p.id)!.state, "MANUAL_REVIEW");
+    assert.equal(await t.state(p.id), "MANUAL_REVIEW");
+    assert.ok(
+      t.mirror
+        .listUnattributed()
+        .some((u) => u.txid === tx("f")),
+    );
   } finally {
     await t.close();
   }
