@@ -653,5 +653,8 @@ test("the targeted path has no signing, broadcast, payout or settlement capabili
   const commands = [...script.matchAll(/"\.unused",\s*"([a-z-]+)"/g)].map((m) => m[1]);
   assert.deepEqual([...new Set(commands)].sort(), ["probe-mainnet", "verify-block"]);
   assert.match(readFileSync("services/payments/targeted-observation.ts", "utf8"), /scripts\/mainnet-candidate-segment-export\.ts/);
-  assert.match(readFileSync("services/zcash-watch/src/main.rs", "utf8"), /if sources\.defer_missing_segments \{\n\s+snapshot\["pendingCandidates"\]/);
+  assert.match(
+    readFileSync("services/zcash-watch/src/main.rs", "utf8"),
+    /if sources\.defer_missing_segments \{\r?\n\s+snapshot\["pendingCandidates"\]/,
+  );
 });
