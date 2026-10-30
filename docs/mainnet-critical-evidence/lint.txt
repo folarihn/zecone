@@ -1,0 +1,7 @@
+
+> lint
+> node scripts/phase6-lint.mjs
+
+Checking formatting...
+[warn] services/wallet/settlement-review-api.ts
+[warn] Code style issues found in the above file. Run Prettier with --write to fix.

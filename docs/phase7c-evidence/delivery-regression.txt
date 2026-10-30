@@ -1,0 +1,20 @@
+(node:18156) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ delivery policy rejects wrong network, bad address, self-payment and unsupported amount (25.0092ms)
+✔ one immutable checkout binds recipient and amount; expiry blocks authorization (9.6088ms)
+✔ unconfirmed, underpaid and missing owned notes cannot authorize spending (11.4586ms)
+✔ duplicate notes never double-count; overpayment enters recovery (5.0085ms)
+✔ insufficient relayer balance, RPC outage and simulation failure enter recovery (36.8025ms)
+✔ fresh verified payment prepares, exact approval signs once, finalized exact effects complete (83.6396ms)
+✔ lost broadcast response persists original signature and never signs a replacement (14.9603ms)
+✔ expired blockhash and payment reorganization veto execution (13.5977ms)
+✔ failed or mismatched finalized effects cannot complete (40.4636ms)
+✔ durable restart retains construction claim and refund/execution exclusion (71.9749ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15925.9724

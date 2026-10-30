@@ -1,0 +1,7 @@
+
+> phase6c:snapshot
+> tsx scripts/phase6c-snapshot.ts
+
+(node:14008) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Read-only snapshot saved; no wallet synchronization, signing or broadcast.

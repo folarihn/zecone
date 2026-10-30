@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Sepolia Studio · NFT marketplace</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/" class="brand">S<span>◌</span> / SEPOLIA STUDIO</a
+      ><span id="network-badge" class="badge">BASE SEPOLIA · TESTNET</span>
+      <div class="connect">
+        <button id="connect">Connect ZecOne</button
+        ><button id="standard">Connect other wallet</button>
+      </div>
+    </header>
+    <main>
+<label for="network">Test network</label> <select id="network"><option value="84532">Base Sepolia</option><option value="11155111">Ethereum Sepolia</option><option value="46630">Robinhood Chain Testnet</option></select>
+      <section class="intro">
+        <div>
+          <p class="eyebrow">INDEPENDENT NFT MARKETPLACE</p>
+          <h1>A small collection.<br />A different way to pay.</h1>
+          <p>
+            Collect an onchain study. Pay test ETH from a regular wallet, or use
+            shielded Testnet ZEC through ZecOne.
+          </p>
+        </div>
+        <aside>
+          <span>01 — 03</span>
+          <p>Three studies in form.<br />One public proof of ownership.</p>
+        </aside>
+      </section>
+      <p id="account" class="muted">No wallet connected</p>
+      <p id="error" role="alert"></p>
+      <section id="listings" class="grid" aria-label="NFT listings">
+        <p>Reading Base Sepolia listings…</p>
+      </section>
+      <section class="progress">
+        <p class="eyebrow">YOUR PURCHASE</p>
+        <h2 id="status">Choose a work to begin</h2>
+        <p id="detail">
+          ZecOne requests a signed quote and a separate shielded payment
+          approval in its local wallet window.
+        </p>
+        <a id="transaction" hidden target="_blank" rel="noreferrer"
+          >View Base transaction</a
+        >
+      </section>
+      <footer>
+        <strong>Test assets only.</strong> The marketplace receives ETH from a
+        prefunded provider when you pay with ZEC. Pricing uses an explicitly
+        simulated rate. The provider can correlate the shielded payment with
+        this public purchase. This is not a trustless bridge or exchange. Failed
+        purchases may require manual recovery in ZecOne.
+      </footer>
+    </main>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+No files changed, compilation skipped
+
+Ran 8 tests for contracts/test/ZecOneNFT.t.sol:ZecOneNFTTest
+[PASS] testChangedRecipientFails() (gas: 24040)
+[PASS] testCrossContractReplayFails() (gas: 1353413)
+[PASS] testExpiredFails() (gas: 17187)
+[PASS] testFuzz_UserOwnsNFTAndReplayFails(bytes32) (runs: 128, μ: 103306, ~: 103306)
+[PASS] testMainnetDeployFails() (gas: 84204)
+[PASS] testMainnetExecutionFails() (gas: 16481)
+[PASS] testUnauthorizedRelayer() (gas: 16668)
+[PASS] testWrongPriceFails() (gas: 16631)
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 31.37ms (38.40ms CPU time)
+
+Ran 1 test suite in 33.09ms (31.37ms CPU time): 8 tests passed, 0 failed, 0 skipped (8 total tests)

@@ -1,0 +1,21 @@
+(node:24440) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ test order requires approval and exact ten-confirmation scanner agreement (4.9188ms)
+✔ controlled recovery preserves an execution veto across duplicate processing and restart (54.8278ms)
+✔ historical order databases and changed payment attribution are rejected (1.0167ms)
+✔ payment approval binds exact bytes, fee, recipient, amount and expiry (1.8365ms)
+✔ wrong effects, excessive fees and expiry cannot authorize a broadcast (0.408ms)
+✔ watch copies bind identity and birthday while allowing native address diversification (1.3602ms)
+✔ fresh profile separates payer, backend watch, signer watch and recovery namespace (72.2263ms)
+✔ reserved or interrupted profiles cannot be replaced and old wallet bytes are untouched (28.8396ms)
+✔ old wallet paths, role substitution, traversal and extra secret fields are rejected (51.1901ms)
+✔ network, confirmation and live-signing gate tampering is rejected (28.1688ms)
+✔ backend configuration exposes only watch access and cannot activate execution or refunds (53.6605ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2145.29

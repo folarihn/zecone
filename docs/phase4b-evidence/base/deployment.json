@@ -1,0 +1,105 @@
+{
+  "at": "2026-10-13T07:08:39.862Z",
+  "live": true,
+  "config": {
+    "chainId": 84532,
+    "user": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+    "provider": "0xf9dE6070331A3B68233c3b2062BceB7105162Cd2",
+    "weth": "0xf1ff9f71271f6090845839ebf536de743148e546",
+    "token": "0x485ec83255a8d4f480347c6b32f54b38ef3556d2",
+    "factory": "0x6235c7204558ace4c58df5e1f7e79451c55fe92b",
+    "router": "0x21ebda77b340db6e93b6d40ed8561c234ff3066e",
+    "pool": "0x299bCB0734170Aa6C2dF81aE6444AffC475eC48E",
+    "executor": "0x3cc004a9310815d2720e0d23bec349030271b780",
+    "codeHashes": {
+      "0xf1ff9f71271f6090845839ebf536de743148e546": "0xe524bd0c25f819b88ff6694c74b8757e843232d912f1d88fc5f924da716e8aaf",
+      "0x485ec83255a8d4f480347c6b32f54b38ef3556d2": "0xb31b0819dc3653d51f9e2181609221b7c6968977f096e389297fe27d495de001",
+      "0x6235c7204558ace4c58df5e1f7e79451c55fe92b": "0xbab145d02e7005f0d84c6c1639d39b799b0ea16df99ebbdaf5a14d9da820b4e0",
+      "0x21ebda77b340db6e93b6d40ed8561c234ff3066e": "0xa6db800dff33a76882522407fa25baadbe815773565a6cbb779122524ed441aa",
+      "0x299bCB0734170Aa6C2dF81aE6444AffC475eC48E": "0x5b83bdbcc56b2e630f2807bbadd2b0c21619108066b92a58de081261089e9ce5",
+      "0x3cc004a9310815d2720e0d23bec349030271b780": "0x2441c9afdcd347d9cee23a00666ddc6efa617a08793682178d24f8bd6320462d"
+    }
+  },
+  "receipts": [
+    {
+      "step": "WETH9",
+      "hash": "0xb40f68509096498ee31947e26be8d2cd54ab127ab1fc36ff60667b2e48de8e1c",
+      "block": "48053212",
+      "blockHash": "0xbf73e726315c77357fde5b98c25035dcb5a0dd4c4aa4bf8dd240b3a8dd0c43d9",
+      "contract": "0xf1ff9f71271f6090845839ebf536de743148e546",
+      "gasUsed": "604440",
+      "effectiveGasPrice": "6000000",
+      "l1Fee": "1374"
+    },
+    {
+      "step": "SwapTestToken",
+      "hash": "0xdaee75929b1d64e84ba8a930d961eecb230c5b8229d759df4a9c3eb1ac671d5d",
+      "block": "48053319",
+      "blockHash": "0x0a991b0aba8fd8ff88caeaa0b492654a92f04ef3c0dcd55e9f7bd761e723d8fd",
+      "contract": "0x485ec83255a8d4f480347c6b32f54b38ef3556d2",
+      "gasUsed": "543937",
+      "effectiveGasPrice": "6000000",
+      "l1Fee": "2791"
+    },
+    {
+      "step": "UniswapV2Factory",
+      "hash": "0xb9e11637e8a36bb57647ec523c446c007ddab175e4bc6e01eb69fbea57c39aeb",
+      "block": "48053424",
+      "blockHash": "0x1313bda2429934028c60e026c586b27447fe6f9ef8ee3758a3dfd2c480c2bacb",
+      "contract": "0x6235c7204558ace4c58df5e1f7e79451c55fe92b",
+      "gasUsed": "3051511",
+      "effectiveGasPrice": "6000000",
+      "l1Fee": "8877"
+    },
+    {
+      "step": "UniswapV2Router02",
+      "hash": "0x17c2f0495b796abfddf640c46c6c76a84ecc866689c3d69e20ed5b8b582caea8",
+      "block": "48053489",
+      "blockHash": "0xcdb99461dcbcd880ba5119b33c20677aaf26bd18cd53eb7a300467a1db8d03c4",
+      "contract": "0x21ebda77b340db6e93b6d40ed8561c234ff3066e",
+      "gasUsed": "4757729",
+      "effectiveGasPrice": "6000000",
+      "l1Fee": "6669"
+    },
+    {
+      "step": "token-approval",
+      "hash": "0x0aed96b88c46aea84d3f09544ca974cc081c0347bbcd172d49c778fbb908a444",
+      "block": "48053495",
+      "blockHash": "0x431c7eb09bac2a2bae8f8f60908540402d1c402b158e9d61fcf1717da7e51f17",
+      "contract": null,
+      "gasUsed": "46378",
+      "effectiveGasPrice": "6000000",
+      "l1Fee": "101"
+    },
+    {
+      "step": "seed-liquidity",
+      "hash": "0xf77405923e2051c0c7946b5cbf5240b856b2c12e488f990cfbbc17904e90260e",
+      "block": "48053501",
+      "blockHash": "0xceae516679f6471f26709e207aaea6fe6255179c044b8b7a7b76fbe6a9c87489",
+      "contract": null,
+      "gasUsed": "2718039",
+      "effectiveGasPrice": "6000000",
+      "l1Fee": "228"
+    },
+    {
+      "step": "ZecOneSwapExecutor",
+      "hash": "0xc88c87d9448d5701e79bac246b1a58b216eb74a62c6178f5211dd696d4c21c85",
+      "block": "48053507",
+      "blockHash": "0x0c191ada25ff81e1010f31ab86b843cb7f4870125d6b9cd76240810314e2021c",
+      "contract": "0x3cc004a9310815d2720e0d23bec349030271b780",
+      "gasUsed": "1746868",
+      "effectiveGasPrice": "6000000",
+      "l1Fee": "8190"
+    }
+  ],
+  "initialReserves": {
+    "native": "5000000000000000",
+    "token": "1000000000000000000000"
+  },
+  "providerBefore": "98863135337903908",
+  "startingBalanceSource": "historical RPC balance at block 48053211, before persisted first deployment",
+  "providerAfter": "93782321925875678",
+  "providerSpent": "5080813412028230",
+  "seedNative": "5000000000000000",
+  "userTokenBalance": "0"
+}

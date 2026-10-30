@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-22T14:51:39.051Z",
+  "network": "zcash-mainnet",
+  "mode": "READ_ONLY",
+  "executionAllowed": false,
+  "startHeight": 3526768,
+  "endHeight": 3526770,
+  "chainContinuity": "PASS",
+  "accumulatedWork": "703ef88fa98",
+  "blocks": [
+    {
+      "height": 3526768,
+      "hash": "000000000051f05f2ce26627c758beab99bda171348c2761931b60d0a007ee3c",
+      "sha256": "3d1345f9cec78d34dc92ca22195919a772395f68b7fcbe229383a6afb7cc7f8d",
+      "bytes": 1911,
+      "lightwalletdOperators": [
+        "zec.rocks",
+        "stardust"
+      ],
+      "rawBlockOperators": [
+        "tatum",
+        "blockchair"
+      ],
+      "exactRawBlockAgreement": true,
+      "proofOfWork": "PASS",
+      "transactionMerkleRoot": "PASS",
+      "authorizingDataCommitment": "NOT_LOCALLY_RECOMPUTED"
+    },
+    {
+      "height": 3526769,
+      "hash": "00000000000ee5a35f618e61c0ee9b5d853eee062cc833f8338fd418c8564744",
+      "sha256": "14c253ec1172cd9d8c9f7546a8a6106b629eba4e23feb69cabff7a1a48813dd8",
+      "bytes": 18424,
+      "lightwalletdOperators": [
+        "zec.rocks",
+        "stardust"
+      ],
+      "rawBlockOperators": [
+        "tatum",
+        "blockchair"
+      ],
+      "exactRawBlockAgreement": true,
+      "proofOfWork": "PASS",
+      "transactionMerkleRoot": "PASS",
+      "authorizingDataCommitment": "NOT_LOCALLY_RECOMPUTED"
+    },
+    {
+      "height": 3526770,
+      "hash": "000000000008090e9e53c4318751cbcbfdcb11e4c06b34b7bef89b520a89367a",
+      "sha256": "b73a33f14c7d53048e4c1e43a08baa378be80f6634b6d94b4215ffab106b4211",
+      "bytes": 66774,
+      "lightwalletdOperators": [
+        "zec.rocks",
+        "stardust"
+      ],
+      "rawBlockOperators": [
+        "tatum",
+        "blockchair"
+      ],
+      "exactRawBlockAgreement": true,
+      "proofOfWork": "PASS",
+      "transactionMerkleRoot": "PASS",
+      "authorizingDataCommitment": "NOT_LOCALLY_RECOMPUTED"
+    }
+  ],
+  "limitation": "ZIP-244 authorizing-data and chain-history commitments are not locally recomputed; exact full-block bytes require two independent exporters."
+}

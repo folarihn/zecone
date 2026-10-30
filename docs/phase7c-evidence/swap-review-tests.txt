@@ -1,0 +1,23 @@
+(node:4444) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ manual expired unsigned review archives bytes and vetoes valid, claimed or signed replacement (59.1479ms)
+✔ swap terms pin one devnet route, decimals, amount, slippage and minimum (0.45ms)
+✔ canonical swap rejects malicious route bytes, changed recipient and injected instructions (32.922ms)
+✔ real Ed25519 synthetic swap settles only with exact token effects and rejects duplicate/refund (33.1586ms)
+✔ swap cannot authorize unconfirmed, underpaid, reused or wrong-account Zcash evidence (8.0607ms)
+✔ slippage, quote expiry and simulation failure enter recovery before signing (42.8051ms)
+✔ swap lost submission response remains signature-only after restart (60.2678ms)
+✔ finalized transaction with wrong mint, output or recipient owner cannot settle (80.3868ms)
+✔ raw mint/pool/account decoding rejects unsupported extensions, authorities and program upgrades (10.5379ms)
+✔ privacy projection excludes secret/history/correlation fields and scopes history by session (3.1105ms)
+✔ new age credentials reject wrong passwords/tampering and recover from encrypted backup (10427.868ms)
+✔ Windows DPAPI round-trip requires explicit unlock without plaintext key storage (772.77ms)
+✔ paired swap API rejects unauthorized queries, cross-session correlation and arbitrary spending (60.2184ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14223.3963

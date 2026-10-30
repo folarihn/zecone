@@ -1,0 +1,5 @@
+
+> phase7c:rehearsal
+> tsx scripts/phase7c-rehearsal.ts
+
+{"at":"2026-10-17T02:18:43.619Z","network":"solana:devnet","genesis":"EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG","pool":"12aukygfT6qr5KH9MeeVYb4Y9rsmTzAVzUn633BRCfd","inputMint":"So11111111111111111111111111111111111111112","outputMint":"2j76mnkJEBxbYv8T9c76PbsGzf5XuhpRoK1kwwTg9MpY","amountIn":"1000000","expectedOut":"76043880","minimumOut":"75283441","slippageBps":100,"estimatedFeeLamports":"5000","simulation":{"err":null,"unitsConsumed":"48611"},"rpcMethodCounts":{"getGenesisHash":9,"getMultipleAccounts":3,"getMinimumBalanceForRentExemption":1,"getBalance":1,"getLatestBlockhash":1,"getFeeForMessage":1,"isBlockhashValid":1,"simulateTransaction":1},"providerObserves":["client IP and timing","fixed public pool/mint/program accounts","selected relayer and selected recipient ATA","full unsigned public transaction instructions"],"sentToDexAPI":false,"viewingOrSpendingKeysSent":false,"zcashIdentifiersSent":false,"signatureGenerated":false,"broadcast":false,"isPaymentAuthorization":false,"state":"UNSIGNED_SIMULATION_SUCCEEDED"}

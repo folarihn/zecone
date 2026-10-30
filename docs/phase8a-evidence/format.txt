@@ -1,0 +1,4 @@
+services/wallet/privacy.ts 125ms
+services/wallet/api.ts 74ms
+services/wallet/security.ts 25ms (unchanged)
+tests/phase8-privacy.test.ts 81ms

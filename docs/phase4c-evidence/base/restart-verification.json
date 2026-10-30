@@ -1,0 +1,32 @@
+{
+  "at": "2026-10-13T08:48:46.490Z",
+  "verified": true,
+  "before": {
+    "order": "0xe8cad3396e93b697e6cf294b60294df033a719cd64be3ace3dd10098e11e7d2a",
+    "transaction": "0x473e5fe828041b87b7efb9a8099534840128f00dc7713e5662c79fb00ab511e4",
+    "seaportOrderHash": "0x35e3c4fccc83842c2b29898c2ce3149163ac6ca63f114f35dfa9e1793701bd3a",
+    "payment": "be203c56ae342ae368d13547b1a65f09f8912decd6bf2e7fd18aaf7071ff8bdf",
+    "state": "settled",
+    "provider": "93557869873865219",
+    "seller": "1196606141158389",
+    "user": "9999873999999741",
+    "owner": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+    "nonce": 21,
+    "broadcasts": 1,
+    "scans": 53
+  },
+  "after": {
+    "order": "0xe8cad3396e93b697e6cf294b60294df033a719cd64be3ace3dd10098e11e7d2a",
+    "transaction": "0x473e5fe828041b87b7efb9a8099534840128f00dc7713e5662c79fb00ab511e4",
+    "seaportOrderHash": "0x35e3c4fccc83842c2b29898c2ce3149163ac6ca63f114f35dfa9e1793701bd3a",
+    "payment": "be203c56ae342ae368d13547b1a65f09f8912decd6bf2e7fd18aaf7071ff8bdf",
+    "state": "settled",
+    "provider": "93557869873865219",
+    "seller": "1196606141158389",
+    "user": "9999873999999741",
+    "owner": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+    "nonce": 21,
+    "broadcasts": 1,
+    "scans": 74
+  }
+}

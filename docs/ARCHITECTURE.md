@@ -1,4 +1,31 @@
-# Phase 0 architecture
+# ZecOne architecture
+
+## Phase 1 local application boundary
+
+The Phase 1 Next.js/React/Tailwind application is served by one custom Node gateway bound to `127.0.0.1:3210`. A local launcher exchanges a ten-minute single-use capability for a one-hour HttpOnly SameSite=Strict session. Literal Host, Origin, fetch metadata, JSON content type and session-bound CSRF checks protect a narrow API. Production CSP uses per-request script nonces; no analytics or external assets are loaded.
+
+The authenticated browser receives an allowlisted projection, not `Store.report()`. Internal account UUIDs, merchant receiving addresses, intent signatures, raw transactions, viewing keys and full audit mappings never enter the browser response. Local data remains private/no-store. Public Base explorer links are explicit user actions.
+
+```mermaid
+flowchart TB
+  B[Browser: local paired session] --> G[Loopback gateway: auth + CSRF + approvals]
+  G --> U[Separate local user signing helper]
+  G --> D[Private browser checkout journal]
+  G --> P[Rust payer: native balance, unsigned fee quote, approved send]
+  G --> O[Existing order verifier and merchant scanner]
+  O --> R[Existing prefunded Base relayer]
+  R --> N[Existing NFT contract: user-owned recipient]
+```
+
+Ownership challenges bind the origin, chain, configured user address, nonce and expiry. The helper signs only gateway-authored approval files and the gateway verifies the recovered address. Creating an order signs fixed EIP-712 mint terms; it cannot send Zcash. Sending requires a separate short-lived, session/order-bound quote. The native signer rejects fees above the approved ceiling. A durable compare-and-set and stable request UUID precede construction, so retries cannot create a new payment.
+
+The engine serializes native work and uses the original service lock for merchant scanning/settlement. Background settlement is restricted to checkouts whose payment was explicitly approved. Restarted in-flight actions enter review; reconciliation reuses saved signatures or transaction references. Session expiry or closing the browser does not cancel already authorized work.
+
+Native balances use `get_wallet_summary`, including shielded spendable amounts; receipt totals are never used as wallet balances. Native wallet history and known ZecOne Base mint receipts are projected separately. NFT candidates come from this verifier's settled orders and are checked with live `ownerOf`. This is deliberately not a universal NFT/transaction indexer. Collection art in the UI is a local illustration, not an on-chain image.
+
+The process split is not a security boundary against a malicious same-OS-user program. The local operator still controls payment attestation and can correlate checkout activity. See [security review](PHASE1-SECURITY.md), [runbook](PHASE1-RUNBOOK.md), and [risks](RISKS.md).
+
+## Preserved Phase 0 payment engine
 
 ## Boundaries
 
@@ -30,4 +57,40 @@ Expired, underpaid, overpaid, orphaned and failed settlements remain visible. Re
 
 No arbitrary contract calls, chain selection or calldata are accepted in an order. Only the configured Base Sepolia contract and fixed mint method are permitted. Recipient signatures bind all order terms and contract address. Contract-level replay protection survives application restarts. User key and relayer key have separate files and code paths; no server key becomes the NFT owner. Same-OS-user filesystem isolation is a development boundary, not hardened key custody.
 
-The merchant Zcash seed is local. A separate payer seed models the paying user. For scale, migrate receiving to a viewing-key-only scanner and an isolated signing process. Testnet only; no frontend, bridge liquidity, pricing oracle or production exchange.
+The merchant Zcash seed is local. A separate payer seed models the paying user. For scale, migrate receiving to a viewing-key-only scanner and an isolated signing process. Testnet only; no bridge liquidity, pricing oracle or production exchange. Phase 1 adds the explicitly authorized local frontend above this unchanged settlement model.
+
+## Phase 2 external dApp connector and restricted sponsorship
+
+An external compatible dApp includes the public dependency-free EIP-1193 connector SDK and discovers the provider with EIP-6963 events. From an explicit user gesture, the SDK opens `/connect` on the local wallet. A random channel and the browser's exact opener origin/source bind the popup conversation. The local wallet authenticates its own session and CSRF token; that token never crosses to the dApp. The popup permits only the first validated origin and uses exact `targetOrigin` for every reply. It presents a separate origin/account/signature/transaction approval for each privileged request. This is not provider injection into unrelated websites.
+
+Supported EVM calls pass through a restrictive policy layer and local Base Sepolia RPC. Read methods expose chain ID and the authorized public EOA only. The signer sets nonce/gas/fees, reviews exact payload, checks chain/account/nonce/value/fee limits, simulates again and signs locally. Signed raw bytes are persisted before broadcast and receipt reconciliation uses the saved hash. DApp apps/permissions live in a separate SQLite database; session, origin, request ID, payload fingerprint, expiry and review digest are stored per request. The provider has no access to Zcash APIs.
+
+The independent test dApp lives in `test-dapp/` and runs on a distinct local origin. The ZEC sponsorship service signs a fixed typed action intent, allocates a unique payment destination and reuses the Phase 0 ten-confirmation payment worker. A separately deployed Base Sepolia contract accepts only an exact zero-value `recordFor(user, NOTE)` action after validating the signed user intent, fixed price/gas budget, expiry, chain, target and replay keys. The relayer remains separately prefunded and is not given user signing authority. Sponsorship is not a conversion or bridge. Detailed boundaries and risks are in [Phase 2 security](PHASE2-SECURITY.md), [limitations](PHASE2-LIMITATIONS.md), and [feasibility](PHASE2-FEASIBILITY.md).
+
+## Phase 4A multichain extension
+
+`services/evm/networks.ts` is the single allowlist for Base Sepolia (84532), Ethereum Sepolia (11155111) and Robinhood Chain Testnet (46630). Each dApp origin has its own selected testnet in the local dApp database. `wallet_switchEthereumChain` and `wallet_addEthereumChain` create approval requests; chain-add data must exactly match an allowlisted RPC, explorer and currency. Pending requests for an origin are invalidated when its chain changes. Unknown IDs and dApp-provided RPC endpoints are rejected. The user EOA signer is reused; the RPC adapter only reads and submits signed raw transactions.
+
+`services/evm/adapter.ts` provides chain-checked health, simulation, fee/gas/nonce preparation, raw transaction chain-ID validation, receipt depth and canonical-block checks. The same public EVM address is visible on every selected chain and is linkable. `services/evm/portfolio.ts` fetches native balances from each network. ERC-20 results are deliberately empty until verified token addresses are configured; NFT ownership is checked only for the known ZecOne collections, without claiming complete indexing.
+
+The existing Phase 3 purchase journal remains durable and now binds destination chain ID, provider, adapter and source Zcash network into new typed quotes. Reservations are accounted per chain, each RPC and deployment is selected by the allowlisted chain ID, and the existing local user signer approves the exact recipient and quote. Base continues using its preserved Phase 3 executor. Ethereum Sepolia and Robinhood use the new immutable `ZecOneMultichainExecutor`, which hardcodes its deployment chain, provider, allowed marketplace, adapter identity and test fee bounds; it pays the listed seller atomically and delivers the ERC-721 directly to the user. An independent prefunded provider pays destination gas. There is no ZEC-to-ETH swap or bridge.
+
+Both new testnets now have funded providers and confirmed NFT, marketplace and executor deployments. Canonical deployment receipts and actual fees are saved per chain under `docs/phase4a-evidence`. Purchase completion is established independently from the real shielded payment, confirmation-at-authorization audit, destination receipt, seller payment and user NFT ownership; see [Phase 4A results](PHASE4A-RESULTS.md). Public RPC health and local Anvil/Foundry tests alone do not constitute live purchase evidence. For trust boundaries and finality limits see [Phase 4A security](PHASE4A-SECURITY.md) and [limitations](PHASE4A-LIMITATIONS.md).
+
+## Phase 4B restricted token swaps
+
+`services/execution/model.ts` provides a typed adapter view for NFT_PURCHASE, TOKEN_SWAP and inert FUTURE_MARKETPLACE_ORDER proposals. Classification preserves the original signed payload; historical NFT domains are unchanged. Swaps use the new versioned `ZecOneExecution` domain and exact router parameters/calldata hashes. Future marketplace proposals cannot be signed or executed through an exposed endpoint.
+
+`services/swaps/service.ts` reuses the existing purchase/payment lifecycle and `.state/purchases.sqlite`. NFT and swap views are separated, but liquidity reservations and unresolved nonce checks aggregate both action kinds per chain. The shared service lock surrounds balance reads and atomic reservation. The original unique native payment IDs, ten-confirmation scanner, signed-before-broadcast journal, reorg reconciliation and manual recovery liabilities remain authoritative.
+
+`services/swaps/adapter.ts` verifies one Base Sepolia configuration, reads canonical pool reserves and token/runtime metadata, calculates V2 output and impact, enforces gas/slippage bounds and simulates again before signing. `ZecOneSwapExecutor` permits only the fixed native-input/WETH-to-ZTEST route through its immutable router/pool. It verifies the user's exact intent, consumes replay keys and atomically checks the recipient's output balance delta. The provider supplies its own native input and gas; no user EVM spending key or token allowance enters settlement.
+
+Completion requires canonical destination depth, exact transaction data and executor/pair/token events with transaction-local delivery evidence. A later user transfer does not erase historical delivery. The Tokens panel exposes actual balances, quote and native payment approval, confirmation progress and recovery. A real Base Sepolia payment-to-swap and restart proof is in [Phase 4B results](PHASE4B-RESULTS.md). Ethereum/Robinhood token routes are disabled. Test pricing, local custody, trusted verification and manual refunds retain the limitations described in [Phase 4B security](PHASE4B-SECURITY.md).
+
+## Phase 4C recipient-directed Seaport purchases
+
+`services/seaport` adds a separate `SEAPORT_PURCHASE` adapter using the genuine public Seaport 1.6 on Base Sepolia. A controlled seller signs a standard fixed-price order. The local user signs the exact restricted intent in a new `ZecOneSeaport` domain. The shared purchase journal reserves provider liquidity and assigns a unique native shielded payment request, requiring ten confirmations before any destination transaction is prepared.
+
+The immutable `ZecOneSeaportExecutor` reconstructs only the approved `fulfillAdvancedOrder` call with the user recipient. Seaport transfers the NFT directly from seller to user and pays the exact seller/fee consideration. Canonical order state, runtime identity, seller authorization, ownership, approvals, price and gas bounds are checked before execution. The wrapper enforces signature/recipient/call binding, replay guards and atomic delivery/payment postconditions. Receipt reconciliation checks actual Seaport, wrapper and ERC-721 events as well as historical ownership.
+
+The OpenSea discovery module is read-only and separately gated by API chain support. Structured API fulfillment data is independently reconstructed and checked, never blindly executed. Current live testing uses a controlled Seaport order because available API evidence does not establish Base Sepolia discovery. The existing wallet adds a clearly labeled Seaport panel and separate intent/payment approvals; this does not provide an OpenSea website connection transport. See [security](PHASE4C-SECURITY.md), [limitations](PHASE4C-LIMITATIONS.md) and [runbook](PHASE4C-RUNBOOK.md).

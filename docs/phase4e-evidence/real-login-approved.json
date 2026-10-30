@@ -1,0 +1,207 @@
+{
+  "connections": [
+    {
+      "id": "138470961:3EDC7B8F3E40FA0B7CA4D84C3EF966C2",
+      "origin": "https://opensea.io",
+      "account": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+      "chainId": "0x14a34",
+      "pending": 0
+    }
+  ],
+  "logs": [
+    {
+      "time": "2026-10-13T11:31:40.907Z",
+      "origin": "https://opensea.io",
+      "method": "eth_accounts",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:31:59.725Z",
+      "origin": "https://opensea.io",
+      "method": "wallet_requestPermissions",
+      "outcome": "blocked",
+      "code": 4200
+    },
+    {
+      "time": "2026-10-13T11:31:59.729Z",
+      "origin": "https://opensea.io",
+      "method": "eth_requestAccounts",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:32:00.034Z",
+      "origin": "https://opensea.io",
+      "method": "eth_requestAccounts",
+      "outcome": "resolved"
+    },
+    {
+      "time": "2026-10-13T11:32:00.034Z",
+      "origin": "https://opensea.io",
+      "method": "eth_accounts",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:32:00.036Z",
+      "origin": "https://opensea.io",
+      "method": "eth_chainId",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:32:00.036Z",
+      "origin": "https://opensea.io",
+      "method": "eth_chainId",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:32:00.043Z",
+      "origin": "https://opensea.io",
+      "method": "eth_accounts",
+      "outcome": "resolved"
+    },
+    {
+      "time": "2026-10-13T11:32:00.043Z",
+      "origin": "https://opensea.io",
+      "method": "eth_chainId",
+      "outcome": "resolved"
+    },
+    {
+      "time": "2026-10-13T11:32:00.044Z",
+      "origin": "https://opensea.io",
+      "method": "eth_chainId",
+      "outcome": "resolved"
+    },
+    {
+      "time": "2026-10-13T11:32:00.072Z",
+      "origin": "https://opensea.io",
+      "method": "eth_chainId",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:32:00.083Z",
+      "origin": "https://opensea.io",
+      "method": "eth_accounts",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:32:00.110Z",
+      "origin": "https://opensea.io",
+      "method": "eth_chainId",
+      "outcome": "resolved"
+    },
+    {
+      "time": "2026-10-13T11:32:00.115Z",
+      "origin": "https://opensea.io",
+      "method": "eth_accounts",
+      "outcome": "resolved"
+    },
+    {
+      "time": "2026-10-13T11:32:00.120Z",
+      "origin": "https://opensea.io",
+      "method": "eth_accounts",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:32:00.128Z",
+      "origin": "https://opensea.io",
+      "method": "eth_accounts",
+      "outcome": "resolved"
+    },
+    {
+      "time": "2026-10-13T11:33:08.946Z",
+      "origin": "https://opensea.io",
+      "method": "eth_accounts",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:33:08.946Z",
+      "origin": "https://opensea.io",
+      "method": "eth_chainId",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:33:08.973Z",
+      "origin": "https://opensea.io",
+      "method": "eth_accounts",
+      "outcome": "resolved"
+    },
+    {
+      "time": "2026-10-13T11:33:08.974Z",
+      "origin": "https://opensea.io",
+      "method": "eth_chainId",
+      "outcome": "resolved"
+    },
+    {
+      "time": "2026-10-13T11:33:09.002Z",
+      "origin": "https://opensea.io",
+      "method": "eth_chainId",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:33:09.032Z",
+      "origin": "https://opensea.io",
+      "method": "eth_chainId",
+      "outcome": "resolved"
+    },
+    {
+      "time": "2026-10-13T11:33:09.036Z",
+      "origin": "https://opensea.io",
+      "method": "personal_sign",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:33:41.926Z",
+      "origin": "https://opensea.io",
+      "method": "personal_sign",
+      "outcome": "rejected",
+      "code": 4001
+    },
+    {
+      "time": "2026-10-13T11:34:33.761Z",
+      "origin": "https://opensea.io",
+      "method": "eth_accounts",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:34:33.761Z",
+      "origin": "https://opensea.io",
+      "method": "eth_chainId",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:34:33.769Z",
+      "origin": "https://opensea.io",
+      "method": "eth_accounts",
+      "outcome": "resolved"
+    },
+    {
+      "time": "2026-10-13T11:34:33.769Z",
+      "origin": "https://opensea.io",
+      "method": "eth_chainId",
+      "outcome": "resolved"
+    },
+    {
+      "time": "2026-10-13T11:34:33.770Z",
+      "origin": "https://opensea.io",
+      "method": "eth_chainId",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:34:33.773Z",
+      "origin": "https://opensea.io",
+      "method": "eth_chainId",
+      "outcome": "resolved"
+    },
+    {
+      "time": "2026-10-13T11:34:33.774Z",
+      "origin": "https://opensea.io",
+      "method": "personal_sign",
+      "outcome": "requested"
+    },
+    {
+      "time": "2026-10-13T11:35:14.675Z",
+      "origin": "https://opensea.io",
+      "method": "personal_sign",
+      "outcome": "resolved"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+[
+  {
+    "network": "zcash",
+    "enabled": false,
+    "providers": [
+      { "endpoint": "https://zcash-a.invalid", "operator": "replace-a" },
+      { "endpoint": "https://zcash-b.invalid", "operator": "replace-b" }
+    ],
+    "independenceAcknowledged": false,
+    "recipients": [],
+    "perTransaction": "2000000",
+    "daily": "4000000",
+    "feeCap": "10000",
+    "confirmations": 20
+  },
+  {
+    "network": "base",
+    "enabled": false,
+    "providers": [
+      { "endpoint": "https://base-a.invalid", "operator": "replace-a" },
+      { "endpoint": "https://base-b.invalid", "operator": "replace-b" }
+    ],
+    "independenceAcknowledged": false,
+    "recipients": [],
+    "perTransaction": "100000000000000",
+    "daily": "200000000000000",
+    "feeCap": "10000000000000",
+    "confirmations": 1
+  },
+  {
+    "network": "solana",
+    "enabled": false,
+    "providers": [
+      { "endpoint": "https://solana-a.invalid", "operator": "replace-a" },
+      { "endpoint": "https://solana-b.invalid", "operator": "replace-b" }
+    ],
+    "independenceAcknowledged": false,
+    "recipients": [],
+    "perTransaction": "1010000",
+    "daily": "2020000",
+    "feeCap": "10000",
+    "confirmations": 1
+  }
+]

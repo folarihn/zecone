@@ -1,0 +1,50 @@
+(node:12404) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ portable exchange requires exact manual review and returns only persisted signed transaction data (116696.7857ms)
+✔ portable interrupted finalization and live evidence cannot initiate signing (3225.8671ms)
+✔ independent approval integrates with native verification/signing and exact replay recovery (4765.8175ms)
+✔ native signer rejects locked keys and an interrupted durable signing claim (3216.3556ms)
+✔ native signing still requires independent authorization and input evidence (2616.6717ms)
+✔ failure after real native signing before journal persistence never permits replacement (3864.1049ms)
+✔ native input claims prohibit sharing a note across distinct refund requests (3082.1736ms)
+✔ concurrent native signing requests persist only one signing attempt (3762.0936ms)
+(node:13260) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ verified Seaport fork: restrictive fulfillment, payment gating, failures and restart
+  ✔ official runtime, Seaport order hash and independent buyer digest match onchain (9.6221ms)
+  ✔ documented API fulfillment is decoded and every recipient, fee and calldata change rejected (10.8084ms)
+  ✔ forged seller signature rejected independently and by genuine Seaport (46.4749ms)
+  ✔ wrong chain rejected (5.2138ms)
+  ✔ wrong NFT rejected (3.5731ms)
+  ✔ wrong seller rejected (4.5142ms)
+  ✔ wrong recipient rejected (6.2999ms)
+  ✔ expired quote rejected (4.7105ms)
+  ✔ changed fee rejected (4.1776ms)
+  ✔ excessive price rejected (4.3523ms)
+  ✔ wrong protocol domain rejected (3.8552ms)
+  ✔ unsupported orders and additional consideration rejected (30.2013ms)
+  ✔ calldata and recipient substitution fail despite original buyer signature (11.458ms)
+  ✔ cancelled order is rejected (52.1979ms)
+  ✔ revoked seller approval is rejected (43.0166ms)
+  ✔ seller ownership change is rejected (53.49ms)
+  ✔ onchain validated order can omit seller signature (276.1081ms)
+  ✔ insufficient provider liquidity fails before signing (80.7626ms)
+  ✔ nine confirmations cannot authorize a Seaport transaction (3.6861ms)
+  ✔ ten confirmations fulfill the real protocol directly to the user and pay seller (153.4064ms)
+  ✔ replay and an already filled listing are rejected (25.8703ms)
+  ✔ durable restart and duplicate settlement preserve hash and nonce (13.1349ms)
+  ✔ a paid unavailable listing remains an auditable recovery liability (324.5944ms)
+  ✔ destination reorganization cannot be reported as verified delivery (229.2699ms)
+✔ verified Seaport fork: restrictive fulfillment, payment gating, failures and restart (10124.0912ms)
+✔ OpenSea discovery respects testnet support, API authorization and rate-limit backoff (2.1952ms)
+✔ Seaport reservations share NFT liquidity and reject duplicate active protocol orders (31.8719ms)
+✔ unapproved Seaport sessions never reach signer, RPC or native payment (27.2468ms)
+✔ concurrent Seaport and NFT reservations cannot overspend shared provider liquidity (343.9946ms)
+ℹ tests 37
+ℹ suites 0
+ℹ pass 37
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 157064.1961

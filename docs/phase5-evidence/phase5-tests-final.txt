@@ -1,0 +1,58 @@
+(node:28144) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ duplicate snapshots and outputs do not increase paid amount (84.7888ms)
+✔ underpayments accumulate but never settle early (31.4506ms)
+✔ nine confirmations and unmined observations cannot authorize (31.7927ms)
+✔ Ironwood notes require ten confirmations and retain pool-specific identity (31.0149ms)
+✔ invalid network, partial scan, stale snapshot and transparent output fail closed (29.674ms)
+✔ expired orders with funds enter auditable recovery and cannot revive (29.7224ms)
+✔ a late payment to an already expired order stays expired (30.0052ms)
+✔ overpayment authorizes only one mint and records excess recovery (29.1181ms)
+✔ reorg before preparation removes authorization (30.5817ms)
+✔ reorg after preparation stops broadcast and creates recovery (31.8192ms)
+✔ conflicting duplicate outputs reject the entire snapshot atomically (28.9676ms)
+✔ payment attribution cannot be replayed against another account (48.6549ms)
+✔ same request is idempotent; reusing nonce for another intent fails (31.3117ms)
+✔ crash after broadcast preserves raw transaction across restart (44.1951ms)
+✔ receipt reconciliation prevents duplicate settlement on retries (36.1423ms)
+✔ confirmed revert records failure; explicit retry requires fresh payment (35.871ms)
+✔ expired pending settlement does not rebroadcast (33.1944ms)
+✔ altered recipient, contract, price, expiry and signature are rejected (35.1424ms)
+✔ a slow prepare cannot bypass the freshness check before persistence (32.6498ms)
+(node:28168) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ refund service refuses a lower-confirmation payment store (5.6096ms)
+✔ in-flight EVM signing excludes refund approval and concurrent signing before a hash exists (88.5168ms)
+✔ crash after execution claim blocks re-signing and refunds after restart (46.7627ms)
+✔ constructor failure records recovery and retains its anti-replay claim (31.3386ms)
+✔ Phase 5 graph rejects skipped transitions, stale writers and refunds after completion (1.8343ms)
+✔ Phase 5 refund graph retains an execution veto after recovery and restart (54.8261ms)
+✔ duplicate user requests and operator approvals are idempotent; second refund is refused (46.2822ms)
+✔ wrong user, destination, operator and signer approval cannot authorize a refund (45.3438ms)
+✔ refund approval wins race against EVM preparation, including a second connection (41.8338ms)
+✔ saved EVM transaction wins race and prevents refund even if receipt is called failed (60.8229ms)
+✔ execution worker cannot broadcast after a durable refund veto and restart (47.1676ms)
+✔ completed purchase cannot enter refund authorization (29.9434ms)
+✔ underpayment and overpayment refunds are bounded by confirmed receipts and explicit fee (71.1029ms)
+✔ nine confirmations, stale scans, dust, and overflow cannot authorize refund (89.4629ms)
+✔ expired request and changed payment attribution never receive operator approval (67.4093ms)
+✔ reorg after approval requires recovery, preserves veto and forbids blind replacement (36.4543ms)
+✔ public refund view never exposes payment mappings or pretends to confirm a refund (30.6179ms)
+✔ independent signer rechecks its own evidence and requires exact explicit review (694.8936ms)
+✔ interrupted independent signer claim is not cleared or signed again (588.1165ms)
+✔ keystore randomizes salt and nonce and rejects password, ciphertext, purpose and KDF tampering (1661.9495ms)
+✔ unauthorized unlock, explicit lock, expiry and lock-during-KDF all fail closed (799.1153ms)
+✔ encrypted-copy staging is reversible and interruption never overwrites credentials (813.0946ms)
+✔ price consensus rejects staleness, future timestamps, disagreement and duplicate sources (0.9055ms)
+✔ feed failure does not downgrade a configured quorum or silently return a fixed rate (0.2637ms)
+✔ quote binds fees and expiry; movement rejects before approval but never reprices a paid commitment (0.8062ms)
+✔ OpenSea handoff accepts only explicit official Ethereum item paths and stays non-executable (1.1361ms)
+✔ native address decoder validates real checksum without a seed, DB or network (844.3711ms)
+ℹ tests 46
+ℹ suites 0
+ℹ pass 46
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8466.9045

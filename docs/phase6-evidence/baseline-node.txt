@@ -1,0 +1,393 @@
+
+> test
+> node --import tsx --test tests/*.test.ts
+
+✖ tests\action.test.ts (14.4663ms)
+✖ tests\base.test.ts (12.7852ms)
+✖ tests\chain-agreement.test.ts (12.717ms)
+✖ tests\dapps.test.ts (13.2037ms)
+✖ tests\extension-policy.test.ts (13.4376ms)
+✖ tests\multichain.test.ts (12.7407ms)
+✖ tests\native-refund.test.ts (12.7738ms)
+✖ tests\opensea.test.ts (12.8906ms)
+✖ tests\orders.test.ts (12.6395ms)
+✖ tests\phase5.test.ts (11.9137ms)
+✖ tests\phase52-order.test.ts (11.8146ms)
+✖ tests\phase52-payment.test.ts (9.8178ms)
+✖ tests\phase52-profile.test.ts (8.3455ms)
+✖ tests\purchase-evm.test.ts (7.449ms)
+✖ tests\purchases.test.ts (6.2013ms)
+✖ tests\refund-delivery.test.ts (5.1932ms)
+✖ tests\seaport.test.ts (4.4663ms)
+✖ tests\swaps.test.ts (3.6253ms)
+✖ tests\transfer-recovery.test.ts (2.7896ms)
+✖ tests\wallet.test.ts (2.0464ms)
+✖ tests\watch-evidence.test.ts (1.249ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 0
+ℹ fail 21
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 38.4402
+
+✖ failing tests:
+
+test at tests\action.test.ts:1:1
+✖ tests\action.test.ts (14.4663ms)
+  Error: spawn EPERM
+      at ChildProcess.spawn (node:internal/child_process:421:11)
+      at spawn (node:child_process:796:9)
+      at TestContext.<anonymous> (node:internal/test_runner/runner:398:19)
+      at FileTest.runInAsyncScope (node:async_hooks:214:14)
+      at FileTest.run (node:internal/test_runner/test:1106:25)
+      at FileTest.start (node:internal/test_runner/test:1003:17)
+      at runTestFile (node:internal/test_runner/runner:477:32)
+      at node:internal/test_runner/runner:769:25
+      at node:internal/per_context/primordials:561:37
+      at new Promise (<anonymous>) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'spawn'
+  }
+
+test at tests\base.test.ts:1:1
+✖ tests\base.test.ts (12.7852ms)
+  Error: spawn EPERM
+      at ChildProcess.spawn (node:internal/child_process:421:11)
+      at spawn (node:child_process:796:9)
+      at TestContext.<anonymous> (node:internal/test_runner/runner:398:19)
+      at FileTest.runInAsyncScope (node:async_hooks:214:14)
+      at FileTest.run (node:internal/test_runner/test:1106:25)
+      at FileTest.start (node:internal/test_runner/test:1003:17)
+      at runTestFile (node:internal/test_runner/runner:477:32)
+      at node:internal/test_runner/runner:769:25
+      at node:internal/per_context/primordials:561:37
+      at new Promise (<anonymous>) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'spawn'
+  }
+
+test at tests\chain-agreement.test.ts:1:1
+✖ tests\chain-agreement.test.ts (12.717ms)
+  Error: spawn EPERM
+      at ChildProcess.spawn (node:internal/child_process:421:11)
+      at spawn (node:child_process:796:9)
+      at TestContext.<anonymous> (node:internal/test_runner/runner:398:19)
+      at FileTest.runInAsyncScope (node:async_hooks:214:14)
+      at FileTest.run (node:internal/test_runner/test:1106:25)
+      at FileTest.start (node:internal/test_runner/test:1003:17)
+      at runTestFile (node:internal/test_runner/runner:477:32)
+      at node:internal/test_runner/runner:769:25
+      at node:internal/per_context/primordials:561:37
+      at new Promise (<anonymous>) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'spawn'
+  }
+
+test at tests\dapps.test.ts:1:1
+✖ tests\dapps.test.ts (13.2037ms)
+  Error: spawn EPERM
+      at ChildProcess.spawn (node:internal/child_process:421:11)
+      at spawn (node:child_process:796:9)
+      at TestContext.<anonymous> (node:internal/test_runner/runner:398:19)
+      at FileTest.runInAsyncScope (node:async_hooks:214:14)
+      at FileTest.run (node:internal/test_runner/test:1106:25)
+      at FileTest.start (node:internal/test_runner/test:1003:17)
+      at runTestFile (node:internal/test_runner/runner:477:32)
+      at node:internal/test_runner/runner:769:25
+      at node:internal/per_context/primordials:561:37
+      at new Promise (<anonymous>) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'spawn'
+  }
+
+test at tests\extension-policy.test.ts:1:1
+✖ tests\extension-policy.test.ts (13.4376ms)
+  Error: spawn EPERM
+      at ChildProcess.spawn (node:internal/child_process:421:11)
+      at spawn (node:child_process:796:9)
+      at TestContext.<anonymous> (node:internal/test_runner/runner:398:19)
+      at FileTest.runInAsyncScope (node:async_hooks:214:14)
+      at FileTest.run (node:internal/test_runner/test:1106:25)
+      at FileTest.start (node:internal/test_runner/test:1003:17)
+      at runTestFile (node:internal/test_runner/runner:477:32)
+      at node:internal/test_runner/runner:769:25
+      at node:internal/per_context/primordials:561:37
+      at new Promise (<anonymous>) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'spawn'
+  }
+
+test at tests\multichain.test.ts:1:1
+✖ tests\multichain.test.ts (12.7407ms)
+  Error: spawn EPERM
+      at ChildProcess.spawn (node:internal/child_process:421:11)
+      at spawn (node:child_process:796:9)
+      at TestContext.<anonymous> (node:internal/test_runner/runner:398:19)
+      at FileTest.runInAsyncScope (node:async_hooks:214:14)
+      at FileTest.run (node:internal/test_runner/test:1106:25)
+      at FileTest.start (node:internal/test_runner/test:1003:17)
+      at runTestFile (node:internal/test_runner/runner:477:32)
+      at node:internal/test_runner/runner:769:25
+      at node:internal/per_context/primordials:561:37
+      at new Promise (<anonymous>) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'spawn'
+  }
+
+test at tests\native-refund.test.ts:1:1
+✖ tests\native-refund.test.ts (12.7738ms)
+  Error: spawn EPERM
+      at ChildProcess.spawn (node:internal/child_process:421:11)
+      at spawn (node:child_process:796:9)
+      at TestContext.<anonymous> (node:internal/test_runner/runner:398:19)
+      at FileTest.runInAsyncScope (node:async_hooks:214:14)
+      at FileTest.run (node:internal/test_runner/test:1106:25)
+      at FileTest.start (node:internal/test_runner/test:1003:17)
+      at runTestFile (node:internal/test_runner/runner:477:32)
+      at node:internal/test_runner/runner:769:25
+      at node:internal/per_context/primordials:561:37
+      at new Promise (<anonymous>) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'spawn'
+  }
+
+test at tests\opensea.test.ts:1:1
+✖ tests\opensea.test.ts (12.8906ms)
+  Error: spawn EPERM
+      at ChildProcess.spawn (node:internal/child_process:421:11)
+      at spawn (node:child_process:796:9)
+      at TestContext.<anonymous> (node:internal/test_runner/runner:398:19)
+      at FileTest.runInAsyncScope (node:async_hooks:214:14)
+      at FileTest.run (node:internal/test_runner/test:1106:25)
+      at FileTest.start (node:internal/test_runner/test:1003:17)
+      at runTestFile (node:internal/test_runner/runner:477:32)
+      at node:internal/test_runner/runner:769:25
+      at node:internal/per_context/primordials:561:37
+      at new Promise (<anonymous>) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'spawn'
+  }
+
+test at tests\orders.test.ts:1:1
+✖ tests\orders.test.ts (12.6395ms)
+  Error: spawn EPERM
+      at ChildProcess.spawn (node:internal/child_process:421:11)
+      at spawn (node:child_process:796:9)
+      at TestContext.<anonymous> (node:internal/test_runner/runner:398:19)
+      at FileTest.runInAsyncScope (node:async_hooks:214:14)
+      at FileTest.run (node:internal/test_runner/test:1106:25)
+      at FileTest.start (node:internal/test_runner/test:1003:17)
+      at runTestFile (node:internal/test_runner/runner:477:32)
+      at node:internal/test_runner/runner:769:25
+      at node:internal/per_context/primordials:561:37
+      at new Promise (<anonymous>) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'spawn'
+  }
+
+test at tests\phase5.test.ts:1:1
+✖ tests\phase5.test.ts (11.9137ms)
+  Error: spawn EPERM
+      at ChildProcess.spawn (node:internal/child_process:421:11)
+      at spawn (node:child_process:796:9)
+      at TestContext.<anonymous> (node:internal/test_runner/runner:398:19)
+      at FileTest.runInAsyncScope (node:async_hooks:214:14)
+      at FileTest.run (node:internal/test_runner/test:1106:25)
+      at FileTest.start (node:internal/test_runner/test:1003:17)
+      at runTestFile (node:internal/test_runner/runner:477:32)
+      at node:internal/test_runner/runner:769:25
+      at node:internal/per_context/primordials:561:37
+      at new Promise (<anonymous>) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'spawn'
+  }
+
+test at tests\phase52-order.test.ts:1:1
+✖ tests\phase52-order.test.ts (11.8146ms)
+  Error: spawn EPERM
+      at ChildProcess.spawn (node:internal/child_process:421:11)
+      at spawn (node:child_process:796:9)
+      at TestContext.<anonymous> (node:internal/test_runner/runner:398:19)
+      at FileTest.runInAsyncScope (node:async_hooks:214:14)
+      at FileTest.run (node:internal/test_runner/test:1106:25)
+      at FileTest.start (node:internal/test_runner/test:1003:17)
+      at runTestFile (node:internal/test_runner/runner:477:32)
+      at node:internal/test_runner/runner:769:25
+      at node:internal/per_context/primordials:561:37
+      at new Promise (<anonymous>) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'spawn'
+  }
+
+test at tests\phase52-payment.test.ts:1:1
+✖ tests\phase52-payment.test.ts (9.8178ms)
+  Error: spawn EPERM
+      at ChildProcess.spawn (node:internal/child_process:421:11)
+      at spawn (node:child_process:796:9)
+      at TestContext.<anonymous> (node:internal/test_runner/runner:398:19)
+      at FileTest.runInAsyncScope (node:async_hooks:214:14)
+      at FileTest.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at FileTest.postRun (node:internal/test_runner/test:1235:19)
+      at FileTest.run (node:internal/test_runner/test:1163:12) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'spawn'
+  }
+
+test at tests\phase52-profile.test.ts:1:1
+✖ tests\phase52-profile.test.ts (8.3455ms)
+  Error: spawn EPERM
+      at ChildProcess.spawn (node:internal/child_process:421:11)
+      at spawn (node:child_process:796:9)
+      at TestContext.<anonymous> (node:internal/test_runner/runner:398:19)
+      at FileTest.runInAsyncScope (node:async_hooks:214:14)
+      at FileTest.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at FileTest.postRun (node:internal/test_runner/test:1235:19)
+      at FileTest.run (node:internal/test_runner/test:1163:12) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'spawn'
+  }
+
+test at tests\purchase-evm.test.ts:1:1
+✖ tests\purchase-evm.test.ts (7.449ms)
+  Error: spawn EPERM
+      at ChildProcess.spawn (node:internal/child_process:421:11)
+      at spawn (node:child_process:796:9)
+      at TestContext.<anonymous> (node:internal/test_runner/runner:398:19)
+      at FileTest.runInAsyncScope (node:async_hooks:214:14)
+      at FileTest.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at FileTest.postRun (node:internal/test_runner/test:1235:19)
+      at FileTest.run (node:internal/test_runner/test:1163:12) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'spawn'
+  }
+
+test at tests\purchases.test.ts:1:1
+✖ tests\purchases.test.ts (6.2013ms)
+  Error: spawn EPERM
+      at ChildProcess.spawn (node:internal/child_process:421:11)
+      at spawn (node:child_process:796:9)
+      at TestContext.<anonymous> (node:internal/test_runner/runner:398:19)
+      at FileTest.runInAsyncScope (node:async_hooks:214:14)
+      at FileTest.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at FileTest.postRun (node:internal/test_runner/test:1235:19)
+      at FileTest.run (node:internal/test_runner/test:1163:12) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'spawn'
+  }
+
+test at tests\refund-delivery.test.ts:1:1
+✖ tests\refund-delivery.test.ts (5.1932ms)
+  Error: spawn EPERM
+      at ChildProcess.spawn (node:internal/child_process:421:11)
+      at spawn (node:child_process:796:9)
+      at TestContext.<anonymous> (node:internal/test_runner/runner:398:19)
+      at FileTest.runInAsyncScope (node:async_hooks:214:14)
+      at FileTest.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at FileTest.postRun (node:internal/test_runner/test:1235:19)
+      at FileTest.run (node:internal/test_runner/test:1163:12) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'spawn'
+  }
+
+test at tests\seaport.test.ts:1:1
+✖ tests\seaport.test.ts (4.4663ms)
+  Error: spawn EPERM
+      at ChildProcess.spawn (node:internal/child_process:421:11)
+      at spawn (node:child_process:796:9)
+      at TestContext.<anonymous> (node:internal/test_runner/runner:398:19)
+      at FileTest.runInAsyncScope (node:async_hooks:214:14)
+      at FileTest.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at FileTest.postRun (node:internal/test_runner/test:1235:19)
+      at FileTest.run (node:internal/test_runner/test:1163:12) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'spawn'
+  }
+
+test at tests\swaps.test.ts:1:1
+✖ tests\swaps.test.ts (3.6253ms)
+  Error: spawn EPERM
+      at ChildProcess.spawn (node:internal/child_process:421:11)
+      at spawn (node:child_process:796:9)
+      at TestContext.<anonymous> (node:internal/test_runner/runner:398:19)
+      at FileTest.runInAsyncScope (node:async_hooks:214:14)
+      at FileTest.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at FileTest.postRun (node:internal/test_runner/test:1235:19)
+      at FileTest.run (node:internal/test_runner/test:1163:12) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'spawn'
+  }
+
+test at tests\transfer-recovery.test.ts:1:1
+✖ tests\transfer-recovery.test.ts (2.7896ms)
+  Error: spawn EPERM
+      at ChildProcess.spawn (node:internal/child_process:421:11)
+      at spawn (node:child_process:796:9)
+      at TestContext.<anonymous> (node:internal/test_runner/runner:398:19)
+      at FileTest.runInAsyncScope (node:async_hooks:214:14)
+      at FileTest.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at FileTest.postRun (node:internal/test_runner/test:1235:19)
+      at FileTest.run (node:internal/test_runner/test:1163:12) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'spawn'
+  }
+
+test at tests\wallet.test.ts:1:1
+✖ tests\wallet.test.ts (2.0464ms)
+  Error: spawn EPERM
+      at ChildProcess.spawn (node:internal/child_process:421:11)
+      at spawn (node:child_process:796:9)
+      at TestContext.<anonymous> (node:internal/test_runner/runner:398:19)
+      at FileTest.runInAsyncScope (node:async_hooks:214:14)
+      at FileTest.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at FileTest.postRun (node:internal/test_runner/test:1235:19)
+      at FileTest.run (node:internal/test_runner/test:1163:12) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'spawn'
+  }
+
+test at tests\watch-evidence.test.ts:1:1
+✖ tests\watch-evidence.test.ts (1.249ms)
+  Error: spawn EPERM
+      at ChildProcess.spawn (node:internal/child_process:421:11)
+      at spawn (node:child_process:796:9)
+      at TestContext.<anonymous> (node:internal/test_runner/runner:398:19)
+      at FileTest.runInAsyncScope (node:async_hooks:214:14)
+      at FileTest.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at FileTest.postRun (node:internal/test_runner/test:1235:19)
+      at FileTest.run (node:internal/test_runner/test:1163:12) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'spawn'
+  }

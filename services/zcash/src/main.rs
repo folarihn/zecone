@@ -1,4 +1,6 @@
 mod cache;
+mod mainnet_spend;
+mod phase52_payment;
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use clap::{Parser, Subcommand};
 use rand::{RngCore, rngs::OsRng};
@@ -10,7 +12,7 @@ use secrecy::{ExposeSecret, SecretVec};
 use serde_json::{Value, json};
 use std::{
     fs::{self, OpenOptions},
-    io::Write,
+    io::{Read, Write},
     num::NonZeroUsize,
     path::{Path, PathBuf},
     str::FromStr,
@@ -50,6 +52,86 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+    /// Fresh Phase 7B isolated payer only. Does not load historical wallet seeds.
+    PreparePhase7bPayment {
+        #[arg(long)] profile_id: uuid::Uuid,
+        #[arg(long)] request_id: uuid::Uuid,
+        #[arg(long)] birthday: u32,
+    },
+    InspectPhase7bPayment {
+        #[arg(long)] profile_id: uuid::Uuid,
+        #[arg(long)] request_id: uuid::Uuid,
+    },
+    BroadcastPhase7bPayment {
+        #[arg(long)] profile_id: uuid::Uuid,
+        #[arg(long)] request_id: uuid::Uuid,
+        #[arg(long)] approved_txid: String,
+        #[arg(long)] allow_testnet_broadcast: bool,
+    },
+    /// Fresh Phase 7C isolated payer only. Does not load historical wallet seeds.
+    PreparePhase7cPayment {
+        #[arg(long)] profile_id: uuid::Uuid,
+        #[arg(long)] request_id: uuid::Uuid,
+        #[arg(long)] birthday: u32,
+    },
+    InspectPhase7cPayment {
+        #[arg(long)] profile_id: uuid::Uuid,
+        #[arg(long)] request_id: uuid::Uuid,
+    },
+    BroadcastPhase7cPayment {
+        #[arg(long)] profile_id: uuid::Uuid,
+        #[arg(long)] request_id: uuid::Uuid,
+        #[arg(long)] approved_txid: String,
+        #[arg(long)] allow_testnet_broadcast: bool,
+    },
+    /// Fresh Phase 7C isolated payer only. Does not load historical wallet seeds.
+    PreparePhase7cFundingPayment {
+        #[arg(long)] profile_id: uuid::Uuid,
+        #[arg(long)] request_id: uuid::Uuid,
+        #[arg(long)] birthday: u32,
+    },
+    InspectPhase7cFundingPayment {
+        #[arg(long)] profile_id: uuid::Uuid,
+        #[arg(long)] request_id: uuid::Uuid,
+    },
+    BroadcastPhase7cFundingPayment {
+        #[arg(long)] profile_id: uuid::Uuid,
+        #[arg(long)] request_id: uuid::Uuid,
+        #[arg(long)] approved_txid: String,
+        #[arg(long)] allow_testnet_broadcast: bool,
+    },
+    /// Read public status for the exact new-profile transaction; never resubmit.
+    InspectPhase52Payment {
+        #[arg(long)]
+        profile_id: uuid::Uuid,
+        #[arg(long)]
+        request_id: uuid::Uuid,
+    },
+    /// Fresh Phase 5.2 payer only; a 32-byte seed is read from stdin, never stored.
+    PreparePhase52Payment {
+        #[arg(long)]
+        profile_id: uuid::Uuid,
+        #[arg(long)]
+        request_id: uuid::Uuid,
+        #[arg(long)]
+        birthday: u32,
+    },
+    /// Submit the exact persisted Phase 5.2 payer transaction once, after review.
+    BroadcastPhase52Payment {
+        #[arg(long)]
+        profile_id: uuid::Uuid,
+        #[arg(long)]
+        request_id: uuid::Uuid,
+        #[arg(long)]
+        approved_txid: String,
+        #[arg(long)]
+        allow_testnet_broadcast: bool,
+    },
+    /// Decode a shielded testnet address offline, without opening a wallet or seed.
+    ValidateAddress {
+        #[arg(long)]
+        address: String,
+    },
     Init,
     /// Idempotent, dedicated shielded account for a payment request.
     Allocate {
@@ -59,6 +141,17 @@ enum Command {
     Sync,
     /// Syncs first; never emits stale offline settlement evidence.
     Observe,
+    /// Native balances and sanitized wallet history after a complete scan.
+    Summary,
+    /// Build an unsigned proposal to calculate the actual fee; never sign or broadcast.
+    Quote {
+        #[arg(long)]
+        account: String,
+        #[arg(long)]
+        address: String,
+        #[arg(long)]
+        zatoshis: u64,
+    },
     /// Read public server network and consensus information.
     NetworkInfo,
     /// Reconcile and optionally rebroadcast the exact persisted transaction; never reconstruct.
@@ -81,9 +174,19 @@ enum Command {
         zatoshis: u64,
         #[arg(long)]
         allow_testnet_broadcast: bool,
+        /// When supplied, refuse a proposal whose fee exceeds the user's approval.
+        #[arg(long)]
+        max_fee_zatoshis: Option<u64>,
     },
     /// Read already generated public addresses only.
     Addresses,
+    /// Unlock the mainnet Zcash seed keystore (passphrase via stdin) and report
+    /// only the derived account fingerprint and shielded address. Never prints
+    /// seed material, the viewing key, or the spending key.
+    MainnetIdentity {
+        #[arg(long)]
+        keystore: PathBuf,
+    },
 }
 
 struct WalletLock(PathBuf);
@@ -116,6 +219,18 @@ fn seed(path: &Path) -> Result<SecretVec<u8>> {
     let bytes = fs::read(path.join("seed.bin"))?;
     ensure!(bytes.len() == 32, "invalid seed length");
     Ok(SecretVec::new(bytes))
+}
+fn validate_shielded_destination(recipient: &str) -> Result<()> {
+    ensure!(recipient.len() <= 512, "address too long");
+    match Address::decode(&NET, recipient).context("invalid testnet recipient")? {
+        Address::Sapling(_) => Ok(()),
+        Address::Unified(ua)
+            if ua.transparent().is_none() && (ua.orchard().is_some() || ua.sapling().is_some()) =>
+        {
+            Ok(())
+        }
+        _ => bail!("shielded-only recipient required"),
+    }
 }
 async fn connect(url: &str) -> Result<CompactTxStreamerClient<Channel>> {
     ensure!(url.starts_with("https://"), "TLS is required");
@@ -289,6 +404,55 @@ fn observation(path: &Path, wallet: &Db) -> Result<Value> {
         json!({"network":"zcash-testnet", "tip":tip, "scanned":scanned, "observedAt":SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(), "payments":rows.collect::<Result<Vec<_>, _>>()?}),
     )
 }
+fn enforce_fee_approval(fee: u64, max_fee: Option<u64>) -> Result<()> {
+    ensure!(
+        max_fee.is_none_or(|limit| fee <= limit),
+        "network fee exceeds approval; request a new quote"
+    );
+    Ok(())
+}
+// A new request ID must not bypass an earlier interrupted construction. This is
+// read-only: resolving a claim is an explicit recovery operation, never a timeout.
+fn ensure_no_unresolved_construction(path: &Path) -> Result<()> {
+    for entry in fs::read_dir(path)? {
+        let entry = entry?;
+        let name = entry.file_name();
+        let name = name.to_str().context("non-UTF8 wallet entry")?;
+        if let Some(id) = name
+            .strip_prefix("request-")
+            .and_then(|s| s.strip_suffix(".started.json"))
+        {
+            let id = uuid::Uuid::parse_str(id).context("unrecognized construction marker")?;
+            ensure!(entry.file_type()?.is_file(), "invalid construction marker");
+            let saved = path.join(format!("request-{id}.json"));
+            ensure!(
+                saved.is_file(),
+                "wallet has an unresolved construction; a new request ID cannot authorize a replacement"
+            );
+            let started: Value = serde_json::from_slice(&fs::read(entry.path())?)?;
+            let record: Value = serde_json::from_slice(&fs::read(saved)?)?;
+            ensure!(
+                record["account"].is_string()
+                    && record["recipient"].is_string()
+                    && record["zatoshis"].is_string(),
+                "invalid persisted construction binding"
+            );
+            ensure!(
+                ["account", "recipient", "zatoshis"]
+                    .iter()
+                    .all(|k| started[*k] == record[*k]),
+                "construction binding conflict"
+            );
+            zcash_protocol::TxId::from_hex(
+                record["txid"]
+                    .as_str()
+                    .context("persisted transaction reference missing")?,
+            )
+            .context("invalid persisted transaction reference")?;
+        }
+    }
+    Ok(())
+}
 async fn send(
     wallet: &mut Db,
     client: &mut CompactTxStreamerClient<Channel>,
@@ -297,6 +461,10 @@ async fn send(
     recipient: &str,
     value: u64,
     request_id: uuid::Uuid,
+    quote_only: bool,
+    max_fee: Option<u64>,
+    prepare_only: bool,
+    seed_override: Option<&SecretVec<u8>>,
 ) -> Result<Value> {
     let request_file = path.join(format!("request-{request_id}.json"));
     let started_file = path.join(format!("request-{request_id}.started.json"));
@@ -316,12 +484,10 @@ async fn send(
         !started_file.exists(),
         "previous construction has an uncertain outcome; reconcile the wallet transaction history before retrying"
     );
-    let addr = Address::decode(&NET, recipient).context("invalid testnet recipient")?;
-    match &addr {
-        Address::Sapling(_) => (),
-        Address::Unified(ua) if ua.transparent().is_none() => (),
-        _ => bail!("shielded-only recipient required"),
+    if !quote_only {
+        ensure_no_unresolved_construction(path)?;
     }
+    validate_shielded_destination(recipient)?;
     ensure!(value > 0, "amount must be positive");
     sync(wallet, client).await?;
     let id = wallet
@@ -334,12 +500,7 @@ async fn send(
         .source()
         .key_derivation()
         .context("not a spending account")?;
-    let usk = UnifiedSpendingKey::from_seed(
-        &NET,
-        seed(path)?.expose_secret(),
-        derivation.account_index(),
-    )
-    .map_err(|_| anyhow!("key derivation failed"))?;
+    let account_index = derivation.account_index();
     let request = zip321::TransactionRequest::new(vec![
         zip321::Payment::new(
             zcash_address::ZcashAddress::from_str(recipient)?,
@@ -374,11 +535,39 @@ async fn send(
         None,
     )
     .map_err(|e| anyhow!("proposal failed: {e:?}"))?;
+    ensure!(
+        proposal.steps().len() == 1,
+        "multi-transaction proposal requires review"
+    );
+    let fee = proposal.steps().first().balance().fee_required().into_u64();
+    enforce_fee_approval(fee, max_fee)?;
+    if quote_only {
+        return Ok(
+            json!({"zatoshis":value.to_string(),"feeZatoshis":fee.to_string(),"totalZatoshis":(value+fee).to_string(),"tip":u32::from(wallet.chain_height()?.context("missing tip")?),"quotedAt":SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs()}),
+        );
+    }
+    let legacy_seed;
+    let spend_seed = if let Some(s) = seed_override {
+        s
+    } else {
+        legacy_seed = seed(path)?;
+        &legacy_seed
+    };
+    let usk = UnifiedSpendingKey::from_seed(&NET, spend_seed.expose_secret(), account_index)
+        .map_err(|_| anyhow!("key derivation failed"))?;
     let prover = zcash_proofs::prover::LocalTxProver::bundled();
+    let expiry_override = if prepare_only {
+        Some(
+            zcash_protocol::consensus::BlockHeight::from(proposal.min_target_height())
+                + zcash_primitives::transaction::builder::DEFAULT_TX_EXPIRY_DELTA,
+        )
+    } else {
+        None
+    };
     write_new(
         &started_file,
         serde_json::to_string(
-            &json!({"account":account,"recipient":recipient,"zatoshis":value.to_string()}),
+            &json!({"account":account,"recipient":recipient,"zatoshis":value.to_string(),"plannedExpiryHeight":expiry_override.map(u32::from),"feeZatoshis":fee.to_string()}),
         )?
         .as_bytes(),
     )?;
@@ -399,7 +588,7 @@ async fn send(
         &SpendingKeys::from_unified_spending_key(usk),
         OvkPolicy::Sender,
         &proposal,
-        None,
+        expiry_override,
     )
     .map_err(|e| anyhow!("transaction construction failed: {e:?}"))?;
     ensure!(
@@ -413,11 +602,19 @@ async fn send(
     let mut raw = service::RawTransaction::default();
     tx.write(&mut raw.data)?;
     // Save reference before broadcast. Unknown outcomes need txid reconciliation, never blind re-send.
-    let pending = json!({"txid":txid.to_string(), "status":"constructed", "recipient":recipient, "zatoshis":value.to_string(), "account":account});
+    if prepare_only {
+        write_new(&path.join(format!("request-{request_id}.raw")), &raw.data)?;
+    }
+    let pending = json!({"txid":txid.to_string(), "status":"constructed", "recipient":recipient, "zatoshis":value.to_string(), "account":account,"feeZatoshis":fee.to_string(),"expiryHeight":u32::from(tx.expiry_height())});
     write_new(
         &request_file,
         serde_json::to_string_pretty(&pending)?.as_bytes(),
     )?;
+    if prepare_only {
+        return Ok(
+            json!({"txid":txid.to_string(),"status":"prepared-not-broadcast","recipient":recipient,"zatoshis":value.to_string(),"feeZatoshis":fee.to_string(),"expiryHeight":u32::from(tx.expiry_height()),"broadcast":false}),
+        );
+    }
     let response = client.send_transaction(raw).await?.into_inner();
     ensure!(
         response.error_code == 0,
@@ -454,6 +651,128 @@ async fn run() -> Result<()> {
         .install_default()
         .map_err(|_| anyhow!("TLS provider initialization failed"))?;
     let args = Cli::parse();
+    if let Command::MainnetIdentity { keystore } = &args.command {
+        use sha2::{Digest, Sha256};
+        let ks: Value = serde_json::from_slice(&fs::read(keystore)?)?;
+        let mut pass = Vec::new();
+        std::io::stdin()
+            .take(1024)
+            .read_to_end(&mut pass)
+            .context("passphrase via stdin required")?;
+        let seed = mainnet_spend::unlock_seed(&ks, &pass, "mainnet:zcash:receiver")?;
+        pass.fill(0);
+        let ufvk = mainnet_spend::derive_ufvk(seed.expose_secret())?;
+        let account = hex::encode(Sha256::digest(ufvk.as_bytes()));
+        let address = mainnet_spend::derive_address(seed.expose_secret())?;
+        println!(
+            "{}",
+            json!({"network":"zcash-mainnet","account":account,"address":address,"ufvkPrefix":&ufvk[..8],"unlocked":true,"spendingKeyRetained":true})
+        );
+        return Ok(());
+    }
+    match &args.command {
+        Command::PreparePhase7bPayment {profile_id,request_id,birthday} => {
+            let v=phase52_payment::prepare_for(&args.wallet,&args.server,*profile_id,*request_id,*birthday,"phase7b").await?;
+            println!("{v}");return Ok(());
+        }
+        Command::InspectPhase7bPayment {profile_id,request_id} => {
+            let v=phase52_payment::inspect_for(&args.wallet,&args.server,*profile_id,*request_id,"phase7b").await?;
+            println!("{v}");return Ok(());
+        }
+        Command::BroadcastPhase7bPayment {profile_id,request_id,approved_txid,allow_testnet_broadcast} => {
+            ensure!(*allow_testnet_broadcast,"explicit broadcast approval required");
+            let v=phase52_payment::broadcast_for(&args.wallet,&args.server,*profile_id,*request_id,approved_txid,"phase7b").await?;
+            println!("{v}");return Ok(());
+        }
+        Command::PreparePhase7cPayment {profile_id,request_id,birthday} => {
+            let v=phase52_payment::prepare_for(&args.wallet,&args.server,*profile_id,*request_id,*birthday,"phase7c").await?;
+            println!("{v}");return Ok(());
+        }
+        Command::InspectPhase7cPayment {profile_id,request_id} => {
+            let v=phase52_payment::inspect_for(&args.wallet,&args.server,*profile_id,*request_id,"phase7c").await?;
+            println!("{v}");return Ok(());
+        }
+        Command::BroadcastPhase7cPayment {profile_id,request_id,approved_txid,allow_testnet_broadcast} => {
+            ensure!(*allow_testnet_broadcast,"explicit broadcast approval required");
+            let v=phase52_payment::broadcast_for(&args.wallet,&args.server,*profile_id,*request_id,approved_txid,"phase7c").await?;
+            println!("{v}");return Ok(());
+        }
+        Command::PreparePhase7cFundingPayment {profile_id,request_id,birthday} => {
+            let v=phase52_payment::prepare_for(&args.wallet,&args.server,*profile_id,*request_id,*birthday,"phase7c-funding").await?;
+            println!("{v}");return Ok(());
+        }
+        Command::InspectPhase7cFundingPayment {profile_id,request_id} => {
+            let v=phase52_payment::inspect_for(&args.wallet,&args.server,*profile_id,*request_id,"phase7c-funding").await?;
+            println!("{v}");return Ok(());
+        }
+        Command::BroadcastPhase7cFundingPayment {profile_id,request_id,approved_txid,allow_testnet_broadcast} => {
+            ensure!(*allow_testnet_broadcast,"explicit broadcast approval required");
+            let v=phase52_payment::broadcast_for(&args.wallet,&args.server,*profile_id,*request_id,approved_txid,"phase7c-funding").await?;
+            println!("{v}");return Ok(());
+        }
+        Command::InspectPhase52Payment {
+            profile_id,
+            request_id,
+        } => {
+            let v = phase52_payment::inspect(&args.wallet, &args.server, *profile_id, *request_id)
+                .await?;
+            println!("{v}");
+            return Ok(());
+        }
+        Command::PreparePhase52Payment {
+            profile_id,
+            request_id,
+            birthday,
+        } => {
+            let v = phase52_payment::prepare(
+                &args.wallet,
+                &args.server,
+                *profile_id,
+                *request_id,
+                *birthday,
+            )
+            .await?;
+            println!("{v}");
+            return Ok(());
+        }
+        Command::BroadcastPhase52Payment {
+            profile_id,
+            request_id,
+            approved_txid,
+            allow_testnet_broadcast,
+        } => {
+            ensure!(
+                *allow_testnet_broadcast,
+                "explicit broadcast approval required"
+            );
+            let v = phase52_payment::broadcast(
+                &args.wallet,
+                &args.server,
+                *profile_id,
+                *request_id,
+                approved_txid,
+            )
+            .await?;
+            println!("{v}");
+            return Ok(());
+        }
+        _ => (),
+    }
+    if let Command::ValidateAddress { address } = &args.command {
+        validate_shielded_destination(address)?;
+        let receivers = match Address::decode(&NET, address).context("invalid recipient")? {
+            Address::Sapling(_) => json!({"sapling":true,"orchard":false,"transparent":false}),
+            Address::Unified(ua) => {
+                json!({"sapling":ua.sapling().is_some(),"orchard":ua.orchard().is_some(),"transparent":ua.transparent().is_some()})
+            }
+            _ => bail!("shielded-only recipient required"),
+        };
+        println!(
+            "{}",
+            json!({"network":"zcash-testnet","shielded":true,"valid":true,"receivers":receivers})
+        );
+        return Ok(());
+    }
     let _lock = lock_wallet(&args.wallet)?;
     if matches!(args.command, Command::Init) {
         fs::create_dir_all(&args.wallet)?;
@@ -494,6 +813,50 @@ async fn run() -> Result<()> {
     }
     let mut client = connect(&args.server).await?;
     let value = match args.command {
+        Command::Summary => {
+            sync(&mut wallet, &mut client).await?;
+            let summary = wallet
+                .get_wallet_summary(ConfirmationsPolicy::default())?
+                .context("wallet summary unavailable")?;
+            let mut total = 0u64;
+            let mut spendable = 0u64;
+            for balance in summary.account_balances().values() {
+                total += balance.sapling_balance().total().into_u64()
+                    + balance.orchard_balance().total().into_u64()
+                    + balance.ironwood_balance().total().into_u64();
+                spendable += balance.spendable_value().into_u64();
+            }
+            let conn = rusqlite::Connection::open_with_flags(
+                args.wallet.join("wallet.sqlite"),
+                rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+            )?;
+            let mut query = conn.prepare("SELECT txid,mined_height,account_balance_delta,fee_paid,block_time,expired_unmined FROM v_transactions ORDER BY COALESCE(mined_height,2147483647) DESC LIMIT 30")?;
+            let history = query.query_map([], |r| {
+                let mut txid:Vec<u8> = r.get(0)?; txid.reverse();
+                Ok(json!({"txid":hex::encode(txid),"height":r.get::<_,Option<u32>>(1)?,"deltaZatoshis":r.get::<_,i64>(2)?.to_string(),"feeZatoshis":r.get::<_,Option<u64>>(3)?.map(|v|v.to_string()),"time":r.get::<_,Option<u64>>(4)?,"expired":r.get::<_,Option<bool>>(5)?.unwrap_or(false)}))
+            })?.collect::<Result<Vec<_>,_>>()?;
+            json!({"totalZatoshis":total.to_string(),"spendableZatoshis":spendable.to_string(),"tip":u32::from(summary.chain_tip_height()),"scanned":u32::from(summary.fully_scanned_height()),"observedAt":SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),"history":history})
+        }
+        Command::Quote {
+            account,
+            address,
+            zatoshis,
+        } => {
+            send(
+                &mut wallet,
+                &mut client,
+                &args.wallet,
+                &account,
+                &address,
+                zatoshis,
+                uuid::Uuid::nil(),
+                true,
+                None,
+                false,
+                None,
+            )
+            .await?
+        }
         Command::NetworkInfo => {
             let info = client
                 .get_lightd_info(service::Empty {})
@@ -580,6 +943,7 @@ async fn run() -> Result<()> {
             address,
             zatoshis,
             allow_testnet_broadcast,
+            max_fee_zatoshis,
         } => {
             ensure!(
                 allow_testnet_broadcast,
@@ -593,6 +957,10 @@ async fn run() -> Result<()> {
                 &address,
                 zatoshis,
                 request_id,
+                false,
+                max_fee_zatoshis,
+                false,
+                None,
             )
             .await?
         }
@@ -604,6 +972,45 @@ async fn run() -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn unresolved_construction_blocks_new_request_ids_and_survives_restart() {
+        let tmp = tempfile::tempdir().unwrap();
+        let id = uuid::Uuid::new_v4();
+        let marker = tmp.path().join(format!("request-{id}.started.json"));
+        let bytes = br#"{"account":"a","recipient":"r","zatoshis":"200000"}"#;
+        super::write_new(&marker, bytes).unwrap();
+        assert!(super::ensure_no_unresolved_construction(tmp.path()).is_err());
+        assert!(super::ensure_no_unresolved_construction(tmp.path()).is_err());
+        assert_eq!(std::fs::read(marker).unwrap(), bytes);
+    }
+    #[test]
+    fn persisted_binding_must_match_before_old_markers_stop_blocking_new_sends() {
+        let tmp = tempfile::tempdir().unwrap();
+        let id = uuid::Uuid::new_v4();
+        super::write_new(
+            &tmp.path().join(format!("request-{id}.started.json")),
+            br#"{"account":"a","recipient":"r","zatoshis":"200000"}"#,
+        )
+        .unwrap();
+        let file = tmp.path().join(format!("request-{id}.json"));
+        std::fs::write(&file, br#"{"account":"a","recipient":"other","zatoshis":"200000","txid":"0000000000000000000000000000000000000000000000000000000000000000"}"#).unwrap();
+        assert!(super::ensure_no_unresolved_construction(tmp.path()).is_err());
+        std::fs::write(
+            &file,
+            br#"{"account":"a","recipient":"r","zatoshis":"200000","txid":"invalid"}"#,
+        )
+        .unwrap();
+        assert!(super::ensure_no_unresolved_construction(tmp.path()).is_err());
+        std::fs::write(&file, br#"{"account":"a","recipient":"r","zatoshis":"200000","txid":"0000000000000000000000000000000000000000000000000000000000000000"}"#).unwrap();
+        assert!(super::ensure_no_unresolved_construction(tmp.path()).is_ok());
+    }
+    #[test]
+    fn fee_increase_cannot_exceed_approved_ceiling() {
+        assert!(super::enforce_fee_approval(20_000, Some(20_000)).is_ok());
+        assert!(super::enforce_fee_approval(20_001, Some(20_000)).is_err());
+        assert!(super::enforce_fee_approval(10_000, Some(20_000)).is_ok());
+        assert!(super::enforce_fee_approval(1, Some(0)).is_err());
+    }
     use super::*;
     #[test]
     fn consensus_preflight_rejects_old_or_unknown_branch() {
@@ -670,5 +1077,9 @@ mod tests {
         assert!(ua.encode(&NET).starts_with("utest"));
         assert!(ua.transparent().is_none());
         assert!(Address::decode(&Network::MainNetwork, &ua.encode(&NET)).is_none());
+        assert!(validate_shielded_destination(&ua.encode(&NET)).is_ok());
+        assert!(validate_shielded_destination(&ua.encode(&Network::MainNetwork)).is_err());
+        assert!(validate_shielded_destination("utest1invalidchecksum").is_err());
+        assert!(validate_shielded_destination(&"x".repeat(513)).is_err());
     }
 }

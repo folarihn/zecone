@@ -1,0 +1,32 @@
+{
+  "at": "2026-10-13T17:30:11.004Z",
+  "watchPackages": 323,
+  "dependenciesAbsentFromLegacyLock": [],
+  "pins": [
+    {
+      "name": "orchard",
+      "version": "0.16.0",
+      "checksum": "4ae7ceb7b5387bd76cf3c0712f57708795c925cecf097036cedb60b5c3706e8f"
+    },
+    {
+      "name": "zcash_client_backend",
+      "version": "0.25.0-pre.1",
+      "checksum": "081a6a497f0016a4de2ef9f45cbca6d271037035f5e7614b2c16363f8c3b4a84"
+    },
+    {
+      "name": "zcash_client_sqlite",
+      "version": "0.23.0-pre.1",
+      "checksum": "e59202fe720b383d4340318785add4ae1870c82cd950159758d96f4f875c0fbd"
+    },
+    {
+      "name": "zcash_keys",
+      "version": "0.17.0-pre.1",
+      "checksum": "96e6eaf9ae82ea0e40aadd35df0778f37125fb3405a25e2b1f0d6b45a9884e14"
+    },
+    {
+      "name": "zcash_protocol",
+      "version": "0.11.0-pre.0",
+      "checksum": "98aeb25d9f741670fd63f9dbf76bca87d87c4fd32e1a7469bc4c43c4d0af09f7"
+    }
+  ]
+}

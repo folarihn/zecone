@@ -1,0 +1,12 @@
+   Compiling zcash_primitives v0.31.0-pre.1
+   Compiling zcash_client_backend v0.25.0-pre.1
+   Compiling uuid v1.28.0
+   Compiling zcash_keys v0.17.0-pre.1
+   Compiling rusqlite v0.37.0
+   Compiling schemerz v0.2.0
+   Compiling pczt v0.10.0-pre.1
+   Compiling schemerz-rusqlite v0.370.0
+   Compiling zcash_pool_migration v0.2.0-pre.1
+   Compiling zcash_client_sqlite v0.23.0-pre.1
+   Compiling zecone-zcash-watch v0.1.0 (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\zcash-watch)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 41s

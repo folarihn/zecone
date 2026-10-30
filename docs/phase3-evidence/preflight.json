@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-10-12T17:41:32.089Z",
+  "chainId": 84532,
+  "user": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+  "provider": "0xf9dE6070331A3B68233c3b2062BceB7105162Cd2",
+  "userWei": "9999873999999741",
+  "providerWei": "99983502399989497",
+  "zcash": {
+    "network": "testnet",
+    "tip": 4492918,
+    "scanned": 4492918,
+    "spendableZatoshis": "9460000",
+    "totalZatoshis": "9460000"
+  },
+  "funded": true
+}

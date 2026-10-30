@@ -1,0 +1,37 @@
+{
+  "at": "2026-10-15T07:26:32.325Z",
+  "profileId": "99ef6572-b2ba-4d7f-a1fb-1bf333f2cb0b",
+  "height": 4504066,
+  "outcomes": [
+    {
+      "source": "https://testnet.zec.rocks:443",
+      "status": "verified",
+      "evidence": {
+        "blockHash": "00001d4ade4242d927a1e600c46966ec227c1749f8db9e278e136eee85b05191",
+        "branch": "77190ad9",
+        "chainName": "test",
+        "height": 4504066,
+        "ironwoodAnchor": "102ee50ff623e11f221720ea38238adb32e82deea418b784c93f5331c8ce2a19",
+        "network": "zcash-testnet",
+        "observedAt": 1792049173,
+        "readOnly": true,
+        "source": "https://testnet.zec.rocks:443",
+        "tip": 4504076
+      }
+    },
+    {
+      "source": "https://lightwalletd.testnet.electriccoin.co:9067",
+      "status": "unavailable-or-rejected"
+    },
+    {
+      "source": "https://lwd.testnet.zec.pro:443",
+      "status": "unavailable-or-rejected"
+    }
+  ],
+  "agreements": [],
+  "independentProviderAgreement": false,
+  "fullConsensusValidation": false,
+  "walletScannersUseSameProvider": true,
+  "relevantPaymentInclusion": "not-tested-no-payment-broadcast",
+  "liveRefundsEnabled": false
+}

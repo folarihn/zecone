@@ -1,0 +1,10 @@
+[WebServer] (node:31980) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:32728) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 1 tests\ui\solana-delivery.spec.ts:16:1 › ZEC-funded Solana checkout shows exact demo terms and awaiting approval without completion (3.1s)
+
+  1 passed (10.2s)

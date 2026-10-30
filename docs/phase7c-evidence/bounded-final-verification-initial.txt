@@ -1,0 +1,30 @@
+(node:14628) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: The "gate" validation function is expected to return "true". Received false
+
+Caught error:
+
+Error: PAID_PREPARATION_NOT_AUTHORIZED
+    at <anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\scripts\phase7c-verify-completed.ts:31:10) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: SolanaError: PAID_PREPARATION_NOT_AUTHORIZED
+      at assertPreparationRecovery (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\solana\paid-recovery.ts:346:11)
+      at assertExactRecoveryExecution (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\solana\paid-recovery.ts:433:13)
+      at SolanaSettlement.eligible (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\solana\settlement.ts:305:12)
+      at <anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\scripts\phase7c-verify-completed.ts:31:31)
+      at getActual (node:assert:611:5)
+      at strict.throws (node:assert:759:24)
+      at <anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\scripts\phase7c-verify-completed.ts:31:10) {
+    code: 'PAID_PREPARATION_NOT_AUTHORIZED'
+  },
+  expected: [Function: gate],
+  operator: 'throws',
+  diff: 'simple'
+}
+
+Node.js v24.12.0

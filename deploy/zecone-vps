@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+ENV_FILE="$ROOT/deploy/.env"
+if [[ -f "$ENV_FILE" ]]; then
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    [[ "$line" =~ ^(ZECONE_[A-Z0-9_]+)=(.*)$ ]] || {
+      printf '%s\n' "invalid deployment environment entry" >&2
+      exit 1
+    }
+    key="${BASH_REMATCH[1]}"
+    value="${BASH_REMATCH[2]}"
+    if [[ ! -v "$key" ]]; then
+      printf -v "$key" '%s' "$value"
+      export "$key"
+    fi
+  done < "$ENV_FILE"
+fi
+if [[ -z "${DOCKER_HOST:-}" && -S /run/zecone-docker/docker.sock ]]; then
+  export DOCKER_HOST="unix:///run/zecone-docker/docker.sock"
+fi
+COMPOSE=(docker compose --project-directory "$ROOT/deploy" -f "$ROOT/deploy/compose.yaml")
+RUNTIME="$ROOT/deploy/runtime"
+STATE="${ZECONE_STATE_DIR:-$RUNTIME/state}"
+CONFIG="${ZECONE_CONFIG_DIR:-$RUNTIME/config}"
+LOGS="${ZECONE_LOG_DIR:-$RUNTIME/logs}"
+CONTAINER_UID="${ZECONE_CONTAINER_UID:-10001}"
+CONTAINER_GID="${ZECONE_CONTAINER_GID:-10001}"
+
+fail() { printf '%s\n' "$1" >&2; exit 1; }
+require_file() { [[ -f "$1" ]] || fail "missing required file: $1"; }
+require_state_filesystem() {
+  local required="${ZECONE_REQUIRED_STATE_FS_UUID:-}"
+  [[ -n "$required" ]] || fail "required ZecOne state filesystem UUID is not configured"
+  mountpoint -q "$STATE" || fail "required ZecOne state filesystem is not mounted"
+  local source actual marker
+  source="$(findmnt -n -o SOURCE --mountpoint "$STATE")"
+  actual="$(blkid -s UUID -o value "$source")"
+  [[ "$actual" == "$required" ]] || fail "mounted ZecOne state filesystem UUID mismatch"
+  marker="$STATE/.zecone-filesystem-uuid"
+  require_file "$marker"
+  [[ "$(cat "$marker")" == "ZECONE_STATE_FS_UUID=$required" ]] || fail "ZecOne state filesystem marker mismatch"
+}
+
+case "${1:-}" in
+  init)
+    require_state_filesystem
+    install -d -o "$CONTAINER_UID" -g "$CONTAINER_GID" -m 0700 "$STATE" "$LOGS"
+    install -d -o root -g "$CONTAINER_GID" -m 0750 "$CONFIG"
+    [[ -e "$CONFIG/mainnet-profiles.json" ]] || install -o root -g "$CONTAINER_GID" -m 0640 "$ROOT/deploy/config/mainnet-profiles.json" "$CONFIG/mainnet-profiles.json"
+    [[ -e "$CONFIG/mainnet-readonly.json" ]] || install -o root -g "$CONTAINER_GID" -m 0640 "$ROOT/deploy/config/mainnet-readonly.json" "$CONFIG/mainnet-readonly.json"
+    [[ -e "$CONFIG/mainnet-public-probes.json" ]] || install -o root -g "$CONTAINER_GID" -m 0640 "$ROOT/deploy/config/mainnet-public-probes.json" "$CONFIG/mainnet-public-probes.json"
+    [[ -e "$CONFIG/mainnet-watch-worker.json" ]] || install -o root -g "$CONTAINER_GID" -m 0640 "$ROOT/deploy/config/mainnet-watch-worker.json" "$CONFIG/mainnet-watch-worker.json"
+    printf '%s\n' "initialized read-only runtime; replace placeholders before provider validation"
+    ;;
+  validate)
+    require_file "$CONFIG/mainnet-profiles.json"
+    require_file "$CONFIG/mainnet-readonly.json"
+    "${COMPOSE[@]}" config --quiet
+    docker run --rm --read-only --network none \
+      -v "$CONFIG:/etc/zecone:ro" \
+      "zecone-readonly:${ZECONE_IMAGE_TAG:-local}" \
+      node --experimental-transform-types scripts/mainnet-config-check.ts \
+      --profiles /etc/zecone/mainnet-profiles.json \
+      --readonly /etc/zecone/mainnet-readonly.json
+    ;;
+  build)
+    "${COMPOSE[@]}" build --pull readonly
+    ;;
+  start-readonly)
+    [[ "${ZECONE_ALLOW_EXECUTION:-0}" == "0" ]] || fail "execution flag must remain disabled"
+    require_state_filesystem
+    "${COMPOSE[@]}" up -d --no-deps readonly
+    ;;
+  health)
+    curl --fail --silent --show-error "http://127.0.0.1:${ZECONE_HEALTH_PORT:-3410}/healthz"
+    printf '\n'
+    ;;
+  logs)
+    "${COMPOSE[@]}" logs --tail "${ZECONE_LOG_LINES:-200}" readonly
+    ;;
+  pause)
+    require_state_filesystem
+    reason="${2:-OPERATOR_EMERGENCY_PAUSE}"
+    [[ "$reason" =~ ^[A-Z0-9_]{3,96}$ ]] || fail "pause reason must be a finite uppercase code"
+    for network in base solana; do
+      "${COMPOSE[@]}" exec -T readonly node --experimental-transform-types scripts/mainnet-operator.ts pause \
+        --journal "/var/lib/zecone/${network}-submissions.sqlite" \
+        --lease /var/lib/zecone/operator-control.sqlite \
+        --reason "$reason"
+    done
+    ;;
+  backup)
+    require_state_filesystem
+    command -v age >/dev/null || fail "age is required"
+    command -v sqlite3 >/dev/null || fail "sqlite3 is required"
+    recipient_file="${ZECONE_BACKUP_RECIPIENT_FILE:-}"
+    output="${2:-}"
+    require_file "$recipient_file"
+    [[ -n "$output" && ! -e "$output" ]] || fail "provide a new backup output path"
+    tmp="$(mktemp -d)"
+    trap 'rm -rf -- "$tmp"' EXIT
+    mkdir -m 0700 "$tmp/state"
+    while IFS= read -r -d '' db; do
+      sqlite3 "$db" ".timeout 5000" ".backup '$tmp/state/$(basename "$db")'"
+    done < <(find "$STATE" -maxdepth 1 -type f -name '*.sqlite' -print0)
+    find "$STATE" -maxdepth 1 -type f ! -name '*.sqlite*' -exec cp -p -- '{}' "$tmp/state/" \;
+    [[ -d "$STATE/zcash-watch" ]] && cp -a -- "$STATE/zcash-watch" "$tmp/state/zcash-watch"
+    tar -C "$tmp" -cf - state | age -R "$recipient_file" -o "$output"
+    chmod 0600 "$output"
+    install -d -o "$CONTAINER_UID" -g "$CONTAINER_GID" -m 0700 "$STATE/backup"
+    completed="$(date +%s)"
+    status_tmp="$STATE/backup/status.json.partial"
+    printf '{"schemaVersion":1,"state":"LOCAL_ENCRYPTED_BACKUP_ONLY","completedAt":%s,"offHostVerified":false,"restoreDrillVerified":false,"productionReady":false,"blocker":"OFF_HOST_COPY_AND_RESTORE_DRILL_REQUIRED"}\n' "$completed" > "$status_tmp"
+    chown "$CONTAINER_UID:$CONTAINER_GID" "$status_tmp"
+    chmod 0600 "$status_tmp"
+    mv -f -- "$status_tmp" "$STATE/backup/status.json"
+    printf '%s\n' "encrypted backup created; off-host copy and offline restore verification are still required"
+    ;;
+  restore-test)
+    command -v age >/dev/null || fail "age is required"
+    command -v sqlite3 >/dev/null || fail "sqlite3 is required"
+    backup="${2:-}"
+    identity="${ZECONE_BACKUP_IDENTITY_FILE:-}"
+    require_file "$backup"
+    require_file "$identity"
+    tmp="$(mktemp -d)"
+    trap 'rm -rf -- "$tmp"' EXIT
+    age -d -i "$identity" "$backup" | tar -C "$tmp" -xf -
+    while IFS= read -r -d '' db; do
+      [[ "$(sqlite3 "$db" 'PRAGMA integrity_check;')" == "ok" ]] || fail "backup database integrity failed"
+    done < <(find "$tmp/state" -type f -name '*.sqlite' -print0)
+    printf '%s\n' "restore verification passed in disposable directory; active state unchanged"
+    ;;
+  stop)
+    "${COMPOSE[@]}" stop --timeout 30 readonly
+    ;;
+  *)
+    fail "usage: deploy/zecone-vps {init|validate|build|start-readonly|health|logs|pause [CODE]|backup OUTPUT|restore-test BACKUP|stop}"
+    ;;
+esac

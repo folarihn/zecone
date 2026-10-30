@@ -1,0 +1,27 @@
+{
+  "at": "2026-10-13T08:35:41.829Z",
+  "request": "e5b3eb4b-5b4b-4782-9bc0-fd4f68e5d219",
+  "events": [
+    {
+      "step": "initial quote",
+      "outcome": "Failed before reservation; read-only inspection found zero Seaport purchase rows and no payment."
+    },
+    {
+      "step": "resume quote",
+      "outcome": "Retained original balance marker; one quote created after explicit zero-row check."
+    },
+    {
+      "step": "approval",
+      "outcome": "User signature saved; attachment interrupted. Request entered review, with no payment or attached order."
+    },
+    {
+      "step": "reconciliation",
+      "outcome": "Saved signature independently validated. Reused exact signed intent and idempotent allocation through existing attachment path; stage awaiting. No second signature/order/payment."
+    },
+    {
+      "step": "payment",
+      "outcome": "Separate native fee review and browser approval; original request UUID sent once. Total approved debit 1022500 zatoshis."
+    }
+  ],
+  "diagnosticLimit": "Initial HTTP 503 responses were generic and did not identify an exact RPC/lock failure. No claim of a proven root cause; unchanged validation passed on reconciliation."
+}

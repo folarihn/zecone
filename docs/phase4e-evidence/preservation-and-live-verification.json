@@ -1,0 +1,65 @@
+{
+  "at": "2026-10-13T11:49:03.149Z",
+  "priorFiles": 233,
+  "changedPriorFiles": [],
+  "orders": [
+    {
+      "database": "orders",
+      "orders": 3,
+      "states": [
+        "settled",
+        "settled",
+        "settled"
+      ],
+      "unchanged": true,
+      "broadcasts": 3,
+      "previousBroadcasts": 3
+    },
+    {
+      "database": "purchases",
+      "orders": 5,
+      "states": [
+        "settled",
+        "settled",
+        "settled",
+        "settled",
+        "settled"
+      ],
+      "unchanged": true,
+      "broadcasts": 5,
+      "previousBroadcasts": 5
+    }
+  ],
+  "opensea": {
+    "approvals": [
+      {
+        "method": "eth_requestAccounts",
+        "state": "done",
+        "chainId": 84532,
+        "account": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+        "signatureVerifiedLocally": null,
+        "messageHash": null,
+        "transactionHash": null
+      },
+      {
+        "method": "personal_sign",
+        "state": "rejected",
+        "chainId": 84532,
+        "account": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+        "signatureVerifiedLocally": null,
+        "messageHash": "02c3d898a8db6d0dbe26a7d88870be1451745f93608960988b0407737b91399a",
+        "transactionHash": null
+      },
+      {
+        "method": "personal_sign",
+        "state": "done",
+        "chainId": 84532,
+        "account": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+        "signatureVerifiedLocally": true,
+        "messageHash": "25ca5508cd65954ce7648574d04f6801870fa74849d7f9fc4228f05b01b2a1b9",
+        "transactionHash": null
+      }
+    ],
+    "permissionRemaining": false
+  }
+}

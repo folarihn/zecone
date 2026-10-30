@@ -1,0 +1,14 @@
+   Compiling zecone-zcash-watch v0.1.0 (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\zcash-watch)
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\zecone_zcash_watch-26q97bo2s6igq\s-hn6fn1g6j0-1xcaa0d-working`
+
+warning: `zecone-zcash-watch` (bin "zecone-zcash-watch" test) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.14s
+     Running unittests src\main.rs (target\debug\deps\zecone_zcash_watch-af83203232ffcc2b.exe)
+
+running 3 tests
+test tests::refuses_legacy_or_secret_files_without_opening_database ... ok
+test tests::malformed_or_mainnet_manifest_fails_closed ... ok
+test tests::ufvk_import_reopens_without_seed_and_rejects_mainnet_key ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.93s
+

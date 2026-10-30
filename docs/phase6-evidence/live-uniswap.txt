@@ -1,0 +1,446 @@
+- navigation:
+  - button "Uniswap":
+    - link "Uniswap":
+      - /url: /?intro=true
+      - generic: Uniswap
+  - button "Trade":
+    - link "Trade":
+      - /url: /swap
+      - generic: Trade
+  - button "Explore":
+    - link "Explore":
+      - /url: /explore
+      - generic: Explore
+  - link "Launches Beta":
+    - /url: /launches
+    - generic: Launches
+    - generic: Beta
+  - button "Pool":
+    - link "Pool":
+      - /url: /positions
+      - generic: Pool
+  - button "Portfolio":
+    - link "Portfolio":
+      - /url: /portfolio
+      - generic: Portfolio
+  - button "Search Uniswap /":
+    - generic: Search Uniswap
+    - generic: /
+  - button "Navigation button":
+    - button "Navigation button":
+  - button "Get started":
+    - button "Get started" [active]:
+      - generic: Get started
+- region "Notifications alt+T"
+- button:
+  - button:
+- generic: WBTC
+- img "down"
+- generic: 2.51%
+- generic: USDC
+- img "up"
+- generic: 0%
+- generic: LINK
+- img "down"
+- generic: 5.91%
+- generic: POL
+- img "up"
+- generic: 0%
+- generic: SHIB
+- img "down"
+- generic: 3.18%
+- generic: AAVE
+- img "down"
+- generic: 5.52%
+- generic: UNI
+- img "down"
+- generic: 5.06%
+- generic: OP
+- img "down"
+- generic: 12.72%
+- generic: USDP
+- img "down"
+- generic: 0.01%
+- generic: USDT
+- img "down"
+- generic: 0.03%
+- generic: APE
+- img "down"
+- generic: 9.12%
+- generic: MKR
+- img "down"
+- generic: 8.22%
+- generic: ETH
+- img "down"
+- generic: 5.04%
+- generic: CRV
+- img "up"
+- generic: 4.66%
+- generic: COMP
+- img "down"
+- generic: 5.44%
+- generic: DAI
+- img "up"
+- generic: 0.03%
+- generic: ENS
+- img "down"
+- generic: 7.74%
+- generic: PEPE
+- img "down"
+- generic: 4.46%
+- generic: EURC
+- img "up"
+- generic: 0.20%
+- generic: MANA
+- img "down"
+- generic: 9.03%
+- heading "Swap anytime, anywhere." [level=1]:
+  - generic: Swap
+  - generic: anytime,
+  - generic: anywhere.
+- button "Sell 0 ETH $0":
+  - generic: Sell
+  - generic: "0"
+  - textbox "0"
+  - button "ETH":
+    - generic: ETH
+  - button "$0":
+    - generic: $0
+- button:
+- button "Buy 0 Select token $0":
+  - generic: Buy
+  - button:
+  - button:
+  - button:
+  - button:
+  - button:
+  - button "0":
+    - heading "0" [level=2]
+  - button "Select token":
+    - generic: Select token
+  - button "$0":
+    - generic: $0
+- button "Get started":
+  - generic: Get started
+- generic: Buy and sell crypto with zero app fees on 23+ networks including Ethereum, Unichain, and Base.
+- generic: Scroll to learn more
+- heading "DeFi’s leading protocol. Powering trillions." [level=1]
+- heading "Uniswap Labs delivers every piece of the onchain economy in one platform. Get no-fees trading, proven security, and deep liquidity, all backed by crypto’s most trusted DEX." [level=2]
+- link "Trade without fees":
+  - /url: /explore
+  - generic: Trade without fees
+- heading "Uniswap Protocol stats" [level=3]
+- heading "All time volume" [level=3]
+- generic: $
+- generic: ¥
+- generic: £
+- generic: €
+- generic: "4"
+- generic: "5"
+- generic: "6"
+- generic: "7"
+- generic: "8"
+- generic: "9"
+- generic: "0"
+- generic: "1"
+- generic: "2"
+- generic: "3"
+- generic: .
+- generic: ","
+- generic: "0"
+- generic: "1"
+- generic: "2"
+- generic: "3"
+- generic: "4"
+- generic: "5"
+- generic: "6"
+- generic: "7"
+- generic: "8"
+- generic: "9"
+- generic: T
+- generic: K
+- generic: M
+- generic: B
+- heading "Total value locked" [level=3]
+- generic: $
+- generic: ¥
+- generic: £
+- generic: €
+- generic: "3"
+- generic: "4"
+- generic: "5"
+- generic: "6"
+- generic: "7"
+- generic: "8"
+- generic: "9"
+- generic: "0"
+- generic: "1"
+- generic: "2"
+- generic: .
+- generic: ","
+- generic: "3"
+- generic: "4"
+- generic: "5"
+- generic: "6"
+- generic: "7"
+- generic: "8"
+- generic: "9"
+- generic: "0"
+- generic: "1"
+- generic: "2"
+- generic: B
+- generic: T
+- generic: K
+- generic: M
+- heading "All time swappers" [level=3]
+- generic: "1"
+- generic: "2"
+- generic: "3"
+- generic: "4"
+- generic: "5"
+- generic: "6"
+- generic: "7"
+- generic: "8"
+- generic: "9"
+- generic: "0"
+- generic: "1"
+- generic: "2"
+- generic: "3"
+- generic: "4"
+- generic: "5"
+- generic: "6"
+- generic: "7"
+- generic: "8"
+- generic: "9"
+- generic: "0"
+- generic: "9"
+- generic: "0"
+- generic: "1"
+- generic: "2"
+- generic: "3"
+- generic: "4"
+- generic: "5"
+- generic: "6"
+- generic: "7"
+- generic: "8"
+- generic: .
+- generic: ","
+- generic: "0"
+- generic: "1"
+- generic: "2"
+- generic: "3"
+- generic: "4"
+- generic: "5"
+- generic: "6"
+- generic: "7"
+- generic: "8"
+- generic: "9"
+- generic: M
+- generic: B
+- generic: T
+- generic: K
+- heading "24H swap volume" [level=3]
+- generic: $
+- generic: ¥
+- generic: £
+- generic: €
+- generic: "2"
+- generic: "3"
+- generic: "4"
+- generic: "5"
+- generic: "6"
+- generic: "7"
+- generic: "8"
+- generic: "9"
+- generic: "0"
+- generic: "1"
+- generic: .
+- generic: ","
+- generic: "7"
+- generic: "8"
+- generic: "9"
+- generic: "0"
+- generic: "1"
+- generic: "2"
+- generic: "3"
+- generic: "4"
+- generic: "5"
+- generic: "6"
+- generic: B
+- generic: T
+- generic: K
+- generic: M
+- heading "Built for all the ways you swap" [level=1]
+- generic: Web App
+- heading "Explore. Swap. Repeat." [level=2]
+- heading "Discover, manage, earn, and swap crypto — all with no fees. Explore 23+ chains." [level=3]
+- generic: Explore tokens
+- heading "Ethereum" [level=3]
+- heading "ETH" [level=3]
+- heading "$2,372.09" [level=3]
+- img "down"
+- heading "4.92%" [level=3]
+- heading "USD Coin" [level=3]
+- heading "USDC" [level=3]
+- heading "$1.00" [level=3]
+- img "up"
+- heading "0%" [level=3]
+- heading "Uniswap" [level=3]
+- heading "UNI" [level=3]
+- heading "$6.98" [level=3]
+- img "down"
+- heading "4.99%" [level=3]
+- heading "Solana" [level=3]
+- heading "SOL" [level=3]
+- heading "$102.96" [level=3]
+- img "down"
+- heading "3.83%" [level=3]
+- link "Uniswap Wallet Simple. Safe. Secure. Get the trusted self-custody crypto wallet with millions of downloads, support from real humans, and a 4.8 rating. Download Uniswap Wallet":
+  - /url: https://wallet.uniswap.org/
+  - generic: Uniswap Wallet
+  - heading "Simple. Safe. Secure." [level=2]
+  - heading "Get the trusted self-custody crypto wallet with millions of downloads, support from real humans, and a 4.8 rating." [level=3]:
+    - text: Get the trusted self-custody crypto wallet with millions of downloads, support from real humans, and a
+    - text: "4.8"
+    - text: rating.
+  - generic: Download Uniswap Wallet
+- link "UniswapX Smarter swaps. Aggregated liquidity. Enjoy fast swaps, smart protection, and deep liquidity. Try UniswapX UniswapX":
+  - /url: https://x.uniswap.org/
+  - generic: UniswapX
+  - heading "Smarter swaps. Aggregated liquidity." [level=2]
+  - heading "Enjoy fast swaps, smart protection, and deep liquidity." [level=3]
+  - generic: Try UniswapX
+  - img "UniswapX"
+- generic: Liquidity Provision
+- heading "Provide liquidity, earn fees." [level=2]
+- heading "Earn by powering onchain markets with Liquidity Pools." [level=3]
+- generic: Explore pools
+- img "Liquidity Provision"
+- link "Trading API DeFi for your users, at no cost. Use the same API that powers Uniswap Apps. Join leading teams who trust the API to access deep crypto liquidity. Integrate the Uniswap API Trading API":
+  - /url: https://developers.uniswap.org/
+  - generic: Trading API
+  - heading "DeFi for your users, at no cost." [level=2]
+  - heading "Use the same API that powers Uniswap Apps. Join leading teams who trust the API to access deep crypto liquidity." [level=3]
+  - generic: Integrate the Uniswap API
+  - img "Trading API"
+- link "Unichain The DeFi chain. Join the community building on the fast, decentralized Ethereum L2 built to be the home for DeFi. Start building Unichain":
+  - /url: https://www.unichain.org/
+  - generic: Unichain
+  - heading "The DeFi chain." [level=2]
+  - heading "Join the community building on the fast, decentralized Ethereum L2 built to be the home for DeFi." [level=3]
+  - generic: Start building
+  - img "Unichain"
+- heading "Explore the UNIverse" [level=1]
+- link "Help center Browse FAQs and get support from our US-based support team":
+  - /url: https://help.uniswap.org/
+  - heading "Help center" [level=2]
+  - heading "Browse FAQs and get support from our US-based support team" [level=3]
+- link "Blog Catch up on the latest company news, product features and more":
+  - /url: https://blog.uniswap.org/
+  - heading "Blog" [level=2]
+  - heading "Catch up on the latest company news, product features and more" [level=3]
+- link "Docs Explore our library of developer docs to get started building with Uniswap":
+  - /url: https://docs.uniswap.org/
+  - heading "Docs" [level=2]
+  - heading "Explore our library of developer docs to get started building with Uniswap" [level=3]
+- heading "Socials" [level=2]
+- heading "Follow Uniswap Labs on X, Farcaster, LinkedIn, and TikTok" [level=3]:
+  - text: Follow Uniswap Labs on
+  - link "X":
+    - /url: https://x.com/Uniswap
+  - text: ","
+  - link "Farcaster":
+    - /url: https://farcaster.xyz/Uniswap
+  - text: ","
+  - link "LinkedIn":
+    - /url: https://www.linkedin.com/company/uniswaporg
+  - text: ", and"
+  - link "TikTok":
+    - /url: https://www.tiktok.com/@uniswap
+- link:
+  - /url: https://github.com/Uniswap
+- link:
+  - /url: https://x.com/Uniswap
+- link:
+  - /url: https://discord.com/invite/uniswap
+- generic: Products
+- link "Wallet":
+  - /url: https://wallet.uniswap.org/
+  - generic: Wallet
+- link "UniswapX":
+  - /url: https://x.uniswap.org/
+  - generic: UniswapX
+- link "API":
+  - /url: https://developers.uniswap.org/
+  - generic: API
+- link "Unichain":
+  - /url: https://www.unichain.org/
+  - generic: Unichain
+- generic: Protocol
+- link "Vote":
+  - /url: https://vote.uniswapfoundation.org
+  - generic: Vote
+- link "Governance":
+  - /url: https://uniswap.org/governance
+  - generic: Governance
+- link "Developers":
+  - /url: https://uniswap.org/developers
+  - generic: Developers
+- generic: Company
+- link "About":
+  - /url: https://about.uniswap.org/
+  - generic: About
+- link "Careers":
+  - /url: https://careers.uniswap.org/
+  - generic: Careers
+- link "Blog":
+  - /url: https://blog.uniswap.org/
+  - generic: Blog
+- link "Brand assets":
+  - /url: https://github.com/Uniswap/brand-assets/raw/main/Uniswap%20Brand%20Assets.zip
+  - generic: Brand assets
+- generic: Need help?
+- link "Help center":
+  - /url: https://help.uniswap.org/
+  - generic: Help center
+- link "Contact us":
+  - /url: https://support.uniswap.org/hc/en-us/requests/new
+  - generic: Contact us
+- link "Bug bounty":
+  - /url: https://cantina.xyz/bounties/f9df94db-c7b1-434b-bb06-d1360abdd1be
+  - generic: Bug bounty
+- generic: © 2026 - Uniswap Labs
+- generic: Disclosures
+- generic: Privacy Policy
+- link "Trademark Policy":
+  - /url: https://uniswap.org/trademark
+- generic: Connect a wallet
+- generic: Uniswap Mobile
+- generic: Other wallets
+- generic: or
+- button "Create account":
+  - generic: Create account
+- button "Log in":
+  - generic: Log in
+- text: By connecting a wallet, you agree to Uniswap Labs’
+- link "Terms of Service":
+  - /url: https://uniswap.org/terms-of-service
+- text: and consent to its
+- link "Privacy Policy":
+  - /url: https://uniswap.org/privacy-policy
+- text: .
+- generic: Connect a wallet
+- generic: Uniswap Mobile
+- generic: Other wallets
+- generic: or
+- button "Create account":
+  - generic: Create account
+- button "Log in":
+  - generic: Log in
+- text: By connecting a wallet, you agree to Uniswap Labs’
+- link "Terms of Service":
+  - /url: https://uniswap.org/terms-of-service
+- text: and consent to its
+- link "Privacy Policy":
+  - /url: https://uniswap.org/privacy-policy
+- text: .

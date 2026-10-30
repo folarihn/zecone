@@ -1,0 +1,21 @@
+(node:23932) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Phase 8A response projections drop nested secrets and backend joins (2.2476ms)
+✔ Phase 8A handles expire, rotate after restart and cannot cross sessions or adapters (1.0625ms)
+✔ Phase 8A browser selection is bounded to scope, expiry and current visible handles (1.6328ms)
+✔ Phase 8A session retention prunes only expired authentication rows (1.4918ms)
+✔ Phase 8A display aliases preserve exact approval references and redact server exceptions (48.7559ms)
+✔ Phase 8A diagnostics accept only finite codes and export counts with bounded retention (1.3079ms)
+✔ Phase 8A snapshot private inspection requires local session, CSRF, acknowledgement and scoped handle (22.5289ms)
+✔ Phase 8A EVM inspection rechecks backend owner rather than treating a handle as authority (9.366ms)
+✔ Phase 8A delivery status and inspection are owner-scoped; persisted evidence stays private (14.7018ms)
+✔ Phase 8A existing swap without attached history cannot be claimed by a new browser (7.1606ms)
+✔ Phase 8A actual unsigned swap construction passes no shielded metadata to destination calls (49.6135ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 25574.1784

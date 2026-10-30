@@ -1,8 +1,30 @@
-# ZecOne — Phase 0
+# ZecOne — wallet and shielded-payment demo
 
-Testnet payment-to-NFT feasibility prototype. Native Rust Zcash wallet, durable TypeScript/SQLite order service, prefunded Base Sepolia relayer, and fixed ERC-721 mint. **No frontend. No bridge or real asset exchange.**
+**Current launch status (28 October 2026):** the paired local browser wallet can
+switch explicitly between Testnet and a read-only projection of the existing
+verified Mainnet wallet. Mainnet receive, balance, history and sync freshness are
+visible locally; the public website cannot pair with that wallet or request a
+signature. A separate operator-reviewed workflow executed and finalized a real
+Zcash mainnet transfer (`0f0e9442…1def47`) with exact SIGN and BROADCAST gates.
+The public merchant experience remains a demo-only replay with no payable
+address or live cross-chain settlement. See [wallet audit](docs/WALLET-MAINNET-AUDIT.md),
+[mainnet evidence](submission/EVIDENCE.md), [demo deployment](docs/DEMO-DEPLOYMENT.md),
+and [submission package](submission/README.md).
 
-**Phase 0 live test passed on 2026-10-12.** A real 0.01 TAZ shielded Testnet payment reached ten confirmations and authorized one successful Base Sepolia NFT mint to the user's separate wallet. Receipt, ownership and duplicate-processing checks passed. See [results and transaction references](docs/RESULTS.md). Work stops before the frontend. NU7 requires the pinned official prerelease Rust libraries; this is a trusted testnet relayer prototype, not a production bridge.
+The historical prototype is a Next.js wallet over a native Rust Zcash wallet,
+durable TypeScript/SQLite order service, and prefunded Base Sepolia settlement.
+Its minting, dApp requests, and marketplace purchase features remain **testnet
+only**; mainnet is limited to the read-only wallet projection and separately
+documented operator-controlled pilot evidence. There is no bridge or public
+real-asset exchange.
+
+**Latest: Phase 4E.** Actual OpenSea discovered the installed extension, connected the local test account, accepted an explicitly approved Base Sepolia login signature, and revoked access on logout. The public test profile is `zecone-test-c714`. No asset transaction occurred. See [results](docs/PHASE4E-RESULTS.md), [installation/runbook](docs/PHASE4E-RUNBOOK.md), [security](docs/PHASE4E-SECURITY.md), and [limitations](docs/PHASE4E-LIMITATIONS.md). The [Phase 4D read-only API preview](docs/PHASE4D-RESULTS.md) and earlier testnet functionality are preserved. Phase 5 has not begun.
+
+**Open the wallet:** double-click `Launch-ZecOne.cmd`. It starts the local gateway and securely opens your browser at `http://127.0.0.1:3210`. The existing funded wallets and deployed contract are reused. See the [Phase 1 runbook](docs/PHASE1-RUNBOOK.md), [implementation results](docs/PHASE1-RESULTS.md), and [browser security review](docs/PHASE1-SECURITY.md).
+
+**Phase 0 remains preserved.** Its real 0.01 TAZ shielded payment, ten-confirmation authorization, Base NFT receipt, ownership and idempotency evidence are recorded in [Phase 0 results](docs/RESULTS.md). Checkpoint `482fc57` precedes all Phase 1 changes. NU7 requires the pinned official prerelease Rust libraries; this remains a trusted testnet relayer prototype.
+
+**Phase 3:** start the independent marketplace with `npm.cmd run marketplace:dev` and open `http://127.0.0.1:4322`. Connect the local wallet, review an NFT quote, and separately approve the shielded payment. See [results and live evidence](docs/PHASE3-RESULTS.md), [runbook](docs/PHASE3-RUNBOOK.md), [security model](docs/PHASE3-SECURITY.md), and [limitations](docs/PHASE3-LIMITATIONS.md). Phase 2 connectivity and its evidence are preserved in [Phase 2 results](docs/PHASE2-RESULTS.md).
 
 - [Feasibility and verified dependencies](docs/FEASIBILITY.md)
 - [Architecture](docs/ARCHITECTURE.md), [risks](docs/RISKS.md), [phases](docs/PHASES.md)
@@ -17,8 +39,10 @@ Use Rust 1.97.1, Node 24.12.0, npm 11.6.2, Foundry/Anvil 1.7.1, and Solidity 0.8
 npm.cmd ci --ignore-scripts
 cargo build --locked
 forge build
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-phase1.ps1
 ```
+
+The Phase 1 verifier writes to a separate evidence directory, preserving Phase 0 logs. Build the frontend with `npm run wallet:build`, then use the launcher. The [Phase 1 runbook](docs/PHASE1-RUNBOOK.md) lists exact frontend dependencies and isolated browser tests.
 
 The Anvil integration test starts a loopback-only process, creates disposable random local keys, and injects synthetic payment observations only inside the test. It is not evidence of a real Zcash or Base Sepolia transaction. Some sandboxes require permission to launch/connect to this loopback process.
 

@@ -1,0 +1,14 @@
+{
+  "at": "2026-10-15T07:00:32.194Z",
+  "checkpoint": "fec8341",
+  "historicalPrivateFilesChecked": 19946,
+  "changedHistoricalPrivateFiles": 0,
+  "historicalPublicFilesChecked": 393,
+  "changedHistoricalPublicFiles": [],
+  "changedDependencyPins": [],
+  "databaseSnapshots": 14,
+  "changedSnapshots": 0,
+  "quarantinedWalletReadByWalletApi": false,
+  "quarantinedWalletWritten": false,
+  "scope": "Hashes of files present at the start; private manifest and byte copies of historical DB files. New disposable files are excluded. Database files were copied while wallet services were stopped."
+}

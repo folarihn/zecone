@@ -1,0 +1,28 @@
+{
+  "at": "2026-10-13T07:28:33.119Z",
+  "verified": true,
+  "before": {
+    "order": "0x4bae79cef0cb128fb393b763abe60e28ee1ec04a098e10b064ac3a6a72f84b76",
+    "transaction": "0xf260da275e91d63d43e813ec26d335b33b58893746b4ca3b962df50786097c77",
+    "payment": "92816a4d190bbfbcbe55cb1a09e1d7ee0785aa248ae1b7501f0edb2bc68e6e74",
+    "state": "settled",
+    "provider": "93680716433875059",
+    "user": "9999873999999741",
+    "token": "19550169617820656117",
+    "nonce": 18,
+    "broadcasts": 1,
+    "scans": 34
+  },
+  "after": {
+    "order": "0x4bae79cef0cb128fb393b763abe60e28ee1ec04a098e10b064ac3a6a72f84b76",
+    "transaction": "0xf260da275e91d63d43e813ec26d335b33b58893746b4ca3b962df50786097c77",
+    "payment": "92816a4d190bbfbcbe55cb1a09e1d7ee0785aa248ae1b7501f0edb2bc68e6e74",
+    "state": "settled",
+    "provider": "93680716433875059",
+    "user": "9999873999999741",
+    "token": "19550169617820656117",
+    "nonce": 18,
+    "broadcasts": 1,
+    "scans": 59
+  }
+}

@@ -1,0 +1,764 @@
+import assert from "node:assert/strict";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { test } from "node:test";
+
+import {
+  MainnetWatchJournal,
+  MainnetWatchScanner,
+  assertMainnetPaymentAuthorization,
+  observeMainnetWatch,
+  validateMainnetWatchPolicy,
+  validateMainnetWatchSnapshot,
+  verifyOwnedNote,
+  type MainnetOrderBinding,
+  type MainnetWatchObservation,
+  type MainnetWatchPayment,
+  type MainnetWatchSnapshot,
+} from "../services/settlement/mainnet-watch.js";
+
+const now = 1_800_000_000;
+const account = "a".repeat(64);
+const address = "u1" + "q".repeat(60);
+const tip = 110;
+const blockHash = "b".repeat(64);
+
+const payment = (
+  over: Partial<MainnetWatchPayment> = {},
+): MainnetWatchPayment => ({
+  account,
+  txid: "c".repeat(64),
+  pool: 2,
+  index: 0,
+  zatoshis: "100000000",
+  height: 90,
+  blockHash: "d".repeat(64),
+  address,
+  memo: null,
+  nullifier: "e".repeat(64),
+  locked: false,
+  spent: false,
+  isChange: false,
+  confirmations: 21,
+  ownershipEvidence: {
+    scheme: "zcash-full-transaction-ufvk-v3",
+    digest: "7".repeat(64),
+    providers: 2,
+    blockEvidence: {
+      scheme: "zcash-header-pow-merkle-v1",
+      height: 90,
+      headerHash: "d".repeat(64),
+      merkleRoot: "6".repeat(64),
+      transactionIndex: 0,
+      transactionCount: 1,
+      proofOfWork: "PASS",
+      readOnly: true,
+    },
+    chainEvidence: {
+      scheme: "zcash-pow-chain-segment-v1",
+      startHeight: 90,
+      endHeight: 109,
+      startHash: "d".repeat(64),
+      endHash: "e".repeat(64),
+      blockCount: 20,
+      accumulatedWork: "1234abcd",
+      proofOfWork: "PASS",
+      continuity: "PASS",
+      readOnly: true,
+    },
+  },
+  ...over,
+});
+
+const snapshot = (
+  over: Partial<MainnetWatchSnapshot> = {},
+): MainnetWatchSnapshot => ({
+  network: "zcash-mainnet",
+  watchOnly: true,
+  liveChain: true,
+  liveRefundsEnabled: false,
+  source: "https://light.example.org",
+  peerSource: "https://peer.example.org",
+  account,
+  address,
+  birthday: 10,
+  tip,
+  scanned: tip,
+  blockHash,
+  observedAt: now,
+  minimumConfirmations: 20,
+  anchor: "f".repeat(64),
+  anchorHeight: 91,
+  checkpoint: null,
+  payments: [],
+  ...over,
+});
+
+const binding = (
+  over: Partial<MainnetOrderBinding> = {},
+): MainnetOrderBinding => ({
+  orderId: "1".repeat(64),
+  account,
+  address,
+  zatoshis: "100000000",
+  expires: now + 600,
+  ...over,
+});
+
+const liveNow = () => Math.floor(Date.now() / 1000);
+
+function nativeScanner(s: MainnetWatchSnapshot) {
+  const directory = mkdtempSync(join(tmpdir(), "zecone-mainnet-watch-")),
+    script = join(directory, "snapshot.mjs");
+  writeFileSync(
+    script,
+    `process.stdout.write(${JSON.stringify(JSON.stringify(s))});`,
+  );
+  return new MainnetWatchScanner(
+    directory,
+    s.source,
+    s.peerSource,
+    {
+      network: "zcash",
+      enabled: true,
+      providers: [
+        { endpoint: s.source, operator: "primary" },
+        { endpoint: s.peerSource, operator: "secondary" },
+      ],
+      independenceAcknowledged: true,
+      confirmations: s.minimumConfirmations,
+    },
+    process.execPath,
+    [script],
+    directory,
+  );
+}
+
+async function nativeScan(s: MainnetWatchSnapshot) {
+  return nativeScanner(s).observe();
+}
+
+test("native proof identity and canonical execution commitment are distinct and both enforced", async () => {
+  const t = liveNow(),
+    s = await nativeScan(snapshot({ observedAt: t, payments: [payment()] })),
+    b = binding({ expires: t + 600, sourceEvidenceDigest: "7".repeat(64) }),
+    j = new MainnetWatchJournal(":memory:", () => t);
+  try {
+    const observation = j.observe(b, s),
+      canonical = verifyOwnedNote(s, b, s.payments[0]).paymentDigest;
+    assert.equal(observation.paymentDigest, canonical);
+    assert.notEqual(canonical, b.sourceEvidenceDigest);
+    assert.equal(
+      assertMainnetPaymentAuthorization(
+        observation,
+        { orderId: b.orderId, paymentDigest: canonical, zatoshis: b.zatoshis },
+        t,
+      ),
+      true,
+    );
+    assert.throws(
+      () =>
+        assertMainnetPaymentAuthorization(
+          observation,
+          {
+            orderId: b.orderId,
+            paymentDigest: b.sourceEvidenceDigest!,
+            zatoshis: b.zatoshis,
+          },
+          t,
+        ),
+      /VERIFIED_MAINNET/,
+    );
+    assert.throws(
+      () => j.bind({ ...b, sourceEvidenceDigest: "8".repeat(64) }),
+      /IMMUTABLE/,
+    );
+  } finally {
+    j.close();
+  }
+});
+
+test("an unrelated authenticated deposit cannot replace the pinned native proof", async () => {
+  const t = liveNow(),
+    other = payment({
+      txid: "9".repeat(64),
+      ownershipEvidence: {
+        ...payment().ownershipEvidence,
+        digest: "8".repeat(64),
+      },
+    }),
+    s = await nativeScan(snapshot({ observedAt: t, payments: [other] })),
+    j = new MainnetWatchJournal(":memory:", () => t),
+    b = binding({ expires: t + 600, sourceEvidenceDigest: "7".repeat(64) });
+  try {
+    const rejected = j.observe(b, s);
+    assert.equal(rejected.status, "invalid");
+    assert.equal(rejected.paymentDigest, null);
+    assert.throws(
+      () =>
+        assertMainnetPaymentAuthorization(
+          rejected,
+          {
+            orderId: b.orderId,
+            paymentDigest: "7".repeat(64),
+            zatoshis: b.zatoshis,
+          },
+          t,
+        ),
+      /VERIFIED_MAINNET/,
+    );
+  } finally {
+    j.close();
+  }
+});
+
+test("native selected receiver must exactly match the approved address", async () => {
+  const t = liveNow(),
+    scanner = nativeScanner(snapshot({ observedAt: t, payments: [payment()] }));
+  const selected = new MainnetWatchScanner(
+    scanner.wallet,
+    scanner.source,
+    scanner.peer,
+    {
+      network: "zcash",
+      enabled: true,
+      providers: [
+        { endpoint: scanner.source, operator: "primary" },
+        { endpoint: scanner.peer, operator: "secondary" },
+      ],
+      independenceAcknowledged: true,
+      confirmations: 20,
+    },
+    scanner.executable,
+    scanner.executableArgsPrefix,
+    scanner.authenticatedBlockDirectory,
+    "u1" + "p".repeat(60),
+  );
+  await assert.rejects(selected.observe(), /SNAPSHOT_POLICY_MISMATCH/);
+});
+
+test("native scanner requires authenticated raw-block storage", async () => {
+  await assert.rejects(
+    new MainnetWatchScanner(
+      mkdtempSync(join(tmpdir(), "zecone-mainnet-watch-")),
+      "https://light.example.org",
+      "https://peer.example.org",
+      {
+        network: "zcash",
+        enabled: true,
+        providers: [
+          { endpoint: "https://light.example.org", operator: "primary" },
+          { endpoint: "https://peer.example.org", operator: "secondary" },
+        ],
+        independenceAcknowledged: true,
+        confirmations: 20,
+      },
+    ).observe(),
+    /AUTHENTICATED_MAINNET_BLOCK_DIRECTORY_REQUIRED/,
+  );
+});
+
+test("mainnet watch policy requires 20 confirmations and exact independent providers", () => {
+  const policy = {
+    network: "zcash" as const,
+    enabled: true,
+    providers: [
+      { endpoint: "https://light.example.org", operator: "primary" },
+      { endpoint: "https://peer.example.org", operator: "secondary" },
+    ],
+    independenceAcknowledged: true,
+    confirmations: 20,
+  };
+  assert.equal(validateMainnetWatchPolicy(policy).minimumConfirmations, 20);
+  assert.throws(
+    () => validateMainnetWatchPolicy({ ...policy, confirmations: 10 }),
+    /INVALID_MAINNET_WATCH_POLICY/,
+  );
+  assert.throws(
+    () =>
+      validateMainnetWatchPolicy({
+        ...policy,
+        providers: [
+          policy.providers[0],
+          { ...policy.providers[1], operator: "primary" },
+        ],
+      }),
+    /PROVIDER_INDEPENDENCE_REQUIRED/,
+  );
+  assert.throws(
+    () =>
+      new MainnetWatchScanner(
+        "wallet",
+        "https://unexpected.example.org",
+        policy.providers[1].endpoint,
+        policy,
+      ),
+    /POLICY_PROVIDER_MISMATCH/,
+  );
+  assert.throws(
+    () =>
+      validateMainnetWatchPolicy({
+        ...policy,
+        providers: [
+          {
+            ...policy.providers[0],
+            endpoint: "https://light.example.org/?key=secret",
+          },
+          policy.providers[1],
+        ],
+      }),
+    /INVALID_MAINNET_WATCH_POLICY_PROVIDER/,
+  );
+});
+
+test("native snapshot cannot change the approved provider or confirmation policy", async () => {
+  const s = snapshot({ observedAt: liveNow() });
+  await nativeScan(s);
+  const directory = mkdtempSync(join(tmpdir(), "zecone-mainnet-watch-policy-")),
+    script = join(directory, "snapshot.mjs");
+  writeFileSync(
+    script,
+    `process.stdout.write(${JSON.stringify(
+      JSON.stringify({ ...s, minimumConfirmations: 21 }),
+    )});`,
+  );
+  const scanner = new MainnetWatchScanner(
+    directory,
+    s.source,
+    s.peerSource,
+    {
+      network: "zcash",
+      enabled: true,
+      providers: [
+        { endpoint: s.source, operator: "primary" },
+        { endpoint: s.peerSource, operator: "secondary" },
+      ],
+      independenceAcknowledged: true,
+      confirmations: 20,
+    },
+    process.execPath,
+    [script],
+    directory,
+  );
+  await assert.rejects(scanner.observe(), /SNAPSHOT_POLICY_MISMATCH/);
+});
+
+function authorization(observation: MainnetWatchObservation) {
+  return assertMainnetPaymentAuthorization(observation, {
+    orderId: observation.orderId,
+    paymentDigest: observation.paymentDigest!,
+    zatoshis: "100000000",
+  });
+}
+
+test("mainnet snapshot validation rejects testnet, stale and inconsistent scans", () => {
+  validateMainnetWatchSnapshot(snapshot(), now);
+  for (const bad of [
+    snapshot({ network: "zcash-testnet" as never }),
+    snapshot({ observedAt: now - 121 }),
+    snapshot({ source: "https://testnet.zec.rocks" }),
+    snapshot({ source: "https://peer.example.org" }),
+    snapshot({ anchorHeight: 102 }),
+    snapshot({ scanned: 99 }),
+    snapshot({ payments: [payment({ confirmations: 20 })] }),
+    snapshot({
+      payments: [
+        payment({
+          ownershipEvidence: {
+            ...payment().ownershipEvidence,
+            scheme: "zcash-full-transaction-ufvk-v2" as never,
+          },
+        }),
+      ],
+    }),
+    snapshot({
+      payments: [
+        payment({
+          ownershipEvidence: {
+            ...payment().ownershipEvidence,
+            blockEvidence: {
+              ...payment().ownershipEvidence.blockEvidence,
+              headerHash: "9".repeat(64),
+            },
+          },
+        }),
+      ],
+    }),
+    snapshot({
+      payments: [
+        payment({
+          ownershipEvidence: {
+            ...payment().ownershipEvidence,
+            blockEvidence: {
+              ...payment().ownershipEvidence.blockEvidence,
+              transactionIndex: 1,
+            },
+          },
+        }),
+      ],
+    }),
+    snapshot({
+      payments: [
+        payment({
+          ownershipEvidence: {
+            ...payment().ownershipEvidence,
+            chainEvidence: {
+              ...payment().ownershipEvidence.chainEvidence,
+              endHash: "x".repeat(64),
+            },
+          },
+        }),
+      ],
+    }),
+    snapshot({
+      payments: [
+        payment({
+          ownershipEvidence: {
+            ...payment().ownershipEvidence,
+            chainEvidence: {
+              ...payment().ownershipEvidence.chainEvidence,
+              blockCount: 9,
+            },
+          },
+        }),
+      ],
+    }),
+  ])
+    assert.throws(() => validateMainnetWatchSnapshot(bad, now));
+});
+
+test("native execute handoff scans against the journal checkpoint", async () => {
+  const t = liveNow(),
+    b = binding({ expires: t + 600 }),
+    j = new MainnetWatchJournal(":memory:", () => t);
+  const first = await observeMainnetWatch(
+    j,
+    nativeScanner(snapshot({ observedAt: t, payments: [payment()] })),
+    b,
+  );
+  assert.equal(first.status, "confirmed");
+  assert.equal(j.checkpointHeight(), tip);
+  const second = await observeMainnetWatch(
+    j,
+    nativeScanner(snapshot({ observedAt: t })),
+    b,
+  );
+  assert.equal(second.status, "awaiting");
+  assert.equal(second.reorgDetected, false);
+});
+
+test("journal rejects metadata-only ownership while retaining attribution and reorg diagnostics", () => {
+  const j = new MainnetWatchJournal(":memory:", () => now);
+  const b = binding();
+  assert.equal(j.observe(b, snapshot()).status, "awaiting");
+  assert.equal(
+    j.observe(
+      b,
+      snapshot({
+        payments: [payment()],
+      }),
+    ).status,
+    "invalid",
+  );
+  const confirmed = j.observe(b, snapshot({ payments: [payment()] }));
+  assert.equal(confirmed.status, "invalid");
+  assert.equal(confirmed.paymentDigest, null);
+  assert.equal(
+    j.observe(b, snapshot({ payments: [payment({ spent: true })] })).status,
+    "invalid",
+  );
+  assert.equal(
+    j.observe(
+      b,
+      snapshot({
+        payments: [
+          payment(),
+          payment({ txid: "9".repeat(64), nullifier: "8".repeat(64) }),
+        ],
+      }),
+    ).status,
+    "ambiguous",
+  );
+});
+
+test("matching metadata never proves cryptographic ownership", () => {
+  const s = snapshot({ payments: [payment()] });
+  assert.throws(
+    () => verifyOwnedNote(s, binding(), s.payments[0]),
+    /CRYPTOGRAPHIC_VERIFIER_REQUIRED/,
+  );
+  for (const p of [
+    payment({ account: "9".repeat(64) }),
+    payment({ address: "u1" + "p".repeat(60) }),
+    payment({ nullifier: null }),
+    payment({ spent: true }),
+    payment({ height: 92 }),
+  ])
+    assert.throws(() =>
+      verifyOwnedNote(snapshot({ payments: [p] }), binding(), p),
+    );
+});
+
+test("payments are bound to one order and a reorg is detected against the checkpoint", () => {
+  const j = new MainnetWatchJournal(":memory:", () => now);
+  const a = binding(),
+    b = binding({ orderId: "2".repeat(64) });
+  assert.equal(
+    j.observe(a, snapshot({ payments: [payment()] })).status,
+    "invalid",
+  );
+  assert.throws(
+    () => j.observe(b, snapshot({ payments: [payment()] })),
+    /MAINNET_PAYMENT_REUSE_ACROSS_ORDERS/,
+  );
+  const checkpoint = {
+    height: tip,
+    hash: blockHash,
+    orchardRoot: "7".repeat(64),
+  };
+  const next = j.observe(
+    a,
+    snapshot({
+      tip: 111,
+      scanned: 111,
+      blockHash: "6".repeat(64),
+      checkpoint,
+      observedAt: now + 1,
+      payments: [payment({ height: 90, confirmations: 22 })],
+    }),
+  );
+  assert.equal(next.reorgDetected, false);
+  const reorg = j.observe(
+    a,
+    snapshot({
+      tip: 110,
+      scanned: 110,
+      blockHash,
+      checkpoint: null,
+      observedAt: now + 2,
+      payments: [payment({ height: 90, confirmations: 21 })],
+    }),
+  );
+  assert.equal(reorg.reorgDetected, true);
+  assert.throws(
+    () =>
+      j.observe(
+        a,
+        snapshot({
+          tip: 112,
+          scanned: 112,
+          blockHash: "5".repeat(64),
+          checkpoint: null,
+          observedAt: now + 3,
+        }),
+      ),
+    /MAINNET_WATCH_CHECKPOINT_MISSING/,
+  );
+});
+
+test("order binding is immutable and payment digest does not expose the nullifier", () => {
+  const j = new MainnetWatchJournal(":memory:", () => now);
+  j.bind(binding());
+  j.bind(binding());
+  assert.throws(() => j.bind(binding({ zatoshis: "2" })), /IMMUTABLE/);
+  const result = j.observe(binding(), snapshot({ payments: [payment()] }));
+  assert.notEqual(result.paymentDigest, payment().nullifier);
+  assert.equal(result.paymentDigest, null);
+  const publicStatus = j.status(binding().orderId);
+  assert.equal(publicStatus.payments.length, 1);
+  assert.equal("nullifier" in publicStatus.payments[0], false);
+});
+
+test("mutable SQLite status cannot turn metadata into an owned mainnet payment", () => {
+  const j = new MainnetWatchJournal(":memory:", () => now);
+  try {
+    j.observe(binding(), snapshot({ payments: [payment()] }));
+    j.db.prepare("UPDATE mainnet_watch_payments SET status='confirmed'").run();
+    const status = j.status(binding().orderId);
+    assert.equal(status.ownershipVerified, false);
+    assert.equal(status.payments[0].status, "verification-required");
+    assert.throws(
+      () =>
+        verifyOwnedNote(
+          snapshot({ payments: [payment()] }),
+          binding(),
+          payment(),
+        ),
+      /CRYPTOGRAPHIC_VERIFIER/,
+    );
+  } finally {
+    j.close();
+  }
+});
+test("rescanning invalidates the previously authorized observation", async () => {
+  const t = liveNow(),
+    b = binding({ expires: t + 600 }),
+    j = new MainnetWatchJournal(":memory:", () => t);
+  try {
+    const first = j.observe(
+      b,
+      await nativeScan(snapshot({ observedAt: t, payments: [payment()] })),
+    );
+    assert.equal(first.status, "confirmed");
+    assert.doesNotThrow(() => authorization(first));
+
+    const second = j.observe(
+      b,
+      await nativeScan(snapshot({ observedAt: t, payments: [] })),
+    );
+    assert.equal(second.status, "awaiting");
+    assert.throws(() => authorization(first), /AUTHORIZATION_REQUIRED/);
+    assert.equal(j.status(b.orderId).ownershipVerified, false);
+  } finally {
+    j.close();
+  }
+});
+
+test("closing the watch journal invalidates its outstanding grant", async () => {
+  const t = liveNow(),
+    b = binding({ expires: t + 600 }),
+    j = new MainnetWatchJournal(":memory:", () => t),
+    observation = j.observe(
+      b,
+      await nativeScan(snapshot({ observedAt: t, payments: [payment()] })),
+    );
+  assert.doesNotThrow(() => authorization(observation));
+  j.close();
+  assert.throws(() => authorization(observation), /AUTHORIZATION_REQUIRED/);
+});
+
+test("reorganization invalidates native payment evidence until a fresh confirmation", async () => {
+  const t = liveNow(),
+    b = binding({ expires: t + 600 }),
+    j = new MainnetWatchJournal(":memory:", () => t);
+  try {
+    assert.equal(
+      j.observe(b, await nativeScan(snapshot({ observedAt: t }))).status,
+      "awaiting",
+    );
+    const confirmed = j.observe(
+      b,
+      await nativeScan(
+        snapshot({
+          observedAt: t,
+          tip: 111,
+          scanned: 111,
+          blockHash: "6".repeat(64),
+          checkpoint: {
+            height: 110,
+            hash: blockHash,
+            orchardRoot: "7".repeat(64),
+          },
+          payments: [payment({ confirmations: 22 })],
+        }),
+      ),
+    );
+    assert.equal(confirmed.status, "confirmed");
+    assert.doesNotThrow(() => authorization(confirmed));
+
+    const reorg = j.observe(
+      b,
+      await nativeScan(
+        snapshot({
+          observedAt: t,
+          tip: 110,
+          scanned: 110,
+          blockHash,
+          checkpoint: null,
+          payments: [payment()],
+        }),
+      ),
+    );
+    assert.equal(reorg.reorgDetected, true);
+    assert.equal(reorg.status, "invalid");
+    assert.equal(reorg.reason, "MAINNET_CHAIN_REORGANIZATION");
+    assert.equal(reorg.paymentDigest, null);
+    assert.throws(() => authorization(confirmed), /AUTHORIZATION_REQUIRED/);
+    assert.throws(() => authorization(reorg), /AUTHORIZATION_REQUIRED/);
+    assert.equal(j.status(b.orderId).ownershipVerified, false);
+  } finally {
+    j.close();
+  }
+});
+
+test("restart cannot resurrect a native payment grant from the journal", async () => {
+  const t = liveNow(),
+    b = binding({ expires: t + 600 }),
+    path = join(
+      mkdtempSync(join(tmpdir(), "zecone-mainnet-watch-db-")),
+      "watch.sqlite",
+    ),
+    first = new MainnetWatchJournal(path, () => t),
+    observation = first.observe(
+      b,
+      await nativeScan(snapshot({ observedAt: t, payments: [payment()] })),
+    );
+  assert.doesNotThrow(() => authorization(observation));
+  first.close();
+
+  const restarted = new MainnetWatchJournal(path, () => t);
+  try {
+    const status = restarted.status(b.orderId);
+    assert.equal(status.ownershipVerified, false);
+    assert.equal(status.payments[0].status, "verification-required");
+    assert.throws(() => authorization(observation), /AUTHORIZATION_REQUIRED/);
+  } finally {
+    restarted.close();
+  }
+});
+
+test("fabricated payment objects and mutable observations cannot gain authority", async () => {
+  const t = liveNow(),
+    b = binding({ expires: t + 600 }),
+    native = await nativeScan(
+      snapshot({ observedAt: t, payments: [payment()] }),
+    );
+  assert.ok(Object.isFrozen(native));
+  assert.ok(Object.isFrozen(native.payments[0]));
+  assert.ok(Object.isFrozen(native.payments[0].ownershipEvidence));
+  assert.throws(
+    () =>
+      verifyOwnedNote(native, b, {
+        ...native.payments[0],
+        txid: "9".repeat(64),
+      }),
+    /CRYPTOGRAPHIC_VERIFIER_REQUIRED/,
+  );
+  assert.throws(
+    () => verifyOwnedNote(structuredClone(native), b, native.payments[0]),
+    /CRYPTOGRAPHIC_VERIFIER_REQUIRED/,
+  );
+
+  const j = new MainnetWatchJournal(":memory:", () => t);
+  try {
+    const observation = j.observe(b, native);
+    assert.ok(Object.isFrozen(observation));
+    assert.throws(() => {
+      (observation as { paymentDigest: string | null }).paymentDigest = null;
+    }, TypeError);
+    assert.doesNotThrow(() => authorization(observation));
+  } finally {
+    j.close();
+  }
+});
+test("a rejected rescan clears the previous grant instead of leaving it live", async () => {
+  const t = liveNow(),
+    b = binding({ expires: t + 600 }),
+    j = new MainnetWatchJournal(":memory:", () => t);
+  try {
+    const observation = j.observe(
+      b,
+      await nativeScan(snapshot({ observedAt: t, payments: [payment()] })),
+    );
+    assert.doesNotThrow(() => authorization(observation));
+    assert.throws(
+      () => j.observe(b, snapshot({ observedAt: t, scanned: 99 })),
+      /INVALID_MAINNET_WATCH_SNAPSHOT/,
+    );
+    assert.throws(() => authorization(observation), /AUTHORIZATION_REQUIRED/);
+    assert.equal(j.status(b.orderId).ownershipVerified, false);
+  } finally {
+    j.close();
+  }
+});

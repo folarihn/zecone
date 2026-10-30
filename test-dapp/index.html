@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ZecOne external dApp fixture</title>
+<style>body{font:16px system-ui;max-width:860px;margin:40px auto;padding:0 20px;color:#172522}button{margin:6px;padding:10px 14px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f1f5f4;padding:16px;border-radius:8px}.warning{color:#8c3b22}</style>
+<script type="module" src="./zecone-provider.js"></script></head>
+<body><h1>ZecOne external dApp compatibility fixture</h1><p>This page is served from a separate local origin. Every signer request opens a wallet approval popup.</p>
+<p id="status">Waiting for EIP-6963 provider discovery…</p>
+<button id="connect">Discover and connect</button><button id="read">Read account and chain</button><button id="personal">Request personal_sign</button><button id="typed">Request EIP-712 signature</button><button id="send">Request zero-value self transaction</button><button id="unauthorized">Try after disconnect</button><button id="disconnect">Disconnect (revoke)</button>
+<p class="warning">Live send test creates a real public Base Sepolia transaction and spends gas from the user account.</p><pre id="output"></pre>
+<script>
+let provider=null,account=null,chainId=null;
+const output=document.querySelector('#output'),status=document.querySelector('#status');
+function log(label,value){output.textContent=label+'\n'+(typeof value==='string'?value:JSON.stringify(value,null,2))+'\n\n'+output.textContent}
+window.addEventListener('eip6963:announceProvider',e=>{if(e.detail.info.name==='ZecOne local testnet'){provider=e.detail.provider;status.textContent='Discovered '+e.detail.info.name+' via EIP-6963';}});
+window.dispatchEvent(new Event('eip6963:requestProvider'));
+async function run(fn){try{if(!provider)throw Error('Provider not discovered');const value=await fn();log('Success',value);return value}catch(e){log('Error',{code:e.code,message:e.message});return null}}
+document.querySelector('#connect').onclick=()=>run(async()=>{const a=await provider.request({method:'eth_requestAccounts'});account=a[0];chainId=await provider.request({method:'eth_chainId'});provider.on('accountsChanged',x=>{account=x[0]||null;log('accountsChanged',x)});provider.on('chainChanged',x=>{chainId=x});return {account,chainId}});
+document.querySelector('#read').onclick=()=>run(async()=>({accounts:await provider.request({method:'eth_accounts'}),chainId:await provider.request({method:'eth_chainId'})}));
+document.querySelector('#personal').onclick=()=>run(()=>provider.request({method:'personal_sign',params:['0x5a65634f6e652050686173652032206d657373616765207369676e61747572652074657374',account]}));
+document.querySelector('#typed').onclick=()=>run(()=>provider.request({method:'eth_signTypedData_v4',params:[account,JSON.stringify({domain:{name:'ZecOne dApp fixture',version:'1',chainId:84532,verifyingContract:account},types:{Fixture:[{name:'nonce',type:'uint256'},{name:'message',type:'string'}]},primaryType:'Fixture',message:{nonce:1,message:'Phase 2 signature test'}})]}));
+document.querySelector('#send').onclick=()=>run(()=>provider.request({method:'eth_sendTransaction',params:[{from:account,to:account,value:'0x0',data:'0x'}]}));
+document.querySelector('#unauthorized').onclick=()=>run(()=>provider.request({method:'eth_sendTransaction',params:[{from:account,to:account,value:'0x0'}]}));
+document.querySelector('#disconnect').onclick=()=>{account=null;log('Disconnected','Revoke this origin in ZecOne → Apps to remove its saved permission.');};
+</script></body></html>

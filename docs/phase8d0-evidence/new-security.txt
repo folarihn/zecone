@@ -1,0 +1,12 @@
+✔ 8D0 duplicate MAIN-world injection preserves one EVM provider identity and one Solana registration (4.5865ms)
+✔ 8D0 Solana disconnect cancels a resolved-but-not-delivered approval instead of restoring accounts (2.4136ms)
+✔ 8D0 Solana public-key byte/address binding agrees with SDK encoding and rejects substitution (3.2906ms)
+✔ 8D0 stale Solana approval is closed and its later response cannot disclose an account (3.0326ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 889.5235

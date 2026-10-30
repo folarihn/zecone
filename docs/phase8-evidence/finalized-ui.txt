@@ -1,0 +1,17 @@
+
+> test:phase7c
+> playwright test -c playwright.phase7c.config.ts
+
+[WebServer] (node:32452) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:32452) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+
+Running 3 tests using 1 worker
+
+(node:30820) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 1 tests\phase7c\real-swap.spec.ts:40:1 › real swap backend exposes only a scoped immutable checkout without payment records (428ms)
+  ok 2 tests\phase7c\real-swap.spec.ts:71:1 › real mobile swap review is accessible and makes public-ownership limits clear (1.7s)
+  ok 3 tests\phase7c\real-swap.spec.ts:100:1 › real swap backend rejects arbitrary accounts, URL identifiers and all spending endpoints (227ms)
+
+  3 passed (27.1s)

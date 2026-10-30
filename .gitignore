@@ -9,7 +9,33 @@ target/
 out/
 cache/
 dist/
+.next/
+*.tsbuildinfo
+playwright-report/
+test-results/
 *.log
 *.sqlite*
 *.db*
+services/zcash/target-phase2/
+deploy/.stage1-bundle.tar.gz
+deploy/.stage1-context/
+Claude outputs/
+.worktrees/
 
+# Secret-bearing key material and operator backups. Public-key source files and
+# reviewed placeholder templates remain trackable.
+*.pem
+*.key
+*.p12
+*.pfx
+*.age
+*.keystore
+*.wallet
+*.bak
+*.backup
+passphrase.txt
+mnemonic.txt
+seed.txt
+private-key*
+
+.vercel

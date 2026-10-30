@@ -1,0 +1,306 @@
+- navigation:
+  - link:
+    - /url: /home
+  - link "Trade":
+    - /url: /swap
+  - link "Pools":
+    - /url: /liquidity/pools
+  - link "Dual Investment Beta":
+    - /url: /dual-investment
+    - text: Dual Investment
+    - generic: Beta
+  - link "Portfolio":
+    - /url: /portfolio
+  - link:
+    - /url: /info
+  - button "Search tokens and pools":
+    - generic: Search
+    - generic: /
+  - button "Settings":
+  - button "Connect Wallet":
+    - generic: Connect Wallet
+- heading "Everyone's" [level=2]
+- heading "Favorite DEX" [level=2]
+- generic: Trade Crypto Instantly Across 12 Chains
+- img "logo-0"
+- img "logo-0"
+- img "logo-1"
+- img "logo-1"
+- img "logo-2"
+- img "logo-2"
+- img "logo-3"
+- img "logo-3"
+- img "logo-4"
+- img "logo-4"
+- img "logo-5"
+- img "logo-5"
+- img "logo-6"
+- img "logo-6"
+- img "logo-7"
+- img "logo-7"
+- img "logo-8"
+- img "logo-8"
+- img "logo-9"
+- img "logo-9"
+- img "logo-10"
+- img "logo-10"
+- img "logo-11"
+- img "logo-11"
+- generic: From
+- textbox "chain-56 BNB BNB Chain ~0 USD":
+  - /placeholder: "0.00"
+- button "chain-56 BNB BNB Chain":
+  - img "chain-56"
+  - generic: BNB
+  - generic: BNB Chain
+- generic "~0"
+- generic: USD
+- button:
+- generic: To
+- textbox "CAKE logo chain-56 CAKE BNB Chain ~0 USD":
+  - /placeholder: "0.00"
+- button "CAKE logo chain-56 CAKE BNB Chain":
+  - img "CAKE logo"
+  - img "chain-56"
+  - generic: CAKE
+  - generic: BNB Chain
+- generic "~0"
+- generic: USD
+- button "Get Started"
+- generic: Swap with Best Prices
+- generic: with Fees as Low as 0.01%
+- button "Swap":
+  - text: Swap
+- img "token logo"
+- generic: BTC
+- generic: $81,190.74
+- generic: "-2.60%"
+- img "token logo"
+- generic: ETH
+- generic: $2,367.40
+- generic: "-5.56%"
+- img "token logo"
+- generic: XRP
+- generic: $1.30
+- generic: "-5.22%"
+- generic: Earn Trading Fees
+- generic: by Providing Liquidity
+- button "Liquidity":
+  - text: Liquidity
+- img "USDT logo"
+- img "WBNB logo"
+- img "chain-56"
+- generic: USDT/WBNB
+- generic: BNB Chain
+- generic: Up to 24.33% APR
+- img "quq logo"
+- img "USDT logo"
+- img "chain-56"
+- generic: QUQ/USDT
+- generic: BNB Chain
+- generic: Up to 236.91% APR
+- img "USDT logo"
+- img "BTCB logo"
+- img "chain-56"
+- generic: USDT/BTCB
+- generic: BNB Chain
+- generic: Up to 28.14% APR
+- generic: Bridge & Buy Crypto
+- generic: Seamlessly
+- img "logo-0"
+- img "logo-1"
+- img "logo-2"
+- img "logo-3"
+- generic: "+8"
+- button "Bridge across 12 chains":
+  - generic: Bridge across 12 chains
+- img "logo-0"
+- img "logo-1"
+- img "logo-2"
+- img "logo-3"
+- generic: "+7"
+- button "Choose from 11 Currencies":
+  - generic: Choose from 11 Currencies
+- generic: Featured on PancakeSwap
+- generic: Perpetuals
+- button "See All":
+  - text: See All
+- img "token logo"
+- generic: BTC
+- generic: $81,190.745
+- text: 2.60%
+- generic: Up to 1001x leverage
+- img "token logo"
+- generic: ETH
+- generic: $2,367.404
+- text: 5.56%
+- generic: Up to 250x leverage
+- generic: Prediction
+- button "Play Now":
+  - text: Play Now
+- generic: BNBUSD
+- generic: $721.54
+- generic: "-3.15%"
+- generic: Last Top Winner
+- generic: 0xc2fa...0491
+- generic: +141.0 BNB
+- generic: Used by millions. Trusted with billions.
+- generic: Total Users
+- generic: ~4.4M+
+- generic: in the last 30 days
+- generic: Total Trades
+- generic: 63.9M+
+- generic: in the last 30 days
+- generic: Total Value Locked
+- generic: $5B+
+- generic: Community
+- generic: 2.4M+
+- link "X X":
+  - /url: https://x.com/pancakeswap
+  - img "X"
+  - generic: X
+- link "Discord Discord":
+  - /url: https://discord.gg/pancakeswap
+  - img "Discord"
+  - generic: Discord
+- link "Instagram Instagram":
+  - /url: https://instagram.com/pancakeswapfinance
+  - img "Instagram"
+  - generic: Instagram
+- link "Youtube Youtube":
+  - /url: https://www.youtube.com/@pancakeswap_official
+  - img "Youtube"
+  - generic: Youtube
+- link "Blog Blog":
+  - /url: https://blog.pancakeswap.finance/
+  - img "Blog"
+  - generic: Blog
+- list:
+  - listitem: Products
+  - link "Trade":
+    - /url: /swap
+  - link "Liquidity/Farms":
+    - /url: /liquidity/pools
+  - link "Syrup Pools":
+    - /url: /pools
+  - link "Stocks":
+    - /url: /stocks
+- list:
+  - listitem: Partner Tools
+  - link "CAKE Incentives":
+    - /url: https://docs.pancakeswap.finance/ecosystem-and-partnerships/business-partnerships/syrup-pools-and-farms
+  - link "Token Launches":
+    - /url: https://docs.pancakeswap.finance/ecosystem-and-partnerships/business-partnerships/initial-farm-offerings-ifos
+  - link "Brand Assets":
+    - /url: https://docs.pancakeswap.finance/ecosystem-and-partnerships/brand
+- list:
+  - listitem: Developers
+  - link "Developer Docs":
+    - /url: https://developer.pancakeswap.finance/
+  - link "Github":
+    - /url: https://github.com/pancakeswap
+  - link "Bug Bounty":
+    - /url: https://developer.pancakeswap.finance/bug-bounty#bug-bounty
+  - link "Contributing":
+    - /url: https://docs.pancakeswap.finance/developers/contributing
+- list:
+  - listitem: Resources
+  - link "Blog":
+    - /url: https://blog.pancakeswap.finance/
+  - link "Burn Dashboard":
+    - /url: /burn-dashboard
+  - link "Tokenomics":
+    - /url: https://docs.pancakeswap.finance/governance-and-tokenomics/cake-tokenomics
+  - link "Info":
+    - /url: /info/v3
+- list:
+  - listitem: About
+  - link "Documentation":
+    - /url: https://docs.pancakeswap.finance/
+  - link "Audits":
+    - /url: https://docs.pancakeswap.finance/readme/audits
+  - link "Legacy Products":
+    - /url: https://docs.pancakeswap.finance/products/legacy-products
+  - link "Terms of Service":
+    - /url: https://pancakeswap.finance/terms-of-service
+- list:
+  - listitem: Support
+  - link "Get Help":
+    - /url: https://docs.pancakeswap.finance/welcome-to-pancakeswap/contact-us/faq/help
+  - link "Troubleshooting":
+    - /url: https://docs.pancakeswap.finance/readme/help/troubleshooting
+  - link "FAQ":
+    - /url: https://faq.pancakeswap.finance
+  - link "Careers":
+    - /url: https://docs.pancakeswap.finance/team/become-a-chef
+- checkbox
+- button "EN":
+  - generic: EN
+- button "العربية"
+- button "বাংলা"
+- button "English"
+- button "Deutsch"
+- button "Ελληνικά"
+- button "Español"
+- button "Suomalainen"
+- button "Filipino"
+- button "Français"
+- button "हिंदी"
+- button "Magyar"
+- button "Bahasa Indonesia"
+- button "日本語"
+- button "한국어"
+- button "Nederlands"
+- button "Polski"
+- button "Português (Brazil)"
+- button "Português"
+- button "Română"
+- button "Русский"
+- button "Svenska"
+- button "தமிழ்"
+- button "Українська"
+- button "Tiếng Việt"
+- button "简体中文"
+- button "繁體中文"
+- link "X":
+  - /url: https://x.com/pancakeswap
+- link "Github":
+  - /url: https://github.com/pancakeswap/
+- link "$2.199":
+  - /url: https://pancakeswap.finance/swap?outputCurrency=0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82&chainId=56
+  - generic: $2.199
+- link "Buy CAKE":
+  - /url: /swap?outputCurrency=0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82&chainId=56
+  - text: Buy CAKE
+- dialog:
+  - heading "Connect Wallet" [level=4]
+  - button "Social Login":
+    - generic: Social Login
+  - generic: Top Wallets
+  - img "EVM network"
+  - img "Solana network"
+  - generic "Metamask"
+  - img "EVM network"
+  - img "Solana network"
+  - generic "Trust Wallet"
+  - img "EVM network"
+  - img "Solana network"
+  - generic "Binance Wallet"
+  - img "EVM network"
+  - img "Solana network"
+  - generic "OKX Wallet"
+  - button "Coinbase Wallet WalletConnect Opera Wallet Brave Wallet Rabby Wallet +11 More Wallets":
+    - img "Coinbase Wallet"
+    - img "WalletConnect"
+    - img "Opera Wallet"
+    - img "Brave Wallet"
+    - img "Rabby Wallet"
+    - generic: "+11"
+    - generic: More Wallets
+  - generic: Manage and store your private keys and assets securely.
+  - link "How to connect":
+    - /url: https://docs.pancakeswap.finance/get-started/wallet-guide
+  - generic: "|"
+  - link "Disclaimer":
+    - /url: https://pancakeswap.finance/terms-of-service
+- alert

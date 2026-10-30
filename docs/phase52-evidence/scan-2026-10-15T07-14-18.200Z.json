@@ -1,0 +1,82 @@
+{
+  "at": "2026-10-15T07:14:18.199Z",
+  "profileId": "99ef6572-b2ba-4d7f-a1fb-1bf333f2cb0b",
+  "network": "zcash-testnet",
+  "scans": [
+    {
+      "role": "payer",
+      "status": "scanned",
+      "network": "zcash-testnet",
+      "source": "https://testnet.zec.rocks:443",
+      "tip": 4504049,
+      "scanned": 4504049,
+      "blockHash": "0000055c20003fdbd96bc519c56a660ee43d4b35f461d5e4f21f2acfb7df4332",
+      "observedAt": 1792048449,
+      "address": "utest1xq4u9pevy3jr9a5tx77h463f4yy4azfqarzgnecnz3hqjc59njlyek7xhgx4ldnfha4vxejvznqqrhxlp4964ul8q3px7wdsrsdv64c9",
+      "watchOnly": true,
+      "payments": [
+        {
+          "txid": "ca05ae5509ecc794da4c6b63701de5494f5121308f9bbf10c3b3bc58aecb0026",
+          "zatoshis": "12500000",
+          "height": 4504045,
+          "confirmations": 5
+        }
+      ],
+      "confirmedReceivedZatoshis": "0"
+    },
+    {
+      "role": "settlement",
+      "status": "scanned",
+      "network": "zcash-testnet",
+      "source": "https://testnet.zec.rocks:443",
+      "tip": 4504049,
+      "scanned": 4504049,
+      "blockHash": "0000055c20003fdbd96bc519c56a660ee43d4b35f461d5e4f21f2acfb7df4332",
+      "observedAt": 1792048452,
+      "address": "utest14vf2nwz2mzlr8skd5lacqv0ytcqxtemsh6zn0nujjhnrhja7xajgenpgg72jfxesz2ltxt6ek9pepgnk3zjlk237df0r63ujzgpntau6",
+      "watchOnly": true,
+      "payments": [],
+      "confirmedReceivedZatoshis": "0"
+    },
+    {
+      "role": "refund-destination",
+      "status": "scanned",
+      "network": "zcash-testnet",
+      "source": "https://testnet.zec.rocks:443",
+      "tip": 4504049,
+      "scanned": 4504049,
+      "blockHash": "0000055c20003fdbd96bc519c56a660ee43d4b35f461d5e4f21f2acfb7df4332",
+      "observedAt": 1792048455,
+      "address": "utest1qrtu8u43rq6lhcfpzsqmjum8rtfrnk2xfsnhksxjp8gssc637tslpsmyqannfn5t3ccc9lpt6kdaczwts9k7fgsapqqg7c73mgjwyk0a",
+      "watchOnly": true,
+      "payments": [],
+      "confirmedReceivedZatoshis": "0"
+    },
+    {
+      "role": "settlement-independent",
+      "status": "scanned",
+      "network": "zcash-testnet",
+      "source": "https://testnet.zec.rocks:443",
+      "tip": 4504049,
+      "scanned": 4504049,
+      "blockHash": "0000055c20003fdbd96bc519c56a660ee43d4b35f461d5e4f21f2acfb7df4332",
+      "observedAt": 1792048458,
+      "address": "utest1r7vqzs72cvssnx0e54runct8fmrkrl2jgpg02teqx5m4nwz2u7a5vgtdqdgutlw4dla8k56hdzx0v7z8r2ut3kjt78cseqxcpcpshrah",
+      "watchOnly": true,
+      "payments": [],
+      "confirmedReceivedZatoshis": "0"
+    }
+  ],
+  "sameProviderSettlementScannerAgreement": true,
+  "independentProviderVerification": false,
+  "payerHasRequestedConfirmedFunds": false,
+  "minimumConfirmations": 10,
+  "realPaymentOrderCreated": false,
+  "controlledExecutionFailureTriggered": false,
+  "paymentBroadcast": false,
+  "refundSigned": false,
+  "refundBroadcast": false,
+  "liveRefundsEnabled": false,
+  "separateDeviceValidated": false,
+  "note": "Receipt totals are observations, not a native spendable balance or fee quote. No transaction construction or broadcast is performed."
+}

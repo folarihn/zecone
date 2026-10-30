@@ -1,0 +1,37 @@
+{
+  "verifiedAt": "2026-10-12T09:18:16.225Z",
+  "live": true,
+  "network": {
+    "zcash": "testnet",
+    "baseChainId": 84532
+  },
+  "checkoutId": "075b6383-00ce-4896-978f-6dc14e67b093",
+  "orderId": "0x06adfb511e442fc32d31fc62d36477c1e5a58911a6b0f790b43898d1fbbaa2fd",
+  "zcash": {
+    "txid": "eea00e872a3b1be22a449c5af8c1c6c82385cdb64e06a5a8993290f0304f66ca",
+    "valueZatoshis": "1000000",
+    "blockHeight": 4491670,
+    "blockHash": "000007de9bf8a670a48d80ba19359ccab5a53dc09b3479a779904cce42325d50",
+    "confirmations": 12,
+    "requiredConfirmations": 10,
+    "scannedTip": 4491681,
+    "fullyScanned": true
+  },
+  "action": {
+    "contract": "0xe1ae787f137c1280ab9bbcdc7be65490d5543707",
+    "transaction": "0x74180b014e5422ab97928a1e8aff0afbe7511072fcfe6c0b14552202f686e730",
+    "status": "success",
+    "blockNumber": "48014070",
+    "blockHash": "0x391c4ace358b2a584f45eb2da4de88fa7d3339630c701fe01e250580c73749fb",
+    "observedHead": "48014204",
+    "confirmations": "135",
+    "recipient": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+    "action": "recordFor(userControlledWallet, fixed ZecOne note)",
+    "records": "1",
+    "consumed": true,
+    "exactEvents": 1,
+    "settlementBroadcastAttempts": 1,
+    "gasUsed": "106035",
+    "effectiveGasPrice": "6000000"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "at": "2026-10-13T06:31:39.335Z",
+  "networks": [
+    {
+      "chainId": 84532,
+      "block": "48052403",
+      "hash": "0xa01c37a338ebb227eb12473d509b62dd398f9f2c1b0d7eeef6606cc743f523b0",
+      "provider": "0.098863135337903908",
+      "user": "0.009999873999999741"
+    },
+    {
+      "chainId": 11155111,
+      "block": "11904296",
+      "hash": "0x18578e87a4acb1e4d35cef7ffaf65570e2932e287b2126de371121f23ee4ff83",
+      "provider": "0.198876753563194096",
+      "user": "0"
+    },
+    {
+      "chainId": 46630,
+      "block": "134085312",
+      "hash": "0xb5a3f9e9769f8f775ce6b921dbfac167d6c52fdb2f3bcccae82ce446bb9931ea",
+      "provider": "0.00886447598",
+      "user": "0"
+    }
+  ],
+  "activeReservations": 0
+}

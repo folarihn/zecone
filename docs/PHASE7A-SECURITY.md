@@ -1,0 +1,31 @@
+# Phase 7A security boundaries
+
+16 October 2026. Devnet-only development foundation, not a production wallet or bridge. Live refunds remain disabled; no separate-device refund validation has occurred.
+
+## Credentials and historical isolation
+
+New Solana seeds come from Node's secure randomness and are consumed by official Kit Ed25519 primitives. No custom signing cryptography or seed reuse. Payer and recipient live exclusively in `.secrets/phase7a-solana/`; the manual EVM wallet lives in `.secrets/phase7a-evm/`. Creation uses exclusive writes. Existing credentials, wallet databases and quarantine records are not migrated, synced or opened by the isolated backend. The prior 537-file inventory remains the preservation baseline, not a newly reset inventory.
+
+Credentials are local plaintext development files. POSIX `0600` is requested but is not a Windows ACL guarantee. Same-user processes can read them; this is **not hardware, OS-user or separate-device isolation**. They must hold only disposable devnet assets. Locking drops in-memory signer references, not a guarantee of immediate memory erasure or protection from a compromised OS. Seed buffers are cleared after import. Secret material never enters extension messages, HTTP responses, public logs or tracked evidence.
+
+The isolated server imports no instantiated Engine or execution worker, uses new SQLite files under `.state/phase7a`, and starts EVM Dapps with `signingDisabled:true`. Only a locally constructed disposable EVM ownership challenge can be signed after explicit approval. Solana signers are not unlocked or exposed by this server. Historical functionality remains in its existing modules; do not run its normal backend during this validation.
+
+## Network and transaction policy
+
+The default and only shipped live endpoint is `https://api.devnet.solana.com`. Every operation verifies the full pinned devnet genesis hash, not the truncated CAIP identifier. No mainnet fallback. Requests use abort deadlines, bounded three-attempt retries, pacing and one-operation backpressure. This is per-process protection, not an Internet-facing service rate limiter. The authenticated local API also caps requests. Public RPC can throttle, lie or lag; TLS plus genesis identity does not make it a trustless light client.
+
+Only one canonical legacy System Program SOL transfer or legacy SPL `TransferChecked` is constructed. Both owners must be in the disposable account allowlist. The fee payer is the source owner; no relayer is accepted. Maximum SOL amount is 0.01 devnet SOL; hard maximum fee cap is 100,000 lamports, with browser requests capped at 10,000. SPL quantity is an unsigned 64-bit integer, checked against source balance, mint decimals and owner-derived ATAs. Existing initialized legacy accounts are required; account creation/rent, delegates, freezeable mints, close authorities, arbitrary programs, extra instructions, lookup tables and Token-2022 transfers are unsupported. Token-2022 balances can be inspected; extensions never become silently executable.
+
+Untrusted wire bytes are SDK-decoded and re-encoded, then their exact message bytes/signers are compared with a reconstructed reviewed transfer. Fee-payer, recipient, amount, blockhash, account role or program substitution fails. A simulation is not settlement and can become stale. Signing rechecks blockhash, token accounts, simulation and current fee cap, then atomically claims the exact persisted digest. No browser endpoint calls this signing helper. Its real Ed25519 behavior is tested with ephemeral synthetic accounts only.
+
+SQLite journals bind an idempotency ID to an immutable action. Duplicate signing claims/signatures fail, interrupted signing/submitting becomes manual review, and recovery vetoes exclude new execution. Signed bytes and signature are stored atomically. There is **no broadcast implementation**: submission always throws. Do not add automatic blockhash replacement or signing retries. Offchain order IDs do not prevent economic duplication across separately approved new IDs; an atomic receipt program/PDA is required before enabling retriable live settlement.
+
+Signature monitoring distinguishes unknown, processed, confirmed, finalized and failed. Corroboration returns disagreement/outage rather than settlement. The second independent RPC and exact delivered-effect verification are not configured for live settlement; no Phase 7A action is considered settled. Historical Zcash payment evidence cannot enter the synthetic-only destination harness, which checks fixture IDs, confirmations, expiry, payment/order uniqueness and recovery vetoes.
+
+## Browser and UI
+
+Wallet Standard discovery is distinct from EIP-1193. The Solana approval transport binds a random channel to the actual popup Window and origin. The local popup derives website origin from browser MessageEvent metadata, never a supplied request origin. Local API access still requires loopback Host/Origin checks, HttpOnly session and CSRF. CSP limits the local UI; website input cannot read credentials. Origin grants, approval sessions, expiry and one-use decisions are persisted separately. Closing a popup does not approve anything. Browser request bodies intentionally omit sensitive signing payloads because this validation implementation only supports rejection of signing requests.
+
+The Solana provider exposes signing request hooks for compatibility/rejection testing, but these cannot return a signature in the isolated backend. It does not expose `solana:signAndSendTransaction`. Mainnet transaction requests fail before popup launch. This is a provider foundation, **not full signing-compatible Jupiter/Raydium support**. Accounts are cleared on disconnect; other-tab revocation is enforced server-side on subsequent signing requests, but proactive cross-tab account-change notification is not implemented. Reload/reconnect to refresh displayed grants. This limitation is explicit, not a live compatibility claim.
+
+Unsigned simulation previews include the owner, recipient, fee and expiry height. A successful simulation is labeled awaiting explicit approval, not confirmed. RPC errors do not fabricate balances; token names/prices are not invented. New ZEC payments, refund signing, asset exchange, EVM privacy and Phase 7B are out of scope.

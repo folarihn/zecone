@@ -1,0 +1,50 @@
+{
+  "verifiedAt": "2026-10-12T08:08:24.413Z",
+  "checkoutId": "0a84e2d9-200a-4ec8-8d30-0f57ce7603b9",
+  "orderId": "0x662f67628709fea2efc103921b0da0b93b2938a878fcc68b0c3d58a9d4d0da4a",
+  "zcashTransaction": "c56581846c507113c62f0ede6e742261852f5c65ddb7b590c3a4cc08ec782b57",
+  "payments": [
+    {
+      "key": "c56581846c507113c62f0ede6e742261852f5c65ddb7b590c3a4cc08ec782b57:4:1",
+      "zatoshis": "1000000",
+      "height": 4491496,
+      "block_hash": "000022dbcded11cf4b59142c8ab7d859aee959930e8542e163bfbb3597ec071d",
+      "active": 1,
+      "confirmed": 1
+    }
+  ],
+  "authorization": {
+    "tip": 4491505,
+    "scanned": 4491505,
+    "observedAt": 1791792416,
+    "requiredConfirmations": 10,
+    "confirmedZatoshis": "1000000",
+    "outputs": [
+      {
+        "key": "c56581846c507113c62f0ede6e742261852f5c65ddb7b590c3a4cc08ec782b57:4:1",
+        "height": 4491496,
+        "block_hash": "000022dbcded11cf4b59142c8ab7d859aee959930e8542e163bfbb3597ec071d"
+      }
+    ],
+    "at": 1791792416
+  },
+  "base": {
+    "chainId": 84532,
+    "contract": "0x3a3f3b03349b5a9060d35c8252678f59dabf2a52",
+    "transaction": "0x37a41954026391efb578df5b51926a1552a6335d1e193442e2eb4adda948bf42",
+    "block": "48012067",
+    "blockHash": "0x52bc2d6939838e8d2c647d506bf43a14232705287efaec363d3f4095c29ff8e6",
+    "confirmations": "42",
+    "gasUsed": "87038",
+    "effectiveGasPrice": "6000000",
+    "owner": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+    "tokenId": "46219665903707519431943950824841149295460147199022809301565336118776875244106",
+    "consumed": true
+  },
+  "counts": {
+    "orders": 1,
+    "payments": 1,
+    "mintEvents": 1,
+    "broadcastAttempts": 1
+  }
+}

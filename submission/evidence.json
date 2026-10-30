@@ -1,0 +1,60 @@
+{
+  "network": "zcash-mainnet",
+  "payoutChain": "base-mainnet",
+  "generatedAt": "2026-10-28",
+  "sanitized": true,
+  "containsSecrets": false,
+  "zcashDeposit": {
+    "txid": "8f512d50e1ee36eb222537bdba8b8f762f39256e28259a422913392d86b5f86c",
+    "zatoshis": "645937",
+    "zec": "0.00645937",
+    "pool": "ironwood",
+    "outputIndex": 0,
+    "minedHeight": 3529711
+  },
+  "basePayout": {
+    "txHash": "0xc677e9fa956015732c79bfda0991369245bae9394b6f0b9e13425a8e247648a7",
+    "wei": "3284955372432969",
+    "eth": "0.003284955372432969",
+    "block": 53065894,
+    "status": "FINALIZED"
+  },
+  "zcashWithdrawal": {
+    "txid": "0316e2140f5a3440c2755e3f92c748a5f215d509d690d52b4858bfcc9a8af02f",
+    "sentZatoshis": "100000",
+    "feeZatoshis": "10000",
+    "changeZatoshis": "535937",
+    "minedHeight": 3531047,
+    "confirmations": 29,
+    "finalityThreshold": 20,
+    "status": "FINALIZED",
+    "providerAgreement": "PASS"
+  },
+  "zcashExecutionTest": {
+    "txid": "0f0e944238b7649fa927876875011cc97ea7972eeb8da6ba445898ce3c1def47",
+    "sentZatoshis": "10000",
+    "feeZatoshis": "10000",
+    "changeZatoshis": "515937",
+    "minedHeight": 3533388,
+    "confirmationsAtVerification": 11,
+    "finalityThreshold": 10,
+    "status": "FINALIZED",
+    "providerAgreement": "PASS",
+    "hostedCheckoutSettlement": false
+  },
+  "wallet": {
+    "accountFingerprint": "c89c7cda1189ef6eaac30df339e43b74142e49dfd1340bad213c10e356eac6b9",
+    "birthdayHeight": 3528700,
+    "spendableZatoshis": "535937"
+  },
+  "providers": {
+    "zcashPrimary": "https://zec.rocks:443",
+    "zcashPeer": "https://us.zec.stardust.rest:443",
+    "basePrimary": "https://mainnet.base.org",
+    "basePeer": "https://base.drpc.org"
+  },
+  "paused": {
+    "baseSubmitter": true,
+    "livePayout": true
+  }
+}

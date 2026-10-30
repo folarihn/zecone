@@ -1,0 +1,42 @@
+
+> test:ui
+> playwright test
+
+[WebServer] (node:25912) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 29 tests using 1 worker
+
+(node:26144) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 tests\ui\extension.spec.ts:5:1 › provider browser harness authenticates a separate-origin popup and disconnects (1.3s)
+  ok  2 tests\ui\phase6.spec.ts:75:1 › eight primary destinations have real views and URL refresh recovery (1.6s)
+  ok  3 tests\ui\phase6.spec.ts:102:1 › checkout recovery survives refresh without payment calls or fabricated refunds (1.2s)
+  ok  4 tests\ui\phase6.spec.ts:125:1 › dashboard uses supplied balances and unknown EVM balance remains unavailable (1.0s)
+  ok  5 tests\ui\phase6.spec.ts:146:1 › receive network selection is independent of website approvals and unsupported Zcash sends are disabled (640ms)
+  ok  6 tests\ui\phase6.spec.ts:159:1 › failed checkout reads show an actionable error with no fabricated empty success (695ms)
+  ok  7 tests\ui\phase6.spec.ts:171:1 › mobile layout and keyboard focus remain accessible (2.0s)
+  ok  8 tests\ui\phase6.spec.ts:196:1 › unavailable swap adapters show no executable fake quote (666ms)
+  ok  9 tests\ui\phase6.spec.ts:211:1 › expired swap reviews cannot authorize payment or an execution intent (789ms)
+  ok 10 tests\ui\phase8-privacy.spec.ts:67:1 › Phase 8A clears old persistent selection and stores only scoped expiring handles (893ms)
+  ok 11 tests\ui\phase8-privacy.spec.ts:91:1 › Phase 8A private reference appears only after explicit inspection and clears on refresh (921ms)
+  ok 12 tests\ui\phase8-privacy.spec.ts:117:1 › Phase 8A session denial clears checkout data and browser selection (5.7s)
+  ok 13 tests\ui\phase8-privacy.spec.ts:134:1 › Phase 8A known session deadline clears private data even before another server response (750ms)
+  ok 14 tests\ui\purchase-popup.spec.ts:3:1 › marketplace popup shows exact quote approval then the separate payment panel (938ms)
+  ok 15 tests\ui\solana-delivery.spec.ts:16:1 › ZEC-funded Solana checkout shows exact demo terms and awaiting approval without completion (1.3s)
+  ok 16 tests\ui\solana-swap.spec.ts:5:1 › swap checkout explains public ownership, binds fresh recipient and hides cross-chain records (1.5s)
+  ok 17 tests\ui\solana.spec.ts:59:3 › Solana panel at 1440px has truthful balances, simulation and accessible controls (1.3s)
+  ok 18 tests\ui\solana.spec.ts:59:3 › Solana panel at 390px has truthful balances, simulation and accessible controls (1.5s)
+  ok 19 tests\ui\solana.spec.ts:90:1 › Solana account switching clears stale balance and RPC failure never displays zero (695ms)
+  ok 20 tests\ui\wallet.spec.ts:45:1 › marketplace payment needs a separate native-fee approval and preserves recovery details (854ms)
+  ok 21 tests\ui\wallet.spec.ts:158:1 › malformed network data shows an error without crashing the wallet (683ms)
+  ok 22 tests\ui\wallet.spec.ts:171:1 › token swap requires exact intent approval and a separate native payment approval (839ms)
+  ok 23 tests\ui\wallet.spec.ts:269:1 › Seaport purchase labels controlled origin and separates intent from shielded payment approval (855ms)
+  ok 24 tests\ui\wallet.spec.ts:374:1 › desktop wallet is accessible and has no horizontal overflow (1.5s)
+  ok 25 tests\ui\wallet.spec.ts:392:1 › mobile navigation, checkout review and focus-trapped approval are accessible (1.8s)
+  ok 26 tests\ui\wallet.spec.ts:438:1 › no signing happens merely by visiting checkout or opening an approval (871ms)
+  ok 27 tests\ui\wallet.spec.ts:456:1 › sponsor screen displays fixed terms before its explicit approval (946ms)
+  ok 28 tests\ui\wallet.spec.ts:479:1 › apps page names exact origins and lets the user revoke a connection (824ms)
+  ok 29 tests\ui\wallet.spec.ts:498:1 › OpenSea preview is non-executing, recipient-bound and expires visibly (4.2s)
+
+  29 passed (44.4s)

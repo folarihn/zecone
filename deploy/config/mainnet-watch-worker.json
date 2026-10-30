@@ -1,0 +1,16 @@
+{
+  "enabled": false,
+  "network": "zcash-mainnet",
+  "stateDirectory": "/var/lib/zecone",
+  "publicProbeConfig": "/etc/zecone/mainnet-public-probes.json",
+  "walletDirectory": "/var/lib/zecone/watch-profile",
+  "startHeight": 1,
+  "minimumConfirmations": 20,
+  "exportMinimumConfirmations": 10,
+  "batchSize": 20,
+  "maxRetries": 3,
+  "retryBaseMs": 1000,
+  "maximumLagBlocks": 2,
+  "maximumScanAgeSeconds": 1800,
+  "intervalSeconds": 75
+}

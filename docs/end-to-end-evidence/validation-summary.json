@@ -1,0 +1,43 @@
+{
+  "at": "2026-10-20T14:35:07.975Z",
+  "tests": {
+    "node": 434,
+    "walletUi": 35,
+    "extension": 20,
+    "historicalUi": 6,
+    "isolatedApiUi": 3,
+    "completedSwapApiUi": 3,
+    "solidity": 52,
+    "rustWallet": 10,
+    "rustWatch": 5,
+    "rustSigner": 4,
+    "totalPassed": 572,
+    "preExistingIgnoredRustProof": 1
+  },
+  "checks": {
+    "typescript": "PASS",
+    "webTypescript": "PASS",
+    "lint": "PASS",
+    "walletBuild": "PASS",
+    "extensionBuild": "PASS",
+    "mountedReadOnlyWallet": "PASS",
+    "protectedFilesUnchanged": 628,
+    "completedSettlementsUnchanged": 2
+  },
+  "live": {
+    "baseSepoliaReadOnlySimulation": "PASS",
+    "ethereumSepoliaReadOnlySimulation": "PASS",
+    "rpcConfidence": "PRIMARY_ONLY",
+    "newPayment": false,
+    "liveKeyUnlock": false,
+    "signing": false,
+    "broadcast": false,
+    "refundActivation": false
+  },
+  "limitations": [
+    "Native EVM end-to-end settlement verified with disposable fixtures; no new real paid transfer.",
+    "Two unoptimized proof runs failed the existing timeout; unchanged locked native source was rebuilt with optimization before the passing full regression.",
+    "Separate capped testnet execution authorization and isolated wallet/signer setup remain required.",
+    "Mainnet execution remains NO-GO."
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "at": "2026-10-15T08:00:39.480Z",
+  "checkpoint": "fec8341",
+  "historicalPrivateFilesChecked": 19946,
+  "changedHistoricalPrivateFiles": 0,
+  "historicalPublicFilesChecked": 393,
+  "changedHistoricalPublicFiles": [],
+  "changedDependencyPins": [],
+  "reviewedBuildFeatureChanges": [
+    {
+      "path": "services/zcash-watch/Cargo.lock",
+      "change": "Only dependency edges added for required build features; every package version, source and checksum is identical.",
+      "addedDependencyEdges": 11
+    },
+    {
+      "path": "services/zcash-watch/Cargo.toml",
+      "change": "Enable backend PCZT plus required SQLite serde/transparent-input support; move the same pinned primitives crate from dev to runtime. No version changes."
+    }
+  ],
+  "databaseSnapshots": 14,
+  "changedSnapshots": 0,
+  "quarantinedWalletReadByWalletApi": false,
+  "quarantinedWalletWritten": false,
+  "scope": "Hashes of files present at the start; private manifest and byte copies of historical DB files. New disposable files are excluded. Database files were copied while wallet services were stopped."
+}

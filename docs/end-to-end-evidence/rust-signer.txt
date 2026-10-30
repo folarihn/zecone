@@ -1,0 +1,36 @@
+   Compiling zecone-refund-signer v0.1.0 ([workspace]\services\refund-signer-native)
+    Finished `test` profile [optimized + debuginfo] target(s) in 1m 07s
+     Running unittests src\lib.rs (target\debug\deps\zecone_refund_signer-099b88f28a17038f.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\bin\provision-watch-test.rs (target\debug\deps\provision_watch_test-0907049218112c9f.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\main.rs (target\debug\deps\zecone_refund_signer-86cc138b0b6de7e6.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\verification.rs (target\debug\deps\verification-00032dee752bb761.exe)
+
+running 5 tests
+test signed_synthetic_pczt_proves_and_extracts_a_native_transaction ... ignored, expensive isolated proof/extraction; run explicitly, never broadcasts
+test encrypted_output_tampering_is_not_accepted_as_a_valid_plaintext_hint ... ok
+test foreign_change_and_missing_effects_are_rejected ... ok
+test genuine_native_signatures_bind_reviewed_synthetic_transaction ... ok
+test substitution_fee_network_age_input_and_amount_checks ... ok
+
+test result: ok. 4 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.23s
+
+   Doc-tests zecone_refund_signer
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

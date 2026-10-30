@@ -1,0 +1,29 @@
+{
+  "observedAt": "2026-10-12T08:58:09.588Z",
+  "dappOrigin": "http://127.0.0.1:4321",
+  "walletOrigin": "http://127.0.0.1:3210",
+  "transport": "EIP-1193 explicit popup with EIP-6963-compatible SDK discovery",
+  "chainId": 84532,
+  "accountReadAfterRevocation": "Success\n{\n  \"accounts\": [],\n  \"chainId\": \"0x14a34\"\n}\n\n",
+  "transactionHash": "0x241546b7d18764c0cde3ab767600dc2ae1e09c2b5eeed511f0ba9c99419b3df2",
+  "explorer": "https://sepolia.basescan.org/tx/0x241546b7d18764c0cde3ab767600dc2ae1e09c2b5eeed511f0ba9c99419b3df2",
+  "from": "0x1865dd77bfcb632571d3c93144d5634f0d93c714",
+  "to": "0x1865dd77bfcb632571d3c93144d5634f0d93c714",
+  "valueWei": "0",
+  "calldata": "0x",
+  "receiptStatus": "success",
+  "block": "48013543",
+  "confirmations": "58",
+  "gasUsed": "21000",
+  "effectiveGasPriceWei": "6000000",
+  "methods": [
+    "eth_requestAccounts",
+    "eth_accounts",
+    "eth_chainId",
+    "personal_sign",
+    "eth_signTypedData_v4",
+    "eth_sendTransaction"
+  ],
+  "originRevoked": true,
+  "unauthorizedAfterRevoke": "4100"
+}

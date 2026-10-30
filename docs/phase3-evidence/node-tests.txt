@@ -1,0 +1,88 @@
+
+> test
+> node --import tsx --test tests/*.test.ts
+
+(node:6392) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ local Anvil: fixed signed ZEC action settles once and confirms the exact user event (2784.1363ms)
+(node:31760) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ local EVM: real viem signing, persisted raw tx, receipt/event/owner reconciliation and chain guard (2923.6377ms)
+(node:33120) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ origin policy accepts exact HTTPS and loopback origins and rejects spoofed or unsafe origins (11.0112ms)
+✔ EIP-1193 array and object parameter forms normalize without losing transaction fields (6.3861ms)
+✔ address access is opt-in, request approval is idempotent, and revocation is origin-bound (743.1767ms)
+✔ channel binding prevents origin and local-session substitution (77.8326ms)
+✔ unapproved signature/transaction and unsupported RPC methods fail before signing (95.9203ms)
+✔ fixed-chain request rejects wrong networks and malformed transaction fields (107.9847ms)
+✔ EIP-1193 read methods expose only chain id and the public EVM address (80.3643ms)
+(node:41184) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ duplicate snapshots and outputs do not increase paid amount (652.4966ms)
+✔ underpayments accumulate but never settle early (156.0294ms)
+✔ nine confirmations and unmined observations cannot authorize (153.6039ms)
+✔ Ironwood notes require ten confirmations and retain pool-specific identity (132.4852ms)
+✔ invalid network, partial scan, stale snapshot and transparent output fail closed (122.114ms)
+✔ expired orders with funds enter auditable recovery and cannot revive (128.6001ms)
+✔ a late payment to an already expired order stays expired (136.296ms)
+✔ overpayment authorizes only one mint and records excess recovery (127.7101ms)
+✔ reorg before preparation removes authorization (140.4798ms)
+✔ reorg after preparation stops broadcast and creates recovery (138.5281ms)
+✔ conflicting duplicate outputs reject the entire snapshot atomically (121.8126ms)
+✔ payment attribution cannot be replayed against another account (193.6032ms)
+✔ same request is idempotent; reusing nonce for another intent fails (179.2563ms)
+✔ crash after broadcast preserves raw transaction across restart (214.3244ms)
+✔ receipt reconciliation prevents duplicate settlement on retries (167.0864ms)
+✔ confirmed revert records failure; explicit retry requires fresh payment (117.9234ms)
+✔ expired pending settlement does not rebroadcast (52.543ms)
+✔ altered recipient, contract, price, expiry and signature are rejected (58.2151ms)
+✔ a slow prepare cannot bypass the freshness check before persistence (42.9041ms)
+(node:32708) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ local EVM: ordinary wallet buy, viem/Solidity quote identity, shielded-funded delivery and replay (3886.347ms)
+(node:36164) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ approved quote waits for a competing scan lock and reuses its signed identity (1124.195ms)
+✔ sent payment without a mined note is pending mining, never a payment request or completion (219.2222ms)
+✔ two service instances cannot concurrently settle one confirmed purchase twice (330.2892ms)
+✔ purchase terms and signature bind origin, chain, recipient, NFT, calldata, rate and expiry (255.3941ms)
+✔ reservations survive restart and prevent duplicate listings and overcommitted liquidity (191.2728ms)
+✔ nine confirmations, underpayments, and reorg before authorization never broadcast (343.5805ms)
+✔ duplicate confirmed outputs settle once; restart and repeated tick cannot repay (372.6025ms)
+✔ confirmed payment plus listing_sold preserves refund recovery (116.2557ms)
+✔ confirmed payment plus listing_cancelled preserves refund recovery (102.4703ms)
+✔ confirmed payment plus listing_expired preserves refund recovery (102.1897ms)
+✔ confirmed payment plus listing_changed preserves refund recovery (79.1806ms)
+✔ confirmed payment plus seller_ownership_changed preserves refund recovery (88.6496ms)
+✔ confirmed payment plus seller_approval_revoked preserves refund recovery (93.8256ms)
+✔ confirmed payment plus gas_budget_exceeded preserves refund recovery (75.8624ms)
+✔ insufficient provider liquidity fails closed after confirmed payment (56.8579ms)
+✔ ambiguous broadcast retains exact hash, never retries, and reconciles receipt (77.6563ms)
+✔ confirmed revert and ownership mismatch require recovery with no automatic retry (200.8963ms)
+✔ expired paid order, overpayment, and post-authorization reorg are auditable (132.2352ms)
+✔ public purchase projection excludes payment keys, notes, amounts, and refund destination (39.5244ms)
+✔ interrupted native send requires reconciliation and cannot initiate another payment (33.3731ms)
+✔ dApp purchase requests require origin permission, exact approval, and revocation blocks status (65.5557ms)
+(node:6920) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ pairing is one use, cookie is hashed, sessions expire and revoke (34.9012ms)
+✔ Host, Origin, fetch metadata and JSON gate reject cross-site requests (2.0635ms)
+✔ unconnected or unapproved operations never invoke signing (1110.6995ms)
+✔ ownership challenge verifies signature, is session-bound and cannot replay (329.6412ms)
+✔ tampered ownership signature fails closed (228.6392ms)
+✔ order creation is idempotent across duplicate and concurrent submissions (186.83ms)
+✔ stale and other-session fee approvals cannot send; duplicate approvals send once (300.4366ms)
+✔ payment approval passes the exact fee ceiling and predetermined destination to native signer (280.6508ms)
+✔ restarted in-flight actions require review and never silently resend (204.2377ms)
+✔ nine confirmations remain confirming; ten permit settled and later completed states (214.7997ms)
+✔ browser projection omits account IDs, receiving addresses, signatures, nonce and raw transaction (191.4363ms)
+✔ HTTP boundary blocks unauthenticated, CSRF and cross-origin signing attempts before dispatch (240.5264ms)
+ℹ tests 62
+ℹ suites 0
+ℹ pass 62
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16397.9593

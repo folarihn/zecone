@@ -1,0 +1,56 @@
+[
+  {
+    "txid": "8e301d20e3e660e9259ebcf9738910cf7be1311e979925d2c54e0bbb455911a8",
+    "minedHeight": 4496573,
+    "expiryHeight": 4496600,
+    "confirmedUnminedAt": null
+  },
+  {
+    "txid": "eea00e872a3b1be22a449c5af8c1c6c82385cdb64e06a5a8993290f0304f66ca",
+    "minedHeight": 4491670,
+    "expiryHeight": 4491708,
+    "confirmedUnminedAt": null
+  },
+  {
+    "txid": "be203c56ae342ae368d13547b1a65f09f8912decd6bf2e7fd18aaf7071ff8bdf",
+    "minedHeight": 4497319,
+    "expiryHeight": 4497355,
+    "confirmedUnminedAt": null
+  },
+  {
+    "txid": "c56581846c507113c62f0ede6e742261852f5c65ddb7b590c3a4cc08ec782b57",
+    "minedHeight": 4491496,
+    "expiryHeight": 4491531,
+    "confirmedUnminedAt": null
+  },
+  {
+    "txid": "09c49d32499e1fd2680a88308fbc154febbfb579ac765412795e9f445bd547b8",
+    "minedHeight": 4492959,
+    "expiryHeight": 4492995,
+    "confirmedUnminedAt": null
+  },
+  {
+    "txid": "44938c5d28d61143bf703cc5557cabf732c897dee1ffdb883a3a89d49bb43848",
+    "minedHeight": 4496626,
+    "expiryHeight": 4496653,
+    "confirmedUnminedAt": null
+  },
+  {
+    "txid": "e1c868b73be5d6f67121b415507ea3a7529fc7c0fe9f9423933b7abd62757942",
+    "minedHeight": 4491375,
+    "expiryHeight": 4491409,
+    "confirmedUnminedAt": null
+  },
+  {
+    "txid": "4a10f571865ace3c61fc53ed6c032bb81b12bdfd605a1703c63bf0d7ba00046a",
+    "minedHeight": null,
+    "expiryHeight": 4491367,
+    "confirmedUnminedAt": 4491368
+  },
+  {
+    "txid": "92816a4d190bbfbcbe55cb1a09e1d7ee0785aa248ae1b7501f0edb2bc68e6e74",
+    "minedHeight": 4497075,
+    "expiryHeight": 4497106,
+    "confirmedUnminedAt": null
+  }
+]

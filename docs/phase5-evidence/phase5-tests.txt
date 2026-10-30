@@ -1,0 +1,252 @@
+(node:14836) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✖ Phase 5 graph rejects skipped transitions, stale writers and refunds after completion (10.0108ms)
+✔ Phase 5 refund graph retains an execution veto after recovery and restart (56.2681ms)
+✖ duplicate user requests and operator approvals are idempotent; second refund is refused (65.3605ms)
+✖ wrong user, destination, operator and signer approval cannot authorize a refund (22.9417ms)
+✖ refund approval wins race against EVM preparation, including a second connection (25.1272ms)
+✖ saved EVM transaction wins race and prevents refund even if receipt is called failed (27.0345ms)
+✖ execution worker cannot broadcast after a durable refund veto and restart (25.8148ms)
+✔ completed purchase cannot enter refund authorization (29.2582ms)
+✖ underpayment and overpayment refunds are bounded by confirmed receipts and explicit fee (23.3047ms)
+✖ nine confirmations, stale scans, dust, and overflow cannot authorize refund (79.1627ms)
+✖ expired request and changed payment attribution never receive operator approval (22.2909ms)
+✖ reorg after approval requires recovery, preserves veto and forbids blind replacement (22.3653ms)
+✖ public refund view never exposes payment mappings or pretends to confirm a refund (23.3038ms)
+✖ independent signer rechecks its own evidence and requires exact explicit review (22.6191ms)
+✖ interrupted independent signer claim is not cleared or signed again (22.4183ms)
+✔ keystore randomizes salt and nonce and rejects password, ciphertext, purpose and KDF tampering (1981.8237ms)
+✔ unauthorized unlock, explicit lock, expiry and lock-during-KDF all fail closed (940.5437ms)
+✔ encrypted-copy staging is reversible and interruption never overwrites credentials (938.3872ms)
+✔ price consensus rejects staleness, future timestamps, disagreement and duplicate sources (0.9827ms)
+✔ feed failure does not downgrade a configured quorum or silently return a fixed rate (0.3095ms)
+✔ quote binds fees and expiry; movement rejects before approval but never reprices a paid commitment (1.4301ms)
+✖ OpenSea handoff accepts only explicit official Ethereum item paths and stays non-executable (2.3717ms)
+✔ native address decoder validates real checksum without a seed, DB or network (109.1052ms)
+ℹ tests 23
+ℹ suites 0
+ℹ pass 9
+ℹ fail 14
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6575.3255
+
+✖ failing tests:
+
+test at tests\phase5.test.ts:1:2668
+✖ Phase 5 graph rejects skipped transitions, stale writers and refunds after completion (10.0108ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  20 !== 21
+  
+      at TestContext.<anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:44:10)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.start (node:internal/test_runner/test:1003:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:358:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 20,
+    expected: 21,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\phase5.test.ts:1:4184
+✖ duplicate user requests and operator approvals are idempotent; second refund is refused (65.3605ms)
+  Error: unsupported_canonical_value
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:17:9)
+      at Array.map (<anonymous>)
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:14:46)
+      at digest (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:19:71)
+      at Refunds.eligible (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:26:53)
+      at Refunds.draft (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:30:34)
+      at async Object.request (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:33:35)
+      at async TestContext.<anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:53:23)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at tests\phase5.test.ts:1:4730
+✖ wrong user, destination, operator and signer approval cannot authorize a refund (22.9417ms)
+  Error: unsupported_canonical_value
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:17:9)
+      at Array.map (<anonymous>)
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:14:46)
+      at digest (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:19:71)
+      at Refunds.eligible (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:26:53)
+      at Refunds.draft (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:30:34)
+      at async TestContext.<anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:59:23)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at tests\phase5.test.ts:1:5529
+✖ refund approval wins race against EVM preparation, including a second connection (25.1272ms)
+  Error: unsupported_canonical_value
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:17:9)
+      at Array.map (<anonymous>)
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:14:46)
+      at digest (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:19:71)
+      at Refunds.eligible (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:26:53)
+      at Refunds.draft (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:30:34)
+      at async Object.request (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:33:35)
+      at async TestContext.<anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:68:23)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at tests\phase5.test.ts:1:6065
+✖ saved EVM transaction wins race and prevents refund even if receipt is called failed (27.0345ms)
+  Error: unsupported_canonical_value
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:17:9)
+      at Array.map (<anonymous>)
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:14:46)
+      at digest (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:19:71)
+      at Refunds.eligible (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:26:53)
+      at Refunds.draft (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:30:34)
+      at async Object.request (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:33:35)
+      at async TestContext.<anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:76:23)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at tests\phase5.test.ts:1:6457
+✖ execution worker cannot broadcast after a durable refund veto and restart (25.8148ms)
+  Error: unsupported_canonical_value
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:17:9)
+      at Array.map (<anonymous>)
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:14:46)
+      at digest (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:19:71)
+      at Refunds.eligible (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:26:53)
+      at Refunds.draft (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:30:34)
+      at async Object.request (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:33:35)
+      at async TestContext.<anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:80:23)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at tests\phase5.test.ts:1:7208
+✖ underpayment and overpayment refunds are bounded by confirmed receipts and explicit fee (23.3047ms)
+  Error: unsupported_canonical_value
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:17:9)
+      at Array.map (<anonymous>)
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:14:46)
+      at digest (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:19:71)
+      at Refunds.eligible (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:26:53)
+      at Refunds.draft (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:30:34)
+      at async Object.request (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:33:35)
+      at async TestContext.<anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:89:69)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at tests\phase5.test.ts:1:7497
+✖ nine confirmations, stale scans, dust, and overflow cannot authorize refund (79.1627ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /dust/. Input:
+  
+  'Error: unsupported_canonical_value'
+  
+      at async TestContext.<anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:94:27)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: unsupported_canonical_value
+        at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:17:9)
+        at Array.map (<anonymous>)
+        at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:14:46)
+        at digest (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:19:71)
+        at Refunds.eligible (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:26:53)
+        at Refunds.draft (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:30:34)
+        at async Object.request (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:33:35)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25)
+        at async TestContext.<anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:94:27),
+    expected: /dust/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at tests\phase5.test.ts:1:7959
+✖ expired request and changed payment attribution never receive operator approval (22.2909ms)
+  Error: unsupported_canonical_value
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:17:9)
+      at Array.map (<anonymous>)
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:14:46)
+      at digest (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:19:71)
+      at Refunds.eligible (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:26:53)
+      at Refunds.draft (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:30:34)
+      at async Object.request (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:33:35)
+      at async TestContext.<anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:98:23)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at tests\phase5.test.ts:1:8505
+✖ reorg after approval requires recovery, preserves veto and forbids blind replacement (22.3653ms)
+  Error: unsupported_canonical_value
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:17:9)
+      at Array.map (<anonymous>)
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:14:46)
+      at digest (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:19:71)
+      at Refunds.eligible (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:26:53)
+      at Refunds.draft (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:30:34)
+      at async Object.request (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:33:35)
+      at async TestContext.<anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:103:23)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at tests\phase5.test.ts:1:9075
+✖ public refund view never exposes payment mappings or pretends to confirm a refund (23.3038ms)
+  Error: unsupported_canonical_value
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:17:9)
+      at Array.map (<anonymous>)
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:14:46)
+      at digest (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:19:71)
+      at Refunds.eligible (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:26:53)
+      at Refunds.draft (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:30:34)
+      at async Object.request (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:33:35)
+      at async TestContext.<anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:108:23)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at tests\phase5.test.ts:1:9493
+✖ independent signer rechecks its own evidence and requires exact explicit review (22.6191ms)
+  Error: unsupported_canonical_value
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:17:9)
+      at Array.map (<anonymous>)
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:14:46)
+      at digest (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:19:71)
+      at Refunds.eligible (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:26:53)
+      at Refunds.draft (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:30:34)
+      at async Object.request (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:33:35)
+      at async TestContext.<anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:112:23)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at tests\phase5.test.ts:1:11420
+✖ interrupted independent signer claim is not cleared or signed again (22.4183ms)
+  Error: unsupported_canonical_value
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:17:9)
+      at Array.map (<anonymous>)
+      at canonical (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:14:46)
+      at digest (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\protocol.ts:19:71)
+      at Refunds.eligible (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:26:53)
+      at Refunds.draft (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\settlement\refunds.ts:30:34)
+      at async Object.request (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:33:35)
+      at async TestContext.<anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:126:23)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at tests\phase5.test.ts:1:16472
+✖ OpenSea handoff accepts only explicit official Ethereum item paths and stays non-executable (2.3717ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:171:347)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at Test.postRun (node:internal/test_runner/test:1235:19)
+      at Test.run (node:internal/test_runner/test:1163:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }

@@ -1,0 +1,35 @@
+(node:28336) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ verified Seaport fork: restrictive fulfillment, payment gating, failures and restart
+  ✔ official runtime, Seaport order hash and independent buyer digest match onchain (8.6251ms)
+  ✔ forged seller signature rejected independently and by genuine Seaport (42.3758ms)
+  ✔ wrong chain rejected (8.9522ms)
+  ✔ wrong NFT rejected (5.9144ms)
+  ✔ wrong seller rejected (4.2037ms)
+  ✔ wrong recipient rejected (3.0006ms)
+  ✔ expired quote rejected (3.2333ms)
+  ✔ changed fee rejected (3.2757ms)
+  ✔ excessive price rejected (3.134ms)
+  ✔ wrong protocol domain rejected (3.0618ms)
+  ✔ unsupported orders and additional consideration rejected (21.3634ms)
+  ✔ calldata and recipient substitution fail despite original buyer signature (5.5639ms)
+  ✔ cancelled order is rejected (33.4349ms)
+  ✔ revoked seller approval is rejected (46.0039ms)
+  ✔ seller ownership change is rejected (38.8792ms)
+  ✔ onchain validated order can omit seller signature (280.5813ms)
+  ✔ insufficient provider liquidity fails before signing (52.865ms)
+  ✔ nine confirmations cannot authorize a Seaport transaction (2.0776ms)
+  ✔ ten confirmations fulfill the real protocol directly to the user and pay seller (111.3998ms)
+  ✔ replay and an already filled listing are rejected (20.171ms)
+  ✔ durable restart and duplicate settlement preserve hash and nonce (9.0351ms)
+  ✔ a paid unavailable listing remains an auditable recovery liability (314.3656ms)
+  ✔ destination reorganization cannot be reported as verified delivery (241.1372ms)
+✔ verified Seaport fork: restrictive fulfillment, payment gating, failures and restart (9609.4343ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 24
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12182.4658

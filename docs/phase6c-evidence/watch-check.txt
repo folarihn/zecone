@@ -1,0 +1,2 @@
+    Checking zecone-zcash-watch v0.1.0 (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\zcash-watch)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 21.62s

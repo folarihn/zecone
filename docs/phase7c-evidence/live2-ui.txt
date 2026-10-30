@@ -1,0 +1,38 @@
+
+> test:ui
+> playwright test
+
+[WebServer] (node:30212) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 25 tests using 1 worker
+
+(node:14708) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 tests\ui\extension.spec.ts:5:1 › provider browser harness authenticates a separate-origin popup and disconnects (1.3s)
+  ok  2 tests\ui\phase6.spec.ts:75:1 › eight primary destinations have real views and URL refresh recovery (1.4s)
+  ok  3 tests\ui\phase6.spec.ts:102:1 › checkout recovery survives refresh without payment calls or fabricated refunds (1.1s)
+  ok  4 tests\ui\phase6.spec.ts:125:1 › dashboard uses supplied balances and unknown EVM balance remains unavailable (837ms)
+  ok  5 tests\ui\phase6.spec.ts:146:1 › receive network selection is independent of website approvals and unsupported Zcash sends are disabled (661ms)
+  ok  6 tests\ui\phase6.spec.ts:159:1 › failed checkout reads show an actionable error with no fabricated empty success (608ms)
+  ok  7 tests\ui\phase6.spec.ts:171:1 › mobile layout and keyboard focus remain accessible (1.7s)
+  ok  8 tests\ui\phase6.spec.ts:196:1 › unavailable swap adapters show no executable fake quote (582ms)
+  ok  9 tests\ui\phase6.spec.ts:211:1 › expired swap reviews cannot authorize payment or an execution intent (670ms)
+  ok 10 tests\ui\purchase-popup.spec.ts:3:1 › marketplace popup shows exact quote approval then the separate payment panel (899ms)
+  ok 11 tests\ui\solana-delivery.spec.ts:16:1 › ZEC-funded Solana checkout shows exact demo terms and awaiting approval without completion (1.3s)
+  ok 12 tests\ui\solana-swap.spec.ts:5:1 › swap checkout explains public ownership, binds fresh recipient and hides cross-chain records (1.4s)
+  ok 13 tests\ui\solana.spec.ts:59:3 › Solana panel at 1440px has truthful balances, simulation and accessible controls (1.3s)
+  ok 14 tests\ui\solana.spec.ts:59:3 › Solana panel at 390px has truthful balances, simulation and accessible controls (1.4s)
+  ok 15 tests\ui\solana.spec.ts:90:1 › Solana account switching clears stale balance and RPC failure never displays zero (623ms)
+  ok 16 tests\ui\wallet.spec.ts:45:1 › marketplace payment needs a separate native-fee approval and preserves recovery details (781ms)
+  ok 17 tests\ui\wallet.spec.ts:158:1 › malformed network data shows an error without crashing the wallet (545ms)
+  ok 18 tests\ui\wallet.spec.ts:171:1 › token swap requires exact intent approval and a separate native payment approval (835ms)
+  ok 19 tests\ui\wallet.spec.ts:269:1 › Seaport purchase labels controlled origin and separates intent from shielded payment approval (788ms)
+  ok 20 tests\ui\wallet.spec.ts:374:1 › desktop wallet is accessible and has no horizontal overflow (1.4s)
+  ok 21 tests\ui\wallet.spec.ts:392:1 › mobile navigation, checkout review and focus-trapped approval are accessible (1.5s)
+  ok 22 tests\ui\wallet.spec.ts:438:1 › no signing happens merely by visiting checkout or opening an approval (666ms)
+  ok 23 tests\ui\wallet.spec.ts:456:1 › sponsor screen displays fixed terms before its explicit approval (675ms)
+  ok 24 tests\ui\wallet.spec.ts:479:1 › apps page names exact origins and lets the user revoke a connection (610ms)
+  ok 25 tests\ui\wallet.spec.ts:498:1 › OpenSea preview is non-executing, recipient-bound and expires visibly (4.0s)
+
+  25 passed (31.4s)

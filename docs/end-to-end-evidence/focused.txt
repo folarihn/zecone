@@ -1,0 +1,46 @@
+(node:4388) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ keyless wallet local consent grants no ownership proof or financial methods (35.0389ms)
+✔ local review HTTP handler binds profile, session and CSRF and exposes no execution route (322.0542ms)
+✔ SPL delivery reviews the pinned mint and stays non-financial until exact approval (16.4451ms)
+✔ opt-in wallet creates one reviewed financial order and reveals a payment request without paying (119.4647ms)
+✔ financial creation stays closed unless the operator enables it (37.5603ms)
+✔ swap handoff preserves reviewed route and economic limits in original engine (26.174ms)
+✔ changed swap terms require a new review without financial creation (14.1368ms)
+✔ a second review cannot adopt or reopen an existing paid-order identifier (16.13ms)
+✔ wallet economic review creates no financial order and discloses demo pricing (13.1877ms)
+✔ explicit fixture authorization hands off to original engine once without execution (19.2347ms)
+✔ wrong session, digest, late review and depleted liquidity fail closed (17.1462ms)
+✔ interrupted financial handoff is reconciliation-only after restart (10.3786ms)
+(node:5416) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ wallet authorization, owned-note verification and original executor settle exactly once (664.4738ms)
+✔ wrong authorizer, changed signature, session and expired quote cannot create an order (89.3115ms)
+✔ underpayment, wrong watch account, missing owned note and excess payments never execute (122.4497ms)
+✔ lost broadcast response survives coordinator restart and only reconciles original hash (440.5913ms)
+✔ concurrent execution, drained liquidity and payment reorg fail closed (296.9178ms)
+✔ session revocation after asynchronous review revalidation cancels financial creation (61.9683ms)
+✔ consented dApp request enters distinct native checkout and revocation blocks reuse (76.6903ms)
+✔ authenticated wallet API authorizes one order, reveals scoped request and reports native scan (421.5453ms)
+✔ interrupted signing claim and unsupported token/contract recipients fail closed (138.7016ms)
+✔ generic JSON observation, failed native reads and overlapping watch scans cannot authorize signing (168.0582ms)
+✔ desktop replay index rejects source reuse across wallet journals and historical accounts (4.3003ms)
+✔ signer-returned bytes cannot change the recipient, amount or transaction policy (115.9788ms)
+✔ source receiver substitution and corrupted persisted authority cannot unlock execution (122.0538ms)
+(node:8224) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ transfer policy accepts only capped testnet assets and allowlisted tokens (22.3038ms)
+✔ native and ERC-20 calls are exact and contain no arbitrary calldata (25.5156ms)
+✔ EVM preview returns the exact call without creating an order (37.7557ms)
+✔ read-only quote revalidates block, fee and relayer liquidity (12.1596ms)
+✔ EVM transfer order reuses payment observation and executes once (61.0979ms)
+✔ ERC-20 transfer requires operator allowlist before any quote (17.8752ms)
+✔ SPL delivery is quoted and prepared through the existing Solana engine (361.1075ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 31002.3394

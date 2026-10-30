@@ -1,0 +1,443 @@
+# ZecOne progress
+
+## 26 October 2026 (afternoon) - Windows verification fixes
+
+The first Windows verification run reported six failures. All six trace to ZecOne services started from pre-update code still listening on 4321/4333: the script launched duplicates that could not bind, then tested the old API (no quote preview; old request format → HTTP 400), the old Access Pass (no `/api/config`) and an Edge suite that refused to start on occupied ports. Fixes: the website proxies public API reads through a runtime route handler (`ZECONE_BASE_URL` is no longer frozen at build time); the API, web app and Access Pass expose service identity; services exit with a clear message on port conflicts; the browser suite and the verification script run isolated instances on dedicated ports and stop only the processes they start; the script identifies existing listeners, flags outdated ZecOne services, shows API error bodies and saves logs under `.state/verify-windows/`. No financial controls changed.
+
+## 26 October 2026 (later) - Read-only watcher integration, safe demo, verification
+
+Connected the existing authenticated Zcash mainnet watcher to the merchant payment API as a read-only **monitor mode** (`services/payments/watch-bridge.ts`): it reuses `MainnetWatchScanner`, the settlement path's `verifyOwnedNote` and the watch worker's lock, attributes notes only by UFVK receiver + exclusive allocation + mining after the allocation tip, enforces the 20-confirmation policy, records chain evidence, handles reorganisations and provider failures fail-closed, survives restarts, streams status over a new token-scoped SSE endpoint and sends signed webhooks. Monitor payments stop at `ZEC_CONFIRMED`; nothing can trigger a Base payout. Demo checkouts are now explicitly simulated: no payable address or payment URI, a labelled example interface, and evidence types that cannot cross between demo and real payments. Per-order diversified addresses remain unimplemented (single active real checkout enforced).
+
+Validation (Linux cloud workspace, Node 22): payment/SDK/watcher Node tests, the 35-test wallet UI suite with the wallet served at `/`, and 11 browser end-to-end tests pass; both typechecks, lint, Turbopack and webpack builds pass. The 10 previously failing native tests pass once `zecone-zcash`, `zecone-refund-signer` and the watch binaries are built; the remaining 5 need Foundry `anvil`. Windows/Node 24 is not verified from here — `scripts/verify-windows.ps1` performs those checks locally. No ZEC or ETH moved; nothing deployed.
+
+## 26 October 2026 - External DApp integration and UI redesign completed (demo mode)
+
+Continued the interrupted redesign from the uncommitted tree on `df6409b`. The legacy dark wallet stylesheet is now scoped to `.wallet-scope` (it previously overrode the new light site on every page), and the local wallet gateways set `ZECONE_SURFACE=wallet` so `Launch-ZecOne.cmd`, pairing links and wallet UI tests keep the wallet at `/`; the public site serves it at `/wallet`.
+
+Built the merchant integration: EIP-4361 wallet-ownership onboarding with server-composed single-use challenges, hashed scoped API keys, wallet-verified dashboard sessions, key rotation, payout-address change requiring the new wallet's signature; payment API with atomic conflict-checked idempotency, expiry sweeper, cancel, receipts, merchant-scoped history, recipient bound to the verified address, liquidity guard and safe errors; enforced single-active-checkout allocation; signed webhooks with event ids, retries and test ping (the secret is now actually returned once). Removed the unauthenticated demo-completion route and every "complete" button: demo payments complete only through a server-side observer that replays recorded mainnet evidence, labelled `recorded-mainnet-replay`. `@zecone/sdk` 0.2 adds list/cancel/receipt/retries, `constructEvent`, onboarding helpers, a browser-safe checkout module and `<ZecOneCheckout>`. New hosted checkout (`/pay/:id`), iframe embed (`/embed/:id`), payment links with QR, merchant dashboard, and a rebuilt Access Pass example that unlocks only after a verified webhook plus API re-check.
+
+Validation: 25 payment/SDK Node tests and 6 browser end-to-end tests (real-signature test wallet, chain switch, onboarding, hosted/embedded checkout, webhook-gated unlock, forged webhook rejection) pass; both typechecks, lint and production build pass. See `docs/INTEGRATION-GAP-REPORT.md`. Live payouts, Zcash broadcast and the relayer submitter remain disabled; no ZEC or ETH moved; nothing deployed. Per-order diversified addresses and the live watcher feed remain open.
+
+## 23 October 2026 - Mainnet demo hardening and watch-only operations
+
+Completed the two-track hardening sprint from checkpoint `257e328`. The online
+mainnet executor now requires an externally signed bundle and has no relayer
+keystore or passphrase path. A separate network-free CLI signs only an exact
+reviewed prepared digest, requires an enabled production profile and durable
+signer ledger, and never prints signed bytes. Physical separate-device
+validation remains mandatory before mainnet signing.
+
+Zcash payment authorization now uses the profile's exact two-provider pair and
+minimum 20-confirmation policy. The provider identities and threshold are bound
+into the payment digest and checked again against native scanner output. A new
+disabled-by-default watch-only worker advances a two-source authenticated raw
+block corpus, scans the UFVK-only wallet, atomically checkpoints progress,
+detects reorgs/provider disagreement, exposes redacted lag/freshness health and
+recovers safely after restart. The VPS service still has no signing, broadcast,
+refund or financial mutation endpoint.
+
+Patched Next.js to 16.4.2 and updated Rust TLS dependencies across all three
+lockfiles (`rustls` 0.23.46, `rustls-webpki` 0.103.16, `webpki-roots` 1.0.10,
+`ctutils` 0.4.4). Production dependency audits are clean. Typechecks, lint,
+wallet/extension builds, strict Zcash-watch Clippy, 16 watch tests, historical
+Zcash/refund tests, focused mainnet tests and preservation checks pass. The full
+Node suite has 541 tests; one first-run Windows restore-directory rename was
+transient and its isolated rerun passed. The final clean full-suite rerun also
+covers worker lock release after a corrupt checkpoint, contiguous authenticated
+manifest heights, and fail-closed VPS health after the watch worker exits. It is
+recorded in [the hardening validation](docs/MAINNET-DEMO-HARDENING-VALIDATION.md).
+
+Mainnet execution remains disabled. Operator work still required includes a
+fresh mainnet UFVK and birthday, reviewed independent production providers,
+two genuine price authorities, fresh recipient/relayer identities, a physical
+offline signer, funded capped accounts, second-day provider evidence, off-host
+backup/restore, immutable image deployment (the image build now passes locally)
+and two separately authorized live acceptance transfers. No live key was
+unlocked and no payment, signature, broadcast, refund or VPS change occurred.
+
+## 22 October 2026 - Stage 4C provider verification, export rehearsal and backup preparation
+
+Rechecked the live public Zcash path and the running read-only VPS.
+zec.rocks and Stardust/ChainSafe agreed at tip 3,526,794 on height 3,526,784
+with ten confirmations; Tatum and Blockchair returned byte-identical full-block
+bytes, and local header, Equihash, target and transaction-Merkle checks passed.
+A three-block export at heights 3,526,768-3,526,770 also passed exact
+dual-source agreement, continuity and accumulated-work checks. Additional
+fallback probes against Cake Wallet and Zcash Explorer passed.
+
+An operator-owned Tatum key then passed authenticated ten-block exports at
+heights 3,526,778-3,526,787 and 3,526,745-3,526,754. All twenty blocks passed
+exact Tatum/Blockchair byte agreement, local Equihash `(200,9)` proof of work,
+target, transaction Merkle root and previous-hash continuity. GetBlock's Zebra
+JSON-RPC was validated with a one-block test and a ten-block export at heights
+3,526,768-3,526,777; all ten blocks passed the same checks with exact
+Tatum/GetBlock agreement. Blockchair is development-use only and was replaced
+by GetBlock in the sanitized probe configuration. The GetBlock URL is supplied
+only through `ZECONE_GETBLOCK_URL`.
+
+The raw-block providers are distinct operators on separate networks: GetBlock
+resolved to AS44051 Fornex Hosting and Tatum to AS396982 Google Cloud. That
+supports operator-level independence, but shared upstreams and administrative
+independence remain **UNVERIFIED**. Both free plans have no ZecOne SLA.
+Production acceptance remains **BLOCKED** pending a second successful export
+day, production-grade provider terms, and the remaining operator gates.
+
+A fresh disposable backup/restore drill encrypted a synthetic mainnet watch
+profile to a disposable age identity, restored matching account/address/birthday
+metadata and passed SQLite integrity. Production off-host backup remains
+**BLOCKED** on a pinned age recipient, destination, credentials, retention and
+alert route. Backblaze B2 is the recommended lowest-cost destination (10 GB
+free, then USD 6.95/TB-month; versioning by default and optional Object Lock).
+No account or purchase was made.
+
+Read-only SSH confirmed the Contabo host is healthy: 11 GiB RAM with 9.5 GiB
+available, 77 GiB free on `/`, 49 GiB dedicated ZecOne filesystem, and a healthy
+`zecone-readonly-1` on `stage1-1.89`. The health endpoint remains `READ_ONLY`,
+paused and `OPERATOR_SETUP_REQUIRED`. The host has Node and `age` but no
+`rclone`, `b2` CLI or watch binary; `/opt/zecone` is staged source, not a Git
+checkout. No VPS file, service, container, firewall rule, wallet, payment,
+signature, broadcast or refund was changed. See
+[Stage 4C validation](docs/STAGE4C-VALIDATION.md) and the
+[operator checklist](docs/STAGE4C-OPERATOR-CHECKLIST.md).
+
+## 22 October 2026 - Stage 4B production infrastructure and live read-only verification
+
+Validated two published Zcash lightwalletd operators, zec.rocks and Stardust,
+against real mainnet data. They agreed at tip 3,526,658 on the ten-confirmation
+block at height 3,526,648. Tatum Zebra RPC and Blockchair returned identical
+complete raw bytes for that block; local Rust checks passed header hashing,
+Equihash, target and the full transaction Merkle root. The new exporter requires
+two raw-block operators, requires ten confirmations per block, validates a
+contiguous segment and accumulated work, rejects redirects and oversized
+responses, writes only outside the repository and removes only its own partial
+evidence on failure.
+
+Independent review validation: **529 Node tests**, including **8 focused Stage
+4B tests**, and **16 Rust watch tests** pass. Both TypeScript checks, lint, Rust
+formatting/Clippy, wallet production build and extension build pass. No
+production credential, wallet, owned note, payment, signature, broadcast,
+refund, VPS or deployment state was touched.
+
+The result is still **BLOCKED for production payment acceptance**. Anonymous
+Tatum access returned HTTP 429 during a ten-block rehearsal, provider backend
+independence has no attestation/SLA, and the verifier does not locally recompute
+ZIP-244 authorizing-data plus chain-history commitments. The shared VPS is
+suitable for bounded verification but cannot host Zebra: same-day evidence
+shows only 49 GiB dedicated ZecOne capacity and 11 GiB host RAM versus Zebra's
+300 GB disk minimum and 16 GB recommended RAM. No SSH configuration was
+available for a new host inspection, and no host state was changed.
+
+The existing age-encrypted watch backup passed disposable encryption, integrity
+and restore coverage. Production backup remains blocked on an operator-provided
+public age recipient, off-host destination, retention confirmation and failure
+alert route. No production key, UFVK, wallet, owned note, payment, signature,
+broadcast or refund was created. See [Stage 4B infrastructure](docs/STAGE4B-INFRASTRUCTURE.md),
+[backup plan](docs/STAGE4B-BACKUP.md), and [validation](docs/STAGE4B-VALIDATION.md).
+
+## 22 October 2026 - Stage 4A secure Zcash mainnet provisioning and authenticated observation
+
+Recovered the interrupted Stage 4A work without resetting its changes. Offline disposable provisioning now derives a fresh mainnet UFVK, records an explicit wallet birthday, seals the seed in the purpose-bound keystore and verifies recovery to the same account/address/UFVK without printing secret material. Watch-only import rejects testnet keys, existing/duplicate profiles, repository/historical paths and symlinks. Encrypted watch backups now require a mainnet `uview1` key and pass real SQLite integrity checks before backup and after restore; corrupt or wrong-network recovery fails closed.
+
+The owned-payment path still performs fresh two-provider full-transaction agreement and UFVK trial decryption of the exact incoming output. A review found that lightwalletd compact txids are not a complete block transaction list, so they cannot generally prove the header Merkle root. That shortcut was removed. `observe-mainnet` now requires externally staged raw mainnet blocks, verifies the full block transaction tree, header hash, Equihash `(200,9)`, target, a bounded previous-hash-linked confirmation segment and accumulated work, and requires both lightwalletd providers to corroborate every block hash. It rechecks the tip after evidence construction. Native evidence is versioned `zcash-full-transaction-ufvk-v3`; stale, copied, fabricated, restarted, reorged or replayed evidence cannot authorize execution.
+
+Validation: **523 Node tests**, including **44 focused Stage 4A tests**, and **16 Rust watch tests** pass. Both TypeScript checks, lint, Rust formatting/Clippy, wallet production build and extension build pass. Preservation confirms **537 + 91 protected files unchanged**, historical Phase 7B/7C journals and financial rows unchanged, one signing/broadcast claim each and refunds disabled. The VPS and production credentials were not accessed.
+
+Mainnet acceptance remains **NO-GO**. Missing operator setup includes an approved raw-full-block exporter, two independently operated mainnet lightwalletd services, an operator-approved real wallet birthday/provisioning run, a controlled authenticated owned-note scan, an approved public `age` recipient and off-host backup/restore drill, and review of the locked pre-release Zcash crates. See [Stage 4A validation](docs/STAGE4A-VALIDATION.md).
+
+## 22 October 2026 - Shared Contabo VPS inspected read-only
+
+Inspected the authorized shared Ubuntu host without changing it. The host has 6 vCPU, 11 GiB RAM (9.6 GiB available), 137 GiB free root storage, and port 3410 free. Hermes is active with systemd CPU/memory/task limits and isolated development storage; multiple root-owned PM2 workloads also run on the host. No Docker Engine/Compose or `age` is installed, no ZecOne path or namespace exists, and no application backup schedule was evidenced. The host is conditionally suitable for the paused pilot after approved installation, dedicated/quota-bounded ZecOne state storage, and encrypted off-host backups. Root-owned peer workloads remain a shared-host trust risk.
+
+Review found and fixed a non-spending bind-mount permission defect: fresh state/log paths are now owned by container UID/GID 10001, while configuration remains root-owned and group-readable by the non-root container. Compose schema and the 2 disposable deployment tests pass. No VPS package, file, image, process, service, port, firewall rule, wallet, or transaction was changed. Docker image build is still **BLOCKED** until an approved Docker-capable environment is available.
+
+## 22 October 2026 - Contabo read-only deployment package prepared
+
+Added a production-oriented Docker image and Compose service that runs only the new read-only health process. It starts as UID 10001 with a read-only root filesystem, all capabilities dropped, no-new-privileges, bounded CPU/memory/PIDs/logs, loopback-only health, tmpfs scratch space and persistent host-mounted state. First boot refuses non-empty uninitialized state, creates fresh Base/Solana journals, and durably pauses both journals plus the fenced operator lease. No signer material is mounted and there is no wallet, approval, signing, broadcast, refund or admin HTTP endpoint.
+
+Added `deploy/zecone-vps` commands for initialization, build, offline configuration validation, read-only startup, health, bounded logs, durable emergency pause, consistent SQLite backup encrypted to an offline age recipient, disposable restore/integrity testing and graceful stop. Added disabled Zcash/Base/Solana templates and operator documentation for VPS sizing, firewall, storage, monitoring, two-device PC/VPS/signing boundaries, provider setup and the remaining controlled-mainnet gate.
+
+Local validation adds **2 disposable VPS tests**: the service stays fail-closed across restart and the container package exposes no key mount/public port/executable startup path. **512 Node tests**, Compose schema, Bash syntax, both TypeScript checks, lint, wallet build, extension build, Rust Zcash service **10 tests** and Rust watch **9 tests** pass. Preservation confirms **537 + 91 protected files unchanged**, both historical settlements complete, refunds disabled and financial rows unchanged. Docker image build/start is **BLOCKED locally** because the Docker Linux daemon is unavailable; encrypted backup/restore CLI execution is **BLOCKED locally** because `age` and `sqlite3` host commands are absent. No Contabo host/SSH details were supplied, so no VPS access or change occurred. No production key, payment, signature, broadcast or refund was created.
+
+## 22 October 2026 - Controlled pilot and public-launch plans added; live launch remains BLOCKED
+
+Documented the cheapest safe mainnet acceptance path. [The controlled pilot](docs/MAINNET-PILOT-PLAN.md) is two operator-supervised transfers, Base first and Solana second, each funded by a distinct confirmed shielded-ZEC note. [The public-launch plan](docs/MAINNET-PUBLIC-LAUNCH.md) separates free-tier pilot infrastructure from launch-grade independent nodes and estimates about **$150-300/month** excluding audits/support. [The setup guide](docs/MAINNET-SETUP-GUIDE.md) gives exact private paths, provider choices, key provisioning, profile templates, funding limits, Zcash import/observe, price signing, quote, prepare and simulate commands.
+
+Pilot caps were corrected to **0.02 ZEC (`2000000` zats)** per transfer and **0.04 ZEC daily**, because the previous 0.001 ZEC cap could not fund a roughly $0.30 ETH transfer at an illustrative 30 USD/ZEC. Base is capped at 0.0001 ETH; Solana at 0.00101 SOL. Suggested transfers are 0.00009 ETH and 0.001 SOL with explicit fee budgets. These are source-spend and destination-debit caps, not dollar guarantees; quotes must be recomputed and never raised to fit stale prices.
+
+`mainnet:quote context` now produces the exact profile-, network-, pair-, amount- and fee-bound context that both price authorities must sign. `mainnet:quote quote` verifies pinned authority keys and operators, the context, freshness, spread and caps. The Zcash probe now returns `ZCASH_LIGHTWALLETD_GRPC_PROBE_NOT_IMPLEMENTED` without contacting the endpoint, because lightwalletd is gRPC and must not receive JSON-RPC.
+
+The execute handoff defect is closed. `mainnet:operator execute` now invokes `MainnetWatchScanner` in-process, derives its checkpoint from the watch journal and explicitly rejects `--snapshot`, so the owned-note verifier receives the native object it requires. The production template still fails closed with `executionAvailable: false`; the pilot remains blocked by missing independent providers, genuine signed prices, funded relayers, a controlled owned-note run, signer/device evidence and the remaining gates.
+
+Validation: **510 Node tests pass**, including the new native execute handoff, no-JSON-RPC Zcash probe and refined quote-context cases. Both TypeScript checks and lint pass. No provider account was created, no credential was generated or unlocked, no key was funded, and no order, signature, submission or broadcast occurred. Zcash remains **NO-GO** without independent Merkle-inclusion/proof-of-work verification. See [operator commands](docs/MAINNET-OPERATOR.md).
+
+## 21 October 2026 — Production configuration inspection added; live launch remains BLOCKED
+
+Added `mainnet:config-check`, a non-spending inspection command for the three production profiles and the read-only provider/key configuration. It checks independent provider hostnames and operators, financial limits, confirmations, exact recipient/relayer addresses, signer-to-relayer derivation, signer/execution-authority key types and separation, pinned price authorities, Zcash mainnet read-only providers and every spending switch. It always reports `executionAvailable: false`; `--probe` additionally performs the closed identity/finality RPC checks only against real configured endpoints.
+
+The disabled production template fails closed with placeholder providers, disabled profiles and missing operator inputs. Fresh public read-only checks passed Base chain identity/finalized block (`52915941`) and Solana genesis/finalized slot (`459800766`), but each was **PRIMARY_ONLY** with no production relayer, recipient, signer, price feed or independent agreement. No Zcash provider is configured. No key was opened, no order was created, and no signature or broadcast occurred.
+
+Validation: **508 Node tests pass** (4 new configuration cases), both TypeScript checks and lint pass. New code is [configuration inspection](services/settlement/mainnet-config-validation.ts), [CLI](scripts/mainnet-config-check.ts) and [tests](tests/mainnet-config-validation.test.ts).
+
+## 21 October 2026 — Mainnet operator CLI, isolated signer and fenced lease implemented; live launch remains BLOCKED
+
+Added the operator boundary that was missing from the prior acceptance pass. `scripts/mainnet-operator.ts` now exposes `status`, `prepare`, `simulate`, `execute`, `reconcile`, `pause` and `revoke-signer`. Execution requires the exact terms digest, `ARM_MAINNET_EXECUTION`, `RESUME_MAINNET_SUBMITTER`, fresh native payment evidence, a durable fenced lease and a separately approved signer action. `status` is explicitly local-only.
+
+`services/settlement/mainnet-signer.ts` opens a purpose-bound encrypted Base/Solana relayer keystore only after the lease is held. It requires the exact terms/prepared digests and maximum debit, signs only the prepared legacy Base transfer or a Solana message rebuilt from the terms and compared byte-for-byte, verifies the resulting signature, requires a durable non-memory digest-only per-transaction/daily ledger, and supports a durable signer-revocation tombstone. `services/settlement/mainnet-operator-lease.ts` provides a random-token, expiring, monotonically fenced lease plus an independent paused-by-default control database. Losing the lease or pausing fails closed; expired recovery is explicit. The executor now takes an optional guard at entry, before preparation, after claim and before finalization; a lost guard after claim is recorded as `uncertain`. Reconciliation accepts a crash-left `claimed` state: chain evidence finalizes it, while absent evidence records `uncertain` and never resends. Emergency pause no longer needs a production profile.
+
+Added the disabled `config/mainnet-profiles.production.example.json` template with two placeholder providers per network, `package.json` operator/provision scripts, and `docs/MAINNET-OPERATOR.md`. Updated the transfer, continuation and readiness docs to distinguish fixture PASS from live BLOCKED.
+
+Validation: **504 Node tests pass**, including new coverage for the lease/signer/revocation, executor guard, profile-independent pause, tampered Solana bytes and claimed-submission reconciliation; focused watch/executor/operator/submitter run **29 passed**, including **9 executor** and **3 operator** cases. Both TypeScript checks, lint, Prettier check, wallet build, extension build, Rust watch **9 tests**, `cargo fmt --check`, clippy and build pass. Preservation: **537 + 91 protected files unchanged**, plus the Phase 7A/7B inventories at **537 unchanged**. No production credential was created or unlocked; no payment, live signature, broadcast or refund occurred.
+
+The operator boundary is implemented, but both controlled mainnet transfers remain **BLOCKED**: no independent production providers, authenticated Zcash owned-note run, genuine signed price feeds, funded relayers, production signer attestation, Base fee-fork validation, or demonstrated production single-writer deployment. Zcash still lacks independent Merkle inclusion/proof-of-work verification and remains **NO-GO** without an authenticated verified-chain-data boundary. Details: [operator boundary](docs/MAINNET-OPERATOR.md) and [acceptance continuation](docs/MAINNET-ACCEPTANCE-CONTINUATION.md).
+
+## 21 October 2026 — Mainnet scanner and one-shot executor defects fixed; live launch remains BLOCKED
+
+Continued the acceptance audit after `a79dba7`. The Rust mainnet observer now re-fetches each candidate's full transaction from both lightwalletd providers, requires identical bytes/height and block-hash agreement, parses it under the mainnet consensus branch, and trial-decrypts the exact output with the imported UFVK. Account, pool, output index, incoming type, value, and unified receiver must match. SQLite, nullifiers, caller JSON, copied observations, and manually edited confirmation status cannot grant execution. A restart requires a fresh native scan.
+
+Added a separate one-shot Base/Solana mainnet executor. It binds a fresh verified source payment to exact terms, externally signed transaction bytes, a pinned Ed25519 operator authorization, expiry, nonce, and maximum debit. It revalidates both providers immediately before submission, persists signed evidence, makes at most one RPC send, marks uncertain responses for reconciliation, and uses the existing canonical two-provider finality readers. Transaction private keys remain outside the service. The legacy metadata-facing submission facade remains closed.
+
+Validation: **497 Node tests**, including **19 focused watch/executor tests** with **7 executor cases**, and **9 Rust watch tests**. Both TypeScript checks, lint, wallet build, extension build, and Cargo clippy/build pass. Preservation confirms **537 + 91 protected files unchanged**, both historical settlements complete, fresh finalized receipts match saved evidence, replay rejected before signer/broadcast access, refunds disabled, and financial rows unchanged. No production credential was created or unlocked; no payment, signature, broadcast, or refund occurred.
+
+The narrow implementation defects are fixed, but both controlled mainnet transfers remain **BLOCKED** pending two independent providers per network, an authenticated Zcash mainnet owned-note run, two real signed price feeds, fresh recipient/relayer identities, funded relayers, separately validated offline signer and execution authority, Base fee-rule validation, and a demonstrated single-writer deployment. Details: [acceptance continuation](docs/MAINNET-ACCEPTANCE-CONTINUATION.md).
+
+## 21 October 2026 — Mainnet integration acceptance: NO-GO
+
+Inspected the uncommitted scanner, provisioning, production quote and mainnet bookkeeping implementations against committed checkpoint `6b1ccfa`. The native scanner genuinely invokes SDK sync/trial decryption but exports mutable SQL metadata without independently authenticated per-note decryption/inclusion evidence. Rust and TypeScript mainnet observation now fail closed; metadata/nullifiers and edited SQLite statuses cannot grant ownership. This is a contained implementation defect, not a completed cryptographic scanner. No authenticated mainnet owned-note fixture was available.
+
+Production quotes now require authorized feed-key pins and signed network/exact economic context. Caller-supplied receipt objects cannot finalize bookkeeping. Base reads standard transaction value, canonical finalized blocks and complete available fee evidence; nonzero operator-fee scalars remain blocked until fork rules are pinned. Solana reads the finalized full instruction and exact balance/fee effects. Journal updates are atomic, start paused, preserve case-sensitive Solana IDs, original terms/expiry and lifetime source uniqueness, and never turn ambiguous signed attempts into failed/retryable ones.
+
+Disposable provisioning verifies independent public-address derivation, encryption/password rejection, purpose separation and encrypted backup/recovery. The offline CLI uses an external passphrase file instead of plaintext environment variables, rejects project/symlink output paths and wipes mutable buffers. No production credentials were generated or unlocked. The submitter has no actual network sender or signer handoff; `submitMainnetTransfer()` still throws. Mainnet source verification, quotes and submission bookkeeping are not a complete execution engine.
+
+**625 tests pass**: 484 Node, 35 wallet UI, 20 extension, 6 historical wallet UI, 3 isolated Solana UI, 3 completed-swap UI, 52 Solidity, 10 Rust wallet, 8 Rust watch and 4 Rust signer. One pre-existing standalone Rust proof remains ignored. Both typechecks, lint and wallet/extension builds pass; all 628 protected files and both historical completed financial records are unchanged. The first receipt fixture mismatch and the historical browser suite's pre-settlement mode failure are retained; its existing finalized mode passes without altered assertions. Signed wire bytes no longer enter ordinary CLI output, and planning artifacts are exclusive writes.
+
+Fresh read-only provider observations, validation counts, preservation evidence and the exact code/operator blockers are recorded in [MAINNET-ACCEPTANCE.md](docs/MAINNET-ACCEPTANCE.md) and `docs/mainnet-acceptance-evidence/`. Single-provider identity observations do not establish production readiness. Both mainnet pilots remain prohibited; no payment, live signature, broadcast or refund was initiated.
+
+## 20 October 2026 — Mainnet exact preparation and offline verification (NO-GO)
+
+Added a planning/verification boundary for Base and Solana mainnet without a spending path. Destination and relayer addresses are operator-supplied; the service never generates mainnet keys. A recipient proves address control by signing an EIP-191 or Ed25519 challenge, and the offline signer public key must derive to the configured relayer (secp256k1 for Base, Ed25519 for Solana). Terms bind the network, relayer, recipient, ownership binding, amount, fee ceilings, ZEC source amount/payment commitment, production profile digest and expiry.
+
+Base preparation builds a legacy EIP-155 transaction for chain ID 8453 from two independently acknowledged providers, agreeing on the finalized block, recipient EOA, nonce, balance, gas and gas price. Solana preparation checks the full mainnet genesis, a common finalized slot/anchor, system accounts, balance, recent blockhash, fee and an unsigned simulation. Offline verification rejects any changed field, recovers/verifies the single relayer signature, and checks the Base canonical GasPriceOracle L1 fee on both providers. Solana verification round-trips the canonical wire encoding and compares exact message bytes. `submitMainnetTransfer()` always throws, so a verified bundle cannot be broadcast.
+
+New: `services/settlement/mainnet-address.ts`, `services/settlement/mainnet-transfer.ts`, `scripts/mainnet-transfer.ts` (`address|plan|prepare|verify`), `tests/mainnet-transfer.test.ts` and `docs/MAINNET-TRANSFER.md`. Signer algorithm validation was added to `production-safety.ts`; `mainnet-probe.ts` allows `eth_getTransactionCount`.
+
+**460 Node tests pass** (5 new mainnet cases), both typechecks and lint pass. No payment, key unlock, destination signing, submission or broadcast occurred. Mainnet remains **NO-GO**: the Zcash mainnet watch scanner, owned-note evidence, live relayer/recipient provisioning, signed production prices, audited submitter, durable signed-bytes write-ahead, finalized receipt verification and emergency runbook are still absent. See `docs/MAINNET-READINESS.md` and `docs/MAINNET-TRANSFER.md`.
+
+## 20 October 2026 — Transfer payment-to-execution integration
+
+Continues `7edd423`. Connected the keyless wallet's native EVM checkout to the existing Store, EVM transfer adapter and execution worker. The flow now binds a fresh quote, explicit user EOA signature, exact recipient/network/amount/fee ceiling, receiving-account hash, optional consented dApp origin and a durable single-order authorization. Saved authorization is reverified before execution/reconciliation. A desktop replay index excludes known historical receivers and prevents new state directories from recycling an already bound account. No legacy credentials were migrated or loaded for signing.
+
+Financial startup is opt-in and requires a matching native watch directory and checksum-valid testnet receiver. Its observer scans without spending keys; manual `wallet:observe` now invokes the native scanner rather than accepting JSON payment evidence. Owned Ironwood notes and ten confirmations gate execution. Failed/overlapping scans, changed evidence, underpayment, excess payment, reorgs, expired orders and interrupted claims fail closed. Execution/submission claims preserve signed bytes and prevent retrying an uncertain broadcast. Public-account-only reconciliation works after restart and after the original application deadline. The wallet displays payment pending/detected/confirmed, executing, completed, failed and recovery states, plus the destination hash. ERC20/SPL financial actions remain blocked in this runtime.
+
+A consented native dApp request can enter a separately selected ZEC-funded handoff through the existing intent records. The standard request stays non-executed; no relayer result impersonates `eth_sendTransaction`. Cross-site navigation is limited to the public connector document; private APIs remain blocked. Real third-party action compatibility is not claimed.
+
+**572 tests pass:** 434 Node, 35 wallet UI, 20 installed-extension, 6 historical UI, 3 isolated API/UI, 3 completed-swap API/UI, 52 Solidity, 10 Rust wallet, 5 watch and 4 signer. Both typechecks, lint and wallet/extension builds pass. One pre-existing standalone Rust proof test remains ignored; full native proof/finalization runs in the Node suite. Two unoptimized native-proof runs hit the unchanged 180-second limit. Rebuilding only its cache with optimization from unchanged locked sources reduced that case to about eight seconds; both failure logs are retained and no timers/assertions were relaxed.
+
+Fresh Base Sepolia and Ethereum Sepolia native simulations passed for 0.000001 test ETH, with sufficient relayer balance, no pending transaction and no legacy reservation at observation. RPC confidence is PRIMARY_ONLY. A mounted real server/browser test also obtained a live Base quote using an explicitly synthetic public profile with financial creation off: zero orders, payments, signatures and broadcasts. **628 protected files, historical inventories and both completed financial records remain unchanged**; fresh finalized historical receipts match saved evidence, duplicate/refund vetoes hold and reconciliation touches neither signer nor broadcast. Public evidence contains no historical source payment identifiers/receivers.
+
+**Live approval boundary:** no new payment, live key unlock, destination signing/broadcast or refund activation occurred. A fresh isolated watch/payer profile, dedicated local signer and separately approved capped testnet plan are still needed for a real transfer through this new path. Historical SOL delivery/swap successes remain preserved; native EVM execution here is fixture-verified, not a new real settlement. Mainnet remains NO-GO. Implementation, reproducible commands and exact limitations: [transfer integration](docs/TRANSFER-END-TO-END.md), evidence under `docs/end-to-end-evidence/`. No NFT development phase or UI polish was started.
+
+## 20 October 2026 — Functional checkpoint 2: opt-in financial handoff and strict transfer adapters
+
+Added strict ZEC-funded transfer paths without a second execution engine. `services/settlement/transfers.ts` validates only native EVM, allowlisted ERC-20 and allowlisted SPL intents, binds quotes to block/calldata/fee caps and issues deterministic order IDs. `EvmTransferSettlement` reuses the existing `Store` and `executeOne`; `services/evm/transfers.ts` builds exact transfer calldata and re-reads block, fee and relayer inventory at quote time. SPL delivery extends the existing `SolanaSettlement` quote/prepare/receipt path. ERC-20 and SPL allowlists are empty by default, so token capabilities stay blocked until the operator supplies explicit assets.
+
+The keyless wallet runtime now has an explicit opt-in financial-creation mode (`--state <dir> --enable-financial-creation`). The authenticated local handler can consume one exact session/digest review, create one durable order and return the shielded payment request; it still has no payment sender, signing key or broadcast worker. Without the flag the runtime is review-only. `wallet:observe` applies an operator-supplied watch-only snapshot to the same journal and can mark a funded Solana order payment-authorized without executing it. The local panel exposes the mode, the payment request and the no-payment disclosure. `wallet:evm-review` performs a read-only EVM quote against the real testnet RPC and never creates an order.
+
+**421 Node tests pass** (7 transfer capability cases including a pure EVM preview, 2 opt-in/closed financial-handoff HTTP cases and an SPL review case). Both typechecks, scoped lint and the wallet/extension builds pass. Preservation: **537 + 91 protected files unchanged**, both completed journals remain completed with single signing/broadcast claims, replay rejected before signer access, refund veto intact, and financial rows unchanged. No live payment, signing or broadcast occurred. Live configuration for EVM/SPL allowlists, reservations, executor/receipt providers and the native watch scanner remains operator work. See `docs/CAPABILITY-MATRIX.md`, `docs/FUNCTIONAL-ROADMAP.md` and `docs/MAINNET-READINESS.md`.
+
+## 20 October 2026 — Functional checkpoint: capability audit and economic-review handoff
+
+Rebased delivery priority on shielded-ZEC-funded multichain transactions rather than NFT-first wallet parity. Added a measured capability matrix, functional roadmap, mainnet-readiness plan and a keyless review runtime. `SettlementReview` reuses the existing `SolanaSettlement` order model but cannot pay, prepare, sign, broadcast or refund; financial creation is disabled by default and exercised only against disposable databases. `settlementReads` supplies real devnet genesis, relayer inventory and pinned-pool terms. An optional authenticated local handler pins the profile and recipient allowlist server-side and rechecks the session after asynchronous work. A separate identity-only mainnet reader reports `PRIMARY_ONLY` Base and Solana mainnet identities with spending disabled; Ethereum and Zcash mainnet remain unconfigured. No historical order, credential, payment or completed settlement changed.
+
+**411 Node tests pass** (including 8 new review/readiness cases); both typechecks, lint, wallet build and extension build pass. Preservation: 537 + 91 protected files unchanged, both completed journals completed with single signing/broadcast claims, replay rejected before signer access, refund veto intact, and finalized receipts match saved evidence. This checkpoint remains **review-only**: no ZEC-funded transfer or swap is executable from the wallet yet, and no live payment, signing or broadcast occurred. See `docs/CAPABILITY-MATRIX.md`, `docs/FUNCTIONAL-ROADMAP.md` and `docs/MAINNET-READINESS.md`.
+
+## 20 October 2026 — Phase 8D.2 intent-to-ZEC checkout rehearsal complete
+
+Continues `8aa6bc1`. Selected the existing Base Sepolia ERC721 marketplace purchase. New read-only mapping reuses the adapter's exact calldata/listing/ownership/approval/simulation and pricing functions. Two explicitly supplied read clients must agree on the canonical block and quote terms; bytecode, executor configuration, recipient, fee caps and inventory are checked. The dApp's price is never authoritative. Quotes bind the original canonical request, scope, terms, configuration and expiry; changed/expired terms require fresh approval.
+
+Added separate exact quote review and explicit **dry-run checkout** authorization, durable single claims, restart/replay protections, local authenticated/CSRF-protected endpoints and minimal controls in the existing popup. Session identity is reread after asynchronous checks, including actual logout during an HTTP request. The opt-in mode requires intent interception, disabled signing and no financial purchase service; unsupported/legacy signing methods cannot fall through. Handoff reuses existing checkout projections with `financialCheckoutCreated:false`, `paymentRequestCreated:false` and `executionAuthorized:false`. No signing, address allocation, reservation or execution backend is invoked. No live-server policy/provider pair is automatically installed.
+
+**535 tests pass**: 399 Node, 33 wallet UI, 20 extension browser, 6 historical UI, 3 isolated API/UI, 3 completed swap API/UI, 52 Solidity, 10 Rust wallet, 5 watch and 4 signer. Includes 20 new checkout cases and 2 popup gesture/expiry tests. The final focused 49-case run is not double-counted. Both typechecks, lint and production/extension builds pass; one existing standalone expensive native proof remains ignored. The new browser assertion was scoped to its panel to exclude Next's unrelated route announcer, without weakening expiry/no-create assertions.
+
+All **628 protected files**, historical inventory copies and both original completed financial records remain unchanged. Consistent-copy replay/refund-veto probes make zero signer/broadcast calls; fresh finalized receipts match saved evidence. No new live payment, real credential unlock, signature, broadcast, credential migration or refund activation occurred. Destination requests receive no source payment identifiers, and dApps receive no quote/funding payload. The trusted operator can correlate future funding/execution; destination activity is public.
+
+This is a disposable-fixture rehearsal, not a real ZEC-funded dApp purchase. Live deployment pins/providers, financial reservations, recipient authorization, payment allocation/verification and signed executor simulation remain separate prerequisites. The preliminary fee is for the marketplace buy, not a signed executor guarantee. See [mapping/design](docs/PHASE8D2-CHECKOUT.md), [validation](docs/PHASE8D2-VALIDATION.md) and `docs/phase8d2-evidence/`. **Stop after 8D.2; live execution and UI polish remain disabled/not started.**
+
+## 20 October 2026 — Phase 8D.1 transaction intent integration complete (non-executing)
+
+Continues `2c9b00d`. Added versioned scoped intents, an explicit immutable EVM route registry, strict ABI interpretation, read-only simulation validation, local canonical Solana inspection, and exact preview consent/cancellation. EVM mint/purchase/router shapes are recognized only with configured targets and limits; ERC20 transfer/approval remain unsupported. Solana inspection accepts only the canonical devnet delivery and pinned Raydium route, rejecting signatures, unknown programs, account/instruction changes and versioned/ALT messages. Existing connection-only Wallet Standard capabilities are unchanged.
+
+The opt-in provider policy intercepts `eth_sendTransaction` before legacy signing. Existing popup displays intent facts, uncertainties and trusted-relayer/privacy disclosures, with a separate preview-consent label. Every new intent remains `executable: false`, including after simulation/consent. A restart cannot make a persisted preview fall through to signing. Preview IDs are excluded from the shared legacy request list; no source payment identifiers enter intent responses or destination read callbacks. Historical launch/settlement paths and financial authorization policies are unchanged.
+
+**513 tests pass**: 379 Node, 31 wallet UI, 20 installed-extension browser, 6 historical UI, 3 isolated API/UI, 3 completed swap API/UI, 52 Solidity, 10 Rust wallet, 5 watch and 4 signer. This includes 21 new intent cases and 2 new popup tests; the focused 29-case provider/intent rerun is not double-counted. Both TypeScript checks, lint, production wallet and extension builds pass. One existing standalone expensive native proof remains ignored. An initial extension disconnect timing failure passed on unchanged rerun and remains documented; new popup selectors were narrowed to the visible disclosure definition rather than its duplicate in the raw-payload inspector.
+
+All **628 protected files**, their inventory copies and both original completed financial records remain unchanged. Fresh finalized receipts match saved evidence; consistent-copy restart/replay/refund-veto checks pass with zero signer access and zero broadcast calls. No live keys were unlocked, no new payment/signature/broadcast occurred, no wallet credentials changed, and refunds/mainnet remain disabled. See [implementation](docs/PHASE8D1-INTENTS.md), [supported-action matrix](docs/PHASE8D1-SUPPORTED-ACTIONS.md), [validation](docs/PHASE8D1-VALIDATION.md) and `docs/phase8d1-evidence/`.
+
+No new authenticated third-party action or imported ZEC-funded execution is claimed. The EVM registry is empty by default; live deployment pins, adapter-backed quotes and financial authorization remain separate prerequisites. The Solana inspector currently requires an injected trusted read-only verifier and is tested with isolated fixtures. **Stop after 8D.1; Phase 8D.2 and UI polish are not started.**
+
+## 20 October 2026 — Phase 8D.0 compatibility audit and connection hardening complete
+
+Continues `70b4cb3`. Added verified method/capability reporting and an operation-scoped compatibility matrix. Duplicate EVM/Solana injection is guarded; malformed EVM method parameters are rejected before forwarding. Removed Solana signing features that previously advertised rejection-only implementations. Solana is now explicitly connection-only (`standard:connect/disconnect/events`, devnet), with public-key/address binding, bounded account-exposure lifetime, popup/session/permission loss cleanup, and generation cancellation of stale approvals. A CSRF-protected status check avoids credential-loading paths; narrowly scoped connection-document navigation leaves cross-site API requests blocked. Connection permission grants no signer authority.
+
+Actual current OpenSea and Uniswap pages loaded and announced ZecOne; Uniswap visibly listed ZecOne Testnet, and both returned empty accounts before consent. Picker selection/cancellation could not be reliably completed in the fresh automated probe. These results are **PARTIAL/BLOCKED**, not authenticated login or transaction compatibility. Approved/rejected connections, network/account events, revocation and lifecycle behavior are separately verified in **synthetic installed-extension fixtures**. No arbitrary ZEC-funded dApp execution or MetaMask/Phantom parity is claimed.
+
+**490 tests pass**: 358 Node, 29 wallet UI, 20 extension browser, 6 historical UI, 3 isolated API/UI, 3 completed swap API/UI, 52 Solidity, 10 Rust wallet, 5 watch and 4 signer. One pre-existing standalone native proof remains ignored. Both typechecks, lint, production and extension builds pass. All **628 protected files**, historical inventory copies and original completed financial rows remain unchanged. Fresh finalized receipts match saved evidence; consistent-copy replay/restart/refund-veto probes reach neither signer nor broadcast access. No live key unlock, payment, signing, broadcast, refund or mainnet execution occurred.
+
+See [compatibility audit and exact limitations](docs/PHASE8D0-DAPP-COMPATIBILITY.md), [validation](docs/PHASE8D0-VALIDATION.md) and `docs/phase8d0-evidence/compatibility-matrix.json`. Remaining blockers include verified third-party authentication, supported secure direct-signing integration, broader permission/legacy provider interoperability, active multi-account UX, legacy plaintext custody and independent RPC provisioning. Recommended next scope is an explicitly authorized bounded demo/read-only usability phase; direct signing needs separate security design and approval. **Stop after Phase 8D.0. UI polish and unrestricted signing have not started.**
+
+## 17 October 2026 — Phase 8C RPC evidence confidence implemented and validated
+
+Continues `e66ac6c`. Added scoped `PRIMARY_ONLY`, `DEGRADED`, `CORROBORATED` and `CONFLICTED` receipt evidence, explicit independent-operator acknowledgement, private endpoint configuration, bounded read-only requests/retries/response sizes, and finite redacted provider outcomes. Solana verifies devnet genesis and finalized transaction/status/block context plus material message/native/token effects. EVM verifies registry chain ID, canonical receipt/block identity, effects/logs and each provider's required confirmation depth; this is not proof of L1/rollup consensus finality. Different current heads alone do not conflict; unavailable responses are never agreement. Opt-in required corroboration rejects insufficient/conflicting evidence without changing financial authorization or submission/replay policy.
+
+Read-only live results are **PRIMARY_ONLY** for both completed Solana transactions, Base Sepolia and Robinhood testnet. Ethereum Sepolia historical receipt evidence is **DEGRADED/unavailable** in this run. **No independent secondary is configured or live-tested; no live corroboration is claimed.** No paid endpoint or plan was activated. Balance/quote/simulation reads, mutable pool checks, legacy EVM workers and Zcash infrastructure retain their existing provider limitations. Reporting does not upgrade the confidence of unrelated operations or rewrite historical receipts.
+
+**480 tests pass**: 351 Node (16 new RPC cases), 29 wallet UI, 17 extension, 6 historical UI, 3 isolated API/UI, 3 completed swap API/UI, 52 Solidity, 10 Rust wallet, 5 watch and 4 signer. One pre-existing standalone signer proof remains ignored. Both TypeScript checks, lint and production build pass. All **628 protected files**, original inventory copies and original completed financial records remain unchanged. Fresh Solana receipts match saved finalized evidence; consistent-copy restart/replay/refund-veto checks pass with zero signer access/broadcast calls. No live key unlock, payment, signing, broadcast, refund or mainnet activation occurred.
+
+See [RPC design/configuration and limitations](docs/PHASE8C-RPC.md), [validation](docs/PHASE8C-VALIDATION.md) and sanitized `docs/phase8c-evidence/`. Independent live verification still needs deliberate secondary-provider provisioning and ownership/upstream review. Legacy key exposure and trusted prefunded settlement/privacy limitations remain. **Stop after Phase 8C; Phase 8D has not started.**
+
+## 17 October 2026 — Phase 8B key security and signer locking complete
+
+Continues `48485cb`. Added an opt-in password-encrypted development credential vault using the existing scrypt/AES-256-GCM envelope, authenticated role/network/identity binding, exclusive new files and public-only projections. Supports new/imported in-memory Solana/EVM seed32 credentials and separate development approver storage; it is storage/password verification, **not activation of new EVM, native Zcash or refund signing**. No historical credential was migrated or rewritten. New local provisioning requires explicit consent and an external passphrase file.
+
+Encrypted Solana accounts now expose revocable SDK signer facades instead of raw keypairs. Role-bound leases enforce configurable inactivity and maximum lifetimes, generation-based delayed-unlock cancellation, bounded failed-attempt throttling, concurrent-operation rejection and pre/post-operation expiry checks. Lock revokes authority before cleanup; cleanup failure remains closed, including during re-unlock. New age payloads bind role/label; historical age-v1 reads remain compatible without rewriting files. A minimal SDK adapter preserves the legacy signing branch and leaves settlement authorization/claims/replay policies unchanged.
+
+**464 tests pass**: 335 Node (18 new key-security cases), 29 wallet UI, 17 extension, 6 historical UI, 3 isolated API/UI, 3 completed swap API/UI, 52 Solidity, 10 Rust wallet, 5 watch and 4 signer. One pre-existing standalone signer proof remains ignored. Both TypeScript checks, scoped lint and production build pass. All **628 protected files**, historical inventory copies and original completed financial rows remain unchanged. Fresh read-only receipts match saved finalized evidence; consistent-copy restart/replay/refund-veto checks pass with zero signer access or broadcast calls. No live key unlock, payment, signing, broadcast, refund activation or mainnet spending occurred.
+
+Legacy plaintext EVM/Zcash/Solana credentials remain exposed locally under their existing paths; historical raw signers do not gain revocation guarantees. DPAPI same-user protection is distinct from password encryption/device isolation. Throttling is process-local; JavaScript/native key erasure and in-flight crypto cancellation are limited. No hardware custody, native encrypted-wallet integration or production readiness is claimed. See [key controls and limitations](docs/PHASE8B-KEYS.md), [validation](docs/PHASE8B-VALIDATION.md) and sanitized `docs/phase8b-evidence/`. **Stop after Phase 8B. Phase 8C has not started.**
+
+## 17 October 2026 — Phase 8A privacy boundaries complete
+
+Continues audit `15ae8dc`. Added explicit routine-response allowlists across unified checkouts, older EVM views, historical snapshots and Solana delivery/swap views; source payment references and raw/private backend objects remain in restricted storage. Browser history uses per-session display aliases. Private inspection requires authentication, CSRF, acknowledgement and backend ownership (or the fixed read-only snapshot capability); aliases grant no financial authority. Selection no longer persists identifiers in localStorage, expires with its session, and rejects stale scope/handle restoration. Inspection clears after one minute or session/selection loss, including late-response guards. Added bounded finite-code diagnostic exports and retention that prunes only ephemeral authentication/diagnostic data.
+
+**446 tests pass**: 317 Node, 29 wallet UI, 17 extension, 6 historical UI, 3 isolated API/UI, 3 completed swap API/UI, 52 Solidity, 10 Rust wallet, 5 watch and 4 signer. One pre-existing standalone signer proof remains ignored. Both typechecks, scoped lint and production build pass. All **628 protected files** and both original completed financial records remain unchanged. Fresh finalized receipts match saved evidence; consistent-copy restart/replay/refund-veto checks pass with zero signer access or broadcast calls. No new live payment, key unlock, transaction signing, broadcast, credential migration or refund activation occurred.
+
+The trusted operator still sees cross-chain joins; RPC metadata and destination ownership remain visible. Amount/timing correlation, public NFT identifier relationships, historical plaintext keys and old exports remain limitations. History is not automatically reassigned after session loss: Phase 7C retains explicit operator attachment; the old Phase 7B browser fails closed for an unbound historical order. See [privacy disclosure](docs/PHASE8A-PRIVACY.md), [full change/validation report](docs/PHASE8A-VALIDATION.md) and new `docs/phase8a-evidence/`. Screenshots/private evidence remain gitignored. **Stop after Phase 8A; Phase 8B/C/D not started.**
+
+## 17 October 2026 — Phase 8 audit only; awaiting review
+
+Audited checkpoint `da18524` without changing application code or historical credentials. [Phase 8 audit](PHASE8_AUDIT.md) documents architecture, privacy exposures, mixed key storage/locking, RPC independence gaps, exact proposed file changes and a scoped plan for the user's **28 October** demo deadline. Phase 8A implementation has not started.
+
+Fresh read-only devnet receipts match the saved Phase 7B and Phase 7C finalized evidence. Consistent journal copies reject completed-order preparation/execution before signer access and veto refunds. Original financial rows remain unchanged; no new payment, live key unlock, signing, broadcast or refund activation occurred.
+
+Baseline: **431 tests pass** (306 Node, 25 wallet UI, 17 extension, 6 historical UI, 3 isolated API/UI, 3 finalized swap API/UI, 52 Solidity, 10 Rust wallet, 5 watch, 4 signer); one pre-existing standalone signer proof ignored. Both typechecks, scoped lint and production build pass. All **537 historical + 91 Phase 7B protected files** match their inventories. Evidence is under `docs/phase8-evidence`; screenshots and exact private inventory/journal fingerprints stay gitignored. Mainnet readiness remains NO. Stop at the audit review gate.
+
+## 17 October 2026 — Phase 7C completed within its bounded devnet scope
+
+The human explicitly authorized **one successful settlement under fixed economic constraints**, including new validated unsigned bytes when quotes/blockhashes expire. Added a distinct durable bounded-order authorization; previous preparation-only grants and expired exact approvals were not broadened or reused. It binds the original payment/order/intent and all stated recipient, mint, input, minimum-output, slippage, relayer, pool/program and fee/rent/debit constraints. Transaction derivations are audited as `BOUNDED_ORDER`; authority is atomically consumed with signing. Unsigned expiry can retry within the scope; signed or uncertain attempts cannot construct/broadcast replacements.
+
+One real Solana devnet swap **finalized**: [transaction](https://explorer.solana.com/tx/2GjNxoxoEgntEar7QrQnFUuGGBZrRywjqjbxosZF8DyGqTfajWr2dv2xhPuSKwrHFiVTSHZxrPNzcvTcpdFjPHVV?cluster=devnet). The original verified shielded payment was reused without another Zcash transaction. Exactly **0.001 WSOL** input delivered **76.043880** arbitrary devnet test tokens to the original user-controlled recipient, above **75.283441** minimum. Actual fee **0.000005 SOL**, ATA rent **0.00297688 SOL**, total relayer debit **0.00398188 SOL**, all below the unchanged caps. Full canonical message, token owners/mints, vault movements, recipient balance and relayer debit verified against a fresh finalized receipt.
+
+The journal is **COMPLETED/settled**. Signed bytes and signature were persisted before the single broadcast. Exactly one signing/broadcast claim exists; bounded authority is consumed. Restart reconciliation passed. Duplicate preparation/execution was rejected before signer access, and completed-order refund recovery was vetoed. No uncertainty/replacement arose after signing. Source-payment joins and confirmation-height metadata remain private; public evidence contains Solana effects only.
+
+Validation: **306 full Node tests passed**, including four new bounded-scope/refresh/consumption/lost-response tests; focused swap suite **40 passed**; all **3 real finalized-state API/UI tests passed**. Both typechecks, lint and production build pass. The preceding Phase 7C.2 complete cross-stack run had **427 passing tests**; unchanged Rust/contracts/UI suites are not recounted as new runs here. Read-only real finalized/restart/replay verification passed. The verifier initially expected an older generic replay rejection code; it now recognizes the paid-recovery-specific closed gate while retaining state, signer-access, single-claim and no-broadcast assertions. Original diagnostic log retained. All **537 historical + 91 Phase 7B files remain unchanged**.
+
+Limitations remain: trusted prefunded relayer/fixed demo pricing, arbitrary devnet output token, one live RPC view, public Solana token ownership/activity and timing correlation, and unchanged same-OS development-key isolation. No production bridge/exchange or anonymity claim. **No new Zcash payment, historical credential changes, refund activation or Phase 8 work.** See [bounded authorization](docs/PHASE7C-BOUNDED-SETTLEMENT.md), [finalized evidence](docs/PHASE7C-TRANSACTION-EVIDENCE.md) and [verification report](docs/phase7c-evidence/completed-verification.json).
+
+## 17 October 2026 — Phase 7C.2 live-order recovery (unsigned; exact approval gate)
+
+Continues `a7a41c0` using its existing recovery mechanism, with **no implementation changes required**. Fresh private native evidence verifies the original 100000-zatoshi payment. Initial live journal inspection found `RECOVERY_REQUIRED`; independent devnet histories and ATA existence checks found no signing/submission claim, signed wire, signature or token delivery. The primary genesis/pool/program/token/liquidity checks pass. No secondary endpoint is configured; primary-only preparation is permitted by current policy, with no claim of independent provider corroboration.
+
+Applied the user's preparation-only authorization to the **live original order**, through `terms --review-unsigned-rpc`, under the unchanged original attempt/grant expiry. The Solana row is now `AWAITING_SOLANA_AUTHORIZATION`; general order state remains `recovery`. Original payment association, recipient, token pair, input/minimum/slippage limits, pool/program, deadline, old recovery reasons and all prior reviews/approvals are retained. No exact execution approval exists.
+
+The live-order unsigned rehearsal passed: **48611 compute units**, **5000-lamport fee**, **143 block heights remaining after simulation**, original expected **76.043880** and minimum **75.283441** test tokens for **0.001 WSOL**, with **1%** slippage. Its expired bytes were safely archived during validation. The user subsequently confirmed readiness for new exact bytes **after validation**, explicitly without signing/broadcast permission. Final preparation must recheck native evidence, the original economic bounds and current chain validity; no expired digest or approval carries forward.
+
+Latest measured rent is **1488440 lamports per account**, **2976880 total** for the two missing token accounts. The original **6000000-lamport rent cap**, **10000 fee cap** and **7010000 maximum total debit** remain unchanged, and relayer inventory is sufficient. Exact digest/wire/lifetimes remain operator-only and are presented directly to the human. The fresh final-state aggregate, when produced, is recorded separately from the earlier rehearsal.
+
+Repeated validation: **427 passing tests** (302 Node; 25 wallet UI; 17 extension; 6 historical UI; 3 real isolated API; 3 real swap API/UI; 52 Solidity; 10 Rust wallet; 5 watch; 4 offline signer). One pre-existing expensive standalone proof remains ignored; isolated Node integration exercises native proof/signing. Both typechecks, lint and production build pass. **537 historical + 91 Phase 7B protected files remain unchanged**. Browser captures are private. See [Phase 7C.2 live recovery and evidence](docs/PHASE7C2-LIVE-ORDER-RECOVERY.md).
+
+No live key unlock, signing, broadcast, second Zcash payment or refund activation occurred. The original unresolved wallet transfer and historical credentials are untouched. **Phase 7C remains incomplete. Phase 8 has not begun.**
+
+## 17 October 2026 — Phase 7C.1 RPC reliability and unsigned recovery
+
+Continues `64d6393` and the failed unsigned preparation checkpoint. The original order/payment is preserved. Independent devnet reconciliation confirms **no signing claim, signed bytes, signature, submission or recipient delivery**. The live order deliberately remains **RECOVERY_REQUIRED**. No new Zcash payment, key unlock, live signing, broadcast or refund occurred.
+
+The historical SDK pool request failed before decoding, but the old adapter discarded its underlying transport exception. Its exact HTTP/transport cause cannot be reconstructed. Current reproduction returns HTTP 200 with nine public pool/program accounts (about 999 KB) and passes the actual SDK validation. Implemented redacted diagnostic classifications, enforced timeouts, bounded exponential retry, serialized provider-scoped reads, configurable HTTPS primary/secondary endpoints, devnet genesis checks, finalized consistent account snapshots and monotonic context slots. Conflicting provider snapshots require reconciliation; unavailable corroboration is explicitly degraded evidence. Whole-wallet inventory and recovery histories do not silently fan out. No secondary endpoint is configured, so live secondary validation remains outstanding; synthetic failover/disagreement tests pass.
+
+Added narrowly reviewed recovery for the existing unsigned RPC failure under the original preparation-only grant, retaining original bindings, deadlines, reasons, expired reviews and all signing/refund vetoes. Transient unsigned preparation failures now release only their preparation claim. Economic review happens before blockhash acquisition. Quote age begins at reserve reads, and final simulation must leave at least 100 valid block heights; neither application review nor quote expiry extends chain validity. New exact bytes always require new explicit approval.
+
+The real, non-broadcasting recovery rehearsal uses a consistent backup of the original journal, fresh native watch-only evidence and actual devnet pool/account state. It preserves the original order/payment/recipient/economics and successfully simulates **0.001 WSOL**, **76.043880** expected test tokens, **75.283441** minimum, **1%** slippage, **5000-lamport** fee and **48611** compute units. The final measurement had **142** remaining block heights. It is rehearsal evidence, not a live reopened order or executable approval.
+
+Validation: **427 passing tests** (302 Node, 25 wallet UI, 17 extension, 6 historical UI, 3 real isolated-backend API, 3 real swap API/UI, 52 Solidity, 10 Rust wallet, 5 watch, 4 offline signer). One pre-existing expensive standalone proof remains ignored; isolated Node integration covers native proof/signing. Both typechecks, lint and the final production build pass. Preservation verifies **537 historical + 91 Phase 7B files unchanged**. Browser captures remain local to avoid republishing cross-chain historical account details. Logs and limitations: [RPC reliability](docs/PHASE7C1-RPC-RELIABILITY.md), [approval lifecycle](docs/PHASE7C1-APPROVAL-LIFECYCLE.md).
+
+The trusted prefunded relayer, public Solana activity/timing correlation, single live RPC view and unchanged same-OS development credentials remain limitations. **Phase 7C is not complete. Phase 8 has not begun. Live refunds remain disabled.**
+
+## 17 October 2026 — Authorized recovery preparation (separate transaction approval required)
+
+Continues `3614d67`. The human explicitly authorized **preparing recovery of the existing paid Phase 7C order only**. A two-hour `PREPARATION_ONLY` grant binds its exact persisted order, attempt UUID, original intent, recipient, token pair, input/minimum/slippage/fee limits and original confirmed payment/authorization. Registration rechecked native owned-note evidence, original unsigned transaction instructions, independent devnet signer/recipient-token-account histories, and absence of signing, settlement and refund claims. No new order or payment was created.
+
+Only that Solana row was reopened for preparation. The general order remains auditable as `recovery`; its original deadline, intent, payment association and old recovery/approval history remain unchanged. Expired unsigned reviews were archived without overwriting expired approval records. A repeated registration cannot extend the grant or unlock another order. Changed evidence, unrelated recovery reasons, claims, prior signatures or refund vetoes fail closed.
+
+Preparing does not unlock keys or create an execution approval. A later separately approved exact digest requires its own scoped authorization, consumed atomically with the signing claim. An old digest cannot carry to refreshed bytes. Fresh quotes retain the original minimum and at most 1% slippage; a price change requiring a different minimum stops for economic authorization. The final live preparation is deliberately deferred until after validation, with measured outcome in [authorized preparation evidence](docs/phase7c-evidence/authorized-preparation.json). No signing or broadcast is authorized in this step.
+
+Validation: **416 passing tests** (291 Node, 25 wallet UI, 17 installed-extension, 6 historical read-only UI, 3 real isolated-backend, 3 real swap browser/API, 52 Solidity, 10 Rust wallet, 5 watch, 4 offline signer). One pre-existing expensive standalone proof remains ignored; Node integration exercises native isolated proof/signing. Both typechecks, lint and production build passed. The extension suite had a concurrent-browser synthetic signing timeout; all 17 tests subsequently passed alone with assertions unchanged. Both logs are retained. Preservation checks confirm **537 original + 91 Phase 7B files unchanged**.
+
+The trusted relayer, single RPC provider, public Solana recipient/token activity, timing/amount correlation and existing local development-key limitations remain. Live refunds stay disabled. **Phase 7C is not complete; Phase 8 has not begun.** See [recovery lifecycle and commands](docs/PHASE7C-APPROVAL-RECOVERY.md) and [transaction evidence](docs/PHASE7C-TRANSACTION-EVIDENCE.md).
+
+## 17 October 2026 — Phase 7C approval recovery (partial; live execution blocked)
+
+Continues `4ed111f` and the existing uncommitted Phase 7C checkout. The original fresh shielded payment remains attached to its original order and encrypted user recipient: historical 30-confirmation evidence is retained and the latest receiving scan verifies **933 confirmations**. No second payment was created or resent. Independent devnet signer and recipient-token-account histories, account existence and the durable journal show **zero signing/broadcast claims, no signed wire, no signature and no token delivery** for this swap. Full private payment associations remain gitignored; public logs omit them.
+
+Implemented bounded Raydium devnet CPMM swaps, encrypted new Solana credentials, scoped checkout history, native Phase 7C payment/watch integration and privacy documentation. Recovery now separates the original payment/order deadline, a 30-minute economic review that cannot authorize spending, a 90-second fresh quote, chain-enforced recent-blockhash validity and a five-minute exact-digest approval ceiling. Atomic validation and approval-consumption claims prevent competing attempts; unsigned expiry preserves payment attribution while signed/uncertain claims veto replacement. Local interactive review obtains fresh blockhash bytes only after `READY`, simulates them, and requires `APPROVE <exact-digest>` before unlocking/signing. No expired digest authorizes different bytes.
+
+**Current blocker:** the original order deadline elapsed at **22:35:59 Lagos on 16 October**. A fresh non-broadcast recovery rehearsal correctly stopped in **RECOVERY_REQUIRED**, preserving the order, payment, intent and old reviews. No deadline or recovery veto was reset. Reopening this same paid order requires explicit recovery authorization, separately from any later exact swap broadcast approval. Do not create a replacement profile/order/payment to bypass it.
+
+A separate real-chain unsigned route rehearsal still succeeds: 0.001 WSOL input, 76.043880 test-token estimate, 75.283441 minimum, 1% slippage cap, 5,000-lamport fee estimate and 48,611 compute units. It checks actual pool/program/tokens and relayer inventory; it has **no payment authorization**, signature or broadcast and is not reported as settlement. The output is an arbitrary devnet test token, with no asserted stablecoin value.
+
+Privacy limitations remain: a trusted prefunded relayer, one RPC provider, timing/amount correlation, same-user OS access and the user-selected historical relayer's unchanged plaintext development key. The new recipient uses age encryption with a DPAPI-sealed unlock secret; no hardware or separate-device isolation is claimed. All historical wallet files and the original quarantined transfer remain untouched; refunds remain disabled. Phase 7C is **not complete**; Phase 8 has not begun.
+
+Validation: **405 passing tests** (280 Node, 25 UI, 17 installed-extension, 6 historical read-only UI, 3 real isolated-backend checks, 3 real swap API/UI checks, 52 Solidity, 10 Rust wallet, 5 watch, 4 offline signer). One pre-existing expensive standalone signer proof remains ignored; the Node suite exercises native isolated proof/signing. Both typechecks, scoped lint and production build passed. Preservation verifies **537 original + 91 additional Phase 7B files, zero changes**. A cold browser startup timeout and subsequent one-use pairing failure were retained in logs; the unchanged full six-test historical suite subsequently passed. Exact live finalized swap effects remain untested because execution is blocked.
+
+See [approval recovery and explicit gates](docs/PHASE7C-APPROVAL-RECOVERY.md), [transaction evidence](docs/PHASE7C-TRANSACTION-EVIDENCE.md), [implementation](docs/PHASE7C-SOLANA-SWAP.md) and [privacy limitations](docs/PHASE7C-PRIVACY-AUDIT.md).
+
+## 16 October 2026 — Phase 7B (completed testnet demonstration)
+
+The fresh payer received **0.125 TAZ**. After separate exact user approvals, real shielded payment `ade0250ca587bcfaac6b7e0b3dbcbd479ffe11e97f544235a3f72931ecda7385` delivered **0.001 TAZ** with an actual **0.0001 TAZ** fee and reached **13 confirmations** before Solana execution. One devnet transfer finalized: `3RMoB1C93SfvnwzfdQxKg7jdw4VDP9qkKCKXbrPtDsiaw4AbM3KJz3VcRCvdDKV4irUhUrxZFmtbzNNkaW8xpH4y`. Recipient `HiGp8uCTupsv795g3iqK4Tex1K3hLdNryrZ6sukquRS3` gained **0.001 SOL**; relayer debit **0.001005 SOL** includes the **0.000005 SOL** fee. Full message and finalized per-transaction effects verified; durable order **COMPLETED/settled**. Restart reconciliation passed, duplicate execution was rejected before signer access, one signing/broadcast claim persisted, and completed-delivery refund recovery was vetoed. The original wallet remains quarantined; live refunds remain disabled.
+
+Continues `ee33020`. Moved the rebuildable Rust target cache to D: behind a junction, increasing C: free space from about 2.7 GiB to about 10.3 GiB. No wallet, key, database or evidence was deleted.
+
+Implemented the bounded SOLANA_DEVNET_SOL_DELIVERY adapter using the existing payment Store, native builder, watch-only scanner and Phase 7A Solana policy. Added fresh isolated Zcash profiles, exact fixed-demo quotes, owned-note/ten-confirmation authorization, inventory/fee/recipient checks, operator-only exact signing/broadcast approvals, durable signed bytes and submission claims, original-signature reconciliation, finalized message/balance-effect verification, duplicate protection and recovery/refund exclusion. Integrated terms/status and Solana IDs into the existing wallet and unified checkout. No automatic worker or browser signing/broadcast endpoint was enabled.
+
+Validation: **378 passing tests** (258 Node, 24 UI, 17 extension, 6 historical read-only UI, 3 real isolated-backend checks, 52 Solidity, 9 Rust wallet, 5 watch, 4 signer). The existing standalone expensive proof remains ignored; Node integration exercises isolated native proof/signing. Both typechecks, scoped lint and production build passed. All **537 protected files remain unchanged**.
+
+**Limitations:** fixed demonstration pricing, trusted prefunded inventory, operator-mediated broadcasts, one immutable checkout per isolated profile, no independent RPC/node consensus, and local plaintext development keys under one OS account. The original unresolved transfer remains quarantined; no original-wallet override, synchronization, marker clearing or refund was performed. Synthetic failure tests are labeled separately from the real completed settlement. Source identity of the fresh shielded funding deposit is not inferred.
+
+See [implementation and commands](docs/PHASE7B-SOLANA-SETTLEMENT.md), [real transaction evidence](docs/PHASE7B-TRANSACTION-EVIDENCE.md), and [security/trust limits](docs/PHASE7B-SECURITY.md). Phase 7B is complete within its bounded testnet scope; Phase 7C/8 were not started.
+
+## 16 October 2026 — Phase 7A devnet foundation
+
+Continues `cf2a0ff`. Implemented a separate Solana devnet adapter, isolated disposable accounts, exact SOL/SPL/Token-2022 balance views, bounded legacy SOL/SPL transaction preparation, SDK decoding and instruction/account policy, simulation, local approved signing boundary, durable idempotency/recovery journal and a synthetic-only ZEC destination interface. Added Wallet Standard discovery, origin-scoped connection/account selection and rejection-only browser signing hooks, plus the Solana wallet panel. A separate paired backend uses disposable EVM credentials and the existing rejection-only connector for manual website validation; historical workers remain stopped.
+
+**Verified live, unsigned:** funded payer has 0.1 devnet SOL. Preparing 0.001 SOL to the disposable recipient produced a successful real RPC simulation: 150 compute units, estimated fee 5,000 lamports. No Solana signature or broadcast occurred. SPL construction/policy is fixture-tested; live SPL simulation remains unverified because these accounts have no configured token mint/balance. No new ZEC payment, EVM transaction or refund was broadcast. Live refunds remain disabled.
+
+Validation: **366 passing tests** (248 Node including 18 Solana/backend tests, 23 UI, 17 installed-extension, 6 historical read-only UI, 3 real isolated-backend UI, 52 Solidity, 8 Rust wallet, 5 watch, 4 signer). The existing standalone expensive signer proof remains ignored; the Node integration suite exercises isolated native proof/signing. Both typechecks, scoped lint, extension packaging and production build passed. Preservation: **537 protected files, zero changes**.
+
+**Limitations:** browser Solana signing is deliberately rejection-only; the separate local signer is tested with ephemeral accounts. No live Jupiter/Raydium or new EVM website compatibility is claimed. No live ZEC-funded Solana settlement, swaps or NFT purchase exists. RPC effect consensus, arbitrary transaction import and automatic monitoring remain future work. Phase 7B was not started.
+
+See [implementation and exact evidence](docs/PHASE7A-SOLANA-IMPLEMENTATION.md), [Windows manual dApp workflow](docs/PHASE7A-MANUAL-DAPP-TEST.md), and [security boundaries](docs/PHASE7A-SECURITY.md).
+
+## 15 October 2026 — Phase 6C (PARTIAL)
+
+Continues `19b5778`. Added a separately paired read-only viewer backed by copied real historical SQLite databases and native offline balance calculation. Original wallets, credentials and quarantined records are untouched; no live workers or signers start. Actual read-only EVM balance/NFT/receipt checks and historical mint, marketplace, swap and Seaport UI replay are recorded. Phase 5.2 payment and unsigned refund evidence are preserved; live refunds stay disabled.
+
+Validation: **339 passing tests**, both typechecks, scoped lint and production build. Preservation: 537 protected files, zero changes.
+
+16 October follow-up: regenerated an interrupted disposable export using atomic replacement, refreshed read-only testnet RPC evidence and repeated snapshot QA. Historical wallets and refund evidence remain unchanged.
+
+Fixed duplicate provider listener semantics (extension 0.3.1), guarded legacy personal-sign ordering, explicit unlimited/all-NFT approval warnings, hardcoded checkout progress amount, destination activity labels/links and expired-history text contrast. Added rejection-only dry-run coverage and real-data desktop/narrow/mobile/offline QA. Final validation is documented in [Phase 6C product QA](docs/PHASE6C-PRODUCT-QA.md).
+
+**Not fully complete:** no new live dApp account connection is verified. Chrome is unavailable through the browser connector; both supported computer-use runtimes now fail kernel initialization. The dedicated profile was not modified. [Compatibility matrix/blockers](docs/PHASE6C-LIVE-DAPP-VALIDATION.md). No transactions were broadcast and Phase 7 has not begun.
+
+### Previous checkpoint validation
+
+Validation: **325 passing tests**, both typechecks, scoped lint and production build. Preservation audit: 537 inventoried files, zero changes. Detailed logs and screenshots are linked from the implementation report.
+
+## 15 October 2026 — Phase 6A + 6B
+
+Continues checkpoint `9af83ee`. Implemented dark responsive wallet navigation, real-backend wallet/asset views, unified read-only checkout tracking over existing durable adapters, explicit private payment-address inspection, expired-review and duplicate-click guards, and generic top-level HTTPS EIP-6963 discovery with bounded authenticated RPC reads.
+
+The mint, fixed action, marketplace, controlled Base Sepolia AMM and Seaport execution adapters remain in place. Mainnet OpenSea purchases stay preview-only. Ordinary dApp transactions and restricted ZEC-funded settlement remain distinct. No transaction was broadcast in Phase 6.
+
+Live official wallet entry points were inspected; current-build cross-site ZecOne connection/signing is **not verified** because the exposed in-app browser has no loadable MV3 extension surface. OpenSea Phase 4E remains historical real-site evidence. Zapper's official site reports its August 2026 shutdown. Local installed-extension tests use disposable synthetic sites/signers and must not be described as live marketplace success.
+
+Phase 5.2 is still partially complete: the real 0.001 TAZ payment is confirmed, the 0.0009 TAZ refund remains unsigned/unbroadcast, independent-device validation is unavailable and live refunds remain disabled. Historical keys, databases, payment/recovery markers and evidence are preserved.
+
+See [Phase 6 implementation](docs/PHASE6-IMPLEMENTATION.md), [compatibility evidence](docs/PHASE6-DAPP-COMPATIBILITY.md), [privacy research](docs/EVM-PRIVACY-RESEARCH.md), [Solana roadmap](docs/SOLANA-INTEGRATION-PLAN.md) and [Phase 5.2 results](docs/PHASE5-2-RESULTS.md). Mainnet readiness: **NO**. No Phase 7 implementation started.

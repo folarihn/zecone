@@ -1,0 +1,250 @@
+
+> test
+> node --import tsx --test tests/*.test.ts
+
+(node:22116) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✖ local Anvil: fixed signed ZEC action settles once and confirms the exact user event (16308.0461ms)
+(node:10268) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✖ local EVM: real viem signing, persisted raw tx, receipt/event/owner reconciliation and chain guard (13720.7364ms)
+(node:30632) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ origin policy accepts exact HTTPS and loopback origins and rejects spoofed or unsafe origins (2.634ms)
+✔ EIP-1193 array and object parameter forms normalize without losing transaction fields (1.4518ms)
+✔ address access is opt-in, request approval is idempotent, and revocation is origin-bound (97.4074ms)
+✔ channel binding prevents origin and local-session substitution (29.0926ms)
+✔ unapproved signature/transaction and unsupported RPC methods fail before signing (30.9488ms)
+✔ selected-chain request rejects wrong networks and malformed transaction fields (39.7291ms)
+✔ EIP-1193 read methods expose only chain id and the public EVM address (30.3007ms)
+✔ network switching requires approval and wallet_addEthereumChain rejects RPC substitution (101.6853ms)
+✔ extension runtime origin comes from the browser sender, never a payload (2.1097ms)
+✔ extension schema rejects forged authority, oversized data and malformed identity (2.2247ms)
+✔ extension denies unimplemented, Zcash, key export and raw signing RPCs (1.3458ms)
+✔ extension blocks mainnet chain selection and transactions before opening approvals (0.4498ms)
+✔ extension package has isolated transport, no secret or broad permission capability (3.5331ms)
+✔ extension accepts only a single public EVM account projection (0.4342ms)
+✔ worker expiry discards late approval responses and prevents request replay (6.0811ms)
+✔ worker rejects unknown response IDs, isolates documents, and removes disconnected state (2.2467ms)
+✔ worker extension UI metadata is unavailable to website senders and contains no params (2.8892ms)
+✔ registry contains only exact testnet chain ids and unique testnet RPCs (3.3264ms)
+✔ wallet_addEthereumChain accepts only the exact built-in testnet parameters (0.8956ms)
+✔ transactions and signed purchase domains remain bound to one selected chain (8.5401ms)
+✔ EVM receipt adapter waits for depth and detects a reorged block (3.3616ms)
+(node:4952) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ OpenSea normalizes exact hex salt and uint256 values without float coercion (10.9337ms)
+✔ OpenSea rejects wrong chain (1.9509ms)
+✔ OpenSea rejects wrong protocol (1.5299ms)
+✔ OpenSea rejects expired listing (1.9468ms)
+✔ OpenSea rejects restricted order (1.289ms)
+✔ OpenSea rejects unknown conduit (1.2052ms)
+✔ OpenSea rejects criteria NFT (1.0591ms)
+✔ OpenSea rejects dynamic price (6.4993ms)
+✔ OpenSea rejects changed consideration (1.5633ms)
+✔ OpenSea rejects extra tip (1.5916ms)
+✔ OpenSea rejects wrong NFT (1.6297ms)
+✔ OpenSea rejects wrong price (2.5303ms)
+✔ OpenSea rejects wrong hash (3.5011ms)
+✔ OpenSea reconstructs genuine-format advanced fulfillment including bounded attribution (15.0052ms)
+✔ OpenSea fulfillment rejects recipient substitution (5.4155ms)
+✔ OpenSea fulfillment rejects wrong chain (5.8903ms)
+✔ OpenSea fulfillment rejects changed fee (6.7972ms)
+✔ OpenSea fulfillment rejects partial fill (5.5273ms)
+✔ OpenSea fulfillment rejects zone extra data (5.5694ms)
+✔ OpenSea fulfillment rejects unbounded suffix (5.592ms)
+✔ OpenSea fulfillment rejects order signature substitution (7.0849ms)
+✔ OpenSea fulfillment rejects API value mismatch (3.7381ms)
+✔ OpenSea credential is server-only, constrained to official origin and safe paths (7.0111ms)
+✔ OpenSea expired credentials fail before network access (0.4027ms)
+✔ OpenSea 429 retry window prevents repeat calls (1.3027ms)
+✔ OpenSea errors never relay upstream bodies or secret-bearing exceptions (1.0112ms)
+✔ OpenSea validates response size and unsafe numeric data (1.0522ms)
+✔ Read-only quote rejects expiry, recipient/hash substitution and executable state (0.5226ms)
+✔ NFT image fetch refuses arbitrary hosts, loopback, non-HTTPS and SVG URLs (0.4872ms)
+✔ Extension EIP-6963 discovery is frozen and restricted to exact top-level OpenSea origins (4.6902ms)
+✔ Extension rejects unauthorized signing and private wallet RPC without opening a signer (2.489ms)
+✔ Extension authenticates popup source/origin/channel and correlates responses (2.0897ms)
+✔ Extension revocation/session expiry rejects pending requests and disconnects (2.1364ms)
+✔ Extension malformed and oversized requests fail; request timeout does not retry (2.0221ms)
+✔ Collection fee policy verifies exact recipients and amounts including fractional percentages (12.0633ms)
+✔ Extension only accepts configured testnet chain events (2.7036ms)
+✖ OpenSea HTTP API requires local verified session and CSRF and has no payment route (46.5273ms)
+(node:16540) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ duplicate snapshots and outputs do not increase paid amount (127.1175ms)
+✔ underpayments accumulate but never settle early (45.5622ms)
+✔ nine confirmations and unmined observations cannot authorize (41.0869ms)
+✔ Ironwood notes require ten confirmations and retain pool-specific identity (41.8447ms)
+✔ invalid network, partial scan, stale snapshot and transparent output fail closed (35.3417ms)
+✔ expired orders with funds enter auditable recovery and cannot revive (38.834ms)
+✔ a late payment to an already expired order stays expired (36.9879ms)
+✔ overpayment authorizes only one mint and records excess recovery (35.8665ms)
+✔ reorg before preparation removes authorization (35.4169ms)
+✔ reorg after preparation stops broadcast and creates recovery (38.0757ms)
+✔ conflicting duplicate outputs reject the entire snapshot atomically (34.6029ms)
+✔ payment attribution cannot be replayed against another account (37.5817ms)
+✔ same request is idempotent; reusing nonce for another intent fails (38.1492ms)
+✔ crash after broadcast preserves raw transaction across restart (53.3282ms)
+✔ receipt reconciliation prevents duplicate settlement on retries (37.7718ms)
+✔ confirmed revert records failure; explicit retry requires fresh payment (40.6879ms)
+✔ expired pending settlement does not rebroadcast (35.9333ms)
+✔ altered recipient, contract, price, expiry and signature are rejected (44.2953ms)
+✔ a slow prepare cannot bypass the freshness check before persistence (38.5506ms)
+(node:3756) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✖ local EVM: ordinary wallet buy, viem/Solidity quote identity, shielded-funded delivery and replay (13799.2628ms)
+(node:20040) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ approved quote waits for a competing scan lock and reuses its signed identity (457.9858ms)
+✔ sent payment without a mined note is pending mining, never a payment request or completion (72.7174ms)
+✔ two service instances cannot concurrently settle one confirmed purchase twice (114.5399ms)
+✔ purchase terms and signature bind origin, chain, recipient, NFT, calldata, rate and expiry (59.5534ms)
+✔ reservations survive restart and prevent duplicate listings and overcommitted liquidity (49.1783ms)
+✔ nine confirmations, underpayments, and reorg before authorization never broadcast (55.5096ms)
+✔ duplicate confirmed outputs settle once; restart and repeated tick cannot repay (78.4892ms)
+✔ confirmed payment plus listing_sold preserves refund recovery (103.8589ms)
+✔ confirmed payment plus listing_cancelled preserves refund recovery (67.203ms)
+✔ confirmed payment plus listing_expired preserves refund recovery (68.525ms)
+✔ confirmed payment plus listing_changed preserves refund recovery (65.5767ms)
+✔ confirmed payment plus seller_ownership_changed preserves refund recovery (70.5154ms)
+✔ confirmed payment plus seller_approval_revoked preserves refund recovery (65.6376ms)
+✔ confirmed payment plus gas_budget_exceeded preserves refund recovery (61.8528ms)
+✔ insufficient provider liquidity fails closed after confirmed payment (64.7931ms)
+✔ ambiguous broadcast retains exact hash, never retries, and reconciles receipt (79.9295ms)
+✔ confirmed revert and ownership mismatch require recovery with no automatic retry (134.4991ms)
+✔ expired paid order, overpayment, and post-authorization reorg are auditable (100.3457ms)
+✔ public purchase projection excludes payment keys, notes, amounts, and refund destination (35.4893ms)
+✔ interrupted native send requires reconciliation and cannot initiate another payment (35.2661ms)
+✔ dApp purchase requests require origin permission, exact approval, and revocation blocks status (73.3513ms)
+(node:16396) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✖ verified Seaport fork: restrictive fulfillment, payment gating, failures and restart (300010.1382ms)
+✔ OpenSea discovery respects testnet support, API authorization and rate-limit backoff (4.736ms)
+✔ Seaport reservations share NFT liquidity and reject duplicate active protocol orders (29.3461ms)
+✔ unapproved Seaport sessions never reach signer, RPC or native payment (22.5487ms)
+✔ concurrent Seaport and NFT reservations cannot overspend shared provider liquidity (334.445ms)
+(node:30712) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ concurrent NFT and swap quote reservations cannot double-book one provider balance (347.3188ms)
+✔ a confirmed swap cannot allocate a nonce while an NFT transaction is unresolved (46.5969ms)
+✔ V2 output uses fee-adjusted constant product and worsens with size (0.6181ms)
+✔ NFT and swap reservations compete atomically across connections and keep separate views (55.9676ms)
+✔ swap APIs reject unconnected and unapproved sessions before touching the signer or native wallet (45.5332ms)
+✖ local AMM: official V2 artifacts, signed swap, reserve movement, receipt, restart, replay, slippage and failure recovery (16228.7432ms)
+(node:10256) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ pairing is one use, cookie is hashed, sessions expire and revoke (4.5906ms)
+✔ Host, Origin, fetch metadata and JSON gate reject cross-site requests (0.5089ms)
+✔ unconnected or unapproved operations never invoke signing (110.8109ms)
+✔ ownership challenge verifies signature, is session-bound and cannot replay (78.1598ms)
+✔ tampered ownership signature fails closed (60.8907ms)
+✔ order creation is idempotent across duplicate and concurrent submissions (47.5501ms)
+✔ stale and other-session fee approvals cannot send; duplicate approvals send once (71.4515ms)
+✔ payment approval passes the exact fee ceiling and predetermined destination to native signer (100.5285ms)
+✔ restarted in-flight actions require review and never silently resend (81.3394ms)
+✔ nine confirmations remain confirming; ten permit settled and later completed states (66.6519ms)
+✔ browser projection omits account IDs, receiving addresses, signatures, nonce and raw transaction (56.032ms)
+✖ HTTP boundary blocks unauthenticated, CSRF and cross-origin signing attempts before dispatch (30.1907ms)
+ℹ tests 124
+ℹ suites 0
+ℹ pass 117
+ℹ fail 6
+ℹ cancelled 1
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 309917.6479
+
+✖ failing tests:
+
+test at tests\action.test.ts:1:802
+✖ local Anvil: fixed signed ZEC action settles once and confirms the exact user event (16308.0461ms)
+  AssertionError [ERR_ASSERTION]: Anvil startup failed
+      at TestContext.<anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\action.test.ts:79:14)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\base.test.ts:1:840
+✖ local EVM: real viem signing, persisted raw tx, receipt/event/owner reconciliation and chain guard (13720.7364ms)
+  AssertionError [ERR_ASSERTION]: Anvil startup failed
+      at TestContext.<anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\base.test.ts:30:12)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\opensea.test.ts:1:13542
+✖ OpenSea HTTP API requires local verified session and CSRF and has no payment route (46.5273ms)
+  Error: connect EACCES 127.0.0.1:61933
+      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16) {
+    errno: -4092,
+    code: 'EACCES',
+    syscall: 'connect',
+    address: '127.0.0.1',
+    port: 61933
+  }
+
+test at tests\purchase-evm.test.ts:1:895
+✖ local EVM: ordinary wallet buy, viem/Solidity quote identity, shielded-funded delivery and replay (13799.2628ms)
+  TypeError: fetch failed
+      at node:internal/deps/undici/undici:15845:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async local (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\purchase-evm.test.ts:85:19)
+      at async TestContext.<anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\purchase-evm.test.ts:92:7)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    [cause]: Error: connect EACCES 127.0.0.1:61921
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 61921
+    }
+  }
+
+test at tests\seaport.test.ts:1:1396
+✖ verified Seaport fork: restrictive fulfillment, payment gating, failures and restart (300010.1382ms)
+  'test timed out after 300000ms'
+
+test at tests\swaps.test.ts:1:6103
+✖ local AMM: official V2 artifacts, signed swap, reserve movement, receipt, restart, replay, slippage and failure recovery (16228.7432ms)
+  TypeError: fetch failed
+      at node:internal/deps/undici/undici:15845:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async local (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\swaps.test.ts:210:9)
+      at async TestContext.<anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\swaps.test.ts:261:7)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    [cause]: Error: connect EACCES 127.0.0.1:61944
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16) {
+      errno: -4092,
+      code: 'EACCES',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 61944
+    }
+  }
+
+test at tests\wallet.test.ts:1:8508
+✖ HTTP boundary blocks unauthenticated, CSRF and cross-origin signing attempts before dispatch (30.1907ms)
+  Error: connect EACCES 127.0.0.1:61952
+      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16) {
+    errno: -4092,
+    code: 'EACCES',
+    syscall: 'connect',
+    address: '127.0.0.1',
+    port: 61952
+  }

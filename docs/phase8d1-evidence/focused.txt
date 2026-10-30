@@ -1,0 +1,41 @@
+(node:21336) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ origin policy accepts exact HTTPS and loopback origins and rejects spoofed or unsafe origins (2.3643ms)
+✔ EIP-1193 array and object parameter forms normalize without losing transaction fields (1.3333ms)
+✔ address access is opt-in, request approval is idempotent, and revocation is origin-bound (74.9611ms)
+✔ channel binding prevents origin and local-session substitution (21.9944ms)
+✔ unapproved signature/transaction and unsupported RPC methods fail before signing (27.3621ms)
+✔ selected-chain request rejects wrong networks and malformed transaction fields (29.9852ms)
+✔ EIP-1193 read methods expose only chain id and the public EVM address (22.5797ms)
+✔ network switching requires approval and wallet_addEthereumChain rejects RPC substitution (34.6915ms)
+(node:10520) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ supported pinned EVM purchase, mint and swap produce non-executing structured intents (8.8392ms)
+✔ decoded unknown contracts, NFT mint targets and routers never gain adapter support (4.8578ms)
+✔ malformed calldata, extra trailing bytes and hidden source fields fail closed (2.0029ms)
+✔ origin, session, network, recipient and expiry are bound (2.5392ms)
+✔ ERC20 transfer and bounded/unlimited approvals are decoded but never supported (1.6016ms)
+✔ registry rejects mainnet, unbounded inputs, duplicate routes and foreign swap networks (0.829ms)
+✔ swap input and token route limits cannot be expanded by calldata (0.8533ms)
+✔ simulation facts are scoped to exact request, pinned code, chain and fee budget (5.6181ms)
+✔ duplicate IDs, cross-origin/session/channel/chain access and mutable returned objects cannot alter consent (3.0627ms)
+✔ concurrent preparation is reserved and no consent is possible before simulation completes (1.5921ms)
+✔ late consent and restart fail closed without authorizing financial execution (0.8216ms)
+✔ existing provider boundary records preview consent but never returns a fake transaction hash or calls legacy signer (33.5088ms)
+✔ persisted preview cannot fall through to legacy signing after restart without preview mode (30.5053ms)
+✔ provider denies unconnected origins and exact preview cancellation never signs (3.3483ms)
+✔ Solana canonical unsigned SOL delivery exposes verified payer, programs and account metas only (11.2421ms)
+✔ Solana malformed, substituted program/instruction/account bytes and signed payloads are rejected (4.2334ms)
+✔ Solana unknown program substitution and versioned/lookup-table transactions are rejected (1.9977ms)
+✔ Solana chain, route facts, expiry, simulation, fee and blockhash checks fail closed (4.2267ms)
+✔ pinned Raydium route validates mint decimals, ATA creation and every canonical instruction (49.0232ms)
+✔ private payment facts never enter destination callbacks or preview output (1.9408ms)
+✔ preview modules have no financial store, vault, signing or broadcast dependencies; completed settlement replay guards remain present (3.336ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6771.2647

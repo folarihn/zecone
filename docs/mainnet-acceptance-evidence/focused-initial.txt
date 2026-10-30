@@ -1,0 +1,161 @@
+✔ production quote binds signed price, fees and exact source spend (44.7214ms)
+✔ quote rejects over-cap fees, disabled profiles and wrong networks (8.4872ms)
+(node:25956) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✖ submitter claims a verified signed bundle exactly once and finalizes only a matching receipt (4.8483ms)
+✖ submitter rejects replayed source payments, wrong broadcast ids and pauses (1.1401ms)
+✖ submitter enforces per-transaction and daily limits (1.0695ms)
+✖ base finalization requires the configured confirmation depth and exact recipient (1.2905ms)
+(node:25984) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ mainnet snapshot validation rejects testnet, stale and inconsistent scans (4.3626ms)
+✖ journal distinguishes awaiting, observed, confirmed, invalid and ambiguous (30.2125ms)
+✖ a confirmed note is owned only by the imported account and receiving address (0.4145ms)
+✖ payments are bound to one order and a reorg is detected against the checkpoint (1.9597ms)
+✖ order binding is immutable and payment digest does not expose the nullifier (2.539ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 3
+ℹ fail 8
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 21675.4292
+
+✖ failing tests:
+
+test at tests\mainnet-submitter.test.ts:1:1367
+✖ submitter claims a verified signed bundle exactly once and finalizes only a matching receipt (4.8483ms)
+  Error: INVALID_MAINNET_SUBMISSION
+      at MainnetSubmissionJournal.prepareLocked ([workspace]\services\settlement\mainnet-submitter.ts:212:13)
+      at <anonymous> ([workspace]\services\settlement\mainnet-submitter.ts:195:33)
+      at MainnetSubmissionJournal.atomic ([workspace]\services\settlement\mainnet-submitter.ts:155:21)
+      at MainnetSubmissionJournal.prepare ([workspace]\services\settlement\mainnet-submitter.ts:195:17)
+      at TestContext.<anonymous> ([workspace]\tests\mainnet-submitter.test.ts:65:5)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.start (node:internal/test_runner/test:1003:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:358:17)
+
+test at tests\mainnet-submitter.test.ts:1:2159
+✖ submitter rejects replayed source payments, wrong broadcast ids and pauses (1.1401ms)
+  Error: INVALID_MAINNET_SUBMISSION
+      at MainnetSubmissionJournal.prepareLocked ([workspace]\services\settlement\mainnet-submitter.ts:212:13)
+      at <anonymous> ([workspace]\services\settlement\mainnet-submitter.ts:195:33)
+      at MainnetSubmissionJournal.atomic ([workspace]\services\settlement\mainnet-submitter.ts:155:21)
+      at MainnetSubmissionJournal.prepare ([workspace]\services\settlement\mainnet-submitter.ts:195:17)
+      at TestContext.<anonymous> ([workspace]\tests\mainnet-submitter.test.ts:92:5)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at Test.postRun (node:internal/test_runner/test:1235:19)
+      at Test.run (node:internal/test_runner/test:1163:12)
+
+test at tests\mainnet-submitter.test.ts:1:2767
+✖ submitter enforces per-transaction and daily limits (1.0695ms)
+  Error: INVALID_MAINNET_SUBMISSION
+      at MainnetSubmissionJournal.prepareLocked ([workspace]\services\settlement\mainnet-submitter.ts:212:13)
+      at <anonymous> ([workspace]\services\settlement\mainnet-submitter.ts:195:33)
+      at MainnetSubmissionJournal.atomic ([workspace]\services\settlement\mainnet-submitter.ts:155:21)
+      at MainnetSubmissionJournal.prepare ([workspace]\services\settlement\mainnet-submitter.ts:195:17)
+      at TestContext.<anonymous> ([workspace]\tests\mainnet-submitter.test.ts:120:5)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at Test.postRun (node:internal/test_runner/test:1235:19)
+      at Test.run (node:internal/test_runner/test:1163:12)
+
+test at tests\mainnet-submitter.test.ts:1:3305
+✖ base finalization requires the configured confirmation depth and exact recipient (1.2905ms)
+  Error: INVALID_MAINNET_SUBMISSION
+      at MainnetSubmissionJournal.prepareLocked ([workspace]\services\settlement\mainnet-submitter.ts:212:13)
+      at <anonymous> ([workspace]\services\settlement\mainnet-submitter.ts:195:33)
+      at MainnetSubmissionJournal.atomic ([workspace]\services\settlement\mainnet-submitter.ts:155:21)
+      at MainnetSubmissionJournal.prepare ([workspace]\services\settlement\mainnet-submitter.ts:195:17)
+      at TestContext.<anonymous> ([workspace]\tests\mainnet-submitter.test.ts:152:5)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at Test.postRun (node:internal/test_runner/test:1235:19)
+      at Test.run (node:internal/test_runner/test:1163:12)
+
+test at tests\mainnet-watch.test.ts:1:1682
+✖ journal distinguishes awaiting, observed, confirmed, invalid and ambiguous (30.2125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + 'invalid'
+  - 'observed'
+
+      at TestContext.<anonymous> ([workspace]\tests\mainnet-watch.test.ts:86:10)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at Test.postRun (node:internal/test_runner/test:1235:19)
+      at Test.run (node:internal/test_runner/test:1163:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'invalid',
+    expected: 'observed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\mainnet-watch.test.ts:1:2377
+✖ a confirmed note is owned only by the imported account and receiving address (0.4145ms)
+  Error: MAINNET_OWNED_NOTE_CRYPTOGRAPHIC_VERIFIER_REQUIRED
+      at verifyOwnedNote ([workspace]\services\settlement\mainnet-watch.ts:198:9)
+      at TestContext.<anonymous> ([workspace]\tests\mainnet-watch.test.ts:116:17)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at Test.postRun (node:internal/test_runner/test:1235:19)
+      at Test.run (node:internal/test_runner/test:1163:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at tests\mainnet-watch.test.ts:1:2834
+✖ payments are bound to one order and a reorg is detected against the checkpoint (1.9597ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + 'invalid'
+  - 'confirmed'
+
+      at TestContext.<anonymous> ([workspace]\tests\mainnet-watch.test.ts:134:10)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at Test.postRun (node:internal/test_runner/test:1235:19)
+      at Test.run (node:internal/test_runner/test:1163:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'invalid',
+    expected: 'confirmed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\mainnet-watch.test.ts:1:3829
+✖ order binding is immutable and payment digest does not expose the nullifier (2.539ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + null
+  - '2ee5158fca8b000a2391d9f7ee24c432e9aafa9583baed0250ae94ce3c8beb7e'
+
+      at TestContext.<anonymous> ([workspace]\tests\mainnet-watch.test.ts:191:10)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at Test.postRun (node:internal/test_runner/test:1235:19)
+      at Test.run (node:internal/test_runner/test:1163:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: '2ee5158fca8b000a2391d9f7ee24c432e9aafa9583baed0250ae94ce3c8beb7e',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

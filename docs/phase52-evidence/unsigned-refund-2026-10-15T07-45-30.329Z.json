@@ -1,0 +1,23 @@
+{
+  "at": "2026-10-15T07:45:30.328Z",
+  "profileId": "99ef6572-b2ba-4d7f-a1fb-1bf333f2cb0b",
+  "sourceOrderId": "b2f334e8-22ed-4d0d-bcd2-9766e4b4d89e",
+  "originalPaymentTxid": "620bdb644efcb47559e98ebf553eab07ea04ad0179b5361cdd549b8f8a2fafac",
+  "network": "zcash-testnet",
+  "refundDestination": "utest1qrtu8u43rq6lhcfpzsqmjum8rtfrnk2xfsnhksxjp8gssc637tslpsmyqannfn5t3ccc9lpt6kdaczwts9k7fgsapqqg7c73mgjwyk0a",
+  "refundZatoshis": "90000",
+  "feeZatoshis": "10000",
+  "expiryHeight": 4504159,
+  "pcztSha256": "430b014672ee9e338e2154ecd02e1fcffba1ce932785530048820781894d0cbf",
+  "pcztBytes": 4901,
+  "realFundedNote": true,
+  "independentScannerEffectsVerified": true,
+  "minimumInputConfirmations": 31,
+  "witnessesOwnershipCiphertextsAndChangeVerified": true,
+  "signed": false,
+  "broadcast": false,
+  "authorizationComplete": false,
+  "separateDeviceValidated": false,
+  "independentProviderVerification": false,
+  "liveRefundsEnabled": false
+}

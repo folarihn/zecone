@@ -1,0 +1,36 @@
+{
+  "at": "2026-10-13T16:34:13.154Z",
+  "network": "zcash-testnet",
+  "simulatedIsolation": true,
+  "separateDeviceValidated": false,
+  "addresses": [
+    {
+      "role": "payer",
+      "address": "utest1pqppvgctn6any9ktxueyrazhw7ajl5s5gvr3h9fcrgm6tuf0kpn9d7hnapz8utja5vphksucv2smxavfxfhlame8t8fvyj2sayg87pqh",
+      "viewingKeyFingerprint": "e83184c22c694fab0fffda6269cccc7151a8d549b23d6dfe2102314fada47b98",
+      "birthday": 4498386
+    },
+    {
+      "role": "settlement-refund-signer",
+      "address": "utest16pcq7yuwv6d899zldl4f2p9nnpphp0flyn97uca7gsc0uqw49z8sulyy0yygrge8upevz5ljxggvw96fsf83zduclw959tefqgwuxku0",
+      "viewingKeyFingerprint": "401974f08cec9361faa00599616fa25672131a9caecb6b4c779c03ec338356ed",
+      "birthday": 4498386
+    },
+    {
+      "role": "refund-destination",
+      "address": "utest1tkrnv2qtzny8nh8ddpf9rg8ltdj7jhqj9mnqw29nzads0w3hn5mmss2k963dszazxqmdzek9naw0evvsumlq0y3497y65agatgtwzm6h",
+      "viewingKeyFingerprint": "c45a280e1d7c8a89829c8f87002e8d887045c5f20acab20e708e47e184d6c9d0",
+      "birthday": 4498386
+    }
+  ],
+  "plannedPaymentZatoshis": "100000",
+  "plannedRefundZatoshis": "90000",
+  "assumedPaymentFeeZatoshis": "10000",
+  "assumedRefundFeeZatoshis": "10000",
+  "minimumPayerFundingZatoshis": "110000",
+  "suggestedPayerFundingZatoshis": "200000",
+  "feeAssumptions": "One mature Ironwood input, two logical actions per transaction under pinned ZIP-317. Recompute actual proposal fees after funding; extra notes/actions can increase fees. Shielded funding only; no transparent shielding budget included.",
+  "fundsMoved": false,
+  "liveRefundSigningEnabled": false,
+  "liveBroadcastEnabled": false
+}

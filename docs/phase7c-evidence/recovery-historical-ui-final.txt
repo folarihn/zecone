@@ -1,0 +1,20 @@
+
+> test:phase6c
+> playwright test -c playwright.phase6c.config.ts
+
+[WebServer] (node:29200) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:29200) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+
+Running 6 tests using 1 worker
+
+(node:20840) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 1 tests\phase6c\real-data.spec.ts:45:3 › real historical wallet desktop: truthful snapshot labels, layout and accessibility (24.2s)
+  ok 2 tests\phase6c\real-data.spec.ts:45:3 › real historical wallet narrow: truthful snapshot labels, layout and accessibility (2.3s)
+  ok 3 tests\phase6c\real-data.spec.ts:45:3 › real historical wallet mobile: truthful snapshot labels, layout and accessibility (2.0s)
+  ok 4 tests\phase6c\real-data.spec.ts:76:1 › historical checkout adapters replay real references and survive refresh without payment requests (22.2s)
+  ok 5 tests\phase6c\real-data.spec.ts:113:1 › read-only UI handles denied refresh without starting a worker (840ms)
+  ok 6 tests\phase6c\real-data.spec.ts:131:1 › network loss reports stale checkout data and reconnect restores the saved selection (5.9s)
+
+  6 passed (1.6m)

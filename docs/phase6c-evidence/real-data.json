@@ -1,0 +1,193 @@
+{
+  "capturedAt": "2026-10-16T09:32:29.071Z",
+  "syncPerformed": false,
+  "quarantined": true,
+  "wallet": {
+    "totalZatoshis": "1897500",
+    "sdkSpendableZatoshis": "1897500",
+    "tip": 4498492,
+    "scanned": 4498492,
+    "historyCount": 10
+  },
+  "checkouts": [
+    {
+      "kind": "mint",
+      "state": "COMPLETED",
+      "chainId": 84532,
+      "paymentTx": "c56581846c507113c62f0ede6e742261852f5c65ddb7b590c3a4cc08ec782b57",
+      "destinationTx": "0x37a41954026391efb578df5b51926a1552a6335d1e193442e2eb4adda948bf42"
+    },
+    {
+      "kind": "action",
+      "state": "COMPLETED",
+      "chainId": 84532,
+      "paymentTx": "eea00e872a3b1be22a449c5af8c1c6c82385cdb64e06a5a8993290f0304f66ca",
+      "destinationTx": "0x74180b014e5422ab97928a1e8aff0afbe7511072fcfe6c0b14552202f686e730"
+    },
+    {
+      "kind": "purchase",
+      "state": "COMPLETED",
+      "chainId": 11155111,
+      "paymentTx": "44938c5d28d61143bf703cc5557cabf732c897dee1ffdb883a3a89d49bb43848",
+      "destinationTx": "0x80a756ad54cbd5df1d5c698bef15d1dec7f55b9d8b2b3c06ebf0d0309787aaea"
+    },
+    {
+      "kind": "purchase",
+      "state": "COMPLETED",
+      "chainId": 46630,
+      "paymentTx": "8e301d20e3e660e9259ebcf9738910cf7be1311e979925d2c54e0bbb455911a8",
+      "destinationTx": "0xd971607153447865f305fd07e0dafff217edc6f6136c03ab646554a63403499f"
+    },
+    {
+      "kind": "purchase",
+      "state": "COMPLETED",
+      "chainId": 84532,
+      "paymentTx": "09c49d32499e1fd2680a88308fbc154febbfb579ac765412795e9f445bd547b8",
+      "destinationTx": "0x1a8dfe23529ba4ff29971d5633494de2b5ce7d36f15b787cd4efa0ac8f04a9f8"
+    },
+    {
+      "kind": "purchase",
+      "state": "PAYMENT_EXPIRED",
+      "chainId": 84532,
+      "paymentTx": null,
+      "destinationTx": null
+    },
+    {
+      "kind": "swap",
+      "state": "PAYMENT_EXPIRED",
+      "chainId": 84532,
+      "paymentTx": null,
+      "destinationTx": null
+    },
+    {
+      "kind": "swap",
+      "state": "COMPLETED",
+      "chainId": 84532,
+      "paymentTx": "92816a4d190bbfbcbe55cb1a09e1d7ee0785aa248ae1b7501f0edb2bc68e6e74",
+      "destinationTx": "0xf260da275e91d63d43e813ec26d335b33b58893746b4ca3b962df50786097c77"
+    },
+    {
+      "kind": "seaport",
+      "state": "COMPLETED",
+      "chainId": 84532,
+      "paymentTx": "be203c56ae342ae368d13547b1a65f09f8912decd6bf2e7fd18aaf7071ff8bdf",
+      "destinationTx": "0x473e5fe828041b87b7efb9a8099534840128f00dc7713e5662c79fb00ab511e4"
+    }
+  ],
+  "networks": [
+    {
+      "chainId": 84532,
+      "name": "Base Sepolia",
+      "address": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+      "explorer": "https://sepolia.basescan.org",
+      "tokenIndexing": "Known Phase 4B ZTEST contract only; arbitrary token indexing unavailable",
+      "nftIndexing": "Known marketplace inventory only; arbitrary collection indexing unavailable",
+      "configured": true,
+      "health": "online",
+      "checkedAt": "2026-10-16T09:32:32.225Z",
+      "block": "48187431",
+      "wei": "9999873999999741",
+      "tokens": [
+        {
+          "address": "0x485ec83255a8d4f480347c6b32f54b38ef3556d2",
+          "symbol": "ZTEST",
+          "decimals": 18,
+          "balance": "19550169617820656117"
+        }
+      ],
+      "nfts": [
+        {
+          "address": "0xad890bdbb04ea701b15dabd5677aa083456b4124",
+          "tokenId": "1"
+        }
+      ],
+      "nftStatus": "verified onchain for known inventory"
+    },
+    {
+      "chainId": 11155111,
+      "name": "Ethereum Sepolia",
+      "address": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+      "explorer": "https://sepolia.etherscan.io",
+      "tokenIndexing": "No ERC-20 contracts configured; arbitrary token indexing unavailable",
+      "nftIndexing": "Known marketplace inventory only; arbitrary collection indexing unavailable",
+      "configured": true,
+      "health": "online",
+      "checkedAt": "2026-10-16T09:32:31.892Z",
+      "block": "11926504",
+      "wei": "0",
+      "tokens": [],
+      "nfts": [
+        {
+          "address": "0xd74d45e0888dfd6d7df09e36808f0465bb0d0b01",
+          "tokenId": "1"
+        }
+      ],
+      "nftStatus": "verified onchain for known inventory"
+    },
+    {
+      "chainId": 46630,
+      "name": "Robinhood Chain Testnet",
+      "address": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+      "explorer": "https://explorer.testnet.chain.robinhood.com",
+      "tokenIndexing": "No ERC-20 contracts configured; arbitrary token indexing unavailable",
+      "nftIndexing": "Known marketplace inventory only; arbitrary collection indexing unavailable",
+      "configured": true,
+      "health": "online",
+      "checkedAt": "2026-10-16T09:32:32.787Z",
+      "block": "136502187",
+      "wei": "0",
+      "tokens": [],
+      "nfts": [
+        {
+          "address": "0xd74d45e0888dfd6d7df09e36808f0465bb0d0b01",
+          "tokenId": "1"
+        }
+      ],
+      "nftStatus": "verified onchain for known inventory"
+    }
+  ],
+  "receiptChecks": [
+    {
+      "hash": "0x37a41954026391efb578df5b51926a1552a6335d1e193442e2eb4adda948bf42",
+      "chainId": 84532,
+      "status": "success",
+      "block": "48012067"
+    },
+    {
+      "hash": "0x74180b014e5422ab97928a1e8aff0afbe7511072fcfe6c0b14552202f686e730",
+      "chainId": 84532,
+      "status": "success",
+      "block": "48014070"
+    },
+    {
+      "hash": "0x80a756ad54cbd5df1d5c698bef15d1dec7f55b9d8b2b3c06ebf0d0309787aaea",
+      "chainId": 11155111,
+      "status": "pending or insufficient depth"
+    },
+    {
+      "hash": "0xd971607153447865f305fd07e0dafff217edc6f6136c03ab646554a63403499f",
+      "chainId": 46630,
+      "status": "success",
+      "block": "134061251"
+    },
+    {
+      "hash": "0x1a8dfe23529ba4ff29971d5633494de2b5ce7d36f15b787cd4efa0ac8f04a9f8",
+      "chainId": 84532,
+      "status": "success",
+      "block": "48029979"
+    },
+    {
+      "hash": "0xf260da275e91d63d43e813ec26d335b33b58893746b4ca3b962df50786097c77",
+      "chainId": 84532,
+      "status": "success",
+      "block": "48053847"
+    },
+    {
+      "hash": "0x473e5fe828041b87b7efb9a8099534840128f00dc7713e5662c79fb00ab511e4",
+      "chainId": 84532,
+      "status": "success",
+      "block": "48056302"
+    }
+  ],
+  "liveRefundsEnabled": false
+}

@@ -1,0 +1,25 @@
+
+> test:ui
+> playwright test
+
+[WebServer] (node:19260) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 12 tests using 1 worker
+
+(node:16668) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 tests\ui\extension.spec.ts:5:1 › provider browser harness authenticates a separate-origin popup and disconnects (794ms)
+  ok  2 tests\ui\purchase-popup.spec.ts:3:1 › marketplace popup shows exact quote approval then the separate payment panel (679ms)
+  ok  3 tests\ui\wallet.spec.ts:45:1 › marketplace payment needs a separate native-fee approval and preserves recovery details (732ms)
+  ok  4 tests\ui\wallet.spec.ts:158:1 › malformed network data shows an error without crashing the wallet (508ms)
+  ok  5 tests\ui\wallet.spec.ts:171:1 › token swap requires exact intent approval and a separate native payment approval (732ms)
+  ok  6 tests\ui\wallet.spec.ts:192:1 › Seaport purchase labels controlled origin and separates intent from shielded payment approval (715ms)
+  ok  7 tests\ui\wallet.spec.ts:204:1 › desktop wallet is accessible and has no horizontal overflow (1.4s)
+  ok  8 tests\ui\wallet.spec.ts:222:1 › mobile navigation, checkout review and focus-trapped approval are accessible (1.3s)
+  ok  9 tests\ui\wallet.spec.ts:271:1 › no signing happens merely by visiting checkout or opening an approval (632ms)
+  ok 10 tests\ui\wallet.spec.ts:292:1 › sponsor screen displays fixed terms before its explicit approval (571ms)
+  ok 11 tests\ui\wallet.spec.ts:318:1 › apps page names exact origins and lets the user revoke a connection (577ms)
+  ok 12 tests\ui\wallet.spec.ts:338:1 › OpenSea preview is non-executing, recipient-bound and expires visibly (4.0s)
+
+  12 passed (17.0s)

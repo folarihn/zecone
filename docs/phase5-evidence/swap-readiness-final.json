@@ -1,0 +1,12 @@
+{
+  "at": "2026-10-13T15:03:52.490Z",
+  "kind": "real-public-read-and-simulation",
+  "broadcasts": 0,
+  "contractsVerified": true,
+  "block": "48067772",
+  "quote": {
+    "inputWei": "100000000000000",
+    "expectedOut": "18799324593554105157",
+    "estimatedFeeWei": "42323167000000"
+  }
+}

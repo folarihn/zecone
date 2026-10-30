@@ -1,0 +1,9 @@
+{
+  "startedAt": "2026-10-12T17:49:39.280Z",
+  "purchaseId": "325a8e82-edae-4498-9712-0ee4aff3536f",
+  "origin": "http://127.0.0.1:4322",
+  "listingId": "1",
+  "paymentRequested": true,
+  "reusedSavedSignature": true,
+  "notice": "Confirmation and settlement must be verified separately."
+}

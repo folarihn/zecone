@@ -1,0 +1,35 @@
+{
+  "at": "2026-10-17T03:07:22.319Z",
+  "reports": [
+    {
+      "label": "primary",
+      "method": "getGenesisHash",
+      "httpStatus": 200,
+      "bytes": 81,
+      "elapsedMs": 455,
+      "rpcCode": null,
+      "genesisMatches": true
+    },
+    {
+      "label": "primary",
+      "method": "getMultipleAccounts",
+      "httpStatus": 200,
+      "bytes": 999122,
+      "elapsedMs": 864,
+      "rpcCode": null,
+      "accountCount": 9,
+      "slot": 511932153
+    },
+    {
+      "label": "secondary",
+      "configured": false
+    }
+  ],
+  "sdkPool": {
+    "validated": true
+  },
+  "diagnostics": [],
+  "noWalletQueries": true,
+  "noSigning": true,
+  "noBroadcast": true
+}

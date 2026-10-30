@@ -1,0 +1,32 @@
+{
+  "at": "2026-10-13T17:30:10.927Z",
+  "nativePackages": 186,
+  "dependenciesAbsentFromLegacyLock": [],
+  "pins": [
+    {
+      "name": "orchard",
+      "version": "0.16.0",
+      "checksum": "4ae7ceb7b5387bd76cf3c0712f57708795c925cecf097036cedb60b5c3706e8f"
+    },
+    {
+      "name": "pczt",
+      "version": "0.10.0-pre.1",
+      "checksum": "fbb353f91d5caf22e351cc75e6c531b2a74b7cfbef5274c6ce7d1859a0ab30b4"
+    },
+    {
+      "name": "zcash_keys",
+      "version": "0.17.0-pre.1",
+      "checksum": "96e6eaf9ae82ea0e40aadd35df0778f37125fb3405a25e2b1f0d6b45a9884e14"
+    },
+    {
+      "name": "zcash_primitives",
+      "version": "0.31.0-pre.1",
+      "checksum": "0329bee4107df1aaaaaab365bdf94fcc0d9a185165c4675dff2397c5af7d13f4"
+    },
+    {
+      "name": "zcash_protocol",
+      "version": "0.11.0-pre.0",
+      "checksum": "98aeb25d9f741670fd63f9dbf76bca87d87c4fd32e1a7469bc4c43c4d0af09f7"
+    }
+  ]
+}

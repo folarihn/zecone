@@ -1,0 +1,35 @@
+{
+  "mode": "READ_ONLY",
+  "paymentsEnabled": false,
+  "signingEnabled": false,
+  "broadcastEnabled": false,
+  "refundsEnabled": false,
+  "networks": {
+    "zcash": {
+      "network": "mainnet",
+      "lightwalletd": null,
+      "independentNode": null,
+      "status": "WATCH_BACKEND_REQUIRED"
+    },
+    "ethereum": {
+      "chainId": 1,
+      "primary": null,
+      "secondary": null,
+      "status": "PROVIDER_CONFIGURATION_REQUIRED"
+    },
+    "base": {
+      "chainId": 8453,
+      "publicIdentityProbe": "https://mainnet.base.org",
+      "productionPrimary": null,
+      "productionSecondary": null
+    },
+    "solana": {
+      "genesisHash": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
+      "publicIdentityProbe": "https://api.mainnet-beta.solana.com",
+      "productionPrimary": null,
+      "productionSecondary": null
+    }
+  },
+  "productionKeyReferences": null,
+  "executionLimits": null
+}

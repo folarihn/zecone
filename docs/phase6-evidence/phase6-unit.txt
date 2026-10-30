@@ -1,0 +1,19 @@
+(node:13032) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ payment address inspection is testnet only and refuses paid, uncertain or expired orders (1.035ms)
+✔ unified checkout expiration never hides a paid or uncertain transaction (0.2489ms)
+✔ recovery veto takes precedence over completion and refund text never establishes a refund (0.1055ms)
+✔ projection has stable cross-adapter IDs, explicit simulated pricing and verified result distinctions (0.8752ms)
+✔ read-only RPC rejects state overrides, unknown fields, invalid addresses and excessive gas (1.0424ms)
+✔ extension generic discovery still authenticates exact browser sender and denies frames (0.3383ms)
+✔ generic read requests cannot bypass extension transaction and raw-signing restrictions (1.1263ms)
+✔ RPC reads require a grant and use the selected configured chain, without invoking a signer (3.4498ms)
+✔ unified HTTP endpoint requires local account verification and projects every existing adapter without mutations (43.6255ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2866.595

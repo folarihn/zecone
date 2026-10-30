@@ -1,0 +1,17 @@
+✔ extension runtime origin comes from the browser sender, never a payload (1.1464ms)
+✔ extension schema rejects forged authority, oversized data and malformed identity (0.7174ms)
+✔ extension denies unimplemented, Zcash, key export and raw signing RPCs (0.6985ms)
+✔ extension blocks mainnet chain selection and transactions before opening approvals (0.2156ms)
+✔ extension package has isolated transport, no secret or broad permission capability (2.0453ms)
+✔ extension accepts only a single public EVM account projection (0.2056ms)
+✔ worker expiry discards late approval responses and prevents request replay (3.3395ms)
+✔ worker rejects unknown response IDs, isolates documents, and removes disconnected state (1.0763ms)
+✔ worker extension UI metadata is unavailable to website senders and contains no params (1.0328ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 254.998

@@ -1,0 +1,17 @@
+(node:6676) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ EIP-1193 duplicate listener and removal semantics preserve other wallets (41.4901ms)
+✔ personal_sign standard and unambiguous legacy orders stay bound to the authorized account (1.3064ms)
+✔ known approval review distinguishes unlimited allowance and collection-wide authority (6.7732ms)
+✔ rejection-only connector routes reviews but cannot approve signatures or transactions (7.3071ms)
+✔ snapshot copy preserves source bytes and read-only store refuses writes (30.1318ms)
+✔ transaction dry-run displays simulation and gas and rejection never signs or duplicates a request (3.8965ms)
+✔ read-only API requires local pairing, never asserts ownership and denies every spending route (85.6108ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3227.4724

@@ -1,0 +1,18 @@
+   Compiling zecone-refund-signer v0.1.0 (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\refund-signer-native)
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\zecone_refund_signer-3vagbbecwa8fl\s-hn6efyxebv-079gk1w-working`
+
+warning: `zecone-refund-signer` (lib) generated 1 warning
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\verification-3j93k2dkb793l\s-hn6eg0fncs-1bybdnx-working`
+
+warning: hard linking files in the incremental compilation cache failed. copying files instead. consider moving the cache directory to a file system which supports hard linking in session dir `\\?\C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\target\debug\incremental\zecone_refund_signer-2a91ojqfk5w79\s-hn6eg0fxz0-1ov6i2t-working`
+
+warning: `zecone-refund-signer` (bin "zecone-refund-signer") generated 1 warning
+warning: `zecone-refund-signer` (test "verification") generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.16s
+     Running tests\verification.rs (target\debug\deps\verification-b5e7112be1cede2c.exe)
+
+running 1 test
+test signed_synthetic_pczt_proves_and_extracts_a_native_transaction ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 48.14s
+

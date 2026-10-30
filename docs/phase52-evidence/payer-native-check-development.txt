@@ -1,0 +1,30 @@
+    Checking bip32 v0.6.0
+    Checking zcash_address v0.14.0-pre.1
+    Checking ring v0.17.14
+    Checking zcash_script v0.6.0
+    Checking zip321 v0.10.0-pre.1
+    Checking zcash_transparent v0.11.0-pre.1
+    Checking zcash_primitives v0.31.0-pre.1
+    Checking zcash_keys v0.17.0-pre.1
+    Checking rustls-webpki v0.103.15
+    Checking rustls v0.23.45
+    Checking pczt v0.10.0-pre.1
+    Checking zcash_proofs v0.31.0-pre.1
+    Checking tokio-rustls v0.26.6
+    Checking tonic v0.14.6
+    Checking tonic-prost v0.14.6
+    Checking zcash_client_backend v0.25.0-pre.1
+    Checking zcash_pool_migration v0.2.0-pre.1
+    Checking zcash_client_sqlite v0.23.0-pre.1
+    Checking zecone-zcash v0.1.0 (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\zcash)
+error[E0599]: no method named `get` found for struct `TargetHeight` in the current scope
+   --> services\zcash\src\main.rs:498:87
+    |
+498 |             zcash_protocol::consensus::BlockHeight::from(proposal.min_target_height().get())
+    |                                                                                       ^^^
+    |
+help: there is a method `ge` with a similar name, but with different arguments
+   --> /rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library\core\src\cmp.rs:1464:4
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `zecone-zcash` (bin "zecone-zcash") due to 1 previous error

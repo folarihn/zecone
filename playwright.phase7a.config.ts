@@ -1,0 +1,22 @@
+import { defineConfig } from "@playwright/test";
+export default defineConfig({
+  testDir: "tests/phase7a",
+  workers: 1,
+  fullyParallel: false,
+  reporter: "list",
+  timeout: 60000,
+  webServer: {
+    command: `node --import tsx scripts/phase7a-server.ts${process.env.ZECONE_PHASE7C_REGRESSION === "1" ? " --phase7c-regression" : process.env.ZECONE_PHASE7B_TEST === "1" ? " --phase7b" : ""}`,
+    url: "http://127.0.0.1:3210/api/health",
+    reuseExistingServer: false,
+    env: { NEXT_TELEMETRY_DISABLED: "1" },
+  },
+  use: {
+    baseURL: "http://127.0.0.1:3210",
+    browserName: "chromium",
+    channel: "msedge",
+    headless: true,
+    trace: "off",
+    screenshot: "off",
+  },
+});

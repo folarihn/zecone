@@ -1,0 +1,760 @@
+- complementary:
+  - navigation:
+    - link:
+      - /url: /
+    - link:
+      - /url: /
+      - generic: Discover
+    - link:
+      - /url: /collections
+      - generic: Collections
+    - link:
+      - /url: /tokens
+      - generic: Tokens
+    - link:
+      - /url: /perpetuals
+      - text: Perpetuals
+      - generic: Beta
+    - link:
+      - /url: /swap
+      - generic: Swap
+    - link:
+      - /url: /drops
+      - generic: Drops
+    - link:
+      - /url: /activity
+      - generic: Activity
+    - link:
+      - /url: /rewards
+      - generic: Rewards
+    - link:
+      - /url: /tools
+      - text: Tools
+      - generic: Beta
+    - link:
+      - /url: /studio
+      - generic: Studio
+    - link:
+      - /url: /profile
+    - button:
+    - button:
+    - button:
+- navigation:
+  - textbox:
+    - /placeholder: Search OpenSea
+  - generic: /
+  - button: Sign in
+  - link:
+    - /url: /profile
+- main:
+  - heading [level=1]: Discover
+  - navigation:
+    - link:
+      - /url: /
+      - generic: All
+    - link:
+      - /url: /discover/memes
+      - switch:
+        - text: Memes
+    - link:
+      - /url: /discover/trading-cards
+      - switch:
+        - text: Trading Cards
+    - link:
+      - /url: /discover/art
+      - switch:
+        - text: Art
+    - link:
+      - /url: /discover/pfps
+      - switch:
+        - text: PFPs
+    - link:
+      - /url: /discover/photography
+      - switch:
+        - text: Photography
+    - link:
+      - /url: /discover/gaming
+      - switch:
+        - text: Gaming
+  - navigation:
+    - link:
+      - /url: /
+      - generic: All
+    - switch:
+  - region:
+    - link:
+      - /url: /collection/yield-field-deeds
+      - generic: Yield Field Deeds
+      - link:
+        - /url: /YieldFields_RH/created
+        - generic: By YieldFields_RH
+      - generic: Floor price
+      - generic: $
+      - generic: "2"
+      - generic: ","
+      - generic: "4"
+      - generic: "2"
+      - generic: "8"
+      - generic: .
+      - generic: "4"
+      - generic: "2"
+      - generic: Items
+      - generic: "3"
+      - generic: ","
+      - generic: "3"
+      - generic: "3"
+      - generic: "3"
+      - generic: Total volume
+      - generic: $
+      - generic: "1"
+      - generic: .
+      - generic: "4"
+      - generic: M
+      - generic: Listed
+      - generic: "2"
+      - generic: "8"
+      - generic: "9"
+      - text: (
+      - generic: "8"
+      - generic: .
+      - generic: "7"
+      - generic: "%"
+      - text: )
+      - link:
+        - /url: /item/robinhood/0x231142e88f523b0a4f46d2d79faab2ce1828e43a/3079
+      - link:
+        - /url: /item/robinhood/0x231142e88f523b0a4f46d2d79faab2ce1828e43a/2926
+      - link:
+        - /url: /item/robinhood/0x231142e88f523b0a4f46d2d79faab2ce1828e43a/683
+    - link:
+      - /url: /collection/frankys-dinner
+      - generic: Franky's Dinner
+      - link:
+        - /url: /LonelyLilyStudios/created
+        - generic: By LonelyLilyStudios
+      - generic: Floor price
+      - generic: $
+      - generic: "2"
+      - generic: "7"
+      - generic: "7"
+      - generic: .
+      - generic: "1"
+      - generic: "7"
+      - generic: Items
+      - generic: "1"
+      - generic: ","
+      - generic: "0"
+      - generic: "6"
+      - generic: "9"
+      - generic: Total volume
+      - generic: $
+      - generic: "7"
+      - generic: "6"
+      - generic: "6"
+      - generic: .
+      - generic: "4"
+      - generic: K
+      - generic: Listed
+      - generic: "4"
+      - generic: "8"
+      - text: (
+      - generic: "4"
+      - generic: .
+      - generic: "5"
+      - generic: "%"
+      - text: )
+      - link:
+        - /url: /item/ethereum/0x34eb8ff7ef51022bf25a487f8018a17987792d0a/605
+      - link:
+        - /url: /item/ethereum/0x34eb8ff7ef51022bf25a487f8018a17987792d0a/47
+      - link:
+        - /url: /item/ethereum/0x34eb8ff7ef51022bf25a487f8018a17987792d0a/217
+    - link:
+      - /url: /collection/milady
+      - generic: Milady Maker
+      - link:
+        - /url: /0x43e2e78c8e6f2ce57fbd970c811e70e0044389aa/created
+        - generic: By 43e2e7
+      - generic: Floor price
+      - generic: $
+      - generic: "1"
+      - generic: ","
+      - generic: "6"
+      - generic: "8"
+      - generic: "3"
+      - generic: .
+      - generic: "7"
+      - generic: "7"
+      - generic: Items
+      - generic: "9"
+      - generic: ","
+      - generic: "9"
+      - generic: "7"
+      - generic: "6"
+      - generic: Total volume
+      - generic: $
+      - generic: "4"
+      - generic: "4"
+      - generic: "1"
+      - generic: .
+      - generic: "8"
+      - generic: M
+      - generic: Listed
+      - generic: "2"
+      - generic: "6"
+      - generic: "7"
+      - text: (
+      - generic: "2"
+      - generic: .
+      - generic: "7"
+      - generic: "%"
+      - text: )
+      - link:
+        - /url: /item/ethereum/0x5af0d9827e0c53e4799bb226655a1de152a425a5/14
+      - link:
+        - /url: /item/ethereum/0x5af0d9827e0c53e4799bb226655a1de152a425a5/2507
+      - link:
+        - /url: /item/ethereum/0x5af0d9827e0c53e4799bb226655a1de152a425a5/471
+    - link:
+      - /url: /collection/hypurr-hyperevm
+      - generic: Hypurr
+      - link:
+        - /url: /hypurr-deployer/created
+        - generic: By hypurr-deployer
+      - generic: Floor price
+      - generic: $
+      - generic: "1"
+      - generic: "4"
+      - generic: .
+      - generic: "6"
+      - generic: K
+      - generic: Items
+      - generic: "4"
+      - generic: ","
+      - generic: "6"
+      - generic: "0"
+      - generic: "0"
+      - generic: Total volume
+      - generic: $
+      - generic: "2"
+      - generic: "7"
+      - generic: "8"
+      - generic: .
+      - generic: "2"
+      - generic: M
+      - generic: Listed
+      - generic: "1"
+      - generic: "7"
+      - generic: "0"
+      - text: (
+      - generic: "3"
+      - generic: .
+      - generic: "7"
+      - generic: "%"
+      - text: )
+      - link:
+        - /url: /item/hyperevm/0x9125e2d6827a00b0f8330d6ef7bef07730bac685/962
+      - link:
+        - /url: /item/hyperevm/0x9125e2d6827a00b0f8330d6ef7bef07730bac685/4191
+      - link:
+        - /url: /item/hyperevm/0x9125e2d6827a00b0f8330d6ef7bef07730bac685/1349
+    - link:
+      - /url: /collection/veefriends
+      - generic: VeeFriends
+      - link:
+        - /url: /VeeFriendsDev/created
+        - generic: By VeeFriendsDev
+      - generic: Floor price
+      - generic: $
+      - generic: "3"
+      - generic: ","
+      - generic: "0"
+      - generic: "8"
+      - generic: "0"
+      - generic: .
+      - generic: "5"
+      - generic: "8"
+      - generic: Items
+      - generic: "1"
+      - generic: "0"
+      - generic: ","
+      - generic: "2"
+      - generic: "5"
+      - generic: "5"
+      - generic: Total volume
+      - generic: $
+      - generic: "2"
+      - generic: "0"
+      - generic: "5"
+      - generic: .
+      - generic: "6"
+      - generic: M
+      - generic: Listed
+      - generic: "2"
+      - generic: "4"
+      - generic: "6"
+      - text: (
+      - generic: "2"
+      - generic: .
+      - generic: "4"
+      - generic: "%"
+      - text: )
+      - link:
+        - /url: /item/ethereum/0xa3aee8bce55beea1951ef834b99f3ac60d1abeeb/772
+      - link:
+        - /url: /item/ethereum/0xa3aee8bce55beea1951ef834b99f3ac60d1abeeb/8221
+      - link:
+        - /url: /item/ethereum/0xa3aee8bce55beea1951ef834b99f3ac60d1abeeb/6639
+    - link:
+      - /url: /collection/argonauts
+      - generic: Argonauts
+      - link:
+        - /url: /ArgonautsDeployer/created
+        - generic: By ArgonautsDeployer
+      - generic: Floor price
+      - generic: $
+      - generic: "1"
+      - generic: ","
+      - generic: "8"
+      - generic: "1"
+      - generic: "3"
+      - generic: .
+      - generic: "0"
+      - generic: "1"
+      - generic: Items
+      - generic: "9"
+      - generic: ","
+      - generic: "9"
+      - generic: "7"
+      - generic: "7"
+      - generic: Total volume
+      - generic: $
+      - generic: "1"
+      - generic: "9"
+      - generic: .
+      - generic: "6"
+      - generic: M
+      - generic: Listed
+      - generic: "8"
+      - generic: "7"
+      - generic: "4"
+      - text: (
+      - generic: "8"
+      - generic: .
+      - generic: "8"
+      - generic: "%"
+      - text: )
+      - link:
+        - /url: /item/ethereum/0x387c41b0b2f1128de44db1bcf8baad085f26392c/8821
+      - link:
+        - /url: /item/ethereum/0x387c41b0b2f1128de44db1bcf8baad085f26392c/6824
+      - link:
+        - /url: /item/ethereum/0x387c41b0b2f1128de44db1bcf8baad085f26392c/1822
+    - button:
+    - button:
+    - button
+    - button
+    - button
+    - button
+    - button
+    - button
+  - generic: Trending Tokens
+  - generic: Tokens with momentum today
+  - region:
+    - link:
+      - /url: /token/frxeth?toChain=ethereum&toAddress=0x5e8422345238f34275888049021821e8e08caa1f
+      - generic: Frax Ether
+      - generic: $144.7M
+      - generic: "-3.6%"
+    - link:
+      - /url: /token/base/0x07b3d902783c3c12b077508c3b5c00113d1291d0
+      - generic: Doppler
+      - generic: $18.9M
+      - generic: "-4.3%"
+    - link:
+      - /url: /token/solana/8x5VqbHA8D7NkD52uNuS5nnt3PwA8pLD34ymskeSo2Wn
+      - generic: zerebro
+      - generic: $44.6M
+      - generic: +49.3%
+    - link:
+      - /url: /token/solana/61V8vBaqAGMpgDQi4JcAwo1dmBGHsyhzodcPqnEVpump
+      - generic: AI Rig Complex
+      - generic: $41.7M
+      - generic: +44.3%
+    - link:
+      - /url: /token/solana/KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS
+      - generic: Kamino
+      - generic: $194M
+      - generic: "-15.8%"
+    - link:
+      - /url: /token/solana/33jENUQnjoitkMFpvNJcSHyLAHFWJuHwT6E3E8CNpump
+      - generic: Doge Pepe
+      - generic: $4.6M
+      - generic: +89.7%
+    - link:
+      - /url: /token/solana/HMYd9tosnUXuNHmq7pXmoePRVBLBBjA3JBfydq6upump
+      - generic: Super Intelligence SI276
+      - generic: $1.3M
+      - generic: +16.9%
+    - link:
+      - /url: /token/solana/DEW9dSN6QpWyNthphCpMmAbZP1Q4cEKR9xQXAri98WDP
+      - generic: Super Inu
+      - generic: $13.5M
+      - generic: "-9.3%"
+    - button:
+  - generic: Featured Collections
+  - generic: This week's curated collections
+  - region:
+    - link:
+      - /url: /collection/mindsdotgames
+      - generic: Minds Dot Games
+      - generic: "Floor price:"
+      - generic: $49.52
+      - generic: 0%
+    - link:
+      - /url: /collection/creeptopunks-by-hash-1-crush
+      - generic: "CreeptoPunks by #1 Crush"
+      - generic: "Floor price:"
+      - generic: $33.20
+      - generic: "-17.7%"
+    - link:
+      - /url: /collection/franky-blind-box
+      - generic: First Edition Franky Blind Box
+      - generic: "Floor price:"
+      - generic: $34.39
+      - generic: "-3.3%"
+    - link:
+      - /url: /collection/slippy-nft
+      - generic: Slippy Club
+      - generic: "Floor price:"
+      - generic: $51.41
+      - generic: +8.4%
+    - button:
+  - generic: Featured Drops
+  - generic: This week's curated live and upcoming drops
+  - region:
+    - link:
+      - /url: /collection/wandering-america/overview
+      - generic: Wandering America
+      - generic: Minting now
+      - generic: $59.29
+    - link:
+      - /url: /collection/nocturnal-edition-by-derech/overview
+      - generic: Nocturnal
+      - generic: October 15 at 5:00 PM GMT+1
+    - link:
+      - /url: /collection/themotifart/overview
+      - generic: Motif
+      - generic: October 20 at 8:00 PM GMT+1
+    - link:
+      - /url: /collection/lagrange-bend-by-jiwa/overview
+      - generic: Lagrange Bend by jiwa
+      - generic: Minting now
+      - generic: $94.86
+    - button:
+  - generic: Trending Collections
+  - generic: Collections with momentum today
+  - region:
+    - link:
+      - /url: /collection/apes-bunitori-club
+      - button:
+        - generic: Apes Bunitori Club
+      - generic: $34.86
+      - generic: +1,178.3%
+    - link:
+      - /url: /collection/swol-mferh/overview
+      - button:
+        - generic: Swol MfeRH
+      - generic: $274.15
+      - generic: +3,202.9%
+    - link:
+      - /url: /collection/axie-ronin
+      - button:
+        - generic: Axie
+      - generic: $0.56
+      - generic: "-10.5%"
+    - link:
+      - /url: /collection/otherside-koda
+      - button:
+        - generic: Otherside Koda
+      - generic: $1,268.75
+      - generic: +1.9%
+    - link:
+      - /url: /collection/mindsdotgames
+      - button:
+        - generic: Minds Dot Games
+      - generic: $49.52
+    - link:
+      - /url: /collection/argonauts
+      - button:
+        - generic: Argonauts
+      - generic: $1,813.01
+      - generic: "-6.8%"
+    - link:
+      - /url: /collection/robinpunks-0
+      - button:
+        - generic: RobinPunks
+      - generic: $350.98
+      - generic: +234.1%
+    - link:
+      - /url: /collection/zero-to-hero-academy
+      - button:
+        - generic: Zero to Hero Academy
+      - generic: $24.90
+      - generic: +6.4%
+    - button:
+  - generic: Top Movers Today
+  - generic: Largest floor price change in the past day
+  - region:
+    - link:
+      - /url: /collection/apes-bunitori-club
+      - generic: Apes Bunitori Club
+      - generic: "Floor price:"
+      - generic: $34.86
+      - generic: +1,178.3%
+    - link:
+      - /url: /collection/octocore-ink
+      - generic: Octocore
+      - generic: "Floor price:"
+      - generic: $70.21
+      - generic: +278.6%
+    - link:
+      - /url: /collection/wvrps-by-warpsound
+      - generic: WVRPS by WarpSound (Official)
+      - generic: "Floor price:"
+      - generic: $23.72
+      - generic: +135.3%
+    - link:
+      - /url: /collection/rhmachines
+      - generic: RH MACHINES
+      - generic: "Floor price:"
+      - generic: $72.33
+      - generic: +53.1%
+    - button:
+  - generic: Highest Weekly Sales
+  - link:
+    - /url: /collection/courtyard-nft
+    - generic: Courtyard.io
+    - generic: "7d sales: 70,216"
+    - generic: +12.4%
+    - paragraph: Courtyard.io is a first-of-its-kind marketplace and tokenization service that enables anyone to easily own and trade physical cards on the blockchain.
+    - paragraph: Keep them vaulted, sell with a click, or burn the NFT to have the identical physical item shipped anywhere in the world, whenever you want. Learn more.
+    - paragraph: Tokenize your cards for free on Courtyard.io
+    - link:
+      - /url: /item/polygon/0x251be3a17af4892035c37ebf5890f4a4d889dcad/33686296039841828271467667672164235044914746303692355351239943431533963192665
+      - generic: Pokémon Japanese Scarlet & Violet Scarlet EX (1 Booster Pack - Art May Vary)
+      - generic: $5.49
+    - link:
+      - /url: /item/polygon/0x251be3a17af4892035c37ebf5890f4a4d889dcad/27582710792080341913997909884302140514735174044357385353370030194441282931934
+      - generic: Pokémon Japanese Scarlet & Violet Scarlet EX (1 Booster Pack - Art May Vary)
+      - generic: $5.49
+  - generic: NFT 101
+  - generic: Learn about NFTs, Web3, and more.
+  - region:
+    - link:
+      - /url: https://opensea.io/learn/nft/what-are-nfts
+      - generic: What is an NFT?
+    - link:
+      - /url: https://opensea.io/learn/nft/how-to-buy-nft
+      - generic: How to buy an NFT
+    - link:
+      - /url: https://opensea.io/learn/nft/what-is-minting-nft
+      - generic: What is minting?
+    - link:
+      - /url: https://opensea.io/learn/web3/how-to-stay-protected-in-web3
+      - generic: How to stay protected in web3
+    - button:
+  - switch [checked]:
+    - text: NFTs
+  - switch:
+    - text: Tokens
+  - switch:
+    - text: Perps
+  - button:
+    - text: 1d
+  - radio [checked]:
+  - radio:
+  - button:
+  - table:
+    - rowgroup:
+      - row:
+        - columnheader: Collection
+        - columnheader: Floor
+    - rowgroup:
+      - row:
+        - cell:
+          - generic: Apes Bunitori Club
+        - cell:
+          - generic: $34.86
+          - generic: +1,178.3%
+      - row:
+        - cell:
+          - generic: Swol MfeRH
+        - cell:
+          - generic: $274.15
+          - generic: +3,202.9%
+      - row:
+        - cell:
+          - generic: Axie
+        - cell:
+          - generic: $0.56
+          - generic: "-10.5%"
+      - row:
+        - cell:
+          - generic: Otherside Koda
+        - cell:
+          - generic: $1,268.75
+          - generic: +1.9%
+      - row:
+        - cell:
+          - generic: Minds Dot Games
+        - cell:
+          - generic: $49.52
+          - generic: 0%
+      - row:
+        - cell:
+          - generic: Argonauts
+        - cell:
+          - generic: $1,813.01
+          - generic: "-6.8%"
+      - row:
+        - cell:
+          - generic: RobinPunks
+        - cell:
+          - generic: $350.98
+          - generic: +234.1%
+      - row:
+        - cell:
+          - generic: Zero to Hero Academy
+        - cell:
+          - generic: $24.90
+          - generic: +6.4%
+      - row:
+        - cell:
+          - generic: Axie Consumable Item
+        - cell:
+          - generic: $0.01
+          - generic: 0%
+      - row:
+        - cell:
+          - generic: Courtyard.io
+        - cell:
+          - generic: $5.49
+          - generic: +8.2%
+      - row:
+        - cell:
+          - generic: Yield Field Deeds
+        - cell:
+          - generic: $2,428.42
+          - generic: +13.2%
+      - row:
+        - cell:
+          - generic: Identity MD
+        - cell:
+          - generic: $4,458.40
+          - generic: "-30.9%"
+      - row:
+        - cell:
+          - generic: Credits
+        - cell:
+          - generic: $40.78
+          - generic: "-12.2%"
+      - row:
+        - cell:
+          - generic: Mutant Ape Yacht Club
+        - cell:
+          - generic: $1,778.62
+          - generic: "-1.7%"
+      - row:
+        - cell:
+          - generic: Azuki
+        - cell:
+          - generic: $1,190.26
+          - generic: +3.5%
+      - row:
+        - cell:
+          - generic: MoonCats
+        - cell:
+          - generic: $289.32
+          - generic: +2.5%
+      - row:
+        - cell:
+          - generic: SurfBoard
+        - cell:
+          - generic: $142.29
+          - generic: 0%
+      - row:
+        - cell:
+          - generic: Azuki Elementals
+        - cell:
+          - generic: $100.78
+          - generic: "-6.7%"
+      - row:
+        - cell:
+          - generic: Original Blokyz
+        - cell:
+          - generic: $137.07
+          - generic: 0%
+- contentinfo:
+  - generic: Live
+  - generic: Aggregating
+  - generic: Networks
+  - link:
+    - /url: /tos
+    - text: Platform Terms
+  - link:
+    - /url: /tosw
+    - text: Wallet & Onramp Terms
+  - link:
+    - /url: /privacy
+    - text: Privacy Policy
+  - button:
+    - generic: ETH price. Switch native currency
+    - generic: $2,371.50
+  - button:
+    - generic: Support
+  - radio:
+  - radio [checked]:
+  - radio:
+  - radio [checked]:
+    - generic: Collector
+  - radio:
+    - generic: Pro
+  - radio:
+    - generic: Crypto
+  - radio [checked]:
+    - generic: USD
+  - button:
+- region "Notifications alt+T"
+- alert
+- dialog "Connect with OpenSea":
+  - heading "Connect with OpenSea" [level=4]
+  - generic: Email
+  - textbox "Continue with email" [active]
+  - button [disabled]:
+  - button "Continue with Google" [disabled]:
+    - generic: Continue with Google
+  - button "Continue with Apple" [disabled]:
+    - generic: Continue with Apple
+  - generic: or continue with an external wallet
+  - list:
+    - button "MetaMask":
+      - generic: MetaMask
+    - button "WalletConnect":
+      - generic: WalletConnect
+    - link "Phantom Open In New Tab":
+      - /url: https://phantom.app/download
+      - generic: Phantom
+      - img "Open In New Tab"
+    - button "Robinhood Wallet":
+      - generic: Robinhood Wallet
+    - button "More Wallet Options":
+      - generic: More Wallet Options
+  - text: By connecting your wallet and using OpenSea, you agree to our
+  - link "Terms of Service":
+    - /url: https://opensea.io/tos
+  - text: "&"
+  - link "Privacy Policy":
+    - /url: https://opensea.io/privacy
+  - text: .
+  - button "Close":

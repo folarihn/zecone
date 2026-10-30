@@ -1,0 +1,91 @@
+{
+  "checkedAt": "2026-10-13T05:12:48.761Z",
+  "zcash": {
+    "checkedAt": "2026-10-13T05:12:48.761Z",
+    "network": "Zcash Testnet",
+    "tip": 4496292,
+    "scanned": 4496292,
+    "spendableZatoshis": "8450000",
+    "totalZatoshis": "8450000"
+  },
+  "networks": [
+    {
+      "name": "Base Sepolia",
+      "chainId": 84532,
+      "rpc": "https://sepolia.base.org",
+      "explorer": "https://sepolia.basescan.org",
+      "checkedAt": "2026-10-13T05:12:45.545Z",
+      "head": {
+        "chainId": 84532,
+        "block": "48050038",
+        "hash": "0x9c5c7b5595b314fcb8f63dc2a3a8645890a066860dfed0e018eea3af4ecf420c"
+      },
+      "gasPrice": "6000000",
+      "user": {
+        "address": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+        "wei": "9999873999999741"
+      },
+      "provider": {
+        "address": "0xf9dE6070331A3B68233c3b2062BceB7105162Cd2",
+        "wei": "98863135337903908"
+      },
+      "seller": {
+        "address": "0x7D26bC3A7CE602cB1cf9F8Bb4e3a8eDCb052C4b0",
+        "wei": "1096897609158483"
+      },
+      "status": "available"
+    },
+    {
+      "name": "Ethereum Sepolia",
+      "chainId": 11155111,
+      "rpc": "https://ethereum-sepolia-rpc.publicnode.com",
+      "explorer": "https://sepolia.etherscan.io",
+      "checkedAt": "2026-10-13T05:12:45.327Z",
+      "head": {
+        "chainId": 11155111,
+        "block": "11903901",
+        "hash": "0x94573c452e21bbe9318645bad50cc987fdd1c4927acd3b6c94060e4e9cf2786c"
+      },
+      "gasPrice": "1000017",
+      "user": {
+        "address": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+        "wei": "0"
+      },
+      "provider": {
+        "address": "0xf9dE6070331A3B68233c3b2062BceB7105162Cd2",
+        "wei": "200000000000000000"
+      },
+      "seller": {
+        "address": "0x7D26bC3A7CE602cB1cf9F8Bb4e3a8eDCb052C4b0",
+        "wei": "0"
+      },
+      "status": "available"
+    },
+    {
+      "name": "Robinhood Chain Testnet",
+      "chainId": 46630,
+      "rpc": "https://rpc.testnet.chain.robinhood.com",
+      "explorer": "https://explorer.testnet.chain.robinhood.com",
+      "checkedAt": "2026-10-13T05:12:45.469Z",
+      "head": {
+        "chainId": 46630,
+        "block": "134042464",
+        "hash": "0xb9455e41bca3157195dfce681de21c8a3504340ade066f54d4aa7768e1fa1718"
+      },
+      "gasPrice": "10000000",
+      "user": {
+        "address": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+        "wei": "0"
+      },
+      "provider": {
+        "address": "0xf9dE6070331A3B68233c3b2062BceB7105162Cd2",
+        "wei": "10000000000000000"
+      },
+      "seller": {
+        "address": "0x7D26bC3A7CE602cB1cf9F8Bb4e3a8eDCb052C4b0",
+        "wei": "0"
+      },
+      "status": "available"
+    }
+  ]
+}

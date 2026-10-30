@@ -1,0 +1,15 @@
+{
+  "at": "2026-10-13T17:13:14.391Z",
+  "syntheticNotes": true,
+  "simulatedIsolation": true,
+  "separateProcesses": true,
+  "automatedFixtureApproval": true,
+  "wrongApprovalRejected": true,
+  "exactBytesRecovered": true,
+  "exportContainsKeysOrPczt": false,
+  "rawTransactionBytes": 9166,
+  "responseHash": "e609be746cf486d727441254f65840d23d6b95156ad3b46d2666e6ea3a8b91fc",
+  "separateDeviceValidated": false,
+  "liveEnabled": false,
+  "broadcast": false
+}

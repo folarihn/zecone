@@ -1,0 +1,160 @@
+{
+  "at": "2026-10-22T15:15:38.623Z",
+  "scope": "READ_ONLY_NO_KEYS_NO_ORDERS",
+  "mainnetExecutionEnabled": false,
+  "results": [
+    {
+      "network": "zcash",
+      "enabled": false,
+      "spendingEnabled": false,
+      "productionReady": false,
+      "confidence": "UNAVAILABLE",
+      "checks": {
+        "providerConfiguration": {
+          "status": "BLOCKED",
+          "reason": "TWO_ACKNOWLEDGED_INDEPENDENT_OPERATORS_REQUIRED"
+        },
+        "shieldedObservation": {
+          "status": "BLOCKED",
+          "reason": "FULL_TRANSACTION_UFVK_DECRYPTION_IMPLEMENTED_BUT_NO_AUTHENTICATED_MAINNET_SCAN_CONFIGURED"
+        },
+        "pricing": {
+          "status": "BLOCKED",
+          "reason": "SIGNED_PRODUCTION_PRICE_FEEDS_NOT_CONFIGURED"
+        },
+        "signerIsolation": {
+          "status": "BLOCKED",
+          "reason": "CONFIGURATION_IS_NOT_INDEPENDENT_DEVICE_VALIDATION"
+        },
+        "reservationDeployment": {
+          "status": "BLOCKED",
+          "reason": "SINGLE_WRITER_SHARED_LOCAL_DATABASE_DEPLOYMENT_NOT_VALIDATED"
+        },
+        "identity": {
+          "status": "BLOCKED",
+          "reason": "ZCASH_LIGHTWALLETD_GRPC_PROBE_NOT_IMPLEMENTED"
+        },
+        "finalizedState": {
+          "status": "BLOCKED",
+          "reason": "ZCASH_INDEPENDENT_NODE_PROBE_NOT_CONFIGURED"
+        },
+        "independentAgreement": {
+          "status": "BLOCKED",
+          "reason": "ZCASH_READ_ONLY_PROBE_UNAVAILABLE"
+        }
+      }
+    },
+    {
+      "network": "base",
+      "enabled": false,
+      "spendingEnabled": false,
+      "productionReady": false,
+      "confidence": "PRIMARY_ONLY",
+      "checks": {
+        "providerConfiguration": {
+          "status": "BLOCKED",
+          "reason": "TWO_ACKNOWLEDGED_INDEPENDENT_OPERATORS_REQUIRED"
+        },
+        "shieldedObservation": {
+          "status": "BLOCKED",
+          "reason": "FULL_TRANSACTION_UFVK_DECRYPTION_IMPLEMENTED_BUT_NO_AUTHENTICATED_MAINNET_SCAN_CONFIGURED"
+        },
+        "pricing": {
+          "status": "BLOCKED",
+          "reason": "SIGNED_PRODUCTION_PRICE_FEEDS_NOT_CONFIGURED"
+        },
+        "signerIsolation": {
+          "status": "BLOCKED",
+          "reason": "CONFIGURATION_IS_NOT_INDEPENDENT_DEVICE_VALIDATION"
+        },
+        "reservationDeployment": {
+          "status": "BLOCKED",
+          "reason": "SINGLE_WRITER_SHARED_LOCAL_DATABASE_DEPLOYMENT_NOT_VALIDATED"
+        },
+        "identity": {
+          "status": "PASS",
+          "evidence": {
+            "providersVerified": 1,
+            "expected": "0x2105"
+          }
+        },
+        "finalizedState": {
+          "status": "PASS",
+          "evidence": {
+            "height": 52945706,
+            "providersVerified": 1,
+            "anchorDigest": "716f58222d65f2212ae768be2739e7f5569f8cd200fee30b97b964b8f18a963a"
+          }
+        },
+        "independentAgreement": {
+          "status": "BLOCKED",
+          "reason": "PRIMARY_ONLY_NOT_PRODUCTION_VERIFIED"
+        },
+        "liquidity": {
+          "status": "BLOCKED",
+          "reason": "DEDICATED_MAINNET_RELAYER_AND_EXACT_RECIPIENT_NOT_CONFIGURED"
+        },
+        "simulation": {
+          "status": "BLOCKED",
+          "reason": "EXACT_MAINNET_DESTINATION_NOT_CONFIGURED"
+        }
+      }
+    },
+    {
+      "network": "solana",
+      "enabled": false,
+      "spendingEnabled": false,
+      "productionReady": false,
+      "confidence": "PRIMARY_ONLY",
+      "checks": {
+        "providerConfiguration": {
+          "status": "BLOCKED",
+          "reason": "TWO_ACKNOWLEDGED_INDEPENDENT_OPERATORS_REQUIRED"
+        },
+        "shieldedObservation": {
+          "status": "BLOCKED",
+          "reason": "FULL_TRANSACTION_UFVK_DECRYPTION_IMPLEMENTED_BUT_NO_AUTHENTICATED_MAINNET_SCAN_CONFIGURED"
+        },
+        "pricing": {
+          "status": "BLOCKED",
+          "reason": "SIGNED_PRODUCTION_PRICE_FEEDS_NOT_CONFIGURED"
+        },
+        "signerIsolation": {
+          "status": "BLOCKED",
+          "reason": "CONFIGURATION_IS_NOT_INDEPENDENT_DEVICE_VALIDATION"
+        },
+        "reservationDeployment": {
+          "status": "BLOCKED",
+          "reason": "SINGLE_WRITER_SHARED_LOCAL_DATABASE_DEPLOYMENT_NOT_VALIDATED"
+        },
+        "identity": {
+          "status": "PASS",
+          "evidence": {
+            "providersVerified": 1,
+            "expected": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d"
+          }
+        },
+        "finalizedState": {
+          "status": "PASS",
+          "evidence": {
+            "height": 460082566,
+            "providersVerified": 1,
+            "anchorDigest": "44cf08462f75bce603bc38f60853bb0e478089c656d44a31e34212791e7d93fa"
+          }
+        },
+        "independentAgreement": {
+          "status": "BLOCKED",
+          "reason": "PRIMARY_ONLY_NOT_PRODUCTION_VERIFIED"
+        },
+        "liquidity": {
+          "status": "BLOCKED",
+          "reason": "DEDICATED_MAINNET_RELAYER_AND_EXACT_RECIPIENT_NOT_CONFIGURED"
+        },
+        "simulation": {
+          "status": "BLOCKED",
+          "reason": "EXACT_MAINNET_DESTINATION_NOT_CONFIGURED"
+        }
+      }
+    }
+  ]
+}

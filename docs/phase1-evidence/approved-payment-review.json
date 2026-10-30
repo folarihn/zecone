@@ -1,0 +1,4 @@
+{
+  "approvedAt": "2026-10-12T07:59:39.728Z",
+  "review": "Approve shielded payment\n0.0101 TAZ\n\nTotal leaving your shielded wallet\n\nPayment\n0.01 TAZ\nMaximum network fee\n0.0001 TAZ\nSource → destination\nZcash Testnet → Base Sepolia\nNFT recipient\n0x1865Dd77bFcb632571d3c93144D5634F0D93c714\nNFT contract\n0x3a3f3b03349b5a9060d35c8252678f59dabf2a52\nBase gas\nCovered by trusted relayer\nExpected result\nOne NFT after 10 Zcash confirmations\n\nThis sends a real testnet payment. The operator sees this checkout association; your Base NFT is public. Sending cannot be undone. Failed settlements require manual review, with no automatic refund.\n\nFee approval expires at 9:01:39 AM. A higher fee cannot be silently charged.\n\nApprove & send test ZEC"
+}

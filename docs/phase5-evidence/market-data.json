@@ -1,0 +1,62 @@
+{
+  "at": "2026-10-13T12:22:29.443Z",
+  "kind": "real-read-only-market-data",
+  "testnetRedemption": false,
+  "paymentsCreated": 0,
+  "results": [
+    {
+      "asset": "ZEC",
+      "status": "verified-reference",
+      "reference": {
+        "asset": "ZEC",
+        "usdE8": "117511500000",
+        "at": 1791894149,
+        "expires": 1791894255,
+        "sources": [
+          {
+            "source": "coinbase",
+            "asset": "ZEC",
+            "usdE8": "117497000000",
+            "sourceAt": 1791894146,
+            "receivedAt": 1791894148
+          },
+          {
+            "source": "kraken",
+            "asset": "ZEC",
+            "usdE8": "117526000000",
+            "sourceAt": 1791894135,
+            "receivedAt": 1791894149
+          }
+        ],
+        "referenceOnly": true
+      }
+    },
+    {
+      "asset": "ETH",
+      "status": "verified-reference",
+      "reference": {
+        "asset": "ETH",
+        "usdE8": "249148500000",
+        "at": 1791894149,
+        "expires": 1791894263,
+        "sources": [
+          {
+            "source": "coinbase",
+            "asset": "ETH",
+            "usdE8": "249158000000",
+            "sourceAt": 1791894148,
+            "receivedAt": 1791894149
+          },
+          {
+            "source": "kraken",
+            "asset": "ETH",
+            "usdE8": "249139000000",
+            "sourceAt": 1791894143,
+            "receivedAt": 1791894149
+          }
+        ],
+        "referenceOnly": true
+      }
+    }
+  ]
+}

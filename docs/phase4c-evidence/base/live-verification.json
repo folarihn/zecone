@@ -1,0 +1,91 @@
+{
+  "at": "2026-10-13T08:48:46.492Z",
+  "live": true,
+  "verified": true,
+  "chainId": 84532,
+  "config": {
+    "chainId": 84532,
+    "protocol": "0x0000000000000068F116a894984e2DB1123eB395",
+    "protocolVersion": "1.6",
+    "executor": "0xe669643e85e15edd84f61c0c8fafface5ec6fe16",
+    "nft": "0xf7b5482a479c68b9d652cf8005234f82d27b2c3f",
+    "seller": "0x7D26bC3A7CE602cB1cf9F8Bb4e3a8eDCb052C4b0",
+    "feeRecipient": "0xf9dE6070331A3B68233c3b2062BceB7105162Cd2",
+    "provider": "0xf9dE6070331A3B68233c3b2062BceB7105162Cd2",
+    "user": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+    "codeHashes": {
+      "0x0000000000000068F116a894984e2DB1123eB395": "0x7912af42062ec0080cde88360c1429d58984ae16eb3f17af505b815bf6ffc745",
+      "0xf7b5482a479c68b9d652cf8005234f82d27b2c3f": "0x505a9530c46275e863ebea39ead10bbce20fa082d7a0ea4b93df9c1ec9e05776",
+      "0xe669643e85e15edd84f61c0c8fafface5ec6fe16": "0xe24351b94599be4396b5ff4e849e6744df5518da59fbb1ffbce69de1e3f3f4a7"
+    }
+  },
+  "order": "0xe8cad3396e93b697e6cf294b60294df033a719cd64be3ace3dd10098e11e7d2a",
+  "transaction": "0x473e5fe828041b87b7efb9a8099534840128f00dc7713e5662c79fb00ab511e4",
+  "seaportOrderHash": "0x35e3c4fccc83842c2b29898c2ce3149163ac6ca63f114f35dfa9e1793701bd3a",
+  "payment": "be203c56ae342ae368d13547b1a65f09f8912decd6bf2e7fd18aaf7071ff8bdf",
+  "state": "settled",
+  "provider": "93557869873865219",
+  "seller": "1196606141158389",
+  "user": "9999873999999741",
+  "owner": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+  "nonce": 21,
+  "broadcasts": 1,
+  "scans": 74,
+  "zcash": {
+    "txid": "be203c56ae342ae368d13547b1a65f09f8912decd6bf2e7fd18aaf7071ff8bdf",
+    "pool": 4,
+    "height": 4497319,
+    "blockHash": "00002354fdc314f665c7042563818f9430f7a33c5cf2465def15fd04c12e721c",
+    "zatoshis": "1012500",
+    "confirmationsAtAuthorization": 13,
+    "nativeFeeZatoshis": "10000",
+    "totalUserDebitZatoshis": "1022500"
+  },
+  "fulfillment": {
+    "status": "success",
+    "hash": "0x473e5fe828041b87b7efb9a8099534840128f00dc7713e5662c79fb00ab511e4",
+    "block": "48056302",
+    "recipient": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+    "tokenId": "1",
+    "source": "controlled-seaport",
+    "protocol": "0x0000000000000068F116a894984e2DB1123eB395",
+    "version": "1.6",
+    "orderHash": "0x35e3c4fccc83842c2b29898c2ce3149163ac6ca63f114f35dfa9e1793701bd3a",
+    "nft": "0xf7b5482a479c68b9d652cf8005234f82d27b2c3f",
+    "seller": "0x7D26bC3A7CE602cB1cf9F8Bb4e3a8eDCb052C4b0",
+    "sellerReceived": "100000000000000",
+    "feeRecipient": "0xf9dE6070331A3B68233c3b2062BceB7105162Cd2",
+    "feeAmount": "2500000000000",
+    "totalConsideration": "102500000000000",
+    "blockHash": "0x6dd2c3a3a31e2301980b0ab1244e4c2f1c1a485b80a8d2e639fea76ab9bb3c3f",
+    "confirmations": "218",
+    "gasUsed": "265613",
+    "effectiveGasPrice": "6000000",
+    "actualTotalFeeWei": "1593678000632",
+    "executionFeeWei": "1593678000000",
+    "additionalFeeWei": "632"
+  },
+  "balances": {
+    "before": {
+      "provider": "93659463551865851",
+      "seller": "1096606141158389",
+      "user": "9999873999999741",
+      "owner": "0x7D26bC3A7CE602cB1cf9F8Bb4e3a8eDCb052C4b0"
+    },
+    "after": {
+      "provider": "93557869873865219",
+      "seller": "1196606141158389",
+      "user": "9999873999999741",
+      "owner": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714"
+    },
+    "providerNetDebit": "101593678000632",
+    "feeReturnedToProvider": "2500000000000",
+    "grossInputPlusGas": "104093678000632"
+  },
+  "replay": {
+    "simulationRejected": true,
+    "simulationBlock": "48056302",
+    "duplicateTransactionSent": false
+  },
+  "limitations": "Controlled Seaport test listing, not an OpenSea API listing. Trusted provider/scanner/RPC; simulated ZEC price; manual recovery; Base confirmations are L2 depth, not parent finality."
+}

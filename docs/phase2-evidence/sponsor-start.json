@@ -1,0 +1,11 @@
+{
+  "approvedAt": "2026-10-12T09:07:00.612Z",
+  "checkoutId": "075b6383-00ce-4896-978f-6dc14e67b093",
+  "kind": "fixed test action",
+  "status": "Awaiting payment",
+  "stage": "sending",
+  "paymentTx": null,
+  "confirmations": 0,
+  "requiredConfirmations": 10,
+  "privacy": "Payment remains shielded; the local settlement operator can correlate it to the public Base action."
+}

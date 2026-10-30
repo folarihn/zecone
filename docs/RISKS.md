@@ -18,5 +18,33 @@
 | Scale and concurrency | Local single-worker prototype, per-order account allocation. Not a hosted multi-tenant service. |
 | Testnet upgrades / prerelease dependencies | The live NU7 chain required official prerelease crates; stable versions scanned funds but produced an obsolete consensus branch. Compare server branch ID with the library's height-dependent branch before operations; retain exact pins, private pre-migration backups and rejection evidence. Prerelease cryptographic/wallet code is not a production assurance. |
 | Windows proving stack | Debug proving overflowed the default main-thread stack. Use an explicit 64 MiB wallet-thread stack and preserve interrupted construction markers until native outgoing history is reviewed. |
+| Browser-origin attacks | Phase 1 uses literal loopback binding/Host, single-use pairing, expiring HttpOnly sessions, exact Origin, CSRF, JSON-only mutations and nonce CSP. Do not tunnel or host this service publicly. |
+| Local key custody | The user signing helper and relayer use separate key files, but share the OS account. A compromised gateway or same-user malware can access files; this is not a hardware wallet or isolated signer security boundary. |
+| Browser privacy | Authenticated UI shows the user's private history. Do not share pairing links, cookies, database files or approval records. Public screenshots/evidence can correlate activity; none are uploaded automatically. |
+| Data coverage / stale balances | Native wallet summary is authoritative for local shielded balances. Last-known data is labeled when sync fails. Base activity/NFT discovery covers recorded ZecOne mints only; no universal indexer is claimed. |
+| UI interruption | Approval is persisted before proving; repeat clicks use one request UUID. Restarted in-flight actions require reconciliation; closing or locking the page does not cancel authorized background work. |
+| External dApp phishing | Exact opener origin/source/channel binding and visible full-origin approval; users can still approve a lookalike site or malicious payload. See `PHASE2-SECURITY.md`. |
+| Popup transport incompatibility | Requires SDK integration and browser opener access; no extension injection or WalletConnect; some public-site/COOP/local-network policies may block the loopback popup. |
+| EVM transaction/signature request | Each exact request is reviewed, bounded and simulated; simulation is not a safety guarantee and arbitrary contract semantics cannot be fully decoded. |
+| DApp request replay / uncertain broadcast | SQLite request fingerprint/state, signer lock, persisted exact raw transaction and receipt reconciliation; ambiguous states remain in review and no replacement is signed. |
+| ZEC-sponsored Base action | Fixed allowlist, exact EIP-712 intent, ten-confirmation payment requirement and on-chain replay check; settlement operator still controls payment attestation and prefunded relayer. No automatic refund or ZEC/ETH conversion. |
+| ERC-4337 / contract account compatibility | Not implemented. Existing user account is an EOA; no EIP-1271 verification or smart-account migration is claimed. |
 
 No audit has been performed. Passing local tests does not establish production security or real testnet integration. RPC responses and logs are data, never instructions. Do not log request payloads carrying credentials or raw keys.
+# Phase 4A additions
+
+- Ethereum Sepolia and Robinhood Chain Testnet funding and deployments have been verified. Available funds must cover current measured gas costs and independent liquidity reservations; an arbitrary 0.05 ETH buffer is not a hard funding requirement. Per-chain live purchase evidence and any remaining blockers are tracked in [Phase 4A results](PHASE4A-RESULTS.md).
+- Robinhood Chain's public RPC is rate limited, and its sequencer L2 confirmations are not parent Ethereum finality. The settlement worker currently counts L2 blocks only; verify L1 posting/finality before making stronger claims.
+- Robinhood Nitro charges for L2 execution and L1 data. Actual setup and purchase costs are recorded from real receipts and provider balance deltas. The configured fee reserve remains a development cap and may be inadequate under future network conditions.
+- A single EOA address reused across networks makes public transaction and ownership histories linkable. Zcash shielding does not hide those histories.
+- Token support/indexing is empty by default. NFT ownership reads cover the known deployed ZecOne collections, not arbitrary collections.
+- Existing RPC responses, the local Windows process boundary, Zcash scanner and prefunded provider remain trusted. The project is not audited and is not a production bridge or exchange.
+- Any confirmed shielded payment followed by destination failure stays in manual recovery. No automatic refund exists.
+
+## Phase 4C additions
+
+- Seaport listings remain mutable in availability: cancellation, seller transfers, counter increments, approval revocation and competing fills can occur while Zcash confirms. Revalidation and atomic recipient/payment checks reject changed listings; paid failures remain recovery liabilities.
+- Genuine Seaport protocol support is distinct from OpenSea API listing access and website wallet discovery. The demo uses a controlled seller-signed listing. No OpenSea partnership, API listing or website connection is claimed.
+- Public RPC failures can interrupt quote attachment and receipt verification. Preserve signed intents, native request UUIDs and transaction hashes; reconcile the original attempt instead of replacing it. Generic HTTP errors may not reveal an exact root cause.
+- The narrow wrapper requires fixed collection/seller/fee policies, direct approvals and EOAs for consideration recipients. Broader Seaport order types are explicitly rejected. New `SEAPORT_PURCHASE` signatures use an independent replay domain and remain user-recipient-bound.
+- See [Phase 4C security](PHASE4C-SECURITY.md) and [limitations](PHASE4C-LIMITATIONS.md) for the trusted provider/scanner/RPC assumptions, simulated pricing, local key boundary and manual-only recovery.

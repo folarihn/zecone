@@ -1,0 +1,54 @@
+(node:9080) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✖ Phase 5 graph rejects skipped transitions, stale writers and refunds after completion (6.5291ms)
+✔ Phase 5 refund graph retains an execution veto after recovery and restart (56.5064ms)
+✔ duplicate user requests and operator approvals are idempotent; second refund is refused (87.9623ms)
+✔ wrong user, destination, operator and signer approval cannot authorize a refund (43.6343ms)
+✔ refund approval wins race against EVM preparation, including a second connection (40.7661ms)
+✔ saved EVM transaction wins race and prevents refund even if receipt is called failed (40.5116ms)
+✔ execution worker cannot broadcast after a durable refund veto and restart (44.0346ms)
+✔ completed purchase cannot enter refund authorization (26.145ms)
+✔ underpayment and overpayment refunds are bounded by confirmed receipts and explicit fee (63.4563ms)
+✔ nine confirmations, stale scans, dust, and overflow cannot authorize refund (73.2963ms)
+✔ expired request and changed payment attribution never receive operator approval (62.8265ms)
+✔ reorg after approval requires recovery, preserves veto and forbids blind replacement (34.9244ms)
+✔ public refund view never exposes payment mappings or pretends to confirm a refund (31.4644ms)
+✔ independent signer rechecks its own evidence and requires exact explicit review (688.0637ms)
+✔ interrupted independent signer claim is not cleared or signed again (622.6786ms)
+✔ keystore randomizes salt and nonce and rejects password, ciphertext, purpose and KDF tampering (1707.5584ms)
+✔ unauthorized unlock, explicit lock, expiry and lock-during-KDF all fail closed (885.4788ms)
+✔ encrypted-copy staging is reversible and interruption never overwrites credentials (884.2338ms)
+✔ price consensus rejects staleness, future timestamps, disagreement and duplicate sources (0.956ms)
+✔ feed failure does not downgrade a configured quorum or silently return a fixed rate (0.2692ms)
+✔ quote binds fees and expiry; movement rejects before approval but never reprices a paid commitment (0.8673ms)
+✔ OpenSea handoff accepts only explicit official Ethereum item paths and stays non-executable (1.1233ms)
+✔ native address decoder validates real checksum without a seed, DB or network (100.2529ms)
+ℹ tests 23
+ℹ suites 0
+ℹ pass 22
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7520.2562
+
+✖ failing tests:
+
+test at tests\phase5.test.ts:1:2668
+✖ Phase 5 graph rejects skipped transitions, stale writers and refunds after completion (6.5291ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  20 !== 21
+  
+      at TestContext.<anonymous> (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\phase5.test.ts:44:10)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.start (node:internal/test_runner/test:1003:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:358:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 20,
+    expected: 21,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

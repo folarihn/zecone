@@ -1,0 +1,11 @@
+{
+  "at": "2026-10-13T05:48:59.467Z",
+  "chainId": 11155111,
+  "purchaseId": "0de883a6-95d8-47bb-ab11-ed493438ab03",
+  "gasLimit": "738099",
+  "maxFeePerGas": "1000021",
+  "maximumFeeWei": "738114500079",
+  "gasBudgetWei": "500000000000000",
+  "simulationSucceeded": true,
+  "transactionSent": false
+}

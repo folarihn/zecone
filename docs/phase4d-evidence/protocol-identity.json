@@ -1,0 +1,11 @@
+{
+  "observedAt": "2026-10-13T10:37:34.746Z",
+  "ethereumHash": "0x74499ac0cce14428e4b41541d5e44f28f5a6882a1051d0118867c2a93cd5aec0",
+  "baseSepoliaHash": "0x7912af42062ec0080cde88360c1429d58984ae16eb3f17af505b815bf6ffc745",
+  "ethereumInformation": [
+    "1.6",
+    "0xfce34bc6e1752c1117e5063116d25cad2fa2bdcf15ff2d2e275eece7dc31ba64",
+    "0x00000000F9490004C11Cef243f5400493c00Ad63"
+  ],
+  "identicalAfterChainAndDomainImmutableSubstitution": true
+}

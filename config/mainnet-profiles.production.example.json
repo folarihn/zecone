@@ -1,0 +1,62 @@
+[
+  {
+    "network": "zcash",
+    "enabled": false,
+    "providers": [
+      {
+        "endpoint": "https://zcash-lightwalletd-a.invalid",
+        "operator": "operator-a"
+      },
+      {
+        "endpoint": "https://zcash-lightwalletd-b.invalid",
+        "operator": "operator-b"
+      }
+    ],
+    "independenceAcknowledged": false,
+    "recipients": [],
+    "perTransaction": "100000",
+    "daily": "100000",
+    "feeCap": "10000",
+    "confirmations": 20
+  },
+  {
+    "network": "base",
+    "enabled": false,
+    "providers": [
+      {
+        "endpoint": "https://base-rpc-a.invalid",
+        "operator": "operator-a"
+      },
+      {
+        "endpoint": "https://base-rpc-b.invalid",
+        "operator": "operator-b"
+      }
+    ],
+    "independenceAcknowledged": false,
+    "recipients": [],
+    "perTransaction": "100000000000000",
+    "daily": "100000000000000",
+    "feeCap": "10000000000000",
+    "confirmations": 1
+  },
+  {
+    "network": "solana",
+    "enabled": false,
+    "providers": [
+      {
+        "endpoint": "https://solana-rpc-a.invalid",
+        "operator": "operator-b"
+      },
+      {
+        "endpoint": "https://solana-rpc-b.invalid",
+        "operator": "operator-a"
+      }
+    ],
+    "independenceAcknowledged": false,
+    "recipients": [],
+    "perTransaction": "1010000",
+    "daily": "1010000",
+    "feeCap": "10000",
+    "confirmations": 1
+  }
+]

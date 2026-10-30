@@ -1,0 +1,52 @@
+
+> test:ui
+> playwright test
+
+[WebServer] (node:10328) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 12 tests using 1 worker
+
+(node:3536) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x   1 tests\ui\extension.spec.ts:5:1 › provider browser harness authenticates a separate-origin popup and disconnects (668ms)
+(node:25808) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  2 tests\ui\purchase-popup.spec.ts:3:1 › marketplace popup shows exact quote approval then the separate payment panel (1.0s)
+  ok  3 tests\ui\wallet.spec.ts:45:1 › marketplace payment needs a separate native-fee approval and preserves recovery details (714ms)
+  ok  4 tests\ui\wallet.spec.ts:158:1 › malformed network data shows an error without crashing the wallet (514ms)
+  ok  5 tests\ui\wallet.spec.ts:171:1 › token swap requires exact intent approval and a separate native payment approval (750ms)
+  ok  6 tests\ui\wallet.spec.ts:192:1 › Seaport purchase labels controlled origin and separates intent from shielded payment approval (806ms)
+  ok  7 tests\ui\wallet.spec.ts:204:1 › desktop wallet is accessible and has no horizontal overflow (1.2s)
+  ok  8 tests\ui\wallet.spec.ts:222:1 › mobile navigation, checkout review and focus-trapped approval are accessible (1.2s)
+  ok  9 tests\ui\wallet.spec.ts:271:1 › no signing happens merely by visiting checkout or opening an approval (582ms)
+  ok 10 tests\ui\wallet.spec.ts:292:1 › sponsor screen displays fixed terms before its explicit approval (582ms)
+  ok 11 tests\ui\wallet.spec.ts:318:1 › apps page names exact origins and lets the user revoke a connection (556ms)
+  ok 12 tests\ui\wallet.spec.ts:338:1 › OpenSea preview is non-executing, recipient-bound and expires visibly (4.0s)
+
+
+  1) tests\ui\extension.spec.ts:5:1 › provider browser harness authenticates a separate-origin popup and disconnects 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      24 |   );
+      25 |   await page.goto("/provider-harness");
+    > 26 |   expect(await page.evaluate(() => !!(window as any).p)).toBe(true);
+         |                                                          ^
+      27 |   const opened = page.waitForEvent("popup");
+      28 |   await page.getByRole("button", { name: "Connect local fixture" }).click();
+      29 |   const popup = await opened;
+        at C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\tests\ui\extension.spec.ts:26:58
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\extension-provider-browser-1b778-rigin-popup-and-disconnects\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\extension-provider-browser-1b778-rigin-popup-and-disconnects\error-context.md
+
+  1 failed
+    tests\ui\extension.spec.ts:5:1 › provider browser harness authenticates a separate-origin popup and disconnects 
+  11 passed (26.7s)

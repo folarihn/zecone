@@ -1,0 +1,48 @@
+No files changed, compilation skipped
+
+Ran 20 tests for contracts/test/Marketplace.t.sol:MarketplaceTest
+[PASS] testApprovalRevokedRejected() (gas: 49886)
+[PASS] testCancelledListingRejected() (gas: 72842)
+[PASS] testChainReplayRejected() (gas: 112828)
+[PASS] testChangedCalldataRejected() (gas: 37367)
+[PASS] testChangedPriceRejected() (gas: 63125)
+[PASS] testChangedRecipientRejected() (gas: 47833)
+[PASS] testCrossContractReplayRejected() (gas: 1208459)
+[PASS] testDoublePurchaseRejected() (gas: 129518)
+[PASS] testExactPaymentRequired() (gas: 33436)
+[PASS] testExpiredListingRejected() (gas: 34698)
+[PASS] testExpiredQuoteRejected() (gas: 35827)
+[PASS] testReentrancyBlocked() (gas: 309725)
+[PASS] testSoldListingRejected() (gas: 162140)
+[PASS] testSponsoredPurchaseAndReplay() (gas: 229589)
+[PASS] testStandardWalletPurchasePaysSellerAndDeliversDirectly() (gas: 120196)
+[PASS] testUnauthorizedRelayerRejected() (gas: 35314)
+[PASS] testUnauthorizedSellerRejected() (gas: 25145)
+[PASS] testUnauthorizedSignerRejected() (gas: 47597)
+[PASS] testWrongListingRejected() (gas: 63169)
+[PASS] testWrongNFTRejected() (gas: 62880)
+Suite result: ok. 20 passed; 0 failed; 0 skipped; finished in 4.21ms (9.48ms CPU time)
+
+Ran 8 tests for contracts/test/ZecOneNFT.t.sol:ZecOneNFTTest
+[PASS] testChangedRecipientFails() (gas: 24040)
+[PASS] testCrossContractReplayFails() (gas: 1353413)
+[PASS] testExpiredFails() (gas: 17187)
+[PASS] testFuzz_UserOwnsNFTAndReplayFails(bytes32) (runs: 128, μ: 103306, ~: 103306)
+[PASS] testMainnetDeployFails() (gas: 84204)
+[PASS] testMainnetExecutionFails() (gas: 16481)
+[PASS] testUnauthorizedRelayer() (gas: 16668)
+[PASS] testWrongPriceFails() (gas: 16631)
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 34.37ms (41.14ms CPU time)
+
+Ran 7 tests for contracts/test/ZecOneActions.t.sol:ZecOneActionsTest
+[PASS] testArbitraryTargetOrCalldataFails() (gas: 22347)
+[PASS] testExpiredIntentFails() (gas: 21619)
+[PASS] testMainnetDeploymentAndExecutionFail() (gas: 40613)
+[PASS] testOnlyRelayerCanExecute() (gas: 20773)
+[PASS] testUserAuthorizedFixedActionAndReplayIsRejected() (gas: 110156)
+[PASS] testValueAndBudgetAreFixed() (gas: 21057)
+[PASS] testWrongRecipientSignatureFails() (gas: 33016)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 34.01ms (8.45ms CPU time)
+
+Ran 3 test suites in 37.34ms (72.59ms CPU time): 35 tests passed, 0 failed, 0 skipped (35 total tests)
+2026-10-13T04:04:56.858238Z  WARN evm::traces: failed to flush signature cache err=failed to create file "C:\\Users\\Folarihn Top-Boi\\.foundry\\cache\\signatures": Access is denied. (os error 5)

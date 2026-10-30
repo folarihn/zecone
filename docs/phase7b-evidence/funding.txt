@@ -1,0 +1,3 @@
+(node:25232) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"network":"zcash-testnet","address":"utest1xaf9pg4hrg5dr75dvq0kqcgduspdhn4tp7n7h04fjsgwhlv4uhuds9gq2zs3nfuqyhzh55tm45qptjgztrynrr0my0p9rx7hqgpvh5cy","tip":4508649,"scanned":4508649,"confirmedUnspentZatoshis":"0","source":"https://testnet.zec.rocks:443"}

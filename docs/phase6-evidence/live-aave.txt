@@ -1,0 +1,687 @@
+- banner:
+  - link "Go to homepage":
+    - /url: /
+  - list:
+    - link "Dashboard":
+      - /url: /dashboard/
+    - link "Markets":
+      - /url: /markets/
+    - link "Savings":
+      - /url: /sgho/
+    - button "more menu":
+      - text: More
+  - link "Aave V4":
+    - /url: https://pro.aave.com/
+    - generic: Aave V4
+  - button "Switch tool":
+    - generic: Swap
+  - button "Bridge GHO":
+    - generic: Bridge GHO
+  - button "Connect Wallet"
+  - button "settings":
+- main:
+  - button "Select market":
+    - heading "Core" [level=2]:
+      - generic: C
+      - generic: o
+      - generic: r
+      - generic: e
+      - generic: C
+      - generic: o
+      - generic: r
+      - generic: e
+      - generic: C
+      - generic: o
+      - generic: r
+      - generic: e
+    - paragraph: V3
+    - paragraph: Supply and borrow the widest range of assets in Aave's deepest market.
+  - paragraph: Aave total deposits
+  - button:
+  - paragraph:
+    - generic: $
+    - text: 31.45B
+  - paragraph: Aave total loans
+  - button:
+  - paragraph:
+    - generic: $
+    - text: 12.38B
+  - separator
+  - generic: Total market size
+  - paragraph:
+    - generic: $
+    - text: 23.22B
+  - generic: Total available
+  - paragraph:
+    - generic: $
+    - text: 13.60B
+  - generic: Total borrows
+  - paragraph:
+    - generic: $
+    - text: 9.24B
+  - link "GHO coins Earn into sGHO GHO yield with instant withdraws. Total deposited $ 227.41M APY 4.50 % View details":
+    - /url: /sgho/
+    - img "GHO coins"
+    - heading "Earn into sGHO" [level=2]
+    - paragraph: GHO yield with instant withdraws.
+    - paragraph: Total deposited
+    - heading "$ 227.41M" [level=3]:
+      - generic: $
+      - text: 227.41M
+    - paragraph: APY
+    - heading "4.50 %" [level=3]:
+      - text: "4.50"
+      - generic: "%"
+    - link "View details":
+      - /url: /sgho/
+  - textbox:
+    - /placeholder: Search asset name, symbol, or address
+  - button "All Categories":
+    - paragraph: All Categories
+  - generic: Asset
+  - generic: Total supplied
+  - generic: Supply APY
+  - generic: Total borrowed
+  - paragraph: Borrow APY, variable
+  - button:
+  - paragraph: Ethereum
+  - paragraph: ETH
+  - paragraph: 2.19M
+  - paragraph:
+    - generic: $
+    - text: 5.19B
+  - paragraph:
+    - text: "1.32"
+    - generic: "%"
+  - paragraph: 1.74M
+  - paragraph:
+    - generic: $
+    - text: 4.12B
+  - paragraph:
+    - text: "1.96"
+    - generic: "%"
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2&marketName=proto_mainnet_v3
+  - paragraph: Wrapped eETH
+  - paragraph: weETH
+  - paragraph: 1.38M
+  - paragraph:
+    - generic: $
+    - text: 3.61B
+  - paragraph:
+    - generic: <
+    - text: "0.01"
+    - generic: "%"
+  - img "icon"
+  - generic: 3x
+  - paragraph: "50.92"
+  - paragraph:
+    - generic: $
+    - text: 133.14K
+  - paragraph:
+    - text: "1.01"
+    - generic: "%"
+  - generic: (Disabled)
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0xcd5fe23c85820f7b72d0926fc9b05b43e359b7ee&marketName=proto_mainnet_v3
+  - paragraph: Tether
+  - paragraph: USDT
+  - paragraph: 2.81B
+  - paragraph:
+    - generic: $
+    - text: 2.81B
+  - paragraph:
+    - text: "3.36"
+    - generic: "%"
+  - paragraph: 2.46B
+  - paragraph:
+    - generic: $
+    - text: 2.46B
+  - paragraph:
+    - text: "4.28"
+    - generic: "%"
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0xdac17f958d2ee523a2206206994597c13d831ec7&marketName=proto_mainnet_v3
+  - paragraph: Wrapped BTC
+  - paragraph: WBTC
+  - paragraph: 34.29K
+  - paragraph:
+    - generic: $
+    - text: 2.78B
+  - paragraph:
+    - generic: <
+    - text: "0.01"
+    - generic: "%"
+  - paragraph: "712.82"
+  - paragraph:
+    - generic: $
+    - text: 57.79M
+  - paragraph:
+    - text: "0.32"
+    - generic: "%"
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0x2260fac5e5542a773aa44fbcfedf7c193bc2c599&marketName=proto_mainnet_v3
+  - paragraph: USD Coin
+  - paragraph: USDC
+  - paragraph: 2.38B
+  - paragraph:
+    - generic: $
+    - text: 2.38B
+  - paragraph:
+    - text: "4.06"
+    - generic: "%"
+  - paragraph: 2.24B
+  - paragraph:
+    - generic: $
+    - text: 2.24B
+  - paragraph:
+    - text: "4.81"
+    - generic: "%"
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48&marketName=proto_mainnet_v3
+  - paragraph: Wrapped liquid staked Ether 2.0
+  - paragraph: wstETH
+  - paragraph: 781.99K
+  - paragraph:
+    - generic: $
+    - text: 2.30B
+  - paragraph:
+    - generic: <
+    - text: "0.01"
+    - generic: "%"
+  - paragraph: 19.12K
+  - paragraph:
+    - generic: $
+    - text: 56.34M
+  - paragraph:
+    - text: "0.03"
+    - generic: "%"
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0&marketName=proto_mainnet_v3
+  - paragraph: Coinbase Wrapped BTC
+  - paragraph: cbBTC
+  - paragraph: 17.33K
+  - paragraph:
+    - generic: $
+    - text: 1.41B
+  - paragraph:
+    - generic: <
+    - text: "0.01"
+    - generic: "%"
+  - paragraph: "141.90"
+  - paragraph:
+    - generic: $
+    - text: 11.52M
+  - paragraph:
+    - text: "0.29"
+    - generic: "%"
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf&marketName=proto_mainnet_v3
+  - paragraph: Staked ETH
+  - paragraph: osETH
+  - paragraph: 118.99K
+  - paragraph:
+    - generic: $
+    - text: 304.19M
+  - paragraph:
+    - generic: <
+    - text: "0.01"
+    - generic: "%"
+  - paragraph: "0.0074493"
+  - paragraph:
+    - generic: $
+    - text: "19.04"
+  - paragraph:
+    - generic: <
+    - text: "0.01"
+    - generic: "%"
+  - generic: (Disabled)
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0xf1c9acdc66974dfb6decb12aa385b9cd01190e38&marketName=proto_mainnet_v3
+  - paragraph: USDe
+  - paragraph: USDe
+  - paragraph: 255.52M
+  - paragraph:
+    - generic: $
+    - text: 255.24M
+  - paragraph:
+    - text: "4.85"
+    - generic: "%"
+  - img "icon"
+  - generic: 5x
+  - paragraph: 12.75M
+  - paragraph:
+    - generic: $
+    - text: 12.74M
+  - paragraph:
+    - text: "6.84"
+    - generic: "%"
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0x4c9edd5852cd905f086c759e8383e09bff1e68b3&marketName=proto_mainnet_v3
+  - paragraph: Lombard Staked Bitcoin
+  - paragraph: LBTC
+  - paragraph: 2.69K
+  - paragraph:
+    - generic: $
+    - text: 219.49M
+  - paragraph:
+    - generic: <
+    - text: "0.01"
+    - generic: "%"
+  - paragraph: "0.0169779"
+  - paragraph:
+    - generic: $
+    - text: 1.39K
+  - paragraph:
+    - generic: <
+    - text: "0.01"
+    - generic: "%"
+  - generic: (Disabled)
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0x8236a87084f8b84306f72007f36f2618a5634494&marketName=proto_mainnet_v3
+  - paragraph: tBTC
+  - paragraph: tBTC
+  - paragraph: 1.76K
+  - paragraph:
+    - generic: $
+    - text: 143.13M
+  - paragraph:
+    - generic: <
+    - text: "0.01"
+    - generic: "%"
+  - paragraph: "2.57"
+  - paragraph:
+    - generic: $
+    - text: 208.68K
+  - paragraph:
+    - text: "0.26"
+    - generic: "%"
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0x18084fba666a33d37592fa2633fd49a74dd93a88&marketName=proto_mainnet_v3
+  - paragraph: Gho Token
+  - paragraph: GHO
+  - paragraph: 135.35M
+  - paragraph:
+    - generic: $
+    - text: 135.35M
+  - paragraph:
+    - text: "0"
+    - generic: "%"
+  - paragraph: 107.62M
+  - paragraph:
+    - generic: $
+    - text: 107.62M
+  - paragraph:
+    - text: "4.60"
+    - generic: "%"
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0x40d16fc0246ad3160ccc09b8d0d3a2cd28ae6c2f&marketName=proto_mainnet_v3
+  - paragraph: Staked USDe
+  - paragraph: sUSDe
+  - paragraph: 103.63M
+  - paragraph:
+    - generic: $
+    - text: 129.72M
+  - paragraph:
+    - text: "0"
+    - generic: "%"
+  - img "icon"
+  - generic: 5x
+  - paragraph: —
+  - paragraph: —
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0x9d39a5de30e57443bff2a8307a4256c8797a3497&marketName=proto_mainnet_v3
+  - paragraph: Dai Stablecoin
+  - paragraph: DAI
+  - paragraph: 129.21M
+  - paragraph:
+    - generic: $
+    - text: 129.19M
+  - paragraph:
+    - text: "3.45"
+    - generic: "%"
+  - paragraph: 117.93M
+  - paragraph:
+    - generic: $
+    - text: 117.91M
+  - paragraph:
+    - text: "5.09"
+    - generic: "%"
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0x6b175474e89094c44da98b954eedeac495271d0f&marketName=proto_mainnet_v3
+  - paragraph: Aave Token
+  - paragraph: AAVE
+  - paragraph: 819.24K
+  - paragraph:
+    - generic: $
+    - text: 123.54M
+  - paragraph:
+    - text: "0"
+    - generic: "%"
+  - paragraph: —
+  - paragraph: —
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9&marketName=proto_mainnet_v3
+  - paragraph: Syrup USDT
+  - paragraph: syrupUSDT
+  - paragraph: 100.00M
+  - paragraph:
+    - generic: $
+    - text: 114.68M
+  - paragraph:
+    - text: "0"
+    - generic: "%"
+  - paragraph: —
+  - paragraph: —
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0x356b8d89c1e1239cbbb9de4815c39a1474d5ba7d&marketName=proto_mainnet_v3
+  - paragraph: Rocket Pool ETH
+  - paragraph: rETH
+  - paragraph: 34.88K
+  - paragraph:
+    - generic: $
+    - text: 96.82M
+  - paragraph:
+    - generic: <
+    - text: "0.01"
+    - generic: "%"
+  - paragraph: "40.40"
+  - paragraph:
+    - generic: $
+    - text: 112.14K
+  - paragraph:
+    - text: "0.02"
+    - generic: "%"
+  - generic: (Disabled)
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0xae78736cd615f374d3085123a210448e74fc6393&marketName=proto_mainnet_v3
+  - paragraph: ChainLink
+  - paragraph: LINK
+  - paragraph: 7.64M
+  - paragraph:
+    - generic: $
+    - text: 92.76M
+  - paragraph:
+    - text: "0.02"
+    - generic: "%"
+  - paragraph: 301.14K
+  - paragraph:
+    - generic: $
+    - text: 3.66M
+  - paragraph:
+    - text: "0.61"
+    - generic: "%"
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0x514910771af9ca656af840dff83e8264ecf986ca&marketName=proto_mainnet_v3
+  - paragraph: Tether Gold
+  - paragraph: XAUt
+  - paragraph: 13.87K
+  - paragraph:
+    - generic: $
+    - text: 57.59M
+  - paragraph:
+    - text: "0"
+    - generic: "%"
+  - paragraph: —
+  - paragraph: —
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0x68749665ff8d2d112fa859aa293f07a622782f38&marketName=proto_mainnet_v3
+  - paragraph: Euro Coin
+  - paragraph: EURC
+  - paragraph: 39.20M
+  - paragraph:
+    - generic: $
+    - text: 43.99M
+  - paragraph:
+    - text: "2.40"
+    - generic: "%"
+  - paragraph: 25.73M
+  - paragraph:
+    - generic: $
+    - text: 28.87M
+  - paragraph:
+    - text: "4.09"
+    - generic: "%"
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0x1abaea1f7c830bd89acc67ec4af516284b1bc33c&marketName=proto_mainnet_v3
+  - paragraph: Coinbase Wrapped Staked ETH
+  - paragraph: cbETH
+  - paragraph: 5.55K
+  - paragraph:
+    - generic: $
+    - text: 14.99M
+  - paragraph:
+    - generic: <
+    - text: "0.01"
+    - generic: "%"
+  - paragraph: "19.20"
+  - paragraph:
+    - generic: $
+    - text: 51.83K
+  - paragraph:
+    - text: "0.05"
+    - generic: "%"
+  - generic: (Disabled)
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0xbe9895146f7af43049ca1c1ae358b0541ea49704&marketName=proto_mainnet_v3
+  - paragraph: USDtb
+  - paragraph: USDtb
+  - paragraph: 12.72M
+  - paragraph:
+    - generic: $
+    - text: 12.72M
+  - paragraph:
+    - text: "5.36"
+    - generic: "%"
+  - paragraph: 10.38M
+  - paragraph:
+    - generic: $
+    - text: 10.38M
+  - paragraph:
+    - text: "8.33"
+    - generic: "%"
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0xc139190f447e929f090edeb554d95abb8b18ac1c&marketName=proto_mainnet_v3
+  - paragraph: PT Strata Senior USDe October 2026
+  - paragraph: PT Strata Senior USDe October 22nd 2026
+  - paragraph: 11.27M
+  - paragraph:
+    - generic: $
+    - text: 11.25M
+  - paragraph:
+    - text: "0"
+    - generic: "%"
+  - paragraph: —
+  - paragraph: —
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0x59bc9fae5d62b19d4f8d07d758047acb9ee19d34&marketName=proto_mainnet_v3
+  - paragraph: PayPal USD
+  - paragraph: PYUSD
+  - paragraph: 7.97M
+  - paragraph:
+    - generic: $
+    - text: 7.97M
+  - paragraph:
+    - text: "4.59"
+    - generic: "%"
+  - paragraph: 7.18M
+  - paragraph:
+    - generic: $
+    - text: 7.18M
+  - paragraph:
+    - text: "5.69"
+    - generic: "%"
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0x6c3ea9036406852006290770bedfcaba0e23a0e8&marketName=proto_mainnet_v3
+  - paragraph: ether.fi BTC
+  - paragraph: eBTC
+  - paragraph: "75.04"
+  - paragraph:
+    - generic: $
+    - text: 6.12M
+  - paragraph:
+    - text: "0"
+    - generic: "%"
+  - img "icon"
+  - generic: 3x
+  - paragraph: —
+  - paragraph: —
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0x657e8c867d8b37dcc18fa4caead9c45eb088c642&marketName=proto_mainnet_v3
+  - paragraph: USDS Stablecoin
+  - paragraph: USDS
+  - paragraph: 4.95M
+  - paragraph:
+    - generic: $
+    - text: 4.95M
+  - paragraph:
+    - text: "3.64"
+    - generic: "%"
+  - paragraph: 338.65K
+  - paragraph:
+    - generic: $
+    - text: 338.59K
+  - paragraph:
+    - text: "5.71"
+    - generic: "%"
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0xdc035d45d973e3ec169d2276ddab16f1e407384f&marketName=proto_mainnet_v3
+  - paragraph: Global Dollar
+  - paragraph: USDG
+  - paragraph: 4.73M
+  - paragraph:
+    - generic: $
+    - text: 4.73M
+  - paragraph:
+    - text: "8.16"
+    - generic: "%"
+  - paragraph: 3.99M
+  - paragraph:
+    - generic: $
+    - text: 3.99M
+  - paragraph:
+    - text: "12.32"
+    - generic: "%"
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0xe343167631d89b6ffc58b88d6b7fb0228795491d&marketName=proto_mainnet_v3
+  - paragraph: RLUSD
+  - paragraph: RLUSD
+  - paragraph: 3.08M
+  - paragraph:
+    - generic: $
+    - text: 3.08M
+  - paragraph:
+    - text: "2.83"
+    - generic: "%"
+  - paragraph: 2.25M
+  - paragraph:
+    - generic: $
+    - text: 2.25M
+  - paragraph:
+    - text: "4.90"
+    - generic: "%"
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0x8292bb45bf1ee4d140127049757c2e0ff06317ed&marketName=proto_mainnet_v3
+  - paragraph: Bitcoin
+  - paragraph: BTC.b
+  - paragraph: "15.27"
+  - paragraph:
+    - generic: $
+    - text: 1.24M
+  - paragraph:
+    - text: "0"
+    - generic: "%"
+  - paragraph: —
+  - paragraph: —
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0xb0f70c0bd6fd87dbeb7c10dc692a2a6106817072&marketName=proto_mainnet_v3
+  - paragraph: Treehouse ETH
+  - paragraph: tETH
+  - paragraph: "286.78"
+  - paragraph:
+    - generic: $
+    - text: 851.68K
+  - paragraph:
+    - text: "0"
+    - generic: "%"
+  - paragraph: —
+  - paragraph: —
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0xd11c452fc99cf405034ee446803b6f6c1f6d5ed8&marketName=proto_mainnet_v3
+  - paragraph: Lido DAO Token
+  - paragraph: LDO
+  - paragraph: 717.96K
+  - paragraph:
+    - generic: $
+    - text: 275.19K
+  - paragraph:
+    - text: "0.05"
+    - generic: "%"
+  - paragraph: 45.56K
+  - paragraph:
+    - generic: $
+    - text: 17.46K
+  - paragraph:
+    - text: "0.99"
+    - generic: "%"
+  - generic: (Disabled)
+  - link "Details":
+    - /url: /reserve-overview/?underlyingAsset=0x5a98fcbea516cf06857215779fd812ca3bef1b32&marketName=proto_mainnet_v3
+  - checkbox "show frozen or paused assets"
+  - generic: Show frozen/paused assets
+  - separator
+  - checkbox "show assets under 100k supply"
+  - generic: Show assets <$100k supply
+- link "Terms":
+  - /url: https://aave.com/terms-of-service
+  - paragraph: Terms
+- link "Privacy":
+  - /url: https://aave.com/privacy-policy/
+  - paragraph: Privacy
+- link "Docs":
+  - /url: https://docs.aave.com/hub/
+  - paragraph: Docs
+- link "FAQS":
+  - /url: https://docs.aave.com/faq/
+  - paragraph: FAQS
+- link "Get Support":
+  - /url: https://discord.com/invite/aave
+  - paragraph: Get Support
+- link "Manage analytics":
+  - /url: /
+  - paragraph: Manage analytics
+- link:
+  - /url: https://x.com/aave
+- link:
+  - /url: https://www.instagram.com/aave/
+- link:
+  - /url: https://www.tiktok.com/@aavelabs
+- link:
+  - /url: https://www.linkedin.com/company/aavelabs/
+- link:
+  - /url: https://discord.com/invite/aave
+- link:
+  - /url: https://dune.com/aavelabs
+- link:
+  - /url: https://github.com/aave
+- region "Notifications alt+T"
+- alert
+- dialog:
+  - button "Close":
+  - button "More Information":
+  - generic: Connect Wallet
+  - button "Continue with Aave":
+    - generic: Continue with Aave
+  - generic: or select a wallet from the list below
+  - button "Institutional Wallets Institutional Wallets":
+    - img "Institutional Wallets"
+    - generic: Institutional Wallets
+  - button "MetaMask":
+    - generic: MetaMask
+  - button "Coinbase Wallet":
+    - generic: Coinbase Wallet
+  - button "Other Wallets":
+    - generic: Other Wallets
+  - text: More Available
+  - button "I don’t have a wallet":
+    - text: I don’t have a wallet

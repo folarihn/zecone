@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "executedAt": "2026-10-22T14:55:50.655Z",
+  "status": "PASS",
+  "syntheticOnly": true,
+  "encrypted": true,
+  "ciphertextSha256": "44c059c963d871c3f58b47210d8a855b70caf5849a88eb75fe8b5f064b4da874",
+  "ciphertextBytes": 12199,
+  "sqliteIntegrity": "PASS",
+  "restoredNetwork": "zcash-mainnet",
+  "restoredAccountMatches": true,
+  "restoredAddressMatches": true,
+  "restoredBirthdayMatches": true,
+  "productionIdentityCreated": false,
+  "offHostUploaded": false,
+  "note": "Disposable synthetic profile and disposable age identity. This proves local encryption/restore mechanics only; production off-host backup remains blocked."
+}

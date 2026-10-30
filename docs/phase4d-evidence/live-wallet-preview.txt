@@ -1,0 +1,208 @@
+Browser tab: 2, Title: "ZecOne — Your local wallet", URL: "http://127.0.0.1:3210/".
+1 AXWebArea ZecOne — Your local wallet, URL: 127.0.0.1:3210/
+	2 container
+		3 link Description: Skip to content, Value: 127.0.0.1:3210/#main
+		4 text Ƶ ZecOne . TESTNET ONLY
+		5 container Main navigation
+			6 button Wallet
+			7 button Checkout
+			8 button Sponsor
+			9 button Apps
+			10 button Purchases
+			11 button Tokens
+			12 button Seaport
+			13 button Activity
+			14 button Privacy
+		15 text Local by design
+		16 text Connected to your device
+		17 button Lock wallet
+		18 text ZecOne · Phase 1
+		19 text Your local wallet
+		20 button Lock wallet
+		21 text Base Sepolia
+		22 button 0x1865…c714 Verified
+			23 text 0x1865…c714
+			24 text Verified
+		25 container main
+			26 text PRIVATE PAYMENT, DIRECT SEAPORT DELIVERY
+			27 heading Your Seaport purchases, Value: 1
+				28 text Your Seaport purchases
+			29 text Review a genuine Seaport listing and fund its exact fulfillment with test ZEC.
+			30 button Refresh wallet data
+			86 container Seaport purchases
+				87 container OpenSea inspection
+					88 heading OpenSea · read-only discovery, Value: 2
+						89 text OpenSea · read-only discovery
+					90 text Ethereum mainnet listings for inspection only. No purchase, signature, ZEC payment or liquidity reservation can be created here.
+					91 text Queries contact OpenSea and Ethereum RPC. NFT ownership and public wallet addresses are visible to those services. ZecOne is not affiliated with OpenSea.
+					92 container
+						93 text OpenSea collection slug
+						94 text field (settable) OpenSea collection slug, Value: pudgypenguins
+					95 button Discover official listings
+					124 container
+						125 heading Token #3357, Value: 3
+							126 text Token # 3357
+						127 text 2.29999 ETH ·  ACTIVE Unvalidated API listing ·  0x1c01aa564f5d306efd35ca896ad9924c12f470af3c015f459ace8637961036a0
+						128 button Validate & preview #3357
+							129 text Validate & preview #
+							193 text 3357
+					131 container
+						132 heading Token #3374, Value: 3
+							133 text Token # 3374
+						134 text 2.339 ETH ·  ACTIVE Unvalidated API listing ·  0xe7fd5f814abf5e1d70905fb4ef0f27de458524bdf753cdc6701f396f6ad8de7c
+						135 button Validate & preview #3374
+							136 text Validate & preview #
+							194 text 3374
+					138 container
+						139 heading Token #7460, Value: 3
+							140 text Token # 7460
+						141 text 2.384 ETH ·  ACTIVE Unvalidated API listing ·  0xca8441832b2eb6132ef0a4fcbc84011bb1ce6da6654413a4b9d239c8b12123c7
+						142 button Validate & preview #7460
+							143 text Validate & preview #
+							195 text 7460
+					145 container
+						146 heading Token #4004, Value: 3
+							147 text Token # 4004
+						148 text 2.39 ETH ·  ACTIVE Unvalidated API listing ·  0xc9a19777a088627779b41cadef0c661d43f5ebac55acb0f70170c14836b37498
+						149 button Validate & preview #4004
+							150 text Validate & preview #
+							196 text 4004
+					152 container
+						153 heading Token #7460, Value: 3
+							154 text Token # 7460
+						155 text 2.4 ETH ·  ACTIVE Unvalidated API listing ·  0xccab0d63a45dec76cc8e27d9c078be52173ab9400e6297f639086a817387d81e
+						156 button Validate & preview #7460
+							157 text Validate & preview #
+							197 text 7460
+					159 container
+						160 heading Token #5697, Value: 3
+							161 text Token # 5697
+						162 text 2.58999999 ETH ·  ACTIVE Unvalidated API listing ·  0xe4ab02c01f4cde98ce528557764608cfa6151ee0c045060ca7867607214c7ef2
+						163 button Validate & preview #5697
+							164 text Validate & preview #
+							198 text 5697
+					166 container
+						167 heading Token #5172, Value: 3
+							168 text Token # 5172
+						169 text 2.709955 ETH ·  ACTIVE Unvalidated API listing ·  0x5187e35e0e7535735d0e53ece0c3b7248d928feb41c1c6521cc5395606efdf5f
+						170 button Validate & preview #5172
+							171 text Validate & preview #
+							199 text 5172
+					173 container
+						174 heading Token #3073, Value: 3
+							175 text Token # 3073
+						176 text 2.7272 ETH ·  ACTIVE Unvalidated API listing ·  0x7fb7a08516f2b7d29172184d8d46596ba766aafd929d7e3479d59672876e29b0
+						177 button Validate & preview #3073
+							178 text Validate & preview #
+							200 text 3073
+					180 container
+						181 heading Token #1604, Value: 3
+							182 text Token # 1604
+						183 text 2.75 ETH ·  ACTIVE Unvalidated API listing ·  0x21aa460c904922f5f709c2546d6d98cb5f0181bbf0e87ebc140071c7baf063d7
+						184 button Validate & preview #1604
+							185 text Validate & preview #
+							201 text 1604
+					187 container
+						188 heading Token #3073, Value: 3
+							189 text Token # 3073
+						190 text 2.7777 ETH ·  ACTIVE Unvalidated API listing ·  0x0a5631345afbfe7b30272296ae9046b4bd81d75fd90fdca7f21b830f57e17ea5
+						191 button Validate & preview #3073
+							192 text Validate & preview #
+							202 text 3073
+					203 container Non-executing checkout preview
+						204 heading Pudgy Penguin #3357, Value: 3
+							205 text Pudgy Penguin #3357
+						206 container
+							207 text pudgypenguins  ·  Official OpenSea API
+						208 image Pudgy Penguin #3357
+						209 text Validated snapshot — non-executing preview
+						210 definition list
+							211 container Network
+								212 text Network
+							213 text Ethereum mainnet — inspection only
+							214 container Seller
+								215 text Seller
+							216 text 0x09E50bDD56664565F3528B25B3d79A79683dE931
+							217 container Receiving wallet
+								218 text Receiving wallet
+							219 text 0x1865Dd77bFcb632571d3c93144D5634F0D93c714
+							220 container Order
+								221 text Order
+							222 text 0x1c01aa564f5d306efd35ca896ad9924c12f470af3c015f459ace8637961036a0
+							223 container NFT
+								224 text NFT
+							225 text 0xBd3531dA5CF5857e7CfAA92426877b022e612cf8 · #3357
+							226 container Seller price
+								227 text Seller price
+							228 text 2.2769901 ETH
+							229 container Consideration fees
+								230 text Consideration fees
+							231 text 0.0229999 ETH
+							232 container Total listing price
+								233 text Total listing price
+							234 text 2.29999 ETH
+							235 container Estimated gas reserve
+								236 text Estimated gas reserve
+							237 text 0.000128304669054936 ETH
+							238 container Required hypothetical liquidity
+								239 text Required hypothetical liquidity
+							240 text 2.300118304669054936 ETH
+							241 container Illustrative shielded amount
+								242 text Illustrative shielded amount
+							243 text 115.00591524 TAZ; native Zcash fee not quoted
+							244 container Quote expiry
+								245 text Quote expiry
+							246 text 10/13/2026, 12:00:23 PM
+							247 container Verified block
+								248 text Verified block
+							249 text 26183105
+							250 container Seller authorization
+								251 text Seller authorization
+							252 text EIP-712 signature verified
+							253 container Binding
+								254 text Binding
+							255 text 0x04a6262bc30c18f3bf397e12cd45a31a0dceb0e04ca6cd624e74cd9280582f05
+						256 heading Exact consideration recipients, Value: 4
+							257 text Exact consideration recipients
+						258 container
+							259 text 0x09E50bDD56664565F3528B25B3d79A79683dE931 :  2.2769901  ETH  (contract recipient)
+						260 container
+							261 text 0x0000a26b00c1F0DF003000390027140000fAa719 :  0.0229999  ETH  (contract recipient)
+						262 text 1 TAZ = 0.02 ETH (illustrative only; no exchange or payable quote)
+						263 text eth_call succeeded with hypothetical provider ETH balance; no broadcast
+						264 text Mainnet settlement is disabled. Existing testnet wrapper cannot execute this listing.
+						265 text Trusted prefunded operator; no atomic bridge. Gas is an estimate; listing state can change. Manual recovery only. No liquidity reserved.
+						266 text OpenSea and RPC providers observe public addresses and queries. The operator can correlate payments with public NFT delivery. Browsing and NFT ownership are not anonymous.
+						267 link Description: View listing on OpenSea, Value: opensea.io/item/ethereum/0xBd3531dA5CF5857e7CfAA92426877b022e612cf8/3357
+				96 heading Seaport test listings, Value: 2
+					97 text Seaport test listings
+				98 text Controlled seller-signed listings on Seaport 1.6 · Base Sepolia. These are not OpenSea API listings. ZecOne is not affiliated with OpenSea.
+				99 text Simulated rate: 1 TAZ = 0.02 test ETH. The provider pays ETH; NFT ownership is public. A listing may sell or expire while Zcash confirms. Failed paid orders need manual recovery.
+				100 text Controlled Seaport listing; OpenSea API testnet discovery unavailable.
+				113 container
+					114 heading Sepolia Studio · Token #1, Value: 3
+						115 text Sepolia Studio · Token # 1
+					116 text Base Sepolia · Controlled Seaport test listing · Unavailable at last check Collection:
+					117 text 0xf7b5482a479c68b9d652cf8005234f82d27b2c3f
+					118 text Seller:
+					119 text 0x7D26bC3A7CE602cB1cf9F8Bb4e3a8eDCb052C4b0
+					120 text Total consideration:  0.0001025  test ETH · Included test fee: 0.0000025  ETH Seaport  1.6 :
+					121 text 0x0000000000000068F116a894984e2DB1123eB395
+					122 text Expires:  10/14/2026, 9:15:54 AM
+					123 button (disabled) Review Seaport purchase
+				101 button Refresh listing and ownership
+				102 container
+					103 heading Completed, Value: 3
+						104 text Completed
+					105 text Base Sepolia · Seaport 1.6 · Token # 1  ·  e5b3eb4b-5b4b-4782-9bc0-fd4f68e5d219 Collection:
+					106 text 0xf7b5482a479c68b9d652cf8005234f82d27b2c3f
+					107 text Recipient:
+					108 text 0x1865Dd77bFcb632571d3c93144D5634F0D93c714
+					109 text Shielded payment:  0.010125  TAZ + native fee · Confirmations:  354  / 10 Order:
+					110 text 0x35e3c4fccc83842c2b29898c2ce3149163ac6ca63f114f35dfa9e1793701bd3a
+					111 text Verified NFT delivery to your wallet at the fulfillment block.
+					112 link Description: View Seaport fulfillment, Value: sepolia.basescan.org/tx/0x473e5fe828041b87b7efb9a8099534840128f00dc7713e5662c79fb00ab511e4
+			84 container
+				85 text Local connection · No analytics · Testnets only Built around your choice.
+
+The focused UI element is 1 AXWebArea ZecOne — Your local wallet, URL: 127.0.0.1:3210/

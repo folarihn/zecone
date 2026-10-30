@@ -1,0 +1,96 @@
+- region "Notifications Alt+T"
+- button "cookies":
+- button "help":
+- navigation "Main":
+  - list:
+    - button:
+- navigation "Main":
+  - list:
+    - button "Trade":
+      - link "Trade":
+        - /url: /ethereum/swap
+    - link "Perps":
+      - /url: /perps
+    - link "Launchpad":
+      - /url: /robinhood/launchpad
+    - link "Explore":
+      - /url: /ethereum/explore/pools
+    - button "Positions":
+      - link "Positions":
+        - /url: /ethereum/pool
+    - button "Stake":
+      - link "Stake":
+        - /url: /stake
+- button "Ethereum":
+  - generic: Ethereum
+- button "Connect Wallet":
+  - generic: Connect Wallet
+- main:
+  - link "Swap":
+    - /url: /ethereum/swap
+    - button "Swap"
+  - button "Advanced":
+    - text: Advanced
+  - link "Cross-Chain":
+    - /url: /ethereum/cross-chain-swap
+    - button "Cross-Chain":
+      - text: Cross-Chain
+  - button:
+  - text: Sell
+  - textbox "Sell":
+    - /placeholder: "0.0"
+  - button "avatar ETH":
+    - img "avatar"
+    - generic: ETH
+  - paragraph:
+    - text: $ 0.
+    - generic: "00"
+  - button "Use maximum ETH":
+    - generic: "0.00"
+  - button:
+  - text: Buy
+  - textbox "Buy" [disabled]:
+    - /placeholder: "0.0"
+  - button "avatar SUSHI":
+    - img "avatar"
+    - generic: SUSHI
+  - paragraph:
+    - text: $ 0.
+    - generic: "00"
+  - button "Use maximum SUSHI" [disabled]:
+    - generic: "0.00"
+  - heading "That works!" [level=3]
+  - generic: "Please be aware that with regards to tax tokens, the preferred slippage incorporates the standard slippage value along with the additional tax amount. E.g.: 0.5% slippage + 5% tax = 5.5%"
+  - text: Slippage
+  - textbox "Slippage percentage": "0.5"
+  - generic: "%"
+  - button "minimize":
+  - button "Connect EVM Wallet"
+  - generic: Price impact
+  - generic: Max. received
+  - generic: Min. received
+  - generic: Fee (0.35%)
+  - generic: Network fee
+  - generic: Routing source
+- alert
+- dialog:
+  - generic: Connect
+  - text: By connecting your wallet, you agree to Sushi Labs'
+  - button "Terms of Service" [active]:
+    - link "Terms of Service":
+      - /url: /legal/terms-of-service
+  - text: and
+  - button "Privacy Policy":
+    - link "Privacy Policy":
+      - /url: /legal/privacy-policy
+  - tablist:
+    - tab "EVM" [selected]
+    - tab "Solana"
+    - tab "Stellar"
+  - tabpanel "EVM":
+    - button
+    - button
+    - button
+    - button
+    - button
+    - button

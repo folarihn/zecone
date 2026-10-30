@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "mainnet": {
+    "version": 1,
+    "mode": "READ_ONLY",
+    "binary": "services/zcash-mainnet-spend/target/debug/zecone-zcash-mainnet-spend.exe",
+    "wallet": "D:/zecone-mainnet/zcash-spend-wallet",
+    "expectedAccount": "c89c7cda1189ef6eaac30df339e43b74142e49dfd1340bad213c10e356eac6b9",
+    "expectedAddress": "u13cvyuec8pnfx8ydcm6f3js5quu3nl2pp56ld8z03548w55qv0xhhwz67npgp0ypevusapedw9davchxwe3k7f8jfghsukkl0zghr3zwf"
+  }
+}

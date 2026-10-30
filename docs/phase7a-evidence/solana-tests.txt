@@ -1,0 +1,28 @@
+(node:27572) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ RPC outage retries are bounded, concurrent reads are refused, and abort signals reach transport (2418.8551ms)
+✔ confidential Token-2022 balances are unavailable, never a fabricated zero (8.2478ms)
+✔ isolated Ed25519 signing requires exact approval and persists signed bytes without submission (46.576ms)
+✔ manual EVM backend uses a disposable ownership challenge and disables all settlement entrypoints (91.2413ms)
+✔ devnet identity rejects a mainnet or truncated genesis before any account query (4.0594ms)
+✔ public key and destination allowlist reject invalid/mismatched accounts and caps (1.4566ms)
+✔ token amounts retain integer precision and reject invalid decimals/mints (0.9486ms)
+✔ Token-2022 extensions and frozen accounts are displayed but never transferable (9.1582ms)
+✔ canonical SOL decoding rejects byte edits, extra programs/metas and fee-payer substitution (19.397ms)
+✔ canonical SPL transfer uses checked decimals and bounded owner ATAs (73.1559ms)
+✔ SPL preflight refuses missing/Token-2022/freezeable mints (0.6515ms)
+✔ simulation failure cannot become approval-ready; expired blockhash and high fees fail (7.6006ms)
+✔ durable idempotency, duplicate signature and submission protections (4.102ms)
+✔ restart recovery preserves ambiguous signing; recovery and execution exclude each other (58.4101ms)
+✔ origin permissions, session binding, rejection, replay and revoke are enforced (3.4726ms)
+✔ RPC finalization requires agreement; outages/processed are not settled (0.6561ms)
+✔ synthetic verified ZEC authorizes only a nonbroadcast Solana simulation; historical/replayed payments rejected (7.5203ms)
+✔ Wallet Standard discovery is separate, devnet-only and has no send capability (3.7434ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7505.8784

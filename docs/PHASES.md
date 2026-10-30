@@ -1,6 +1,6 @@
 # Delivery phases
 
-## Phase 0 only
+## Phase 0 — complete and preserved
 
 1. Inspect environment; research official APIs and create feasibility, architecture, risks and phases documents.
 2. Compile Rust testnet wallet generation, address allocation, sync, payment observation and local shielded sending.
@@ -11,6 +11,59 @@
 
 Step 6 passed on 2026-10-12: real shielded payment, confirmed Base Sepolia mint, verified user ownership and live idempotency check. See [RESULTS.md](RESULTS.md). Phase 0 is complete; no frontend work begins automatically.
 
-## Later phases (not authorized here)
+## Phase 1 — explicitly authorized local wallet application
 
-Evaluate user-owned smart accounts and ERC-4337 paymaster sponsorship, stronger viewing-key separation, node verification, production custody/audits, liquidity and exchange design. Frontend work requires a separate decision after Phase 0 results. A production multichain wallet is not established by a custodial testnet relayer demo.
+1. Preserve Phase 0 source, credentials, databases, deployment and evidence. Git checkpoint `482fc57`; private runtime backup under `.secrets/phase1-checkpoint`.
+2. Document the browser threat boundary before implementation. Reuse native wallet construction, verifier, contract and relayer.
+3. Add actual native balance and unsigned fee quote APIs with an enforced fee ceiling; authenticate a loopback-only browser gateway and verify local user ownership.
+4. Build the Next.js/TypeScript/Tailwind dashboard, activity, private/public explanations, approval dialogs, checkout progress and recovery views.
+5. Checkpoint tested implementation (`ee64350`), preserve original tests, add auth/replay/privacy/approval tests and responsive accessibility checks.
+6. Exercise one real browser-approved shielded payment through ten confirmations and a verified Base mint. Record independent receipts, ownership, screenshots and limitations in [PHASE1-RESULTS.md](PHASE1-RESULTS.md).
+7. Stop and report Phase 1. Do not begin Phase 2 automatically.
+
+## Phase 2 — complete and preserved
+
+1. Research current dApp provider, signature, permissions, chain-switching and Base Sepolia sponsorship boundaries using official specifications and repositories.
+2. Implement an opt-in separate-origin EIP-1193 popup connector and EIP-6963-compatible discovery SDK, with exact-origin approval, user-visible signing, transaction review, local EOA signing and revocation.
+3. Implement a separate-origin test dApp and exercise real account access, message and typed-data signatures, and a Base Sepolia self-transfer.
+4. Add a fixed, immutable Base Sepolia action and durable Zcash-confirmation-gated sponsorship flow. Require ten Zcash confirmations and three Base confirmations before completion; prevent replay and duplicate settlement.
+5. Run the real shielded payment and one action for the user-controlled Base Sepolia wallet; independently verify the Zcash observation, exact Base event, recipient, replay state, and single broadcast. See [Phase 2 results](PHASE2-RESULTS.md).
+6. Stop after Phase 2. Do not begin the wallet frontend expansion, ERC-4337, arbitrary dApp support, production integration, or mainnet work automatically.
+
+## Phase 3 — complete; stop here
+
+1. Preserve the completed Phase 0–2 source and evidence at checkpoint `334c638`; keep the private runtime backup under `.secrets/phase3-checkpoint`.
+2. Extend the origin-bound provider with explicit shielded-payment methods and independently validate ordinary marketplace buy calldata.
+3. Deploy an ordinary ERC-721 marketplace, separate seller-owned NFT collection, and immutable user-signature-bound purchase executor on Base Sepolia.
+4. Persist signed quotes, unique shielded receiving accounts, confirmation evidence, liquidity reservations and manual recovery destinations. Require separate payment approval and ten confirmations before settlement.
+5. Verify real user NFT ownership, seller payment, single execution and restart persistence. Results and limitations are tracked in [PHASE3-RESULTS.md](PHASE3-RESULTS.md).
+6. Stop after Phase 3. Do not begin Phase 4.
+
+## Phase 4A — complete; stop here
+
+1. Preserve the Phase 3 checkpoint and NU7-compatible Rust pins. Research the exact Sepolia and Robinhood testnet parameters and record current read-only balances in [feasibility](PHASE4A-FEASIBILITY.md).
+2. Add a strict testnet registry, EVM RPC adapters, real per-chain native balance views, explicit origin-scoped network switching, and a chain-bound fixed-price NFT purchase executor.
+3. Run local security and regression tests without sending testnet funds.
+4. Funding was verified and the user explicitly authorized live tests on both networks. Real shielded payments authorized confirmed purchases on Ethereum Sepolia and Robinhood Chain Testnet on 2026-10-13. Seller payments, user NFT ownership, actual costs, replay rejection and restart persistence passed independent verification. Exact receipts and remaining limitations are in [Phase 4A results](PHASE4A-RESULTS.md).
+5. Stop after Phase 4A. Do not begin Phase 4B automatically.
+
+Phase 4A does not include Solana, token swaps, mainnet, a production bridge or ERC-4337 implementation. The ZEC settlement remains a trusted prefunded testnet prototype.
+
+## Phase 4B — complete; stop here
+
+1. Checkpoint Phase 4A at `627f0a0`, preserve prior evidence and NU7 Rust pins, record current balances and pass the 120-test baseline.
+2. Add typed execution adapters and shared NFT/swap liquidity accounting without mutating historical signatures.
+3. Deploy official V2 factory/router/WETH artifacts, a fixed-supply test token, funded pool and bounded signature-verifying executor on Base Sepolia.
+4. Add reserve-based quotes, token checks, separate intent/payment approval, actual token balances and durable recovery views.
+5. Pass 138 local tests, both typechecks and the production build. Verify a real shielded payment at 13 confirmations followed by an actual AMM swap delivering 19.550169617820656117 ZTEST to the user's EOA.
+6. Verify reserves, actual provider expenditure, replay rejection, one broadcast and service restart without duplicate execution. See [Phase 4B results](PHASE4B-RESULTS.md).
+7. Stop after Phase 4B. Optional Ethereum/Robinhood swaps remain unverified and disabled; prior NFT support is preserved. No Phase 4C, OpenSea/Seaport, Solana or mainnet work begins automatically.
+
+## Phase 4C — complete; stop here
+
+1. Preserve Phase 4B checkpoint `9f79d86`, prior evidence and pinned NU7 Rust dependencies. Run the complete 138-test baseline and verify the official Base Sepolia Seaport 1.6 deployment.
+2. Add a narrow recipient-directed Seaport adapter/wrapper, independent user intent domain, read-only API validation and shared durable payment/liquidity accounting.
+3. Add a clearly labeled controlled Seaport wallet flow with separate intent/payment approval. API testnet listing access and direct OpenSea website connectivity remain unproven and are not claimed.
+4. Pass 168 tests, both typechecks and the production build. A real 0.010125 TAZ shielded payment, plus native fee, authorized one genuine Seaport fulfillment after 13 confirmations.
+5. Independently verify seller proceeds, direct NFT ownership, actual gas, replay rejection, one broadcast and unchanged settlement after service restart. See [Phase 4C results](PHASE4C-RESULTS.md).
+6. Stop after Phase 4C. No Phase 4D/5, mainnet, production pricing/liquidity, arbitrary marketplace execution or automatic refunds.

@@ -1,0 +1,17 @@
+{
+  "at": "2026-10-16T15:30:29.613Z",
+  "network": "zcash-testnet",
+  "tip": 4508699,
+  "scanned": 4508699,
+  "payments": [
+    {
+      "txid": "fa0f8eb329a2480e4cdf84436ad13209d0a6fdb9b2fa0fafc7183e31a8ac0507",
+      "zatoshis": "12500000",
+      "pool": 4,
+      "height": 4508693,
+      "confirmations": 7
+    }
+  ],
+  "matureUnspentZatoshis": "0",
+  "broadcast": false
+}

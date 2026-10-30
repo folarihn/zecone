@@ -1,0 +1,22 @@
+[package]
+name = "zecone-refund-signer"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+
+# Separate resolution boundary: the funded legacy wallet workspace is unchanged.
+[workspace]
+
+[dependencies]
+anyhow = "1"
+hex = "0.4"
+orchard = { version = "=0.16.0", features = ["circuit"] }
+pczt = { version = "=0.10.0-pre.1", features = ["signer", "io-finalizer", "zcp-builder", "prover", "tx-extractor"] }
+rand = "=0.10.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "=0.10.9"
+zeroize = "1"
+zcash_keys = { version = "=0.17.0-pre.1", features = ["orchard", "sapling"] }
+zcash_primitives = "=0.31.0-pre.1"
+zcash_protocol = "=0.11.0-pre.0"

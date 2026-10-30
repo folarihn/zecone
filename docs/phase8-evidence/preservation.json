@@ -1,0 +1,60 @@
+{
+  "at": "2026-10-17T04:18:15.472Z",
+  "groups": [
+    {
+      "inventory": ".state/phase6/preserved.json",
+      "files": 537,
+      "changed": 0,
+      "categories": {
+        ".secrets": 367,
+        ".state": 126,
+        "docs": 44
+      }
+    },
+    {
+      "inventory": ".state/phase7c/phase7b-preserved.json",
+      "files": 91,
+      "changed": 0,
+      "categories": {
+        ".state": 38,
+        ".secrets": 8,
+        "docs": 45
+      }
+    }
+  ],
+  "journals": [
+    {
+      "phase": "phase7b",
+      "orders": 1,
+      "orderStates": [
+        "settled"
+      ],
+      "settlementStates": [
+        "COMPLETED"
+      ],
+      "claimed": 1,
+      "signedEvidencePresent": true,
+      "signaturePresent": true,
+      "receiptPresent": true,
+      "confirmedActivePayments": 1,
+      "refundsEnabled": false
+    },
+    {
+      "phase": "phase7c",
+      "orders": 1,
+      "orderStates": [
+        "settled"
+      ],
+      "settlementStates": [
+        "COMPLETED"
+      ],
+      "claimed": 1,
+      "signedEvidencePresent": true,
+      "signaturePresent": true,
+      "receiptPresent": true,
+      "confirmedActivePayments": 1,
+      "refundsEnabled": false
+    }
+  ],
+  "financialRowsUnchanged": true
+}

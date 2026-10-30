@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "profileId": "99ef6572-b2ba-4d7f-a1fb-1bf333f2cb0b",
+  "network": "zcash-testnet",
+  "simulatedIsolation": true,
+  "separateDeviceValidated": false,
+  "addresses": [
+    {
+      "role": "payer",
+      "address": "utest1xq4u9pevy3jr9a5tx77h463f4yy4azfqarzgnecnz3hqjc59njlyek7xhgx4ldnfha4vxejvznqqrhxlp4964ul8q3px7wdsrsdv64c9",
+      "viewingKeyFingerprint": "f09163e0bf0801445afe25f7c3e45dc732164db9bfe0ed4c5576c4f9a0ef1a45",
+      "birthday": 4503928,
+      "addressValidation": {
+        "network": "zcash-testnet",
+        "receivers": {
+          "orchard": true,
+          "sapling": false,
+          "transparent": false
+        },
+        "shielded": true,
+        "valid": true
+      }
+    },
+    {
+      "role": "settlement",
+      "address": "utest14vf2nwz2mzlr8skd5lacqv0ytcqxtemsh6zn0nujjhnrhja7xajgenpgg72jfxesz2ltxt6ek9pepgnk3zjlk237df0r63ujzgpntau6",
+      "viewingKeyFingerprint": "34e1bd62c59a747c3236713d5c329258864a756768fb33ae38d74840bbe34cc6",
+      "birthday": 4503928,
+      "addressValidation": {
+        "network": "zcash-testnet",
+        "receivers": {
+          "orchard": true,
+          "sapling": false,
+          "transparent": false
+        },
+        "shielded": true,
+        "valid": true
+      }
+    },
+    {
+      "role": "refund-destination",
+      "address": "utest1qrtu8u43rq6lhcfpzsqmjum8rtfrnk2xfsnhksxjp8gssc637tslpsmyqannfn5t3ccc9lpt6kdaczwts9k7fgsapqqg7c73mgjwyk0a",
+      "viewingKeyFingerprint": "0f3c06e5dbe4fc690ef85584633c88cdfaa64d000bd3bf5e13ac145e5b69c622",
+      "birthday": 4503939,
+      "addressValidation": {
+        "network": "zcash-testnet",
+        "receivers": {
+          "orchard": true,
+          "sapling": false,
+          "transparent": false
+        },
+        "shielded": true,
+        "valid": true
+      }
+    }
+  ],
+  "independentSettlementAddress": "utest1r7vqzs72cvssnx0e54runct8fmrkrl2jgpg02teqx5m4nwz2u7a5vgtdqdgutlw4dla8k56hdzx0v7z8r2ut3kjt78cseqxcpcpshrah",
+  "requestedFundingZatoshis": "200000",
+  "plannedPaymentZatoshis": "100000",
+  "plannedRefundZatoshis": "90000",
+  "assumedPaymentFeeZatoshis": "10000",
+  "assumedRefundFeeZatoshis": "10000",
+  "estimatedMinimumFundingZatoshis": "110000",
+  "feeAssumptions": "One mature Ironwood input and two logical actions per payment/refund under pinned ZIP-317; fees and expiry must be recalculated from actual funded-note proposals before approval. No transparent shielding budget.",
+  "keysGeneratedFromFreshOsRandomness": true,
+  "oldSeedsImported": false,
+  "oldWalletInputsSelected": false,
+  "existingFilesOverwritten": false,
+  "liveRefundsEnabled": false,
+  "broadcast": false
+}

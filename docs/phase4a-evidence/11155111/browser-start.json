@@ -1,0 +1,9 @@
+{
+  "at": "2026-10-13T05:48:33.576Z",
+  "chainId": 11155111,
+  "purchaseId": "0de883a6-95d8-47bb-ab11-ed493438ab03",
+  "user": "0x1865Dd77bFcb632571d3c93144D5634F0D93c714",
+  "listingId": "1",
+  "paymentRequested": true,
+  "notice": "Awaiting independently verified payment and destination confirmations"
+}

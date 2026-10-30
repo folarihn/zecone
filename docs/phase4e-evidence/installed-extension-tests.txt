@@ -1,0 +1,24 @@
+
+> test:extension
+> playwright test -c playwright.extension.config.ts
+
+
+Running 13 tests using 1 worker
+
+(node:30500) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 tests\extension\installed.spec.ts:93:1 › installed MV3 worker and independent EIP-6963 discovery with no impersonation (1.3s)
+  ok  2 tests\extension\installed.spec.ts:104:1 › request routing binds actual website origin and waits for account approval (1.5s)
+  ok  3 tests\extension\installed.spec.ts:113:1 › unauthorized signing and private RPCs cannot open a signer (1.1s)
+  ok  4 tests\extension\installed.spec.ts:130:1 › repeated connection request is rejected while approval is pending (1.7s)
+  ok  5 tests\extension\installed.spec.ts:134:1 › reject then explicitly approve supported synthetic message signing (1.4s)
+  ok  6 tests\extension\installed.spec.ts:148:1 › malicious webpage cannot impersonate the isolated wallet-response source (1.5s)
+  ok  7 tests\extension\installed.spec.ts:173:1 › network approval emits chainChanged and mainnet requests fail closed (1.8s)
+  ok  8 tests\extension\installed.spec.ts:199:1 › revocation removes account access and blocks further signing (1.4s)
+  ok  9 tests\extension\installed.spec.ts:207:1 › popup closure rejects pending approval and disconnects (1.6s)
+  ok 10 tests\extension\installed.spec.ts:215:1 › session expiry/local signer disconnection rejects pending signing (1.3s)
+  ok 11 tests\extension\installed.spec.ts:223:1 › browser restart cannot retain approved transport or replay requests (1.9s)
+  ok 12 tests\extension\installed.spec.ts:233:1 › service worker termination disconnects and requires fresh account access (1.4s)
+  ok 13 tests\extension\installed.spec.ts:253:1 › extension action displays account and pending status and disconnects transport (1.4s)
+
+  13 passed (20.4s)

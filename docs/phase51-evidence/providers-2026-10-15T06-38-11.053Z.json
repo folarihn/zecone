@@ -1,0 +1,45 @@
+{
+  "at": "2026-10-15T06:38:11.052Z",
+  "height": 4498492,
+  "outcomes": [
+    {
+      "operator": "zec.rocks",
+      "url": "https://testnet.zec.rocks:443",
+      "documentation": "https://hosh.zec.rocks/zec/testnet.zec.rocks%3A443",
+      "status": "verified",
+      "evidence": {
+        "blockHash": "00000648ded6d25858dc03b3ec91e54dc71dbce1665d83998c810c749cc471e4",
+        "branch": "77190ad9",
+        "chainName": "test",
+        "height": 4498492,
+        "ironwoodAnchor": "add8f6a1f7027ca382322f53463bd1a09ff8e0762cfa70ed47959cba576cca35",
+        "network": "zcash-testnet",
+        "observedAt": 1792046271,
+        "readOnly": true,
+        "source": "https://testnet.zec.rocks:443",
+        "tip": 4503966
+      }
+    },
+    {
+      "operator": "ECC",
+      "url": "https://lightwalletd.testnet.electriccoin.co:9067",
+      "documentation": "https://docs.rs/zingolib/latest/src/zingolib/config.rs.html",
+      "status": "unavailable-or-rejected",
+      "reason": "connection-or-protocol-failure"
+    },
+    {
+      "operator": "ZEC.PRO",
+      "url": "https://lwd.testnet.zec.pro:443",
+      "documentation": "https://zec.pro/",
+      "status": "unavailable-or-rejected",
+      "reason": "connection-or-protocol-failure"
+    }
+  ],
+  "agreements": [],
+  "independentProviderAgreement": false,
+  "operatorIndependence": "Distinct published operator identities only; upstream infrastructure independence is not audited",
+  "fullConsensusValidation": false,
+  "relevantTransactionInclusion": "not-testable-without-original-txid",
+  "walletScanAgreement": "not-established-across-providers",
+  "liveRefundsEnabled": false
+}

@@ -1,0 +1,50 @@
+(node:26200) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ manual expired unsigned review archives bytes and vetoes valid, claimed or signed replacement (49.4527ms)
+✔ bounded execution requires new explicit human scope and rejects every changed bound (35.5593ms)
+✔ bounded scope permits fresh unsigned digests but preserves expired records and prohibits implicit signing (86.8359ms)
+✔ bounded settlement is consumed with the sole signing claim and cannot replay after restart (91.6332ms)
+✔ bounded authorization cannot derive another transaction after a lost broadcast response (65.2299ms)
+✔ reviewed unsigned RPC recovery binds the same paid order; duplicates and unrelated vetoes survive restart (43.9369ms)
+✔ transient unsigned preparation failure releases only its claim and never retries execution (4.58ms)
+✔ reserve-read quote age and post-simulation block margin cannot be reset for review (18.3688ms)
+✔ explicit paid recovery binds original payment/intent and prepares only; no implicit execution grant (46.9898ms)
+✔ paid preparation registration requires explicit exact target and is idempotent without extending deadline (30.1532ms)
+✔ refund and prior settlement claims veto paid-order reopening (115.6214ms)
+✔ independent submission reconciliation must succeed before a paid recovery grant (21.1264ms)
+✔ paid preparation cannot change original economic terms or survive changed evidence, refunds or expiry (146.192ms)
+✔ paid recovery survives restart as preparation only and preserves original expired approval records (33.6352ms)
+✔ concurrent paid recovery registration creates one attempt and leaves other orders locked (35.3529ms)
+✔ archived transaction digest cannot be presented as a new recovered preparation (32.0392ms)
+✔ recovered execution needs a second explicit exact authorization and consumes it once (45.8708ms)
+✔ separate recovered exact approval cannot carry to a fresh digest or expired quote (44.0145ms)
+✔ a fresh quote cannot silently widen slippage or rewrite the original minimum (21.1488ms)
+✔ swap terms pin one devnet route, decimals, amount, slippage and minimum (0.4122ms)
+✔ canonical swap rejects malicious route bytes, changed recipient and injected instructions (23.2441ms)
+✔ real Ed25519 synthetic swap settles only with exact token effects and rejects duplicate/refund (23.7618ms)
+✔ swap cannot authorize unconfirmed, underpaid, reused or wrong-account Zcash evidence (7.5359ms)
+✔ slippage and simulation failures require recovery; unsigned quote expiry preserves the payment (36.5621ms)
+✔ late exact approval cannot spend even while the reviewed economic terms remain valid (16.1291ms)
+✔ expired blockhash retires unsigned bytes without retiring verified payment or reusing approval (27.783ms)
+✔ quote expiration during preflight releases only the unsigned validation claim (17.8058ms)
+✔ economic review binds recipient, mint, slippage and minimum; terms review alone never signs (5.0745ms)
+✔ simultaneous exact approvals cannot race or revoke the winning signer (17.4308ms)
+✔ restart during unsigned validation fails closed and cannot reset recovery by a new scan (59.7392ms)
+✔ payment attribution cannot move to another order during review recovery (4.6813ms)
+✔ quote expiry and approval expiry are independent gates even with a chain-valid blockhash (13.5741ms)
+✔ expired original paid order retains payment attribution but cannot refresh, sign or reset recovery (12.8647ms)
+✔ swap lost submission response remains signature-only after restart (63.1539ms)
+✔ finalized transaction with wrong mint, output or recipient owner cannot settle (70.4584ms)
+✔ raw mint/pool/account decoding rejects unsupported extensions, authorities and program upgrades (6.4728ms)
+✔ privacy projection excludes secret/history/correlation fields and scopes history by session (2.5961ms)
+✔ new age credentials reject wrong passwords/tampering and recover from encrypted backup (9196.1369ms)
+✔ Windows DPAPI round-trip requires explicit unlock without plaintext key storage (678.4917ms)
+✔ paired swap API rejects unauthorized queries, cross-session correlation and arbitrary spending (43.8246ms)
+ℹ tests 40
+ℹ suites 0
+ℹ pass 40
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13307.84

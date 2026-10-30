@@ -1,0 +1,4 @@
+(node:7236) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"step":"WETH9","hash":"0xb40f68509096498ee31947e26be8d2cd54ab127ab1fc36ff60667b2e48de8e1c","estimatedMaximumFeeWei":"45127395000000","valueWei":"0"}
+Swap setup stopped. No success assumed; inspect persisted hashes and balances. Never delete the setup journal.

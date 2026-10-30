@@ -1,0 +1,58 @@
+
+> test:phase7c
+> playwright test -c playwright.phase7c.config.ts
+
+[WebServer] (node:7112) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:7112) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+
+Running 3 tests using 1 worker
+
+(node:27540) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  1 tests\phase7c\real-swap.spec.ts:40:1 › real swap backend exposes only a scoped immutable checkout without payment records (456ms)
+(node:12632) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  2 tests\phase7c\real-swap.spec.ts:71:1 › real mobile swap review is accessible and makes public-ownership limits clear (0ms)
+  -  3 tests\phase7c\real-swap.spec.ts:100:1 › real swap backend rejects arbitrary accounts, URL identifiers and all spending endpoints
+
+
+  1) tests\phase7c\real-swap.spec.ts:40:1 › real swap backend exposes only a scoped immutable checkout without payment records
+
+    Error: expect(received).toBeNull()
+
+    Received: "2GjNxoxoEgntEar7QrQnFUuGGBZrRywjqjbxosZF8DyGqTfajWr2dv2xhPuSKwrHFiVTSHZxrPNzcvTcpdFjPHVV"
+
+      57 |       BigInt(view.swap.minimumOut),
+      58 |     );
+    > 59 |   } else expect(view.signature).toBeNull();
+         |                                 ^
+      60 |   for (const field of [
+      61 |     "paymentAddress",
+      62 |     "paymentTxs",
+        at [workspace]\tests\phase7c\real-swap.spec.ts:59:33
+
+    Error Context: test-results\real-swap-real-swap-backen-22098-out-without-payment-records\error-context.md
+
+  2) tests\phase7c\real-swap.spec.ts:71:1 › real mobile swap review is accessible and makes public-ownership limits clear
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      14 |     data: { token },
+      15 |   });
+    > 16 |   expect(paired.ok()).toBe(true);
+         |                       ^
+      17 |   csrf = (await paired.json()).csrf;
+      18 |   const headers = { Origin: "http://127.0.0.1:3210", "X-ZecOne-CSRF": csrf };
+      19 |   const challenge = await request.post("/api/challenge", { headers, data: {} });
+        at [workspace]\tests\phase7c\real-swap.spec.ts:16:23
+
+    Error Context: test-results\real-swap-real-mobile-swap-fa8c1-blic-ownership-limits-clear\error-context.md
+
+  2 failed
+    tests\phase7c\real-swap.spec.ts:40:1 › real swap backend exposes only a scoped immutable checkout without payment records
+    tests\phase7c\real-swap.spec.ts:71:1 › real mobile swap review is accessible and makes public-ownership limits clear
+  1 did not run

@@ -1,0 +1,12 @@
+
+> typecheck
+> tsc --noEmit
+
+scripts/phase51-providers.ts(19,132): error TS2339: Property 'evidence' does not exist on type '{ operator: string; url: string; documentation: string; status: string; evidence: any; } | { operator: string; url: string; documentation: string; status: string; reason: string; }'.
+  Property 'evidence' does not exist on type '{ operator: string; url: string; documentation: string; status: string; reason: string; }'.
+scripts/phase51-providers.ts(19,144): error TS2339: Property 'evidence' does not exist on type '{ operator: string; url: string; documentation: string; status: string; evidence: any; } | { operator: string; url: string; documentation: string; status: string; reason: string; }'.
+  Property 'evidence' does not exist on type '{ operator: string; url: string; documentation: string; status: string; reason: string; }'.
+scripts/phase51-providers.ts(19,237): error TS2339: Property 'evidence' does not exist on type '{ operator: string; url: string; documentation: string; status: string; evidence: any; } | { operator: string; url: string; documentation: string; status: string; reason: string; }'.
+  Property 'evidence' does not exist on type '{ operator: string; url: string; documentation: string; status: string; reason: string; }'.
+scripts/phase51-providers.ts(19,248): error TS2339: Property 'evidence' does not exist on type '{ operator: string; url: string; documentation: string; status: string; evidence: any; } | { operator: string; url: string; documentation: string; status: string; reason: string; }'.
+  Property 'evidence' does not exist on type '{ operator: string; url: string; documentation: string; status: string; reason: string; }'.

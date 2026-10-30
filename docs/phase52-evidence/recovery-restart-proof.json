@@ -1,0 +1,62 @@
+{
+  "at": "2026-10-15T07:54:30.442Z",
+  "profileId": "99ef6572-b2ba-4d7f-a1fb-1bf333f2cb0b",
+  "order": {
+    "state": "RECOVERY_REQUIRED",
+    "version": 7
+  },
+  "receipt": {
+    "blockHash": "0000040cab445f926770afa55e3e6b3ff302428a166d2806ac53c9eb83c7950d",
+    "confirmations": 11,
+    "height": 4504089,
+    "observedAt": 1792049731,
+    "tipHash": "0000109398d6847e5f2c35eb519ba925cefdc3ce5898648f4d03b520f2146918",
+    "txid": "620bdb644efcb47559e98ebf553eab07ea04ad0179b5361cdd549b8f8a2fafac"
+  },
+  "executionVetoCount": 1,
+  "lifecycleEvents": [
+    {
+      "previous": null,
+      "next": "CREATED",
+      "reason": "created"
+    },
+    {
+      "previous": "CREATED",
+      "next": "QUOTED",
+      "reason": "native_payment_prepared"
+    },
+    {
+      "previous": "QUOTED",
+      "next": "USER_APPROVED",
+      "reason": "operator_exact_payment_approval"
+    },
+    {
+      "previous": "USER_APPROVED",
+      "next": "AWAITING_PAYMENT",
+      "reason": "awaiting_native_payment"
+    },
+    {
+      "previous": "AWAITING_PAYMENT",
+      "next": "PAYMENT_DETECTED",
+      "reason": "verified_native_payment"
+    },
+    {
+      "previous": "PAYMENT_DETECTED",
+      "next": "CONFIRMING",
+      "reason": "verified_native_payment"
+    },
+    {
+      "previous": "CONFIRMING",
+      "next": "PAYMENT_CONFIRMED",
+      "reason": "verified_native_payment"
+    },
+    {
+      "previous": "PAYMENT_CONFIRMED",
+      "next": "RECOVERY_REQUIRED",
+      "reason": "controlled_preconstruction_failure"
+    }
+  ],
+  "restartReconciled": true,
+  "refundSigned": false,
+  "refundBroadcast": false
+}

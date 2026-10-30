@@ -1,0 +1,2 @@
+   Compiling zecone-zcash v0.1.0 (C:\Users\Folarihn Top-Boi\Documents\ChatGPT\zecone\services\zcash)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 01s

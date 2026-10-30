@@ -1,0 +1,5 @@
+(node:7236) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"step":"WETH9","confirmed":true,"hash":"0xb40f68509096498ee31947e26be8d2cd54ab127ab1fc36ff60667b2e48de8e1c"}
+{"step":"SwapTestToken","hash":"0xdaee75929b1d64e84ba8a930d961eecb230c5b8229d759df4a9c3eb1ac671d5d","estimatedMaximumFeeWei":"44615142000000","valueWei":"0"}
+Swap setup stopped at SwapTestToken:confirm (Error). No success assumed; inspect persisted hashes and balances. Never delete the setup journal.

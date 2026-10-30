@@ -1,0 +1,42 @@
+[
+  {
+    "network": "zcash",
+    "enabled": false,
+    "providers": [],
+    "independenceAcknowledged": false,
+    "recipients": [],
+    "perTransaction": "100000",
+    "daily": "100000",
+    "feeCap": "10000",
+    "confirmations": 20
+  },
+  {
+    "network": "base",
+    "enabled": false,
+    "providers": [
+      { "endpoint": "https://mainnet.base.org", "operator": "base-public" }
+    ],
+    "independenceAcknowledged": false,
+    "recipients": [],
+    "perTransaction": "100000000000000",
+    "daily": "100000000000000",
+    "feeCap": "10000000000000",
+    "confirmations": 1
+  },
+  {
+    "network": "solana",
+    "enabled": false,
+    "providers": [
+      {
+        "endpoint": "https://api.mainnet-beta.solana.com",
+        "operator": "solana-public"
+      }
+    ],
+    "independenceAcknowledged": false,
+    "recipients": [],
+    "perTransaction": "1010000",
+    "daily": "1010000",
+    "feeCap": "10000",
+    "confirmations": 1
+  }
+]

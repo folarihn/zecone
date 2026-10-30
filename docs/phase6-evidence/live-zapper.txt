@@ -1,0 +1,23 @@
+- main:
+  - img "Zapper full logo"
+  - heading "Thank You For Everything 💜" [level=2]
+  - heading "Zapper has shut down" [level=3]
+  - paragraph: As of August 3, 2026, Zapper’s products and services have shut down. This includes the Zapper web and mobile applications, as well as the Zapper API.
+  - paragraph: Zapper started nearly seven years ago as a simple portfolio tracker I built for myself while exploring the new frontier that was DeFi. I never expected it to grow into a product serving more than two million monthly active users and processing more than $13 billion in transaction volume at its peak.
+  - paragraph: From the entire team and me, it has been an incredible honour to build Zapper for all of you. It was the journey of a lifetime. The highs were very high, the lows were very low, and we learned more than we could have imagined along the way.
+  - paragraph: We gave Zapper everything we had while trying to build the most ambitious onchain product possible. There were great bets, bad bets, and plenty in between. While Zapper did not ultimately realize its mission in the way we originally hoped, I believe we helped make the onchain economy easier to understand and use for a significant number of people.
+  - paragraph: "To everyone who used Zapper, supported us, worked with us, invested in us, advised us, or participated in our community: thank you. Zapper would not have existed without you."
+  - paragraph:
+    - text: Former Zapper API customers can find information about migrating to Zerion in the
+    - link "migration guide":
+      - /url: https://developers.zerion.io/migrate-from-zapper
+    - text: .
+  - paragraph:
+    - text: Former Zapper Wallet users can export their private keys through
+    - link "Privy":
+      - /url: https://home.privy.io/
+    - text: .
+  - paragraph: Zap zap!
+  - paragraph: ⚡⚡⚡
+  - paragraph: "- Seb Audet, Co-Founder & CEO of Zapper"
+- alert

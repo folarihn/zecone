@@ -1,0 +1,96 @@
+# Mainnet integration acceptance — 21 October 2026
+
+> **Superseded findings:** the scanner ownership and missing sender defects recorded below were subsequently fixed and validated in disposable fixtures. See [MAINNET-ACCEPTANCE-CONTINUATION.md](MAINNET-ACCEPTANCE-CONTINUATION.md). Mainnet remains disabled because live providers, production pricing, isolated signers, funded relayers, and controlled acceptance runs are not configured.
+
+> **Stage 4C infrastructure update:** zec.rocks and Stardust/ChainSafe agreed
+> live, and a three-block export passed exact two-source raw-byte agreement,
+> proof of work and transaction-Merkle checks. The representative ten-block
+> export failed closed on anonymous Tatum HTTP 429. A disposable age
+> backup/restore drill passed, but no off-host backup exists. Production payment
+> acceptance remains blocked by authenticated exporter reliability, provider
+> independence/SLA, the ZIP-244/full-consensus boundary, production backup
+> inputs and the controlled owned-note run. See
+> [STAGE4C-VALIDATION.md](STAGE4C-VALIDATION.md).
+
+**Launch decision: NO-GO for both shielded ZEC → Base and shielded ZEC → Solana.** No production credentials were provisioned/unlocked, payments sent, transactions signed/broadcast or refunds activated during acceptance. Disposable signatures in regression tests are not live transactions.
+
+Validated implementation commit: **`8906258`**.
+
+The latest committed starting point was `6b1ccfa` (implementation `a1e6894`). The working tree already contained the subsequent scanner, provisioning, pricing, transfer-planning and bookkeeping implementations. This acceptance inspected that code directly; previous progress reports were not treated as proof. Pre-existing historical browser artifacts are excluded from the acceptance commit.
+
+## Component decisions
+
+- **Zcash settlement scanner: FAIL.** The code calls the legitimate `zcash_client_backend::sync::run` with a mainnet UFVK and compares scanned Orchard tree checkpoints against two lightwalletd endpoints. However, its exported payments come from mutable SQLite views. `verifyOwnedNote` previously checked metadata and a non-null nullifier and hashed those fields; it did not independently decrypt the selected transaction/output or verify a note commitment inclusion path. An invented JSON object could satisfy those checks. Matching the wallet tree root does not bind an arbitrary SQL row to a leaf in that tree. No authenticated mainnet owned-note fixture was available to demonstrate this stronger boundary.
+- **Provisioning implementation: disposable tests pass; production acceptance BLOCKED.** Fresh secp256k1 and Ed25519 derivation agrees with public-key address derivation. Authenticated encrypted persistence, password rejection, role/network separation, exclusive writes and encrypted backup/recovery pass using temporary disposable credentials only. This is password encryption and local account management, not physical signer isolation or hardware custody. No MetaMask/Phantom account is required by the key-generation library. No production addresses were automatically created in this acceptance.
+- **Production pricing: BLOCKED.** The verifier now requires two independently pinned authorized keys, signed network and exact quote-context binding, matching asset pair, timestamps, expiry, valid signatures and bounded disagreement. The quote context covers the destination amount, all configured fees and the exact production profile, including its recipient and relayer configuration. Altered terms, attacker-selected keys, stale quotes and altered quote digests are rejected in fixtures. No genuine production feed or authorized key configuration is supplied in the checked profiles. Synthetic signatures are not production price evidence. The source quote amount also does not establish the payer's actual Zcash sending fee; that must be separately capped before live approval.
+- **Base mainnet execution: FAIL — missing code.** Unsigned construction/simulation and verification of an externally signed bundle exist. `submitMainnetTransfer()` deliberately throws. `MainnetSubmissionJournal` stores and claims supplied signed bytes and records externally reported broadcasts; it does not call `eth_sendRawTransaction`, unlock a signer or connect a verified Zcash payment to execution. No real Base execution is demonstrated.
+- **Solana mainnet execution: FAIL — missing code.** Unsigned canonical native-transfer construction/simulation and externally signed wire verification exist. The journal does not call `sendTransaction` or activate a signer. Existing successful devnet settlements remain distinct and preserved. No real mainnet SOL delivery is demonstrated.
+- **Read-only production infrastructure: BLOCKED for production; public connectivity PASS.** Stage 3 adds `scripts/mainnet-connectivity.ts` and authenticated Zcash header/block verification. On 22 October 2026, two distinct public lightwalletd endpoints agreed at a 10-confirmation height, and a Tatum raw header plus Blockchair raw block independently reproduced the same Zcash hash, Equihash proof of work and transaction Merkle root. Independent public Base and Solana endpoints agreed on finalized hash/genesis. Sanitized evidence is in `docs/stage3-evidence/`. These free public endpoints are evidence probes, not approved production providers; the running container remains the Stage 2 image, and no UFVK, birthday, production profiles, relayer/recipient configuration, real price feeds or signer isolation are present. A public identity/PoW response is not production acceptance.
+- **Reservation/deployment acceptance: BLOCKED.** Atomic single-writer reservations and journal claims are fixture-tested. The actual production deployment, its single shared durable database, dedicated signer exclusion and recovery procedure have not been validated. Separate databases or replicas do not share these guarantees. Mainnet source verification, production quotes and submission bookkeeping are not yet one authenticated execution state machine.
+
+## Stage 4A local controls - 22 October 2026
+
+**Status: local implementation and disposable checks PASS; production readiness remains BLOCKED.**
+
+- Fresh watch paths are rejected before network access when they contain a historical `.secrets`/`.state` component, resolve inside the repository, are symlinked, already exist, or are not regular external files. The repository guard is derived from the module location, so changing the process working directory cannot bypass it.
+- lightwalletd compact txids are no longer misused as a complete transaction tree. Payment evidence `zcash-full-transaction-ufvk-v3` requires externally staged raw blocks whose complete Merkle tree contains the payment exactly once. The bounded confirmation segment verifies header hashes, Equihash `(200,9)`, proof-of-work targets, previous-hash continuity and accumulated work; two independent lightwalletd providers must corroborate each block hash. Missing full blocks fail closed.
+- `derive-mainnet-ufvk` requires a new external output file, writes it with restrictive permissions and prints no viewing key. `inspect-mainnet-ufvk` also prints no UFVK. Provisioning verifies the written UFVK independently and records the operator-supplied wallet birthday with public metadata.
+- Encrypted watch-profile backup uses an age recipient and includes only the watch manifest, viewing key and SQLite files. Backup and restore perform SQLite integrity checks. Restore requires a new external directory, and seed recovery reconstructs a new UFVK from the encrypted receiver keystore after checking the provisioning account, address and recorded birthday.
+- Disposable end-to-end checks cover provisioning, seed-to-UFVK recovery, age backup/restore, corruption rejection and restart-safe watch metadata, with no seed or viewing key printed. Current validation totals are recorded in `PROGRESS.md`.
+- No operator mainnet UFVK or birthday was supplied, no approved raw-block source, age recipient or off-host backup destination exists, no production provider was approved, and no production backup was created. ZecOne was not restarted. Production acceptance remains `NO-GO`.
+
+## Defects fixed at acceptance
+
+1. Rust `observe-mainnet` and the TypeScript scanner require fresh native evidence. The scanner re-fetches and trial-decrypts the full transaction with the UFVK, validates exact output ownership, proves complete-block transaction inclusion from raw bytes, and verifies a bounded corroborated proof-of-work segment. Metadata-only objects, edited SQLite rows, serialized evidence, missing raw blocks and stale/reorganized scans cannot grant execution. A live controlled mainnet run is still required before production acceptance.
+2. Production quotes no longer accept feed-supplied public keys as authority. Authorized key pins live in the trusted operator profile (`priceAuthorities`), with two distinct keys/operators. Signed statements must include `network` (`base-mainnet` or `solana-mainnet`) and `quoteContext`, calculated by `mainnetQuoteContext`. This is a binding to economic quote content; the final quote digest additionally covers the feed evidence. The final quote is not independently signed by this module, and the disabled execution path does not imply a live quote-consumption grant.
+3. Base receipt verification now uses standard transaction fields for value/from/to/chain, a canonical finalized block, both providers and fee evidence. It no longer expects a nonexistent standard `receipt.value`. L1 fees are required. Operator fee parameters are read at the transaction block; a nonzero scalar fails closed until the active Base fee rule/fork is pinned (Isthmus and Jovian formulas differ). No missing or malformed fee field is silently interpreted as zero.
+4. Solana verification reads the full finalized transaction, checks real genesis, exact system-transfer instruction/amount/accounts, recipient gain, relayer debit and fee. A finalized signature status alone is insufficient. Both providers must agree on the message, slot and effects.
+5. Only immutable receipts returned by these canonical read paths can finalize bookkeeping; caller-created or serialized receipt objects cannot. After restart, evidence must be fetched again. This is an in-process trust boundary, not protection against malicious code with equivalent privileges.
+6. Journals start paused; reservation checks/inserts and state transitions use `BEGIN IMMEDIATE`. Source commitments remain unique even for historical failed rows; unresolved signed attempts retain budget across UTC days. Solana signatures remain case-sensitive, custom order identifiers are honored, original terms/expiry are persisted and checked, and old claims cannot be renewed after expiry. Signed/uncertain attempts cannot be declared failed without reconciliation or claimed twice.
+7. Provisioning now reads a private passphrase file outside the project, not a plaintext environment variable. Output must also be outside the project and initially empty. The CLI requires an explicit `--confirm CREATE_MAINNET_KEYS`. Mutable secret buffers are wiped on success/failure; decryption wipes partial plaintext and bounds ciphertext size. JavaScript/OpenSSL memory copies, effective Windows ACLs and same-user process access remain limitations.
+
+8. Verified-bundle CLI output now whitelists public summary fields and excludes signed wire bytes. Plan/preparation/evidence files use exclusive restrictive writes; refreshed preparation must select a new output, preserving earlier audit artifacts. Errors are restricted to safe diagnostic codes.
+
+## Scanner evidence and dependency boundary
+
+Locked watch dependencies: `zcash_client_backend 0.25.0-pre.1`, `zcash_client_sqlite 0.23.0-pre.1`, `zcash_keys 0.17.0-pre.1`, `zcash_protocol 0.11.0-pre.0`, `zcash_primitives 0.31.0-pre.1`; lockfile includes `orchard 0.16.0`. The backend's `sync.rs` invokes `scan_cached_blocks`; its scanner performs wallet trial decryption. These are real SDK operations, but they do not authenticate later SQL edits or an independently supplied JSON export. Pre-release dependency suitability also needs production review.
+
+Rust fixtures demonstrate full-block Merkle/PoW validation and confirmation-segment linkage. TypeScript tests show that matching metadata, non-null nullifiers, copied evidence and manually modified SQLite status cannot authorize ownership. This is **not** a real mainnet synchronization or authenticated owned-payment acceptance run.
+
+Relevant primary references: [Zcash note encryption implementation](https://github.com/zcash/zcash_note_encryption), [Zcash protocol specification](https://zips.z.cash/protocol/protocol.pdf), [Ethereum receipt schema](https://ethereum.github.io/execution-apis/api/methods/eth_getTransactionReceipt/), [Solana getTransaction](https://solana.com/docs/rpc/http/gettransaction), [Isthmus operator fees](https://specs.optimism.io/protocol/isthmus/exec-engine.html), [Jovian operator fees](https://specs.optimism.io/protocol/jovian/exec-engine.html).
+
+## Minimal operator checklist — both pilots remain prohibited today
+
+These are **unapproved proposal ceilings**, not permission to fund/pay/sign:
+
+- Base proposal: native amount at most **0.00009 ETH**, destination fee budget at most **0.00001 ETH**, total relayer debit at most **0.0001 ETH**. Active L1/operator fee rules and a fresh exact quote must fit that total. Otherwise stop and request new limits.
+- Solana proposal: exactly **0.001 SOL**, fee at most **0.00001 SOL**, total relayer debit at most **0.00101 SOL**, zero token-account rent for the supported simple native transfer.
+- Source proposal ceiling from the disabled example Zcash profile: **0.001 ZEC total**. A genuine fresh quote plus the payer's real shielded sending fee must fit an explicitly approved total. Neither is currently available, so no payment request or exact source approval package can be issued. Do not confuse ZEC with testnet TAZ.
+- Generate fresh dedicated recipient/relayer keys offline with ZecOne's provisioning tool only after explicit operator approval, using independent passphrase files, encrypted backups and verified recovery. Never reuse testnet credentials. Keep user and relayer credentials off the backend; verify effective filesystem/device isolation. Verify recipient control against the exact network/address challenge. Providing an address binding hash alone is not an ownership signature.
+- Configure two independently operated providers per network in a local private copy of `config/mainnet-profiles.example.json`. Distinct hostnames alone do not prove operator independence; verify the operators and acknowledge independence. Do not put API keys/URLs containing credentials into Git or chat. Configure Zcash lightwalletd providers separately from JSON-RPC full-node diagnostics; they are not interchangeable protocols.
+- Configure two genuine signed price feeds and authorized Ed25519 public-key pins. Obtain network/quote-context-bound statements from those operators; this repository does not invent feed signatures or operate a production pricing authority. Check pair, freshness, spread, quote expiry and recipient/relayer profile digest.
+- Before any pilot: remove the scanner FAIL through independently verified decryption/commitment evidence; implement and review the missing authenticated execution handoff and signer/single-broadcast step; validate both receipt providers, relayer inventory and the actual single-writer deployment. Pass a non-spending rehearsal, then obtain a new exact capped operator authorization.
+- Persist signed bytes and transaction identity before the single submission. If a response is lost or a process restarts, query that identity only; never infer failure from absence, resubmit a replacement or release its payment reservation. Re-fetch canonical finality evidence and exact delivery effects. Refunds stay disabled.
+- Emergency shutdown: persist pause, stop the worker and independently lock/disconnect the external signer. Pause cannot revoke already released signatures or stop already submitted transactions. Reconcile outstanding identities before resuming; never clear claims/locks as a routine restart shortcut.
+
+## Reproducible acceptance checks
+
+```powershell
+node --import tsx --test --test-concurrency=1 tests/*.test.ts
+npm run typecheck
+npm run typecheck:web
+npm run lint
+npm run wallet:build
+npm run extension:build
+cargo test --offline --locked --manifest-path services/zcash-watch/Cargo.toml --target-dir target -j 2
+cargo build --offline --locked --manifest-path services/zcash-watch/Cargo.toml --target-dir target -j 2 --bin zecone-zcash-watch
+node --import tsx scripts/mainnet-critical-readiness.ts config/mainnet-profiles.example.json docs/mainnet-acceptance-evidence
+node --import tsx scripts/phase8d1-settlement-audit.ts --mainnet-acceptance
+node scripts/phase8-preserve.mjs --mainnet-acceptance
+```
+
+**625 tests pass:** 484 Node, 35 wallet UI, 20 extension, 6 historical wallet UI, 3 isolated Solana UI, 3 completed-swap UI, 52 Solidity, 10 Rust wallet, 8 Rust watch and 4 Rust signer. One pre-existing standalone expensive Rust proof remains ignored. Both typechecks, lint and wallet/extension builds pass. Preservation confirms 628 protected files, both original completed journals and their single signing/broadcast claims remain unchanged. Fresh finalized historical receipt comparisons and replay/refund vetoes pass on safe copies with zero signer/broadcast access.
+
+The initial Node receipt fixture lacked the new operator-fee evidence. Its corrected fixture passes the final full run. The historical swap browser suite initially used its pre-settlement assertion against the completed order; its existing `ZECONE_PHASE7C_FINALIZED=1` mode passes all three cases without changing assertions. The initial logs remain visible. The 23-case focused run and later transfer-focused run are not added to the full-suite count.
+
+Evidence is under `mainnet-acceptance-evidence/`. Counts and outcomes are recorded in `validation-summary.json`; synthetic and real read-only observations are separated. The earlier failing/partial runs are retained as such. Do not run provisioning or any financial action as part of this checklist without its separate explicit approval.
