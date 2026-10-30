@@ -5,25 +5,29 @@
 // confirmation segment is not authenticated yet as a pending candidate instead
 // of failing the whole scan. A candidate is never proof of payment.
 //
-// Verification: for checkout-address candidates only, the bounded segment
-// [missingHeight, segmentEnd], never past the export-finality floor, is exported
-// by the existing two-provider exporter (lightwalletd agreement, two raw-block
-// operators, proof of work, Merkle root, continuity) into a SEPARATE
-// candidate-segment directory. The scan then runs again and the Rust watcher
-// applies its full checks: two-provider transaction bytes, compact-block
-// membership, raw-block PoW/Merkle/continuity/accumulated work, and fresh UFVK
-// trial decryption with exact receiver, amount, pool and output index. A
-// checkout-address candidate that is still unverified fails the cycle closed:
-// the bridge records nothing and no heartbeat is sent.
+// Verification: for a checkout-address candidate at height H, once it has the
+// payment confirmation policy N (tip >= H+N-1; payment confirmations are
+// tip - height + 1), exactly the N-block segment H..H+N-1 is exported by the
+// candidate-segment exporter (services/operations/candidate-segment-export.ts:
+// lightwalletd agreement on every block, identical raw bytes from two operators,
+// local hash/PoW/Merkle checks, the payment txid exactly once, continuity, no
+// block above the agreed tip, and a re-probe that fails on any chain change) into
+// a SEPARATE candidate-blocks directory. The scan then runs again and the Rust
+// watcher applies its full checks to those bytes: two-provider transaction bytes,
+// compact-block membership, PoW/Merkle/continuity/accumulated work, and fresh
+// UFVK trial decryption with exact receiver, amount, pool and output index.
+// Before N confirmations, or while a candidate stays unverified, the cycle fails
+// closed: the bridge records nothing and no heartbeat is sent.
+//
+// The historical exporter (scripts/mainnet-block-export.ts) and its 10-block
+// finality floor are not used here and are unchanged. The historical corpus and
+// the watch-worker checkpoint are never written here.
 //
 // Candidates in an order's (allocationTip, paymentExpiryHeight] window go first.
 // Other checkout-address candidates (late or unsolicited deposits) are verified
 // too, so attribution can record them for manual review rather than letting one
-// block the watcher until the historical backlog reaches it.
-//
-// The historical corpus and the watch-worker checkpoint are never written here;
-// the historical worker keeps catching up separately. No signing, spending key,
-// broadcast or payout code is reachable from this module.
+// block the watcher until the historical backlog reaches it. No signing,
+// spending key, broadcast or payout code is reachable from this module.
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { mkdirSync, rmSync } from "node:fs";
@@ -34,7 +38,11 @@ import type {
   MainnetPendingCandidate,
   MainnetWatchSnapshot,
 } from "../settlement/mainnet-watch.ts";
-import { promoteAuthenticatedBatch } from "../operations/mainnet-watch-worker.ts";
+import {
+  promoteCandidateSegment,
+  validateCandidateSegmentRequest,
+  type CandidateSegmentRequest,
+} from "../operations/candidate-segment-export.ts";
 import type { PaymentStore } from "./store.ts";
 
 export interface OrderWindow {
@@ -60,14 +68,13 @@ export interface PaymentCandidate {
   pool: 2 | 3 | 4;
   index: number;
   zatoshis: string;
+  /** Payment confirmations at the scanned tip (tip - height + 1). */
+  confirmations: number;
   missingHeight: number;
   segmentEnd: number;
 }
 
-export interface SegmentPlan {
-  startHeight: number;
-  count: number;
-}
+export type SegmentRequest = Omit<CandidateSegmentRequest, "output">;
 
 interface Source {
   observe(checkpointHeight?: number): Promise<MainnetWatchSnapshot>;
@@ -131,23 +138,24 @@ function candidate(c: MainnetPendingCandidate, w: OrderWindow | null, inWindow: 
     pool: c.pool,
     index: c.index,
     zatoshis: c.zatoshis,
+    confirmations: c.confirmations,
     missingHeight: c.missingHeight,
     segmentEnd: c.segmentEnd,
   };
 }
 
 /**
- * The exportable part of a candidate's missing segment: blocks the exporter will
- * accept (at least `exportMinimumConfirmations` deep), never more than the segment.
+ * The candidate-segment request for a candidate, or null while it has fewer
+ * than `paymentConfirmations` payment confirmations. At exactly N the segment
+ * H..H+N-1 ends at the scanned tip.
  */
-export function segmentPlan(
-  c: Pick<PaymentCandidate, "missingHeight" | "segmentEnd">,
-  tip: number,
-  exportMinimumConfirmations: number,
-): SegmentPlan | null {
-  const end = Math.min(c.segmentEnd, tip - exportMinimumConfirmations);
-  if (end < c.missingHeight) return null;
-  return { startHeight: c.missingHeight, count: end - c.missingHeight + 1 };
+export function segmentRequest(
+  c: Pick<PaymentCandidate, "height" | "txid" | "confirmations" | "segmentEnd">,
+  paymentConfirmations: number,
+): SegmentRequest | null {
+  if (c.confirmations < paymentConfirmations) return null;
+  if (c.segmentEnd !== c.height + paymentConfirmations - 1) return null;
+  return { paymentHeight: c.height, paymentTxid: c.txid, paymentConfirmations };
 }
 
 export class TargetedObservationSource implements Source {
@@ -158,9 +166,10 @@ export class TargetedObservationSource implements Source {
     private readonly scanner: Source,
     private readonly opts: {
       receivingAddress: string;
-      exportMinimumConfirmations: number;
+      /** The payment confirmation policy (the watcher's minimum confirmations). */
+      paymentConfirmations: number;
       windows(): OrderWindow[];
-      exportSegment(startHeight: number, count: number): Promise<void>;
+      exportSegment(request: SegmentRequest): Promise<void>;
       maxSegmentsPerCycle?: number;
     },
   ) {}
@@ -169,19 +178,12 @@ export class TargetedObservationSource implements Source {
     const first = await this.scanner.observe(checkpointHeight);
     let candidates = this.scope(first);
     if (candidates.length === 0) return first;
-    const exported = new Set<number>();
     let segments = 0;
     for (const c of candidates) {
       if (segments >= (this.opts.maxSegmentsPerCycle ?? 4)) break;
-      const plan = segmentPlan(c, first.tip, this.opts.exportMinimumConfirmations);
-      if (!plan) continue;
-      // Skip heights another candidate's segment already brought in this cycle.
-      let start = plan.startHeight;
-      const end = plan.startHeight + plan.count - 1;
-      while (start <= end && exported.has(start)) start++;
-      if (start > end) continue;
-      await this.opts.exportSegment(start, end - start + 1);
-      for (let h = start; h <= end; h++) exported.add(h);
+      const request = segmentRequest(c, this.opts.paymentConfirmations);
+      if (!request) continue;
+      await this.opts.exportSegment(request);
       segments++;
     }
     if (segments === 0) throw Error(CANDIDATE_PENDING);
@@ -197,19 +199,13 @@ export class TargetedObservationSource implements Source {
   }
 }
 
-export type ExportRunner = (args: {
-  startHeight: number;
-  count: number;
-  output: string;
-  publicProbeConfig: string;
-  minimumConfirmations: number;
-}) => Promise<void>;
+export type SegmentRunner = (args: CandidateSegmentRequest & { publicProbeConfig: string }) => Promise<void>;
 
 const execFileAsync = promisify(execFile);
-const EXPORTER = fileURLToPath(new URL("../../scripts/mainnet-block-export.ts", import.meta.url));
+const EXPORTER = fileURLToPath(new URL("../../scripts/mainnet-candidate-segment-export.ts", import.meta.url));
 
-/** The existing authenticated raw-block exporter, run as for the historical worker. */
-export const runBlockExporter: ExportRunner = async (a) => {
+/** The candidate-segment exporter process (never the historical exporter). */
+export const runCandidateSegmentExporter: SegmentRunner = async (a) => {
   await execFileAsync(
     process.execPath,
     [
@@ -219,54 +215,48 @@ export const runBlockExporter: ExportRunner = async (a) => {
       resolve(a.publicProbeConfig),
       "--output",
       a.output,
-      "--start-height",
-      String(a.startHeight),
-      "--count",
-      String(a.count),
-      "--minimum-confirmations",
-      String(a.minimumConfirmations),
+      "--payment-height",
+      String(a.paymentHeight),
+      "--payment-txid",
+      a.paymentTxid,
+      "--payment-confirmations",
+      String(a.paymentConfirmations),
     ],
     { windowsHide: true, timeout: 10 * 60_000, maxBuffer: 4 * 1024 * 1024 },
   );
 };
 
 /**
- * Export one bounded segment into the candidate-segment directory. The batch is
- * staged, its manifest and block hashes are checked by the same promotion the
- * historical worker uses, and only then are blocks added. The historical
- * corpus `watch-worker/authenticated-blocks` is never touched.
+ * Export one payment's segment into the candidate-blocks directory. The batch is
+ * staged, its candidate manifest is rechecked against the request and every
+ * block's bytes, and only then are blocks added. The historical corpus
+ * `watch-worker/authenticated-blocks` is never touched.
  */
 export function candidateSegmentExporter(opts: {
   stateDirectory: string;
   publicProbeConfig: string;
-  exportMinimumConfirmations: number;
-  run?: ExportRunner;
+  run?: SegmentRunner;
 }) {
   const root = join(resolve(opts.stateDirectory), "watch-worker");
   const directory = join(root, "candidate-blocks");
   const staging = join(root, "candidate-staging");
   return {
     directory,
-    async exportSegment(startHeight: number, count: number) {
-      if (!Number.isSafeInteger(startHeight) || startHeight < 1 || !Number.isSafeInteger(count) || count < 1 || count > 100)
+    async exportSegment(request: SegmentRequest) {
+      try {
+        validateCandidateSegmentRequest({ ...request, output: "" });
+      } catch {
         throw Error("WATCH_CANDIDATE_SEGMENT_INVALID");
+      }
       mkdirSync(staging, { recursive: true, mode: 0o700 });
-      const batch = join(staging, `${startHeight}-${startHeight + count - 1}-${process.pid}-${randomUUID()}`);
+      const batch = join(staging, `${request.paymentHeight}-${request.paymentTxid.slice(0, 16)}-${process.pid}-${randomUUID()}`);
       try {
         try {
-          await (opts.run ?? runBlockExporter)({
-            startHeight,
-            count,
-            output: batch,
-            publicProbeConfig: opts.publicProbeConfig,
-            minimumConfirmations: opts.exportMinimumConfirmations,
-          });
+          await (opts.run ?? runCandidateSegmentExporter)({ ...request, output: batch, publicProbeConfig: opts.publicProbeConfig });
         } catch {
           throw Error("WATCH_CANDIDATE_EXPORT_FAILED");
         }
-        const promoted = promoteAuthenticatedBatch(batch, directory, opts.exportMinimumConfirmations);
-        if (promoted.startHeight !== startHeight || promoted.endHeight !== startHeight + count - 1)
-          throw Error("WATCH_EXPORT_RANGE_MISMATCH");
+        promoteCandidateSegment(batch, directory, request);
       } finally {
         rmSync(batch, { recursive: true, force: true });
       }

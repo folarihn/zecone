@@ -337,19 +337,11 @@ export function watcherFromWorkerConfig(
   const cfg = JSON.parse(readFileSync(configPath, "utf8")) as {
     enabled: boolean;
     minimumConfirmations: number;
-    exportMinimumConfirmations: number;
     stateDirectory: string;
     walletDirectory: string;
     publicProbeConfig: string;
   };
   if (cfg.enabled !== true) throw Error("WATCH_WORKER_DISABLED");
-  if (
-    orderWindows &&
-    (!Number.isSafeInteger(cfg.exportMinimumConfirmations) ||
-      cfg.exportMinimumConfirmations < 10 ||
-      cfg.exportMinimumConfirmations > cfg.minimumConfirmations)
-  )
-    throw Error("WATCH_WORKER_CONFIG_INVALID");
   const probes = JSON.parse(readFileSync(resolve(cfg.publicProbeConfig), "utf8")) as {
     zcash: { lightwalletd: { endpoint: string; operator: string }[] };
   };
@@ -370,7 +362,6 @@ export function watcherFromWorkerConfig(
     ? candidateSegmentExporter({
         stateDirectory: state,
         publicProbeConfig: cfg.publicProbeConfig,
-        exportMinimumConfirmations: cfg.exportMinimumConfirmations,
       })
     : null;
   if (segments) mkdirSync(segments.directory, { recursive: true, mode: 0o700 });
@@ -392,9 +383,9 @@ export function watcherFromWorkerConfig(
       segments && orderWindows
         ? new TargetedObservationSource(scanner, {
             receivingAddress,
-            exportMinimumConfirmations: cfg.exportMinimumConfirmations,
+            paymentConfirmations: cfg.minimumConfirmations,
             windows: orderWindows,
-            exportSegment: (start, count) => segments.exportSegment(start, count),
+            exportSegment: (request) => segments.exportSegment(request),
           })
         : scanner,
     lock: new ExclusiveFileLock(join(state, "watch-worker", "worker.lock")),
