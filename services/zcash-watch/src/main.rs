@@ -121,6 +121,14 @@ enum Command {
         /// External directory containing raw `height-hash.bin` mainnet blocks.
         #[arg(long)]
         authenticated_block_dir: PathBuf,
+        /// Additional external directories of targeted candidate-segment blocks. Read only
+        /// after `--authenticated-block-dir`; every block is verified exactly the same way.
+        #[arg(long)]
+        candidate_block_dir: Vec<PathBuf>,
+        /// Report a note whose raw confirmation segment is not yet available as an
+        /// unverified `pendingCandidates` entry instead of failing the whole scan.
+        #[arg(long, default_value_t = false)]
+        defer_missing_segments: bool,
         /// Select an already authenticated owned-note address, never rewrite the wallet default.
         #[arg(long)]
         receiving_address: Option<String>,
@@ -689,12 +697,57 @@ fn compact_txids(block: &CompactBlock) -> Vec<Vec<u8>> {
     block.vtx.iter().map(|tx| tx.txid.clone()).collect()
 }
 
+/// A provider-agreed block of a payment's confirmation segment has no raw file yet.
+/// Only this condition may defer a note; every other verification failure stays fatal.
+#[derive(Debug)]
+struct MissingAuthenticatedBlock {
+    height: u32,
+    hash: String,
+}
+
+impl std::fmt::Display for MissingAuthenticatedBlock {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("authenticated_mainnet_block_unavailable")
+    }
+}
+
+impl std::error::Error for MissingAuthenticatedBlock {}
+
+/// First directory holding `height-hash.bin` for the provider-agreed hash. A file only
+/// selects bytes to verify; it is never trusted because of where it was found.
+fn locate_authenticated_block(dirs: &[&Path], height: u32, hash: &str) -> Result<PathBuf> {
+    let name = format!("{height}-{hash}.bin");
+    dirs.iter()
+        .map(|dir| dir.join(&name))
+        .find(|path| path.exists())
+        .ok_or_else(|| {
+            anyhow::Error::new(MissingAuthenticatedBlock {
+                height,
+                hash: hash.to_string(),
+            })
+        })
+}
+
+/// Last block of the bounded segment that proves a payment: up to the tip, at most
+/// `minimum_confirmations` blocks.
+fn confirmation_end(height: u32, tip: u32, minimum_confirmations: u32) -> Result<u32> {
+    let available = tip
+        .checked_sub(height)
+        .and_then(|depth| depth.checked_add(1))
+        .context("mainnet_payment_above_tip")?;
+    let proof_blocks = available.min(minimum_confirmations);
+    ensure!(proof_blocks > 0, "mainnet_payment_above_tip");
+    height
+        .checked_add(proof_blocks - 1)
+        .context("confirmation_height_overflow")
+}
+
 async fn verify_confirmation_chain(
     primary: &mut CompactTxStreamerClient<Channel>,
     peer: &mut CompactTxStreamerClient<Channel>,
     start_height: u32,
     end_height: u32,
-    authenticated_block_dir: &Path,
+    block_dirs: &[&Path],
     expected_txid: &str,
 ) -> Result<(Value, Value)> {
     ensure!(start_height <= end_height, "invalid_confirmation_range");
@@ -734,7 +787,7 @@ async fn verify_confirmation_chain(
         );
         let hash = BlockHash::from_slice(&primary_block.hash).to_string();
         ensure!(hash.len() == 64, "mainnet_confirmation_hash_invalid");
-        let block_path = authenticated_block_dir.join(format!("{height}-{hash}.bin"));
+        let block_path = locate_authenticated_block(block_dirs, height, &hash)?;
         let raw = read_bounded(&block_path).context("authenticated_mainnet_block_unavailable")?;
         let (block_evidence, header) = mainnet_evidence::verify_full_block(
             &raw,
@@ -791,7 +844,7 @@ struct MainnetPaymentVerification<'a> {
     row: &'a MainnetPaymentRow,
     tip: u32,
     minimum_confirmations: u32,
-    authenticated_block_dir: &'a Path,
+    block_dirs: &'a [&'a Path],
 }
 
 async fn verify_mainnet_payment(
@@ -805,7 +858,7 @@ async fn verify_mainnet_payment(
         row,
         tip,
         minimum_confirmations,
-        authenticated_block_dir,
+        block_dirs,
     } = verification;
     let filter = service::TxFilter {
         hash: row.rpc_txid.clone(),
@@ -860,16 +913,7 @@ async fn verify_mainnet_payment(
             && primary_txids == peer_txids,
         "mainnet_compact_block_provider_disagreement"
     );
-    let available_confirmations = tip
-        .checked_sub(row.height)
-        .and_then(|depth| depth.checked_add(1))
-        .context("mainnet_payment_above_tip")?;
-    let proof_blocks = available_confirmations.min(minimum_confirmations);
-    ensure!(proof_blocks > 0, "mainnet_payment_above_tip");
-    let confirmation_end = row
-        .height
-        .checked_add(proof_blocks - 1)
-        .context("confirmation_height_overflow")?;
+    let confirmation_end = confirmation_end(row.height, tip, minimum_confirmations)?;
     ensure!(
         primary_txids
             .iter()
@@ -883,7 +927,7 @@ async fn verify_mainnet_payment(
         peer,
         row.height,
         confirmation_end,
-        authenticated_block_dir,
+        block_dirs,
         &row.txid,
     )
     .await?;
@@ -981,20 +1025,32 @@ async fn verify_mainnet_payment(
     ))
 }
 
+struct MainnetBlockSources<'a> {
+    authenticated_block_dir: &'a Path,
+    candidate_block_dirs: &'a [PathBuf],
+    defer_missing_segments: bool,
+}
+
 async fn observe_mainnet(
     path: &Path,
     server: &str,
     peer: &str,
     minimum_confirmations: u32,
     checkpoint_height: Option<u32>,
-    authenticated_block_dir: &Path,
+    sources: MainnetBlockSources<'_>,
     receiving_address: Option<&str>,
 ) -> Result<Value> {
     ensure!(server != peer, "independent_mainnet_peer_required");
     ensure!(minimum_confirmations > 0, "invalid_confirmations");
     ensure_external_watch_directory(path)?;
-    ensure_external_watch_directory(authenticated_block_dir)
+    ensure_external_watch_directory(sources.authenticated_block_dir)
         .context("authenticated_block_directory_invalid")?;
+    for dir in sources.candidate_block_dirs {
+        ensure_external_watch_directory(dir).context("candidate_block_directory_invalid")?;
+    }
+    let block_dirs = std::iter::once(sources.authenticated_block_dir)
+        .chain(sources.candidate_block_dirs.iter().map(PathBuf::as_path))
+        .collect::<Vec<_>>();
     let manifest = inspect_directory_for(path, "zcash-mainnet")?;
     let (key, id) = viewing_key_for(&path.join("viewing-key.txt"), &MAIN_NET, "mainnet")?;
     ensure!(id == manifest.key_id, "viewing_key_changed");
@@ -1111,8 +1167,9 @@ async fn observe_mainnet(
     drop(stmt);
     drop(conn);
     let mut payments = Vec::with_capacity(candidates.len());
+    let mut pending = Vec::new();
     for row in candidates {
-        let (memo, ownership_digest, block_evidence, chain_evidence) = verify_mainnet_payment(
+        let verified = verify_mainnet_payment(
             &mut c,
             &mut p,
             MainnetPaymentVerification {
@@ -1121,10 +1178,31 @@ async fn observe_mainnet(
                 row: &row,
                 tip,
                 minimum_confirmations,
-                authenticated_block_dir,
+                block_dirs: &block_dirs,
             },
         )
-        .await?;
+        .await;
+        let (memo, ownership_digest, block_evidence, chain_evidence) = match verified {
+            Ok(value) => value,
+            Err(error) if sources.defer_missing_segments => {
+                // Only a missing raw block defers; the note is a compact-scan candidate,
+                // never a verified payment, and carries no ownership evidence.
+                let Some(missing) = error.downcast_ref::<MissingAuthenticatedBlock>() else {
+                    return Err(error);
+                };
+                pending.push(json!({
+                    "account":row.account,"txid":row.txid,"pool":row.pool,"index":row.index,
+                    "zatoshis":row.zatoshis.to_string(),"height":row.height,"blockHash":row.block_hash,
+                    "address":row.address,"isChange":row.is_change,
+                    "confirmations":tip.checked_sub(row.height).map(|d|d+1),
+                    "verified":false,"evidence":"compact-scan-candidate",
+                    "missingHeight":missing.height,"missingHash":missing.hash,
+                    "segmentEnd":confirmation_end(row.height, tip, minimum_confirmations)?
+                }));
+                continue;
+            }
+            Err(error) => return Err(error),
+        };
         payments.push(json!({
             "account":row.account,"txid":row.txid,"pool":row.pool,"index":row.index,
             "zatoshis":row.zatoshis.to_string(),"height":row.height,"blockHash":row.block_hash,
@@ -1157,9 +1235,11 @@ async fn observe_mainnet(
     );
     let selected_address =
         select_authenticated_receiving_address(&manifest.address, receiving_address, &payments)?;
-    Ok(
-        json!({"network":"zcash-mainnet","watchOnly":true,"liveChain":true,"liveRefundsEnabled":false,"source":server,"peerSource":peer,"account":id,"address":selected_address,"defaultAddress":manifest.address,"birthday":manifest.birthday,"tip":tip,"scanned":tip,"blockHash":hex::encode(hash),"observedAt":SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),"minimumConfirmations":minimum_confirmations,"anchor":hex::encode(anchor.to_bytes()),"anchorHeight":anchor_height,"checkpoint":checkpoint_value,"payments":payments}),
-    )
+    let mut snapshot = json!({"network":"zcash-mainnet","watchOnly":true,"liveChain":true,"liveRefundsEnabled":false,"source":server,"peerSource":peer,"account":id,"address":selected_address,"defaultAddress":manifest.address,"birthday":manifest.birthday,"tip":tip,"scanned":tip,"blockHash":hex::encode(hash),"observedAt":SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),"minimumConfirmations":minimum_confirmations,"anchor":hex::encode(anchor.to_bytes()),"anchorHeight":anchor_height,"checkpoint":checkpoint_value,"payments":payments});
+    if sources.defer_missing_segments {
+        snapshot["pendingCandidates"] = Value::Array(pending);
+    }
+    Ok(snapshot)
 }
 // `payments` is populated exclusively by verify_mainnet_payment above, including
 // UFVK trial decryption and exact receiver equality for the note's shielded pool.
@@ -1222,6 +1302,8 @@ async fn main() {
             minimum_confirmations,
             checkpoint_height,
             authenticated_block_dir,
+            candidate_block_dir,
+            defer_missing_segments,
             receiving_address,
         } => {
             observe_mainnet(
@@ -1230,7 +1312,11 @@ async fn main() {
                 &peer,
                 minimum_confirmations,
                 checkpoint_height,
-                &authenticated_block_dir,
+                MainnetBlockSources {
+                    authenticated_block_dir: &authenticated_block_dir,
+                    candidate_block_dirs: &candidate_block_dir,
+                    defer_missing_segments,
+                },
                 receiving_address.as_deref(),
             )
             .await
@@ -1441,7 +1527,7 @@ mod tests {
                 "https://a.example.org",
                 10,
                 None,
-                d.path(),
+                sources(d.path(), &[]),
                 None,
             )
             .await
@@ -1454,7 +1540,7 @@ mod tests {
                 "https://b.example.org",
                 0,
                 None,
-                d.path(),
+                sources(d.path(), &[]),
                 None,
             )
             .await
@@ -1470,12 +1556,101 @@ mod tests {
             "https://b.example.org",
             20,
             None,
-            d.path(),
+            sources(d.path(), &[]),
             None,
         )
         .await;
         assert!(result.is_err());
         assert_eq!(fs::read_dir(d.path()).unwrap().count(), 0);
+    }
+
+    fn sources<'a>(dir: &'a Path, candidates: &'a [PathBuf]) -> MainnetBlockSources<'a> {
+        MainnetBlockSources {
+            authenticated_block_dir: dir,
+            candidate_block_dirs: candidates,
+            defer_missing_segments: true,
+        }
+    }
+
+    #[tokio::test]
+    async fn mainnet_observe_rejects_missing_candidate_block_directory() {
+        let d = tempfile::tempdir().unwrap();
+        let missing = vec![d.path().join("not-created")];
+        let error = observe_mainnet(
+            d.path(),
+            "https://a.example.org",
+            "https://b.example.org",
+            20,
+            None,
+            sources(d.path(), &missing),
+            None,
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(error.to_string(), "candidate_block_directory_invalid");
+        assert!(!missing[0].exists());
+    }
+
+    #[test]
+    fn authenticated_block_lookup_prefers_corpus_then_candidate_segments() {
+        let corpus = tempfile::tempdir().unwrap();
+        let candidates = tempfile::tempdir().unwrap();
+        let hash = "ab".repeat(32);
+        let name = format!("100-{hash}.bin");
+        fs::write(candidates.path().join(&name), b"candidate").unwrap();
+        let dirs = [corpus.path(), candidates.path()];
+        assert_eq!(
+            locate_authenticated_block(&dirs, 100, &hash).unwrap(),
+            candidates.path().join(&name)
+        );
+        fs::write(corpus.path().join(&name), b"corpus").unwrap();
+        assert_eq!(
+            locate_authenticated_block(&dirs, 100, &hash).unwrap(),
+            corpus.path().join(&name)
+        );
+        // A file for another hash at the same height (a reorged block) is never used.
+        let other = "cd".repeat(32);
+        let error = locate_authenticated_block(&dirs, 100, &other).unwrap_err();
+        let missing = error.downcast_ref::<MissingAuthenticatedBlock>().unwrap();
+        assert_eq!(
+            (missing.height, missing.hash.as_str()),
+            (100, other.as_str())
+        );
+        assert_eq!(error.to_string(), "authenticated_mainnet_block_unavailable");
+    }
+
+    #[test]
+    fn only_a_missing_raw_block_can_defer_a_candidate() {
+        for error in [
+            anyhow::anyhow!("mainnet_confirmation_provider_disagreement"),
+            anyhow::anyhow!("mainnet_transaction_provider_disagreement"),
+            anyhow::anyhow!("mainnet_owned_note_decryption_failed"),
+            anyhow::anyhow!("file_too_large").context("authenticated_mainnet_block_unavailable"),
+        ] {
+            assert!(error.downcast_ref::<MissingAuthenticatedBlock>().is_none());
+        }
+        let source = include_str!("main.rs");
+        assert!(source.contains(
+            "let Some(missing) = error.downcast_ref::<MissingAuthenticatedBlock>() else {"
+        ));
+        assert!(source.contains("Err(error) => return Err(error),"));
+        // Candidate-directory bytes take exactly the corpus verification path.
+        assert!(
+            source.contains(
+                "let block_path = locate_authenticated_block(block_dirs, height, &hash)?;"
+            )
+        );
+        assert!(source.contains(r#""verified":false,"evidence":"compact-scan-candidate""#));
+    }
+
+    #[test]
+    fn confirmation_segment_is_bounded_by_tip_and_policy() {
+        assert_eq!(confirmation_end(100, 100, 20).unwrap(), 100);
+        assert_eq!(confirmation_end(100, 109, 20).unwrap(), 109);
+        assert_eq!(confirmation_end(100, 119, 20).unwrap(), 119);
+        assert_eq!(confirmation_end(100, 5000, 20).unwrap(), 119);
+        assert!(confirmation_end(101, 100, 20).is_err());
+        assert!(confirmation_end(100, 120, 0).is_err());
     }
 
     #[test]

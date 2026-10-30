@@ -24,6 +24,7 @@ import {
   watcherFromWorkerConfig,
 } from "../services/payments/watch-bridge.ts";
 import { assertLoopbackApi } from "../services/payments/merchant-register.ts";
+import { orderWindows } from "../services/payments/targeted-observation.ts";
 import type { Payment } from "../services/payments/types.ts";
 import type { SignedCheckoutPilotQuote } from "../services/payments/pilot-quote.ts";
 import {
@@ -263,9 +264,12 @@ async function main() {
     readFileSync(resolve(arg("token-file")), "utf8").trim(),
   );
   const mirror = new PaymentStore(resolve(arg("mirror")));
+  // Targeted observation: a new payment's confirmation segment is fetched on its
+  // own, so the historical raw-block backlog never delays a live checkout.
   const w = watcherFromWorkerConfig(
     resolve(arg("watch-worker-config")),
     arg("checkout-address"),
+    () => orderWindows(mirror, arg("checkout-address")),
   );
   const bridge = new PaymentWatchBridge(mirror, w.source, {
     receivingAddress: arg("checkout-address"),

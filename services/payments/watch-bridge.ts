@@ -12,7 +12,7 @@
 // relayer or any broadcast function, and it never advances a payment past
 // ZEC_CONFIRMED — settlement stays a separate, operator-approved, disabled path.
 import { join, resolve } from "node:path";
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import {
   MainnetWatchScanner,
   verifyOwnedNote,
@@ -25,6 +25,12 @@ import type { PaymentStore } from "./store.ts";
 import { attributeDeposit } from "./attribution.ts";
 import { checkoutOrderId } from "./checkout-settlement.ts";
 import type { ChainEvidence } from "./types.ts";
+import {
+  CANDIDATE_PENDING,
+  TargetedObservationSource,
+  candidateSegmentExporter,
+  type OrderWindow,
+} from "./targeted-observation.ts";
 
 export interface SnapshotSource {
   observe(checkpointHeight?: number): Promise<MainnetWatchSnapshot>;
@@ -145,6 +151,15 @@ export class PaymentWatchBridge {
     // Every note in a native snapshot was trial-decrypted with the UFVK and its
     // receiver matched; we only consider notes whose receiver is our checkout address.
     if (s.minimumConfirmations !== this.opts.minimumConfirmations) throw Error("WATCH_CONFIRMATION_POLICY_MISMATCH");
+    // Compact discovery is never proof. An unverified note at the checkout address,
+    // or one already recorded, stops the cycle before anything (including the
+    // checkpoint behind the heartbeat) changes: absence must not be inferred past it.
+    for (const c of s.pendingCandidates ?? [])
+      if (
+        c.address === this.opts.receivingAddress ||
+        this.store.db.prepare(`SELECT 1 FROM watch_notes WHERE note_key=?`).get(noteKey(c))
+      )
+        throw Error(CANDIDATE_PENDING);
     const now = this.now();
     // Checkpoint continuity, mirroring MainnetWatchJournal.observe().
     let reorg = false;
@@ -309,20 +324,32 @@ export class PaymentWatchBridge {
 /**
  * Build the production snapshot source from the existing watch-worker config
  * (the same file `scripts/mainnet-watch-worker.ts` uses), reusing its wallet,
- * provider pair, authenticated block corpus and process lock.
+ * provider pair, authenticated block corpus and process lock. With
+ * `orderWindows`, observation is targeted (see targeted-observation.ts): a new
+ * payment's confirmation segment is fetched on its own instead of waiting for
+ * the historical worker to export every earlier block.
  */
 export function watcherFromWorkerConfig(
   configPath: string,
   receivingAddress: string,
+  orderWindows?: () => OrderWindow[],
 ): { source: SnapshotSource; lock: ExclusiveFileLock; minimumConfirmations: number } {
   const cfg = JSON.parse(readFileSync(configPath, "utf8")) as {
     enabled: boolean;
     minimumConfirmations: number;
+    exportMinimumConfirmations: number;
     stateDirectory: string;
     walletDirectory: string;
     publicProbeConfig: string;
   };
   if (cfg.enabled !== true) throw Error("WATCH_WORKER_DISABLED");
+  if (
+    orderWindows &&
+    (!Number.isSafeInteger(cfg.exportMinimumConfirmations) ||
+      cfg.exportMinimumConfirmations < 10 ||
+      cfg.exportMinimumConfirmations > cfg.minimumConfirmations)
+  )
+    throw Error("WATCH_WORKER_CONFIG_INVALID");
   const probes = JSON.parse(readFileSync(resolve(cfg.publicProbeConfig), "utf8")) as {
     zcash: { lightwalletd: { endpoint: string; operator: string }[] };
   };
@@ -339,6 +366,14 @@ export function watcherFromWorkerConfig(
   const binary =
     process.env.ZECONE_WATCH_BIN ??
     resolve(`services/zcash-watch/target/debug/zecone-zcash-watch${process.platform === "win32" ? ".exe" : ""}`);
+  const segments = orderWindows
+    ? candidateSegmentExporter({
+        stateDirectory: state,
+        publicProbeConfig: cfg.publicProbeConfig,
+        exportMinimumConfirmations: cfg.exportMinimumConfirmations,
+      })
+    : null;
+  if (segments) mkdirSync(segments.directory, { recursive: true, mode: 0o700 });
   const scanner = new MainnetWatchScanner(
     resolve(cfg.walletDirectory),
     providers[0].endpoint,
@@ -349,10 +384,19 @@ export function watcherFromWorkerConfig(
     join(state, "watch-worker", "authenticated-blocks"),
     // Not passed as --receiving-address: the Rust watcher only accepts that flag once a
     // verified note exists for the address. The bridge filters notes by receiver instead.
+    undefined,
+    segments?.directory,
   );
-  void receivingAddress;
   return {
-    source: scanner,
+    source:
+      segments && orderWindows
+        ? new TargetedObservationSource(scanner, {
+            receivingAddress,
+            exportMinimumConfirmations: cfg.exportMinimumConfirmations,
+            windows: orderWindows,
+            exportSegment: (start, count) => segments.exportSegment(start, count),
+          })
+        : scanner,
     lock: new ExclusiveFileLock(join(state, "watch-worker", "worker.lock")),
     minimumConfirmations: cfg.minimumConfirmations,
   };

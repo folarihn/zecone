@@ -85,6 +85,30 @@ export type MainnetWatchSnapshot = {
   anchorHeight: number;
   checkpoint: MainnetWatchCheckpoint | null;
   payments: MainnetWatchPayment[];
+  /**
+   * Only with `--defer-missing-segments`: owned notes found by the compact scan
+   * whose raw confirmation segment is not authenticated yet. Never proof of payment.
+   */
+  pendingCandidates?: MainnetPendingCandidate[];
+};
+
+export type MainnetPendingCandidate = {
+  account: string;
+  txid: string;
+  pool: 2 | 3 | 4;
+  index: number;
+  zatoshis: string;
+  height: number;
+  blockHash: string;
+  address: string;
+  isChange: false;
+  confirmations: number;
+  verified: false;
+  evidence: "compact-scan-candidate";
+  /** First block of the segment with no raw file, and its provider-agreed hash. */
+  missingHeight: number;
+  missingHash: string;
+  segmentEnd: number;
 };
 
 export type MainnetWatchPolicy = {
@@ -299,6 +323,44 @@ export function validateMainnetWatchSnapshot(
     if (seen.has(key)) throw Error("DUPLICATE_MAINNET_PAYMENT");
     seen.add(key);
   }
+  if (s.pendingCandidates === undefined) return;
+  if (!Array.isArray(s.pendingCandidates))
+    throw Error("INVALID_MAINNET_PENDING_CANDIDATE");
+  for (const c of s.pendingCandidates) {
+    const end = positive(c?.height)
+      ? c.height + Math.min(s.tip - c.height + 1, s.minimumConfirmations) - 1
+      : -1;
+    if (
+      !c ||
+      !positive(c.height) ||
+      c.account !== s.account ||
+      !HEX64.test(c.txid) ||
+      ![2, 3, 4].includes(c.pool) ||
+      !Number.isSafeInteger(c.index) ||
+      c.index < 0 ||
+      !amountOk(c.zatoshis) ||
+      c.height < s.birthday ||
+      c.height > s.tip ||
+      !HEX64.test(c.blockHash) ||
+      typeof c.address !== "string" ||
+      !UNIFIED.test(c.address) ||
+      c.isChange !== false ||
+      c.confirmations !== s.tip - c.height + 1 ||
+      c.verified !== false ||
+      c.evidence !== "compact-scan-candidate" ||
+      c.segmentEnd !== end ||
+      !Number.isSafeInteger(c.missingHeight) ||
+      c.missingHeight < c.height ||
+      c.missingHeight > c.segmentEnd ||
+      !HEX64.test(c.missingHash) ||
+      (c.missingHeight === c.height && c.missingHash !== c.blockHash)
+    )
+      throw Error("INVALID_MAINNET_PENDING_CANDIDATE");
+    // A note is either verified or pending, never both, and never twice.
+    const key = `${c.txid}:${c.pool}:${c.index}`;
+    if (seen.has(key)) throw Error("DUPLICATE_MAINNET_PAYMENT");
+    seen.add(key);
+  }
 }
 
 export function verifyOwnedNote(
@@ -371,6 +433,11 @@ export class MainnetWatchScanner {
     readonly executableArgsPrefix: string[] = [],
     readonly authenticatedBlockDirectory = "",
     readonly receivingAddress?: string,
+    /**
+     * Targeted observation: also read raw blocks from this candidate-segment
+     * directory and report notes whose segment is missing as pending candidates.
+     */
+    readonly candidateBlockDirectory?: string,
   ) {
     this.policy = validateMainnetWatchPolicy(policy);
     if (
@@ -407,6 +474,12 @@ export class MainnetWatchScanner {
         throw Error("INVALID_RECEIVING_ADDRESS");
       args.push("--receiving-address", this.receivingAddress);
     }
+    if (this.candidateBlockDirectory !== undefined)
+      args.push(
+        "--candidate-block-dir",
+        resolve(this.candidateBlockDirectory),
+        "--defer-missing-segments",
+      );
     let stdout: string;
     try {
       ({ stdout } = await exec(
@@ -436,7 +509,16 @@ export class MainnetWatchScanner {
         snapshot.address !== this.receivingAddress)
     )
       throw Error("MAINNET_WATCH_SNAPSHOT_POLICY_MISMATCH");
+    // Pending candidates are reported only when this scanner asked for them.
+    if (
+      (this.candidateBlockDirectory === undefined) !==
+      (snapshot.pendingCandidates === undefined)
+    )
+      throw Error("MAINNET_WATCH_SNAPSHOT_POLICY_MISMATCH");
     if (snapshot.checkpoint) Object.freeze(snapshot.checkpoint);
+    for (const candidate of snapshot.pendingCandidates ?? [])
+      Object.freeze(candidate);
+    if (snapshot.pendingCandidates) Object.freeze(snapshot.pendingCandidates);
     for (const payment of snapshot.payments) {
       Object.freeze(payment.ownershipEvidence.blockEvidence);
       Object.freeze(payment.ownershipEvidence.chainEvidence);
