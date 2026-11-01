@@ -3,7 +3,7 @@
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdirSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import { DatabaseSync } from "node:sqlite";
 
@@ -538,6 +538,50 @@ export class MainnetWatchScanner {
     nativeSnapshots.add(snapshot);
     return snapshot;
   }
+}
+
+/**
+ * The scanner the payout session re-verifies its bound payment with. With
+ * `candidateBlocks`, the targeted candidate-segment directory is read after the
+ * historical corpus (each block verified exactly like a corpus block), so a
+ * payment does not wait for the historical backlog; a note whose segment is
+ * still missing stays a pending candidate and never counts as paid. The
+ * receiving address is still required to carry an authenticated note.
+ */
+export function pilotSessionWatchScanner(
+  c: {
+    watchWallet: string;
+    watchBinary: string;
+    authenticatedBlocks: string;
+    candidateBlocks?: string;
+    receivingAddress: string;
+  },
+  policy: MainnetWatchPolicy,
+  executableArgsPrefix: string[] = [],
+) {
+  if (c.candidateBlocks !== undefined) {
+    const corpus = resolve(c.authenticatedBlocks);
+    const candidates = resolve(c.candidateBlocks);
+    if (
+      !c.candidateBlocks ||
+      candidates === corpus ||
+      candidates.startsWith(corpus + sep) ||
+      corpus.startsWith(candidates + sep)
+    )
+      throw Error("PILOT_CANDIDATE_BLOCKS_INVALID");
+  }
+  const [source, peer] = policy.providers;
+  return new MainnetWatchScanner(
+    c.watchWallet,
+    source.endpoint,
+    peer.endpoint,
+    policy,
+    c.watchBinary,
+    executableArgsPrefix,
+    c.authenticatedBlocks,
+    c.receivingAddress,
+    c.candidateBlocks,
+  );
 }
 
 type CheckpointRow = {

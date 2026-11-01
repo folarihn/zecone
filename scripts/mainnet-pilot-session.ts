@@ -47,8 +47,8 @@ import {
 import {
   assertMainnetPaymentAuthorization,
   MainnetWatchJournal,
-  MainnetWatchScanner,
   observeMainnetWatch,
+  pilotSessionWatchScanner,
   type MainnetOrderBinding,
   type MainnetWatchObservation,
   type MainnetWatchPolicy,
@@ -66,6 +66,8 @@ type Config = {
   watchWallet: string;
   watchBinary: string;
   authenticatedBlocks: string;
+  /** Targeted candidate-segment directory (operator watch-worker/candidate-blocks). */
+  candidateBlocks?: string;
   watchBinding: MainnetOrderBinding;
   sourceCommitment: string;
   sourceEvidenceDigest: string;
@@ -286,15 +288,9 @@ async function main() {
     quote: MainnetQuote,
     price: MainnetQuoteInput["pilotPrice"],
     ownership: { nonce: string; expires: number; signature: `0x${string}` };
-  const scanner = new MainnetWatchScanner(
-    c.watchWallet,
-    watchPolicy.providers[0].endpoint,
-    watchPolicy.providers[1].endpoint,
+  const scanner = pilotSessionWatchScanner(
+    { ...c, receivingAddress: c.watchBinding.address },
     watchPolicy,
-    c.watchBinary,
-    [],
-    c.authenticatedBlocks,
-    c.watchBinding.address,
   );
   const quoteInput = (plan: PilotPlan): MainnetQuoteInput => ({
     network: "base",

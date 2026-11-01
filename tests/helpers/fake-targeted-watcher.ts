@@ -220,6 +220,10 @@ export function fakeTargetedWatcher(initial: TargetedChain, minimumConfirmations
     state,
     corpus,
     candidates,
+    wallet,
+    policy,
+    /** Arguments that make the fake stand in for the watcher binary. */
+    executableArgsPrefix: [script, chainFile, logFile],
     scanner,
     deps,
     run,

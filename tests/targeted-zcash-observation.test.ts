@@ -12,7 +12,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { onboard, startHarness, type Harness } from "./helpers/payments-harness.ts";
-import { fakeTargetedWatcher, blockHash, type TargetedChain } from "./helpers/fake-targeted-watcher.ts";
+import { fakeTargetedWatcher, blockBytes, blockHash, type TargetedChain } from "./helpers/fake-targeted-watcher.ts";
 import { DEFAULT_CHECKOUT_ADDRESS } from "../services/payments/api.ts";
 import type { PaymentStore } from "../services/payments/store.ts";
 import {
@@ -31,7 +31,13 @@ import {
 import { promoteAuthenticatedBatch, validateWatchWorkerConfig } from "../services/operations/mainnet-watch-worker.ts";
 import { paymentWindow, ZCASH_TARGET_SPACING_SECONDS, DEFAULT_OBSERVATION_GRACE_SECONDS, MAX_INCLUSION_BLOCKS } from "../services/payments/payment-window.ts";
 import { rustVerifyBlock } from "../scripts/mainnet-candidate-segment-export.ts";
-import { validateMainnetWatchSnapshot, type MainnetWatchSnapshot } from "../services/settlement/mainnet-watch.ts";
+import {
+  MainnetWatchJournal,
+  observeMainnetWatch,
+  pilotSessionWatchScanner,
+  validateMainnetWatchSnapshot,
+  type MainnetWatchSnapshot,
+} from "../services/settlement/mainnet-watch.ts";
 
 const ADDR = DEFAULT_CHECKOUT_ADDRESS;
 const OTHER = "u1" + "q".repeat(60); // another owned address of the same account
@@ -687,4 +693,52 @@ test("an integrated-wallet payment to the checkout address is counted, never pro
   } finally {
     await t.close();
   }
+});
+
+test("payout session re-verifies a payment from the authenticated candidate segment", async () => {
+  const w = fakeTargetedWatcher({ ...genesis(), tip: TIP + N - 1 });
+  const H = TIP;
+  const now = Math.floor(Date.now() / 1000);
+  const binding = { orderId: "4".repeat(64), account: "a".repeat(64), address: ADDR, zatoshis: "810", expires: now + 3600 };
+  const session = (candidateBlocks?: string) =>
+    pilotSessionWatchScanner(
+      { watchWallet: w.wallet, watchBinary: process.execPath, authenticatedBlocks: w.corpus, candidateBlocks, receivingAddress: ADDR },
+      w.policy,
+      w.executableArgsPrefix,
+    );
+  try {
+    // An integrated-wallet payment whose 20-block segment exists only as candidate blocks.
+    w.update((c) => c.notes.push({ txid: tx("2"), height: H, zatoshis: "810", address: ADDR, walletInternal: true }));
+    for (let h = H; h < H + N - 1; h++) writeFileSync(join(w.candidates, `${h}-${blockHash(w.chain, h)}.bin`), blockBytes(w.chain, h));
+    // 19 of 20 segment blocks: still a pending candidate, never paid.
+    let r = await observeMainnetWatch(new MainnetWatchJournal(":memory:", () => now), session(w.candidates), binding);
+    assert.notEqual(r.status, "confirmed");
+    // The full segment: verified and confirmed at exactly 20 confirmations.
+    const last = H + N - 1;
+    writeFileSync(join(w.candidates, `${last}-${blockHash(w.chain, last)}.bin`), blockBytes(w.chain, last));
+    r = await observeMainnetWatch(new MainnetWatchJournal(":memory:", () => now), session(w.candidates), binding);
+    assert.equal(r.status, "confirmed");
+    assert.equal(r.receivedZatoshis, "810");
+    assert.equal(r.confirmations, N);
+    assert.match(r.paymentDigest ?? "", /^[0-9a-f]{64}$/);
+    // The previous configuration (historical corpus only) still fails closed.
+    await assert.rejects(observeMainnetWatch(new MainnetWatchJournal(":memory:", () => now), session(), binding), /mainnet_watch_scan_failed/);
+    // Forged bytes in the candidate directory are rejected, never trusted for their location.
+    writeFileSync(join(w.candidates, `${H}-${blockHash(w.chain, H)}.bin`), "forged");
+    await assert.rejects(observeMainnetWatch(new MainnetWatchJournal(":memory:", () => now), session(w.candidates), binding), /mainnet_watch_scan_failed/);
+    // The candidate directory can never be, or overlap, the historical corpus.
+    for (const bad of [w.corpus, join(w.corpus, "nested"), w.state, ""])
+      assert.throws(() => session(bad), /PILOT_CANDIDATE_BLOCKS_INVALID/);
+  } finally {
+    rmSync(w.dir, { recursive: true, force: true });
+  }
+});
+
+test("the payout session builds its watcher only through the validated helper", () => {
+  const source = readFileSync("scripts/mainnet-pilot-session.ts", "utf8");
+  assert.match(source, /pilotSessionWatchScanner\(\s*\{ \.\.\.c, receivingAddress: c\.watchBinding\.address \},\s*watchPolicy,\s*\)/);
+  assert.doesNotMatch(source, /new MainnetWatchScanner\(/);
+  // Approval, expiry and payment checks around the scanner are unchanged.
+  for (const kept of ["assertMainnetPaymentAuthorization(", "now() - payment.observedAt > 60", "SIGN_EXACT_MAINNET_BUNDLE", "Reaching here requires the separate exact BROADCAST reply"])
+    assert.ok(source.includes(kept), kept);
 });
