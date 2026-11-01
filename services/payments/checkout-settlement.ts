@@ -13,6 +13,7 @@
 import { createHash } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { getAddress, isAddress } from "viem";
+import type { MainnetBoundPayment } from "../settlement/mainnet-watch.ts";
 import type { PaymentStore } from "./store.ts";
 import type { Payment } from "./types.ts";
 import { assessWalletEvidence } from "./wallet-evidence.ts";
@@ -58,6 +59,7 @@ export interface CheckoutSettlementBinding {
     zatoshis: string;
     sourceEvidenceDigest: string;
     expires: number;
+    payment: MainnetBoundPayment;
   };
   sourceEvidenceDigest: string;
   sourceCommitment: string;
@@ -86,6 +88,20 @@ export function checkoutSettlementBinding(
   if (!Number.isSafeInteger(opts.windowSeconds) || opts.windowSeconds < 300 || opts.windowSeconds > 6 * 3600)
     fail("SETTLEMENT_WINDOW_INVALID");
   const e = p.chainEvidence;
+  // The exact attributed output and the order's window: on a shared checkout
+  // address, the payout re-verifies this note only, never other deposits there.
+  const [txid, pool, index] = e.noteKey.split(":");
+  const windowStart = p.allocationTip ?? fail("CHECKOUT_PAYMENT_OUTSIDE_ORDER_WINDOW");
+  const windowEnd = p.paymentExpiryHeight ?? fail("CHECKOUT_PAYMENT_OUTSIDE_ORDER_WINDOW");
+  if (
+    txid !== e.txid ||
+    Number(pool) !== e.pool ||
+    ![2, 3, 4].includes(e.pool) ||
+    !/^\d{1,5}$/.test(index ?? "") ||
+    e.height <= windowStart ||
+    e.height > windowEnd
+  )
+    fail("CHECKOUT_PAYMENT_OUTSIDE_ORDER_WINDOW");
   return {
     checkoutPaymentId: p.id,
     watchBinding: {
@@ -95,6 +111,14 @@ export function checkoutSettlementBinding(
       zatoshis: e.zatoshis,
       sourceEvidenceDigest: e.ownershipDigest,
       expires: opts.now + opts.windowSeconds,
+      payment: {
+        txid: e.txid,
+        pool: e.pool as 2 | 3 | 4,
+        index: Number(index),
+        height: e.height,
+        windowStart,
+        windowEnd,
+      },
     },
     sourceEvidenceDigest: e.ownershipDigest,
     sourceCommitment: e.paymentDigest!,

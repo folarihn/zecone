@@ -140,6 +140,7 @@ async function main() {
     c.checkoutPaymentId !== undefined &&
     /^[A-Za-z0-9_]{1,64}$/.test(c.checkoutPaymentId) &&
     c.watchBinding.orderId === checkoutOrderId(c.checkoutPaymentId) &&
+    c.watchBinding.payment !== undefined &&
     Number.isSafeInteger(c.expectedNonce) &&
     c.expectedNonce > 0 &&
     /^[1-9][0-9]{0,15}$/.test(c.sourceZatoshis) &&

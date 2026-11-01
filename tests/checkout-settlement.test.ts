@@ -80,6 +80,8 @@ test("binds only a watcher-confirmed order to the allow-listed recipient", () =>
     assert.equal(b.sourceZatoshis, zat);
     assert.match(b.quotedPayoutWei, /^[1-9][0-9]+$/);
     assert.equal(b.watchBinding.expires, T0 + 1600 + 3600);
+    // The exact attributed output and the order's window are bound immutably.
+    assert.deepEqual(b.watchBinding.payment, { txid: TXID, pool: 3, index: 0, height: 101, windowStart: 100, windowEnd: 110 });
     assert.throws(
       () => checkoutSettlementBinding(store, id, { account: ACCOUNT, allowedRecipient: "0x000000000000000000000000000000000000dEaD", windowSeconds: 3600, now: T0 }),
       /CHECKOUT_RECIPIENT_NOT_ALLOWLISTED/,
@@ -87,6 +89,30 @@ test("binds only a watcher-confirmed order to the allow-listed recipient", () =>
   } finally {
     store.close();
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("refuses a payment outside the order window or with a mismatched note key", () => {
+  // A payment mined after the window also outlives the wallet's expiry height.
+  const cases: [Record<string, unknown>, RegExp][] = [
+    [{ height: 100 }, /CHECKOUT_PAYMENT_OUTSIDE_ORDER_WINDOW/],
+    [{ height: 111 }, /CHECKOUT_PAYMENT_OUTSIDE_ORDER_WINDOW|CHECKOUT_WALLET_EVIDENCE_REQUIRED/],
+    [{ noteKey: `${TXID}:2:0` }, /CHECKOUT_PAYMENT_OUTSIDE_ORDER_WINDOW/],
+    [{ noteKey: `${"0".repeat(64)}:3:0` }, /CHECKOUT_PAYMENT_OUTSIDE_ORDER_WINDOW/],
+  ];
+  for (const [change, expected] of cases) {
+    const o = confirmedOrder();
+    try {
+      o.store.setChainEvidence(o.id, { ...o.store.getPayment(o.id)!.chainEvidence!, ...change }, T0 + 1500);
+      assert.throws(
+        () => checkoutSettlementBinding(o.store, o.id, { account: ACCOUNT, allowedRecipient: RECIPIENT, windowSeconds: 3600, now: T0 + 1600 }),
+        expected,
+        JSON.stringify(change),
+      );
+    } finally {
+      o.store.close();
+      rmSync(o.dir, { recursive: true, force: true });
+    }
   }
 });
 

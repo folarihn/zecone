@@ -133,7 +133,56 @@ export type MainnetOrderBinding = {
   memoHex?: string;
   // Native proof identity is distinct from the canonical execution commitment.
   sourceEvidenceDigest?: string;
+  /**
+   * The exact payment attributed to a checkout order on a shared receiving
+   * address. With it, only notes mined inside the order's window count toward
+   * (or are recorded for) this order, and the matching note must be this exact
+   * output. Notes outside the window belong to other orders or none.
+   */
+  payment?: MainnetBoundPayment;
 };
+
+export type MainnetBoundPayment = {
+  txid: string;
+  pool: 2 | 3 | 4;
+  index: number;
+  height: number;
+  /** Allocation tip: the payment must be mined above it. */
+  windowStart: number;
+  /** Inclusion (expiry) height: the payment must be mined at or below it. */
+  windowEnd: number;
+};
+
+const inBoundWindow = (
+  binding: MainnetOrderBinding,
+  p: Pick<MainnetWatchPayment, "height">,
+) =>
+  binding.payment === undefined ||
+  (p.height > binding.payment.windowStart &&
+    p.height <= binding.payment.windowEnd);
+
+const isBoundPayment = (
+  binding: MainnetOrderBinding,
+  p: Pick<MainnetWatchPayment, "txid" | "pool" | "index" | "height">,
+) =>
+  binding.payment === undefined ||
+  (p.txid === binding.payment.txid &&
+    p.pool === binding.payment.pool &&
+    p.index === binding.payment.index &&
+    p.height === binding.payment.height);
+
+const validBoundPayment = (p: MainnetBoundPayment) =>
+  HEX64.test(p.txid) &&
+  [2, 3, 4].includes(p.pool) &&
+  Number.isSafeInteger(p.index) &&
+  p.index >= 0 &&
+  positive(p.height) &&
+  Number.isSafeInteger(p.windowStart) &&
+  p.windowStart >= 0 &&
+  Number.isSafeInteger(p.windowEnd) &&
+  p.windowEnd > p.windowStart &&
+  p.height > p.windowStart &&
+  p.height <= p.windowEnd;
 
 export type MainnetWatchStatus =
   "awaiting" | "observed" | "confirmed" | "ambiguous" | "invalid";
@@ -400,6 +449,10 @@ export function verifyOwnedNote(
     payment.zatoshis !== binding.zatoshis ||
     (binding.sourceEvidenceDigest !== undefined &&
       payment.ownershipEvidence.digest !== binding.sourceEvidenceDigest) ||
+    (binding.payment !== undefined &&
+      binding.sourceEvidenceDigest === undefined) ||
+    !isBoundPayment(binding, payment) ||
+    !inBoundWindow(binding, payment) ||
     (memo !== undefined && payment.memo !== memo)
   )
     throw Error("OWNED_NOTE_REQUIREMENTS_NOT_MET");
@@ -649,6 +702,7 @@ export class MainnetWatchJournal {
         ...(binding.sourceEvidenceDigest === undefined
           ? {}
           : { sourceEvidenceDigest: binding.sourceEvidenceDigest }),
+        ...(binding.payment === undefined ? {} : { payment: binding.payment }),
       },
       digestValue = digest(body);
     if (
@@ -661,7 +715,10 @@ export class MainnetWatchJournal {
       (binding.sourceEvidenceDigest !== undefined &&
         !HEX64.test(binding.sourceEvidenceDigest)) ||
       (binding.memoHex !== undefined &&
-        !/^(?:[a-f0-9]{2})+$/.test(binding.memoHex))
+        !/^(?:[a-f0-9]{2})+$/.test(binding.memoHex)) ||
+      (binding.payment !== undefined &&
+        (binding.sourceEvidenceDigest === undefined ||
+          !validBoundPayment(binding.payment)))
     )
       throw Error("INVALID_MAINNET_ORDER_BINDING");
     const old = this.db
@@ -726,16 +783,22 @@ export class MainnetWatchJournal {
     } else if (s.checkpoint !== null) {
       throw Error("MAINNET_WATCH_UNEXPECTED_CHECKPOINT");
     }
+    // A bound checkout order counts only notes inside its own window; others
+    // at the same shared address are neither counted nor recorded for it.
     const candidates = s.payments.filter(
       (p) =>
         p.account === binding.account &&
         p.address === binding.address &&
-        !p.isChange,
+        !p.isChange &&
+        inBoundWindow(binding, p),
     );
     const memoOk = (p: MainnetWatchPayment) =>
       binding.memoHex === undefined || p.memo === binding.memoHex;
     const exact = candidates.filter(
-      (p) => p.zatoshis === binding.zatoshis && memoOk(p),
+      (p) =>
+        p.zatoshis === binding.zatoshis &&
+        memoOk(p) &&
+        isBoundPayment(binding, p),
     );
     let status: MainnetWatchStatus = "awaiting",
       reason = "NO_MATCHING_PAYMENT";
