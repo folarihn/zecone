@@ -29,7 +29,12 @@ import {
   runPilotSession,
   type PilotPlan,
 } from "../services/settlement/mainnet-pilot-session.ts";
-import { checkoutOrderId } from "../services/payments/checkout-settlement.ts";
+import {
+  assertCheckoutPricedPayout,
+  checkoutOrderId,
+  checkoutPayoutPolicy,
+  checkoutPricingArgs,
+} from "../services/payments/checkout-settlement.ts";
 import { readProductionRpc } from "../services/settlement/mainnet-probe.ts";
 import {
   assertMainnetQuote,
@@ -85,6 +90,8 @@ type Config = {
   passphraseFile: string;
   signerLedger: string;
   checkoutPaymentId?: string;
+  /** Checkout orders only; see CheckoutPayoutPolicy. Defaults to "quoted". */
+  checkoutPayoutPolicy?: string;
 };
 const now = () => Math.floor(Date.now() / 1000);
 const json = <T>(path: string): T =>
@@ -146,6 +153,9 @@ async function main() {
     /^[1-9][0-9]{0,15}$/.test(c.sourceZatoshis) &&
     /^[1-9][0-9]{0,30}$/.test(c.quotedPayoutWei ?? "") &&
     /^[a-f0-9]{64}$/.test(c.sourceCommitment);
+  if (!checkoutScope && c.checkoutPayoutPolicy !== undefined)
+    throw Error("CHECKOUT_PAYOUT_POLICY_INVALID");
+  const payoutPolicy = checkoutPayoutPolicy(c.checkoutPayoutPolicy);
   if (
     (checkoutScope
       ? false
@@ -368,7 +378,11 @@ async function main() {
           }
           exclusiveJson(join(work, "ownership.json"), ownership);
           const pricingAmount = checkoutScope
-            ? ["--amount", c.quotedPayoutWei!]
+            ? checkoutPricingArgs(
+                payoutPolicy,
+                c.quotedPayoutWei!,
+                c.sourceZatoshis,
+              )
             : ["--source-zatoshis", c.sourceZatoshis];
           const priced = child("scripts/mainnet-pilot-price.ts", [
             "--profiles",
@@ -395,8 +409,12 @@ async function main() {
             join(work, "pricing.json"),
           );
           price = pricing.pilotPrice;
-          if (checkoutScope && priced.destinationUnits !== c.quotedPayoutWei)
-            throw Error("CHECKOUT_QUOTED_PAYOUT_CHANGED");
+          if (checkoutScope)
+            assertCheckoutPricedPayout(
+              payoutPolicy,
+              c.quotedPayoutWei!,
+              priced.destinationUnits,
+            );
           exclusiveJson(join(work, "request.json"), {
             recipient: c.recipient,
             amount: priced.destinationUnits,

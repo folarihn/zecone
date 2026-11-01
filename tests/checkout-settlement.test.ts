@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -11,7 +11,10 @@ import { PaymentStore } from "../services/payments/store.ts";
 import { DemoQuoteEngine } from "../services/payments/quote.ts";
 import { DEFAULT_CHECKOUT_ADDRESS } from "../services/payments/api.ts";
 import {
+  assertCheckoutPricedPayout,
   checkoutOrderId,
+  checkoutPayoutPolicy,
+  checkoutPricingArgs,
   checkoutSettlementBinding,
   recordCheckoutPayout,
 } from "../services/payments/checkout-settlement.ts";
@@ -197,4 +200,46 @@ test("an uncertain submission requires reconciliation and changes nothing", () =
     store.close();
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("payout policy: exact quote by default, repricing only on request and never above the quote", () => {
+  assert.equal(checkoutPayoutPolicy(undefined), "quoted");
+  assert.equal(checkoutPayoutPolicy("quoted"), "quoted");
+  assert.equal(checkoutPayoutPolicy("reprice-at-current-price"), "reprice-at-current-price");
+  assert.throws(() => checkoutPayoutPolicy("market"), /CHECKOUT_PAYOUT_POLICY_INVALID/);
+
+  assert.deepEqual(checkoutPricingArgs("quoted", "1000", "810"), ["--amount", "1000"]);
+  assert.deepEqual(checkoutPricingArgs("reprice-at-current-price", "1000", "810"), ["--source-zatoshis", "810"]);
+
+  assert.equal(assertCheckoutPricedPayout("quoted", "1000", "1000"), "1000");
+  assert.throws(() => assertCheckoutPricedPayout("quoted", "1000", "999"), /CHECKOUT_QUOTED_PAYOUT_CHANGED/);
+  assert.equal(assertCheckoutPricedPayout("reprice-at-current-price", "1000", "987"), "987");
+  assert.equal(assertCheckoutPricedPayout("reprice-at-current-price", "1000", "1000"), "1000");
+  assert.throws(() => assertCheckoutPricedPayout("reprice-at-current-price", "1000", "1001"), /CHECKOUT_REPRICED_PAYOUT_EXCEEDS_QUOTE/);
+  assert.throws(() => assertCheckoutPricedPayout("reprice-at-current-price", "1000", "0"), /CHECKOUT_QUOTED_PAYOUT_CHANGED/);
+});
+
+test("records a repriced payout below the quote and refuses one above it", () => {
+  const { dir, store, id, zat, payoutWei } = confirmedOrder();
+  try {
+    const above = termsFor(zat, (BigInt(payoutWei) + 1n).toString());
+    const path = journal(dir, checkoutOrderId(id), above, "broadcast");
+    assert.throws(() => recordCheckoutPayout(store, id, path, above, T0 + 2000), /PAYOUT_JOURNAL_DOES_NOT_MATCH_ORDER/);
+    const repriced = termsFor(zat, ((BigInt(payoutWei) * 986n) / 1000n).toString());
+    journal(dir, checkoutOrderId(id), repriced, "broadcast");
+    const r = recordCheckoutPayout(store, id, path, repriced, T0 + 2000);
+    assert.deepEqual(r, { status: "submitted", state: "PAYOUT_SUBMITTED", txHash: BASE_TX, wei: repriced.amount });
+    assert.equal(store.getPayment(id)!.payoutWei, repriced.amount);
+  } finally {
+    store.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the payout session prices checkout orders only through the policy helpers", () => {
+  const src = readFileSync(new URL("../scripts/mainnet-pilot-session.ts", import.meta.url), "utf8");
+  assert.match(src, /checkoutPricingArgs\(\s*payoutPolicy,/);
+  assert.match(src, /assertCheckoutPricedPayout\(\s*payoutPolicy,/);
+  assert.match(src, /if \(!checkoutScope && c\.checkoutPayoutPolicy !== undefined\)/);
+  assert.doesNotMatch(src, /\["--amount", c\.quotedPayoutWei/);
 });
