@@ -1,6 +1,60 @@
 # ZecOne — wallet and shielded-payment demo
 
-**Current launch status (28 October 2026):** the paired local browser wallet can
+Customers pay with shielded Zcash; merchants receive ETH on Base.
+
+## How to test (judges): 5 minutes, nothing to install
+
+Live site: **https://zecone.xyz** · API: **https://api.zecone.xyz**
+
+No wallet, funds, faucet or account is needed for steps 1–3.
+
+1. **Try a checkout (simulated, no real money).** Open
+   [zecone.xyz/checkout](https://zecone.xyz/checkout) and buy an item, or pick an
+   amount in the homepage widget and choose **Continue to demo checkout**. You
+   see the exact ZEC amount, the 5-minute quote window and a **Simulated** badge.
+   Without any action from you, the server replays recorded mainnet
+   transactions and the checkout walks through each step to **Payment
+   complete** with a Basescan link. A simulated checkout never shows a payable
+   address.
+2. **See real mainnet evidence.** Open
+   [zecone.xyz/explorer](https://zecone.xyz/explorer) and follow the links to
+   the Zcash and Base block explorers.
+3. **Check the live service** from a terminal:
+
+   ```bash
+   curl https://api.zecone.xyz/api/v1/health
+   curl "https://api.zecone.xyz/api/v1/quote/preview?amountUsd=5"
+   ```
+
+   Health reports `mode: monitor`, `realPayments: restricted-pilot`, and
+   `livePayoutEnabled: false` / `zcashBroadcastEnabled: false` (nothing moves
+   funds automatically). The quote preview is labeled as a fixed demo rate.
+4. **Developer integration.** Read the create-payment snippet in
+   [zecone.xyz/docs](https://zecone.xyz/docs). In
+   [zecone.xyz/dashboard](https://zecone.xyz/dashboard) you can sign in with any
+   Base wallet (a signature, no transaction), get an API key, and send a test
+   webhook. During the restricted pilot, creating a payment with your own key
+   returns `403 real_payments_restricted`; use step 1 to see the checkout flow.
+5. **Privacy model.** [zecone.xyz/security](https://zecone.xyz/security)
+   explains what is private (the shielded Zcash leg) and what is public (the
+   Base payout).
+
+### Real mainnet payment (restricted pilot)
+
+Real payments are limited to one approved pilot merchant and run by the
+operator, so judges cannot trigger one. Verified on 1 November 2026: order
+`pay_d9aae1aea3104f6995e6c04746` was paid with 810 zatoshis in Zcash transaction
+[`cad53524…032163`](https://mainnet.zcashexplorer.app/transactions/cad535249a27d4503f54ab23811fa9ea3ea4f40a1eb916231e5d267f9a032163)
+(block 3,538,167). The watcher confirmed it after 20 confirmations, checking two
+independent providers and the raw blocks (proof of work, Merkle inclusion,
+continuity). The order reached `ZEC_CONFIRMED`; Base payouts stay
+operator-approved and were not triggered.
+
+To build and run everything locally, see [Install and verify](#install-and-verify).
+
+## Project history
+
+**Launch status (28 October 2026):** the paired local browser wallet can
 switch explicitly between Testnet and a read-only projection of the existing
 verified Mainnet wallet. Mainnet receive, balance, history and sync freshness are
 visible locally; the public website cannot pair with that wallet or request a
