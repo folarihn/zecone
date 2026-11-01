@@ -236,7 +236,9 @@ const supervisor = new OperatorSupervisor(
           resolve(config.walletJournal),
           "--once",
         ],
-        process.env,
+        // Targeted observation exports a candidate's raw-block segment from the
+        // sync step, so it needs the same raw-block endpoint as the worker.
+        { ...process.env, ZECONE_GETBLOCK_URL: secrets[0] },
         25 * 60_000,
       );
       return syncStepResult(

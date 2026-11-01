@@ -694,11 +694,17 @@ fn funding_rows(path: &Path) -> Result<Value> {
         rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
     )?;
     let mut stmt = conn.prepare(
-        "SELECT t.txid,t.mined_height,r.pool,r.output_index,r.value,r.is_change,
+        // is_change marks every output of a transaction this account funded. A
+        // payment that lands on one of the account's EXTERNAL receive addresses
+        // (key_scope 0, e.g. the checkout address) is not change; only outputs
+        // to internal scope count toward a finalized spend's change.
+        "SELECT t.txid,t.mined_height,r.pool,r.output_index,r.value,
+                r.is_change AND (r.address_id IS NULL OR a.key_scope<>0),
                 (SELECT st.txid FROM v_received_output_spends s
                   JOIN transactions st ON st.id_tx=s.transaction_id
                  WHERE s.pool=r.pool AND s.received_output_id=r.id_within_pool_table)
          FROM v_received_outputs r JOIN transactions t ON t.id_tx=r.transaction_id
+         LEFT JOIN addresses a ON a.id=r.address_id
          WHERE r.value>0 ORDER BY t.mined_height,r.pool,r.output_index",
     )?;
     let rows = stmt.query_map([], |row| {
@@ -1424,6 +1430,15 @@ mod tests {
         spent["spent"] = json!(true);
         assert!(verify_note_rows(&json!([spent]), 119, "ab", 4, 0, 645_937, 100).is_err());
         assert!(verify_note_rows(&one, 118, "ab", 4, 0, 645_937, 100).is_err());
+    }
+
+    #[test]
+    fn funding_rows_count_only_internal_scope_outputs_as_change() {
+        // A self-funded payment to an external receive address (the checkout
+        // address) is flagged is_change by the wallet DB but is not change.
+        let source = include_str!("wallet.rs");
+        assert!(source.contains("r.is_change AND (r.address_id IS NULL OR a.key_scope<>0),"));
+        assert!(source.contains("LEFT JOIN addresses a ON a.id=r.address_id"));
     }
 
     #[test]

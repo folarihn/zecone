@@ -30,6 +30,11 @@ export type MainnetWatchPayment = {
   locked: boolean;
   spent: boolean;
   isChange: boolean;
+  /**
+   * Paid by a transaction this account funded (the integrated wallet) to one of
+   * its external receive addresses. Verified exactly like any other payment.
+   */
+  walletInternal?: boolean;
   confirmations: number;
   ownershipEvidence: {
     scheme: "zcash-full-transaction-ufvk-v3";
@@ -277,6 +282,8 @@ export function validateMainnetWatchSnapshot(
       typeof p.locked !== "boolean" ||
       typeof p.spent !== "boolean" ||
       typeof p.isChange !== "boolean" ||
+      (p.walletInternal !== undefined &&
+        typeof p.walletInternal !== "boolean") ||
       p.ownershipEvidence?.scheme !== "zcash-full-transaction-ufvk-v3" ||
       !HEX64.test(p.ownershipEvidence?.digest ?? "") ||
       p.ownershipEvidence?.providers !== 2 ||

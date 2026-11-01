@@ -688,6 +688,9 @@ struct MainnetPaymentRow {
     locked: bool,
     spent: bool,
     is_change: bool,
+    /// Received in a transaction this account funded (the wallet's is_change flag) at one of
+    /// its EXTERNAL receive addresses: a payment from the integrated wallet, not change.
+    wallet_internal: bool,
 }
 
 /// Re-establish ownership from provider-corroborated transaction bytes instead of trusting
@@ -957,7 +960,10 @@ async fn verify_mainnet_payment(
             .find(|output| {
                 output.index() == row.index
                     && output.account() == &account_id
-                    && output.transfer_type() == TransferType::Incoming
+                    && matches!(
+                        output.transfer_type(),
+                        TransferType::Incoming | TransferType::WalletInternal
+                    )
                     && output.note_value().into_u64() == row.zatoshis
                     && target
                         .sapling()
@@ -970,7 +976,10 @@ async fn verify_mainnet_payment(
             .find(|output| {
                 output.index() == row.index
                     && output.account() == &account_id
-                    && output.transfer_type() == TransferType::Incoming
+                    && matches!(
+                        output.transfer_type(),
+                        TransferType::Incoming | TransferType::WalletInternal
+                    )
                     && output.note().0.value().inner() == row.zatoshis
                     && target
                         .orchard()
@@ -983,7 +992,10 @@ async fn verify_mainnet_payment(
             .find(|output| {
                 output.index() == row.index
                     && output.account() == &account_id
-                    && output.transfer_type() == TransferType::Incoming
+                    && matches!(
+                        output.transfer_type(),
+                        TransferType::Incoming | TransferType::WalletInternal
+                    )
                     && output.note().0.value().inner() == row.zatoshis
                     && target
                         .orchard()
@@ -1139,7 +1151,7 @@ async fn observe_mainnet(
         final_tree.hash == remote.hash && final_tree.orchard_tree()? == remote.orchard_tree()?,
         "chain_changed_retry_scan"
     );
-    let mut stmt = conn.prepare("SELECT t.txid,r.pool,r.output_index,r.value,t.mined_height,b.hash,a.address,COALESCE(sp.nf,op.nf,ip.nf),CASE WHEN sp.lock_owner IS NOT NULL OR op.lock_owner IS NOT NULL OR ip.lock_owner IS NOT NULL THEN 1 ELSE 0 END,(SELECT COUNT(*) FROM v_received_output_spends s WHERE s.pool=r.pool AND s.received_output_id=r.id_within_pool_table),r.is_change FROM v_received_outputs r JOIN transactions t ON t.id_tx=r.transaction_id JOIN blocks b ON b.height=t.mined_height JOIN addresses a ON a.id=r.address_id LEFT JOIN sapling_received_notes sp ON r.pool=2 AND sp.id=r.id_within_pool_table LEFT JOIN orchard_received_notes op ON r.pool=3 AND op.id=r.id_within_pool_table LEFT JOIN ironwood_received_notes ip ON r.pool=4 AND ip.id=r.id_within_pool_table WHERE r.pool IN (2,3,4) AND r.is_change=0 AND r.value>0 AND t.mined_height IS NOT NULL ORDER BY t.txid,r.pool,r.output_index")?;
+    let mut stmt = conn.prepare("SELECT t.txid,r.pool,r.output_index,r.value,t.mined_height,b.hash,a.address,COALESCE(sp.nf,op.nf,ip.nf),CASE WHEN sp.lock_owner IS NOT NULL OR op.lock_owner IS NOT NULL OR ip.lock_owner IS NOT NULL THEN 1 ELSE 0 END,(SELECT COUNT(*) FROM v_received_output_spends s WHERE s.pool=r.pool AND s.received_output_id=r.id_within_pool_table),CASE WHEN a.key_scope=0 THEN 0 ELSE r.is_change END,r.is_change FROM v_received_outputs r JOIN transactions t ON t.id_tx=r.transaction_id JOIN blocks b ON b.height=t.mined_height JOIN addresses a ON a.id=r.address_id LEFT JOIN sapling_received_notes sp ON r.pool=2 AND sp.id=r.id_within_pool_table LEFT JOIN orchard_received_notes op ON r.pool=3 AND op.id=r.id_within_pool_table LEFT JOIN ironwood_received_notes ip ON r.pool=4 AND ip.id=r.id_within_pool_table WHERE r.pool IN (2,3,4) AND (r.is_change=0 OR a.key_scope=0) AND r.value>0 AND t.mined_height IS NOT NULL ORDER BY t.txid,r.pool,r.output_index")?;
     let candidates = stmt
         .query_map([], |r| {
             let rpc_txid: Vec<u8> = r.get(0)?;
@@ -1161,6 +1173,7 @@ async fn observe_mainnet(
                 locked: r.get::<_, u32>(8)? != 0,
                 spent: r.get::<_, u32>(9)? != 0,
                 is_change: r.get::<_, u32>(10)? != 0,
+                wallet_internal: r.get::<_, u32>(11)? != 0,
             })
         })?
         .collect::<Result<Vec<_>, _>>()?;
@@ -1193,7 +1206,7 @@ async fn observe_mainnet(
                 pending.push(json!({
                     "account":row.account,"txid":row.txid,"pool":row.pool,"index":row.index,
                     "zatoshis":row.zatoshis.to_string(),"height":row.height,"blockHash":row.block_hash,
-                    "address":row.address,"isChange":row.is_change,
+                    "address":row.address,"isChange":row.is_change,"walletInternal":row.wallet_internal,
                     "confirmations":tip.checked_sub(row.height).map(|d|d+1),
                     "verified":false,"evidence":"compact-scan-candidate",
                     "missingHeight":missing.height,"missingHash":missing.hash,
@@ -1207,7 +1220,7 @@ async fn observe_mainnet(
             "account":row.account,"txid":row.txid,"pool":row.pool,"index":row.index,
             "zatoshis":row.zatoshis.to_string(),"height":row.height,"blockHash":row.block_hash,
             "address":row.address,"memo":memo,"nullifier":row.nullifier.map(hex::encode),
-            "locked":row.locked,"spent":row.spent,"isChange":row.is_change,
+            "locked":row.locked,"spent":row.spent,"isChange":row.is_change,"walletInternal":row.wallet_internal,
             "confirmations":tip.checked_sub(row.height).map(|d|d+1),
             "ownershipEvidence":{"scheme":"zcash-full-transaction-ufvk-v3","digest":ownership_digest,"providers":2,"blockEvidence":block_evidence,"chainEvidence":chain_evidence}
         }));
@@ -1641,6 +1654,21 @@ mod tests {
             )
         );
         assert!(source.contains(r#""verified":false,"evidence":"compact-scan-candidate""#));
+    }
+
+    #[test]
+    fn integrated_wallet_payments_to_external_addresses_are_observed() {
+        // zcash_client_sqlite flags every output of a self-funded transaction as is_change.
+        // Only outputs on an EXTERNAL receive address (key_scope 0) are kept, reported as
+        // payments; real change (internal scope) is still excluded, and every kept output
+        // still needs the exact external receiver after full-transaction decryption.
+        let source = include_str!("main.rs");
+        assert!(source.contains("AND (r.is_change=0 OR a.key_scope=0) AND r.value>0"));
+        assert!(
+            source.contains("CASE WHEN a.key_scope=0 THEN 0 ELSE r.is_change END,r.is_change FROM")
+        );
+        assert!(source.contains("TransferType::Incoming | TransferType::WalletInternal"));
+        assert!(source.contains(r#""walletInternal":row.wallet_internal"#));
     }
 
     #[test]

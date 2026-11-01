@@ -658,3 +658,33 @@ test("the targeted path has no signing, broadcast, payout or settlement capabili
     /if sources\.defer_missing_segments \{\r?\n\s+snapshot\["pendingCandidates"\]/,
   );
 });
+
+test("an integrated-wallet payment to the checkout address is counted, never proven absent", async () => {
+  // The wallet flags every output of a transaction this account funded as is_change;
+  // one that lands on the external checkout address is the order's payment.
+  const t = await setup();
+  try {
+    const { key, payment } = await openOrder(t.h);
+    const expiry = (await state(t.h, key, payment.id)).paymentExpiryHeight as number;
+    t.w.mine(1);
+    t.w.update((c) => c.notes.push({ txid: tx("2"), height: TIP + 1, zatoshis: "2000000", address: ADDR, walletInternal: true }));
+    // Past the inclusion height but before 20 confirmations: pending, never EXPIRED.
+    t.w.mine(expiry + 1 - t.w.chain.tip);
+    assert.equal((await t.h.app.bridge!.tick()).error, CANDIDATE_PENDING);
+    assert.equal((await state(t.h, key, payment.id)).state, "AWAITING_PAYMENT");
+    t.w.mine(TIP + N - t.w.chain.tip);
+    assert.equal((await t.h.app.bridge!.tick()).ok, true);
+    const cur = await state(t.h, key, payment.id);
+    assert.equal(cur.state, "ZEC_CONFIRMED");
+    assert.equal(cur.detectedTxid, tx("2"));
+    // The marker is optional but, when present, must be a boolean.
+    const s = structuredClone(await t.w.scanner(true).observe()) as MainnetWatchSnapshot;
+    assert.equal((s.payments[0] as { walletInternal?: boolean }).walletInternal, true);
+    assert.throws(
+      () => validateMainnetWatchSnapshot({ ...s, payments: [{ ...s.payments[0], walletInternal: "yes" as never }] }),
+      /INVALID_MAINNET_PAYMENT/,
+    );
+  } finally {
+    await t.close();
+  }
+});

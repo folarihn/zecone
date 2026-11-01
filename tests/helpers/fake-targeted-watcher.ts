@@ -29,6 +29,8 @@ export type TargetedNote = {
   failBeforeSegment?: string;
   /** Rust failure after the segment verifies (e.g. UFVK decryption of a forged note). */
   failAfterSegment?: string;
+  /** Paid from this same account (the integrated wallet). */
+  walletInternal?: boolean;
 };
 
 export type TargetedChain = {
@@ -105,6 +107,7 @@ for (const n of chain.notes.filter((n) => n.height <= tip).sort((a, b) => a.heig
   }
   const base = { account: "a".repeat(64), txid: n.txid, pool: n.pool || 3, index: n.index || 0, zatoshis: n.zatoshis,
     height: n.height, blockHash: hash(n.height), address: n.address, isChange: false, confirmations: conf };
+  if (n.walletInternal) base.walletInternal = true;
   if (missing !== null) {
     if (!defer) fail("authenticated_mainnet_block_unavailable");
     pending.push({ ...base, verified: false, evidence: "compact-scan-candidate", missingHeight: missing, missingHash: hash(missing), segmentEnd: end });
