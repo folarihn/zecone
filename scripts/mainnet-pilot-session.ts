@@ -335,6 +335,10 @@ async function main() {
       }
     }, 60_000);
     timer.unref();
+    // A renewed order binding is single-use: an execution consumes it before
+    // anything else, so no other run (or dry run) can reuse it afterwards.
+    if (mode === "--run")
+      watch.consumeRenewal(c.watchBinding, c.sourceCommitment, sessionId);
     const result = await runPilotSession(
       sessions,
       c.sourceCommitment,

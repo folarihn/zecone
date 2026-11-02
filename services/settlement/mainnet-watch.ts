@@ -655,8 +655,42 @@ type PaymentRow = {
   nullifier: string | null;
 };
 
+/** The digested body of an order binding; `expires` is its only renewable field. */
+export function mainnetBindingBody(binding: MainnetOrderBinding) {
+  return {
+    orderId: binding.orderId,
+    account: binding.account,
+    address: binding.address,
+    zatoshis: binding.zatoshis,
+    expires: binding.expires,
+    ...(binding.memoHex === undefined ? {} : { memoHex: binding.memoHex }),
+    ...(binding.sourceEvidenceDigest === undefined
+      ? {}
+      : { sourceEvidenceDigest: binding.sourceEvidenceDigest }),
+    ...(binding.payment === undefined ? {} : { payment: binding.payment }),
+  };
+}
+export const mainnetBindingDigest = (binding: MainnetOrderBinding) =>
+  digest(mainnetBindingBody(binding));
+/** Digest of every immutable binding field (all but `expires`). */
+export function mainnetBindingImmutableDigest(binding: MainnetOrderBinding) {
+  const { expires: _renewable, ...immutable } = mainnetBindingBody(binding);
+  return digest(immutable);
+}
+
+type RenewalRow = {
+  renewal_id: string;
+  generation: number;
+  immutable_digest: string;
+  payment_commitment: string;
+  expires: number;
+  consumed_by: string | null;
+};
+
 export class MainnetWatchJournal {
   readonly db: DatabaseSync;
+  /** A renewal this process consumed for its own execution (see consumeRenewal). */
+  private consumedRenewal: string | null = null;
   private readonly verifiedOrders = new Set<string>();
   private readonly activeObservations = new Map<
     string,
@@ -673,7 +707,20 @@ export class MainnetWatchJournal {
       CREATE TABLE IF NOT EXISTS mainnet_watch_checkpoint(id INTEGER PRIMARY KEY CHECK(id=1), tip INTEGER NOT NULL, block_hash TEXT NOT NULL, anchor TEXT NOT NULL, anchor_height INTEGER NOT NULL, source TEXT NOT NULL, peer_source TEXT NOT NULL, observed_at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS mainnet_watch_orders(order_id TEXT PRIMARY KEY, account TEXT NOT NULL, address TEXT NOT NULL, zatoshis TEXT NOT NULL, expires INTEGER NOT NULL, memo_hex TEXT, binding_digest TEXT NOT NULL, created INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS mainnet_watch_payments(payment_key TEXT PRIMARY KEY, order_id TEXT NOT NULL REFERENCES mainnet_watch_orders(order_id), txid TEXT NOT NULL, pool INTEGER NOT NULL, output_index INTEGER NOT NULL, zatoshis TEXT NOT NULL, height INTEGER NOT NULL, block_hash TEXT NOT NULL, address TEXT NOT NULL, nullifier TEXT, memo_hex TEXT, status TEXT NOT NULL, active INTEGER NOT NULL, first_seen INTEGER NOT NULL, last_seen INTEGER NOT NULL);
-      CREATE INDEX IF NOT EXISTS mainnet_watch_payments_order ON mainnet_watch_payments(order_id, active);`);
+      CREATE INDEX IF NOT EXISTS mainnet_watch_payments_order ON mainnet_watch_payments(order_id, active);
+      CREATE TABLE IF NOT EXISTS mainnet_watch_binding_renewals(renewal_id TEXT PRIMARY KEY, order_id TEXT NOT NULL REFERENCES mainnet_watch_orders(order_id), generation INTEGER NOT NULL CHECK(generation > 0), original_binding_digest TEXT NOT NULL, previous_binding_digest TEXT NOT NULL, immutable_digest TEXT NOT NULL, renewed_binding_digest TEXT NOT NULL UNIQUE, payment_commitment TEXT NOT NULL, terms_digest TEXT NOT NULL, approval_digest TEXT NOT NULL, expires INTEGER NOT NULL, evidence_json TEXT NOT NULL, created INTEGER NOT NULL, UNIQUE(order_id, generation));
+      CREATE TABLE IF NOT EXISTS mainnet_watch_binding_renewal_consumptions(renewal_id TEXT PRIMARY KEY REFERENCES mainnet_watch_binding_renewals(renewal_id), session_ref TEXT NOT NULL, consumed INTEGER NOT NULL);`);
+    // Bindings, renewals and consumptions are append-only: no code path may
+    // rewrite or remove one, so every renewal stays auditable.
+    for (const table of [
+      "mainnet_watch_orders",
+      "mainnet_watch_binding_renewals",
+      "mainnet_watch_binding_renewal_consumptions",
+    ])
+      for (const op of ["UPDATE", "DELETE"])
+        this.db.exec(
+          `CREATE TRIGGER IF NOT EXISTS ${table}_no_${op.toLowerCase()} BEFORE ${op} ON ${table} BEGIN SELECT RAISE(ABORT, 'APPEND_ONLY_MAINNET_BINDING_JOURNAL'); END;`,
+        );
   }
   close() {
     this.verifiedOrders.clear();
@@ -692,19 +739,7 @@ export class MainnetWatchJournal {
     }
   }
   bind(binding: MainnetOrderBinding) {
-    const body = {
-        orderId: binding.orderId,
-        account: binding.account,
-        address: binding.address,
-        zatoshis: binding.zatoshis,
-        expires: binding.expires,
-        ...(binding.memoHex === undefined ? {} : { memoHex: binding.memoHex }),
-        ...(binding.sourceEvidenceDigest === undefined
-          ? {}
-          : { sourceEvidenceDigest: binding.sourceEvidenceDigest }),
-        ...(binding.payment === undefined ? {} : { payment: binding.payment }),
-      },
-      digestValue = digest(body);
+    const digestValue = mainnetBindingDigest(binding);
     if (
       !ORDER_ID.test(binding.orderId) ||
       !HEX64.test(binding.account) ||
@@ -727,7 +762,18 @@ export class MainnetWatchJournal {
       )
       .get(binding.orderId) as { binding_digest: string } | undefined;
     if (old) {
-      if (old.binding_digest !== digestValue)
+      if (old.binding_digest === digestValue) return;
+      // Otherwise only the latest operator-approved renewal of this exact
+      // binding (same immutable fields, new expiry) is accepted, until it
+      // expires, and once consumed only by the process that consumed it.
+      const r = this.renewalFor(binding);
+      if (
+        !r ||
+        r.generation !== this.latestRenewalGeneration(binding.orderId) ||
+        r.expires !== binding.expires ||
+        r.immutable_digest !== mainnetBindingImmutableDigest(binding) ||
+        (r.consumed_by !== null && r.renewal_id !== this.consumedRenewal)
+      )
         throw Error("IMMUTABLE_MAINNET_ORDER_BINDING");
       return;
     }
@@ -745,6 +791,58 @@ export class MainnetWatchJournal {
         digestValue,
         this.now(),
       );
+  }
+  private renewalFor(binding: MainnetOrderBinding) {
+    return this.db
+      .prepare(
+        "SELECT r.renewal_id,r.generation,r.immutable_digest,r.payment_commitment,r.expires,c.session_ref AS consumed_by FROM mainnet_watch_binding_renewals r LEFT JOIN mainnet_watch_binding_renewal_consumptions c ON c.renewal_id=r.renewal_id WHERE r.order_id=? AND r.renewed_binding_digest=?",
+      )
+      .get(binding.orderId, mainnetBindingDigest(binding)) as
+      RenewalRow | undefined;
+  }
+  latestRenewalGeneration(orderId: string) {
+    return (
+      (
+        this.db
+          .prepare(
+            "SELECT MAX(generation) AS g FROM mainnet_watch_binding_renewals WHERE order_id=?",
+          )
+          .get(orderId) as { g: number | null }
+      ).g ?? 0
+    );
+  }
+  /**
+   * Single-use: an execution (`--run`) consumes the renewal its binding came
+   * from before it starts. A second execution, or any other process, using the
+   * same renewal is refused. An original (never renewed) binding consumes nothing.
+   */
+  consumeRenewal(
+    binding: MainnetOrderBinding,
+    paymentCommitment: string,
+    sessionRef: string,
+  ) {
+    const r = this.renewalFor(binding);
+    if (!r) return null;
+    if (
+      r.payment_commitment !== paymentCommitment ||
+      r.expires !== binding.expires ||
+      r.expires <= this.now() ||
+      r.generation !== this.latestRenewalGeneration(binding.orderId) ||
+      r.immutable_digest !== mainnetBindingImmutableDigest(binding)
+    )
+      throw Error("MAINNET_BINDING_RENEWAL_INVALID");
+    if (r.consumed_by !== null) throw Error("MAINNET_BINDING_RENEWAL_CONSUMED");
+    try {
+      this.db
+        .prepare(
+          "INSERT INTO mainnet_watch_binding_renewal_consumptions(renewal_id,session_ref,consumed) VALUES(?,?,?)",
+        )
+        .run(r.renewal_id, sessionRef, this.now());
+    } catch {
+      throw Error("MAINNET_BINDING_RENEWAL_CONSUMED");
+    }
+    this.consumedRenewal = r.renewal_id;
+    return r.renewal_id;
   }
   private checkpoint() {
     return this.db
