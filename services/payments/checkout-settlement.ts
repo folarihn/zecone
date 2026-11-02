@@ -128,34 +128,6 @@ export function checkoutSettlementBinding(
   };
 }
 
-/**
- * How the payout session prices a checkout order. "quoted" (the default) pays
- * exactly the ETH quoted at checkout. "reprice-at-current-price" is an explicit
- * operator choice that pays what the received zatoshis are worth at the fresh
- * signed price, never more than the checkout quote.
- */
-export type CheckoutPayoutPolicy = "quoted" | "reprice-at-current-price";
-
-export function checkoutPayoutPolicy(value: unknown): CheckoutPayoutPolicy {
-  if (value === undefined || value === "quoted") return "quoted";
-  if (value === "reprice-at-current-price") return value;
-  return fail("CHECKOUT_PAYOUT_POLICY_INVALID");
-}
-
-/** Arguments for scripts/mainnet-pilot-price.ts under the chosen policy. */
-export function checkoutPricingArgs(policy: CheckoutPayoutPolicy, quotedPayoutWei: string, sourceZatoshis: string) {
-  return policy === "quoted" ? ["--amount", quotedPayoutWei] : ["--source-zatoshis", sourceZatoshis];
-}
-
-/** The freshly priced payout must match the quote, or (repriced) not exceed it. */
-export function assertCheckoutPricedPayout(policy: CheckoutPayoutPolicy, quotedPayoutWei: string, pricedWei: string) {
-  if (!/^[1-9][0-9]{0,30}$/.test(pricedWei) || !/^[1-9][0-9]{0,30}$/.test(quotedPayoutWei))
-    fail("CHECKOUT_QUOTED_PAYOUT_CHANGED");
-  if (policy === "quoted" ? pricedWei !== quotedPayoutWei : BigInt(pricedWei) > BigInt(quotedPayoutWei))
-    fail(policy === "quoted" ? "CHECKOUT_QUOTED_PAYOUT_CHANGED" : "CHECKOUT_REPRICED_PAYOUT_EXCEEDS_QUOTE");
-  return pricedWei;
-}
-
 type SubmissionRow = {
   order_id: string;
   network: string;
@@ -212,11 +184,10 @@ export function recordCheckoutPayout(
     terms.sourcePaymentCommitment !== e.paymentDigest ||
     row.terms_binding !== digest(terms) ||
     terms.sourceZatoshis !== e.zatoshis ||
+    terms.amount !== p.quote!.ethPayoutWei ||
     !isAddress(terms.recipient) ||
     getAddress(terms.recipient) !== getAddress(p.request.recipient) ||
     !/^[1-9][0-9]{0,30}$/.test(terms.amount) ||
-    // The quoted amount, or a repriced payout below it; never more than quoted.
-    BigInt(terms.amount) > BigInt(p.quote!.ethPayoutWei) ||
     !BASE_TX.test(row.transaction_id)
   )
     fail("PAYOUT_JOURNAL_DOES_NOT_MATCH_ORDER");

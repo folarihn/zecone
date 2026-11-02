@@ -4,10 +4,7 @@
 //   bind   --payments-db <db> --payment <id> --base-config <reviewed-session.json> --nonce <n> --out <new.json>
 //          Writes a session config for this order: the reviewed config with only the
 //          order-specific source fields replaced. Run `mainnet:pilot-session --check`
-//          and `--dry-run` on it before any `--run`. Optional
-//          `--payout-policy reprice-at-current-price` pays what the received zatoshis
-//          are worth at the fresh signed price (never more than quoted) instead of
-//          exactly the checkout quote.
+//          and `--dry-run` on it before any `--run`.
 //   record --payments-db <db> --payment <id> --journal <submissions.sqlite> --plan <session/plan.json>
 //          Copies the journal outcome (broadcast / finalized) onto the checkout order.
 import { readFileSync } from "node:fs";
@@ -15,7 +12,6 @@ import { resolve } from "node:path";
 import { exclusiveJson } from "../services/execution/io.ts";
 import { PaymentStore } from "../services/payments/store.ts";
 import {
-  checkoutPayoutPolicy,
   checkoutSettlementBinding,
   recordCheckoutPayout,
 } from "../services/payments/checkout-settlement.ts";
@@ -31,8 +27,7 @@ function args(argv: string[]) {
       throw Error("INVALID_ARGUMENTS");
     values.set(argv[i].slice(2), argv[i + 1]);
   }
-  const get = (name: string) => values.get(name) ?? (() => { throw Error(`MISSING_${name.toUpperCase().replace(/-/g, "_")}`); })();
-  return Object.assign(get, { optional: (name: string) => values.get(name) });
+  return (name: string) => values.get(name) ?? (() => { throw Error(`MISSING_${name.toUpperCase().replace(/-/g, "_")}`); })();
 }
 
 function main() {
@@ -50,11 +45,8 @@ function main() {
         windowSeconds: 3600,
         now: now(),
       });
-      const policy = checkoutPayoutPolicy(arg.optional("payout-policy"));
-      const { checkoutPayoutPolicy: _inherited, ...reviewed } = base;
-      const extra = policy === "quoted" ? {} : { checkoutPayoutPolicy: policy };
-      exclusiveJson(resolve(arg("out")), { ...reviewed, ...binding, expectedNonce: nonce, ...extra });
-      console.log(JSON.stringify({ status: "BOUND", ...binding, expectedNonce: nonce, checkoutPayoutPolicy: policy, signing: false, broadcast: false }));
+      exclusiveJson(resolve(arg("out")), { ...base, ...binding, expectedNonce: nonce });
+      console.log(JSON.stringify({ status: "BOUND", ...binding, expectedNonce: nonce, signing: false, broadcast: false }));
       return;
     }
     if (command === "record") {
