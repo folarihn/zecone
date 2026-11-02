@@ -745,6 +745,36 @@ fn confirmation_end(height: u32, tip: u32, minimum_confirmations: u32) -> Result
         .context("confirmation_height_overflow")
 }
 
+/// A mainnet scan is pinned to the provider-agreed height it began at. Blocks
+/// mined above it while the scan runs are ordinary; a provider that is no longer
+/// at or above the pinned height is not.
+fn check_pinned_height(pinned: u32, primary_latest: u64, peer_latest: u64) -> Result<()> {
+    ensure!(
+        primary_latest >= u64::from(pinned) && peer_latest >= u64::from(pinned),
+        "tip_changed_retry_scan"
+    );
+    Ok(())
+}
+
+/// Each `(height, hash)` verified during the scan, re-read from both providers at
+/// completion, must be identical on both and unchanged: otherwise the providers
+/// disagree or the chain was reorganized below the pinned height.
+fn check_still_canonical(
+    expected: &[(u32, String)],
+    primary: &[String],
+    peer: &[String],
+) -> Result<()> {
+    ensure!(
+        primary.len() == expected.len() && peer.len() == expected.len(),
+        "chain_changed_retry_scan"
+    );
+    for (((_, want), a), b) in expected.iter().zip(primary).zip(peer) {
+        ensure!(a.eq_ignore_ascii_case(b), "mainnet_provider_disagreement");
+        ensure!(a.eq_ignore_ascii_case(want), "chain_changed_retry_scan");
+    }
+    Ok(())
+}
+
 async fn verify_confirmation_chain(
     primary: &mut CompactTxStreamerClient<Channel>,
     peer: &mut CompactTxStreamerClient<Channel>,
@@ -1141,11 +1171,13 @@ async fn observe_mainnet(
     } else {
         None
     };
+    // `tip` is pinned: both providers agreed on its hash and trees above, and all
+    // confirmations are counted to it. New blocks above it are allowed.
     let latest = c
         .get_latest_block(service::ChainSpec::default())
         .await?
         .into_inner();
-    ensure!(latest.height == u64::from(tip), "tip_changed_retry_scan");
+    ensure!(latest.height >= u64::from(tip), "tip_changed_retry_scan");
     let final_tree = tree_for(&mut c, &MAIN_NET, "main", tip).await?;
     ensure!(
         final_tree.hash == remote.hash && final_tree.orchard_tree()? == remote.orchard_tree()?,
@@ -1233,10 +1265,7 @@ async fn observe_mainnet(
         .get_latest_block(service::ChainSpec::default())
         .await?
         .into_inner();
-    ensure!(
-        latest_after.height == u64::from(tip) && peer_latest_after.height >= u64::from(tip),
-        "tip_changed_retry_scan"
-    );
+    check_pinned_height(tip, latest_after.height, peer_latest_after.height)?;
     let primary_tip_after = tree_for(&mut c, &MAIN_NET, "main", tip).await?;
     let peer_tip_after = tree_for(&mut p, &MAIN_NET, "main", tip).await?;
     ensure!(
@@ -1246,6 +1275,32 @@ async fn observe_mainnet(
             && peer_tip_after.orchard_tree()? == remote.orchard_tree()?,
         "chain_changed_retry_scan"
     );
+    // Re-read from both providers: the pinned block and every verified payment's
+    // block and confirmation-segment end are still canonical.
+    let mut expected = vec![(tip, remote.hash.to_lowercase())];
+    for payment in &payments {
+        let evidence = &payment["ownershipEvidence"]["chainEvidence"];
+        for (height, hash) in [
+            (&payment["height"], &payment["blockHash"]),
+            (&evidence["endHeight"], &evidence["endHash"]),
+        ] {
+            let height = u32::try_from(height.as_u64().context("payment_height_missing")?)?;
+            let hash = hash
+                .as_str()
+                .context("payment_hash_missing")?
+                .to_lowercase();
+            if !expected.contains(&(height, hash.clone())) {
+                expected.push((height, hash));
+            }
+        }
+    }
+    let mut primary_hashes = Vec::with_capacity(expected.len());
+    let mut peer_hashes = Vec::with_capacity(expected.len());
+    for (height, _) in &expected {
+        primary_hashes.push(tree_for(&mut c, &MAIN_NET, "main", *height).await?.hash);
+        peer_hashes.push(tree_for(&mut p, &MAIN_NET, "main", *height).await?.hash);
+    }
+    check_still_canonical(&expected, &primary_hashes, &peer_hashes)?;
     let selected_address =
         select_authenticated_receiving_address(&manifest.address, receiving_address, &payments)?;
     let mut snapshot = json!({"network":"zcash-mainnet","watchOnly":true,"liveChain":true,"liveRefundsEnabled":false,"source":server,"peerSource":peer,"account":id,"address":selected_address,"defaultAddress":manifest.address,"birthday":manifest.birthday,"tip":tip,"scanned":tip,"blockHash":hex::encode(hash),"observedAt":SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),"minimumConfirmations":minimum_confirmations,"anchor":hex::encode(anchor.to_bytes()),"anchorHeight":anchor_height,"checkpoint":checkpoint_value,"payments":payments});
@@ -1387,6 +1442,48 @@ fn snapshot_summary(path: &Path) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn pinned_scan_allows_new_blocks_above_the_pinned_height() {
+        assert!(check_pinned_height(100, 100, 100).is_ok());
+        assert!(check_pinned_height(100, 101, 103).is_ok());
+        // A provider that fell below the pinned height (rollback or stale) fails.
+        for (primary, peer) in [(99, 100), (100, 99), (50, 50)] {
+            assert_eq!(
+                check_pinned_height(100, primary, peer)
+                    .unwrap_err()
+                    .to_string(),
+                "tip_changed_retry_scan"
+            );
+        }
+    }
+    #[test]
+    fn pinned_scan_rejects_reorganization_and_provider_disagreement() {
+        let expected = vec![(100, "aa".to_string()), (81, "bb".to_string())];
+        let same = vec!["AA".to_string(), "bb".to_string()];
+        assert!(check_still_canonical(&expected, &same, &same).is_ok());
+        // Both providers now show a different block at a verified height: reorg.
+        let reorged = vec!["aa".to_string(), "cc".to_string()];
+        assert_eq!(
+            check_still_canonical(&expected, &reorged, &reorged)
+                .unwrap_err()
+                .to_string(),
+            "chain_changed_retry_scan"
+        );
+        // The providers disagree with each other.
+        assert_eq!(
+            check_still_canonical(&expected, &same, &reorged)
+                .unwrap_err()
+                .to_string(),
+            "mainnet_provider_disagreement"
+        );
+        // A missing re-read is a failure, never a pass.
+        assert_eq!(
+            check_still_canonical(&expected, &same[..1], &same)
+                .unwrap_err()
+                .to_string(),
+            "chain_changed_retry_scan"
+        );
+    }
     #[test]
     fn snapshot_reader_rejects_original_wallet_without_opening_it() {
         let d = tempfile::tempdir().unwrap();

@@ -3,12 +3,14 @@
 // quotes or opens a key; the existing payout session still needs its own exact
 // SIGN and BROADCAST approvals.
 //
-//   review --config <session.json> --payments-db <db> --spend-journal <db> [--window 3600] [--supervisor-log <log>]
+//   review --config <session.json> --payments-db <db> --spend-journal <db> [--window 3600] [--approval-seconds 300] [--supervisor-log <log>]
 //          Re-verifies the exact bound payment from one fresh watcher scan, checks
-//          every renewal condition and prints the exact approval. Writes nothing.
-//   apply  ... --approve "<exact approval>" --out <new-session.json>
-//          Repeats every check, appends one renewal (new expiry = now + window)
-//          and writes a session config whose binding differs only in `expires`.
+//          every renewal condition, then fixes an absolute new expiry and a short
+//          approval deadline and prints the exact approval. Writes nothing.
+//   apply  ... --expires <unix> --approval-deadline <unix> --approve "<exact approval>" --out <new-session.json>
+//          Before the deadline only: repeats every check, appends one renewal
+//          with exactly the approved expiry and writes a session config whose
+//          binding differs only in `expires`. A missed deadline needs a new review.
 //
 // --supervisor-log waits (at most 300 s) for the operator supervisor to finish a
 // cycle and confirms no watcher process runs before the single scan.
@@ -21,6 +23,7 @@ import {
   assertBindingRenewalFacts,
   bindingRenewalApprovalText,
   bindingRenewalTerms,
+  proposeBindingRenewalSchedule,
   readBindingRenewalFacts,
   renewMainnetOrderBinding,
   reverifyBoundPayment,
@@ -85,13 +88,19 @@ async function main() {
   if (!/^[A-Za-z0-9_]{1,64}$/.test(paymentId) || checkoutOrderId(paymentId) !== original.orderId)
     throw Error("RENEWAL_CHECKOUT_ORDER_REQUIRED");
   const windowSeconds = Number(a.get("window") ?? "3600");
+  const approvalSeconds = Number(a.get("approval-seconds") ?? "300");
   const policy = json<{ network: string }[]>(c.profiles).find((p) => p.network === "zcash") as
     | MainnetWatchPolicy
     | undefined;
   if (!policy) throw Error("ZCASH_WATCH_PROFILE_REQUIRED");
   const journal = new MainnetWatchJournal(join(c.stateDirectory, "watch.sqlite"));
   try {
-    const terms = bindingRenewalTerms(journal, original, c.sourceCommitment, windowSeconds);
+    // apply: the exact approved schedule, refused at once if already past due.
+    const approved =
+      command === "apply"
+        ? { newExpires: Number(need("expires")), approvalDeadline: Number(need("approval-deadline")) }
+        : null;
+    if (approved) bindingRenewalTerms(journal, original, c.sourceCommitment, approved);
     const facts = readBindingRenewalFacts(
       {
         payments: resolve(need("payments-db")),
@@ -105,22 +114,30 @@ async function main() {
     if (log) await afterSupervisorCycle(resolve(log));
     const scanner = pilotSessionWatchScanner({ ...c, receivingAddress: original.address }, policy);
     const snapshot = await scanner.observe(journal.checkpointHeight());
-    if (command === "review") {
-      const now = journal.now();
+    if (!approved) {
       assertBindingRenewalFacts(facts);
-      const evidence = reverifyBoundPayment(journal, { ...original, expires: now + windowSeconds }, c.sourceCommitment, snapshot);
+      // The schedule starts only after the fresh verification has completed.
+      const schedule = proposeBindingRenewalSchedule(journal, windowSeconds, approvalSeconds);
+      const evidence = reverifyBoundPayment(journal, { ...original, expires: schedule.newExpires }, c.sourceCommitment, snapshot);
+      const now = journal.now();
+      const terms = bindingRenewalTerms(journal, original, c.sourceCommitment, schedule);
       const activeRenewal = !!journal.db
         .prepare("SELECT 1 FROM mainnet_watch_binding_renewals WHERE order_id=? AND expires>?")
         .get(original.orderId, now);
+      const iso = (t: number) => new Date(t * 1000).toISOString();
       console.log(JSON.stringify({
         status: "RENEWAL_REVIEW",
         eligible: original.expires <= now && !activeRenewal,
         originalExpired: original.expires <= now,
         activeRenewal,
+        reviewedAt: iso(now),
+        newExpires: terms.newExpires,
+        newExpiresUTC: iso(terms.newExpires),
+        approvalDeadline: terms.approvalDeadline,
+        approvalDeadlineUTC: iso(terms.approvalDeadline),
         terms,
         facts,
         evidence,
-        newExpiresOnApply: `now + ${windowSeconds} s`,
         requiredApproval: bindingRenewalApprovalText(terms),
         signing: false,
         broadcast: false,
@@ -130,7 +147,7 @@ async function main() {
     const renewal = renewMainnetOrderBinding(journal, {
       original,
       paymentCommitment: c.sourceCommitment,
-      windowSeconds,
+      schedule: approved,
       approval: need("approve"),
       snapshot,
       facts,

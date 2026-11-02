@@ -23,8 +23,10 @@ import {
   bindingRenewalApprovalText,
   bindingRenewalTerms,
   readBindingRenewalFacts,
+  proposeBindingRenewalSchedule,
   renewMainnetOrderBinding,
   type BindingRenewalFacts,
+  type BindingRenewalSchedule,
 } from "../services/settlement/mainnet-binding-renewal.ts";
 
 const ADDR = DEFAULT_CHECKOUT_ADDRESS;
@@ -79,13 +81,15 @@ async function fixture() {
   const commitment = first.paymentDigest!;
   clock.now = T0 + 100; // the original binding (T0 + 60) has now expired
   const snapshot = () => scanner.observe(journal.checkpointHeight());
-  const approval = (j = journal, window = 3600, b = original) =>
-    bindingRenewalApprovalText(bindingRenewalTerms(j, b, commitment, window));
+  // A review's schedule: new expiry in 3600 s, approval deadline in 300 s.
+  const schedule = (): BindingRenewalSchedule => ({ newExpires: clock.now + 3600, approvalDeadline: clock.now + 300 });
+  const approval = (j = journal, s = schedule(), b = original) =>
+    bindingRenewalApprovalText(bindingRenewalTerms(j, b, commitment, s));
   const renew = async (over: Partial<Parameters<typeof renewMainnetOrderBinding>[1]> = {}, j = journal) =>
     renewMainnetOrderBinding(j, {
       original,
       paymentCommitment: commitment,
-      windowSeconds: 3600,
+      schedule: schedule(),
       approval: approval(j),
       snapshot: await snapshot(),
       facts: GOOD,
@@ -95,7 +99,7 @@ async function fixture() {
   const renewals = (j = journal) => j.db.prepare("SELECT * FROM mainnet_watch_binding_renewals ORDER BY generation").all() as Record<string, any>[];
   return {
     w, W0, W1, OLD, PAY, T0, clock, path, open, journal, original, commitment, scanner, seed, ownership,
-    snapshot, approval, renew, orderRow, renewals,
+    snapshot, schedule, approval, renew, orderRow, renewals,
     close: () => { journal.close(); rmSync(w.dir, { recursive: true, force: true }); },
   };
 }
@@ -139,7 +143,16 @@ test("1-3, 20: an expired, unchanged, unsettled binding gets one append-only, bo
     assert.throws(() => t.journal.db.prepare("DELETE FROM mainnet_watch_binding_renewals").run(), /APPEND_ONLY/);
     // 20. The window is bounded by the checkout settlement policy.
     for (const window of [0, 299, 3601, 6 * 3600])
-      assert.throws(() => bindingRenewalTerms(t.journal, t.original, t.commitment, window), /RENEWAL_WINDOW_INVALID/);
+      assert.throws(() => proposeBindingRenewalSchedule(t.journal, window, 120), /RENEWAL_WINDOW_INVALID/);
+    for (const [window, approvalSeconds] of [[3600, 59], [3600, 601], [400, 300]])
+      assert.throws(() => proposeBindingRenewalSchedule(t.journal, window, approvalSeconds), /RENEWAL_APPROVAL_WINDOW_INVALID/);
+    const now = t.clock.now;
+    for (const s of [
+      { newExpires: now + 3601, approvalDeadline: now + 300 },
+      { newExpires: now + 500, approvalDeadline: now + 300 },
+    ])
+      assert.throws(() => bindingRenewalTerms(t.journal, t.original, t.commitment, s), /RENEWAL_WINDOW_INVALID/);
+    assert.throws(() => bindingRenewalTerms(t.journal, t.original, t.commitment, { newExpires: now + 3600, approvalDeadline: now + 601 }), /RENEWAL_APPROVAL_WINDOW_INVALID/);
   } finally {
     t.close();
   }
@@ -200,11 +213,11 @@ test("7-12: every immutable field is bound; a changed field cannot renew or bind
       ["ownership digest", { ...t.original, sourceEvidenceDigest: "f".repeat(64) }, /RENEWAL_ORIGINAL_BINDING_MISMATCH/],
     ];
     for (const [name, b, error] of changed)
-      assert.throws(() => bindingRenewalTerms(t.journal, b, t.commitment, 3600), error, name);
+      assert.throws(() => bindingRenewalTerms(t.journal, b, t.commitment, t.schedule()), error, name);
     // 12. A changed payment commitment is not re-verified (nothing written).
     const wrong = "0".repeat(64);
     await assert.rejects(
-      t.renew({ paymentCommitment: wrong, approval: bindingRenewalApprovalText(bindingRenewalTerms(t.journal, t.original, wrong, 3600)) }),
+      t.renew({ paymentCommitment: wrong, approval: bindingRenewalApprovalText(bindingRenewalTerms(t.journal, t.original, wrong, t.schedule())) }),
       /RENEWAL_PAYMENT_NOT_REVERIFIED/,
     );
     assert.equal(t.renewals().length, 0);
@@ -223,7 +236,7 @@ test("13-15: no substitution by other payments at the shared address, and a reor
   try {
     // 13. The earlier 804 payment at the same address cannot be the renewed payment.
     assert.throws(
-      () => bindingRenewalTerms(t.journal, { ...t.original, zatoshis: "804", sourceEvidenceDigest: t.ownership(tx("8")), payment: { ...t.original.payment!, txid: tx("8"), height: t.OLD } }, t.commitment, 3600),
+      () => bindingRenewalTerms(t.journal, { ...t.original, zatoshis: "804", sourceEvidenceDigest: t.ownership(tx("8")), payment: { ...t.original.payment!, txid: tx("8"), height: t.OLD } }, t.commitment, t.schedule()),
       /RENEWAL_ORIGINAL_BINDING_MISMATCH/,
     );
     // 14. The same amount from another transaction cannot replace the bound one.
@@ -326,12 +339,13 @@ test("18-19: renewals and consumptions survive restart; concurrent renewals reco
   const track = (j: MainnetWatchJournal) => (handles.push(j), j);
   try {
     const a = track(t.open()), b = track(t.open());
-    const terms = [bindingRenewalApprovalText(bindingRenewalTerms(a, t.original, t.commitment, 3600)), bindingRenewalApprovalText(bindingRenewalTerms(b, t.original, t.commitment, 3600))];
+    const s = t.schedule();
+    const terms = [bindingRenewalApprovalText(bindingRenewalTerms(a, t.original, t.commitment, s)), bindingRenewalApprovalText(bindingRenewalTerms(b, t.original, t.commitment, s))];
     assert.equal(terms[0], terms[1]);
     const snap = await t.snapshot();
     const results = [a, b].map((j, i) => {
       try {
-        return renewMainnetOrderBinding(j, { original: t.original, paymentCommitment: t.commitment, windowSeconds: 3600, approval: terms[i], snapshot: snap, facts: GOOD });
+        return renewMainnetOrderBinding(j, { original: t.original, paymentCommitment: t.commitment, schedule: s, approval: terms[i], snapshot: snap, facts: GOOD });
       } catch (e) {
         return (e as Error).message;
       }
@@ -360,5 +374,44 @@ test("18-19: renewals and consumptions survive restart; concurrent renewals reco
     for (const j of handles) j.close();
     try { t.journal.close(); } catch { /* already closed */ }
     rmSync(t.w.dir, { recursive: true, force: true });
+  }
+});
+
+test("approval freshness: exact expiry and deadline; no delayed, altered or replayed application", async () => {
+  const t = await fixture();
+  try {
+    const reviewedAt = t.clock.now;
+    const s = t.schedule();
+    const exact = t.approval(t.journal, s);
+    // Applied a little later but before the deadline: the binding gets exactly
+    // the approved expiry, never a fresh now + window.
+    t.clock.now = reviewedAt + 10;
+    const r = await t.renew({ schedule: s, approval: exact });
+    assert.equal(r.expires, s.newExpires);
+    assert.equal(r.renewedBinding.expires, reviewedAt + 3600);
+    assert.equal(t.renewals()[0].expires, reviewedAt + 3600);
+    // Replaying the same approval is refused.
+    await assert.rejects(t.renew({ schedule: s, approval: exact }), /RENEWAL_EXACT_APPROVAL_REQUIRED|RENEWAL_ACTIVE_RENEWAL_EXISTS/);
+    assert.equal(t.renewals().length, 1);
+  } finally {
+    t.close();
+  }
+  const u = await fixture();
+  try {
+    const s = u.schedule();
+    const exact = u.approval(u.journal, s);
+    // The approval binds the exact expiry and deadline.
+    // (+1 s also exceeds the 3600 s maximum, which is refused first.)
+    await assert.rejects(u.renew({ schedule: { ...s, newExpires: s.newExpires + 1 }, approval: exact }), /RENEWAL_EXACT_APPROVAL_REQUIRED|RENEWAL_WINDOW_INVALID/);
+    await assert.rejects(u.renew({ schedule: { ...s, newExpires: s.newExpires - 60 }, approval: exact }), /RENEWAL_EXACT_APPROVAL_REQUIRED/);
+    await assert.rejects(u.renew({ schedule: { ...s, approvalDeadline: s.approvalDeadline + 60 }, approval: exact }), /RENEWAL_EXACT_APPROVAL_REQUIRED/);
+    // Delayed past the approval deadline: void; a fresh review is required.
+    u.clock.now = s.approvalDeadline;
+    await assert.rejects(u.renew({ schedule: s, approval: exact }), /RENEWAL_APPROVAL_EXPIRED/);
+    u.clock.now = s.approvalDeadline + 3600;
+    await assert.rejects(u.renew({ schedule: s, approval: exact }), /RENEWAL_APPROVAL_EXPIRED/);
+    assert.equal(u.renewals().length, 0);
+  } finally {
+    u.close();
   }
 });

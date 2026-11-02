@@ -33,9 +33,18 @@ const digest = (value: unknown) =>
 /** The checkout settlement binding window (scripts/checkout-settlement.ts). */
 export const RENEWAL_MIN_WINDOW_SECONDS = 300;
 export const RENEWAL_MAX_WINDOW_SECONDS = 3600;
+/** How long a reviewed renewal may wait for its exact approval and application. */
+export const RENEWAL_MIN_APPROVAL_SECONDS = 60;
+export const RENEWAL_MAX_APPROVAL_SECONDS = 600;
+
+/** The absolute times a renewal review fixes; the approval binds both exactly. */
+export type BindingRenewalSchedule = {
+  newExpires: number;
+  approvalDeadline: number;
+};
 
 export type BindingRenewalTerms = {
-  version: 1;
+  version: 2;
   orderId: string;
   originalBindingDigest: string;
   previousBindingDigest: string;
@@ -44,7 +53,8 @@ export type BindingRenewalTerms = {
   paymentCommitment: string;
   ownershipDigest: string;
   payment: MainnetBoundPayment;
-  windowSeconds: number;
+  newExpires: number;
+  approvalDeadline: number;
   termsDigest: string;
 };
 
@@ -78,21 +88,58 @@ function originalRow(
   return row;
 }
 
+/** A review's schedule: the new expiry and a short approval deadline, from now. */
+export function proposeBindingRenewalSchedule(
+  journal: MainnetWatchJournal,
+  windowSeconds: number,
+  approvalSeconds: number,
+): BindingRenewalSchedule {
+  if (
+    !Number.isSafeInteger(windowSeconds) ||
+    windowSeconds < RENEWAL_MIN_WINDOW_SECONDS ||
+    windowSeconds > RENEWAL_MAX_WINDOW_SECONDS
+  )
+    throw Error("RENEWAL_WINDOW_INVALID");
+  if (
+    !Number.isSafeInteger(approvalSeconds) ||
+    approvalSeconds < RENEWAL_MIN_APPROVAL_SECONDS ||
+    approvalSeconds > RENEWAL_MAX_APPROVAL_SECONDS ||
+    approvalSeconds + RENEWAL_MIN_WINDOW_SECONDS > windowSeconds
+  )
+    throw Error("RENEWAL_APPROVAL_WINDOW_INVALID");
+  const now = journal.now();
+  return {
+    newExpires: now + windowSeconds,
+    approvalDeadline: now + approvalSeconds,
+  };
+}
+
 /**
- * The exact renewal terms the operator approves. Deterministic (no clock): the
- * new expiry is `windowSeconds` from the moment the approved renewal is applied,
- * so an approval given now does not burn the window while waiting.
+ * The exact renewal terms the operator approves: they bind the absolute new
+ * expiry and a short approval deadline. Past the deadline (or with any other
+ * expiry) the approval is void and a fresh review and approval are required.
  */
 export function bindingRenewalTerms(
   journal: MainnetWatchJournal,
   original: MainnetOrderBinding,
   paymentCommitment: string,
-  windowSeconds: number,
+  schedule: BindingRenewalSchedule,
 ): BindingRenewalTerms {
+  const now = journal.now();
+  const { newExpires, approvalDeadline } = schedule;
   if (
-    !Number.isSafeInteger(windowSeconds) ||
-    windowSeconds < RENEWAL_MIN_WINDOW_SECONDS ||
-    windowSeconds > RENEWAL_MAX_WINDOW_SECONDS
+    !Number.isSafeInteger(newExpires) ||
+    !Number.isSafeInteger(approvalDeadline)
+  )
+    throw Error("RENEWAL_SCHEDULE_INVALID");
+  if (approvalDeadline <= now) throw Error("RENEWAL_APPROVAL_EXPIRED");
+  if (approvalDeadline > now + RENEWAL_MAX_APPROVAL_SECONDS)
+    throw Error("RENEWAL_APPROVAL_WINDOW_INVALID");
+  // The renewed binding keeps at least the minimum window after the latest
+  // moment it can be applied, and never exceeds the settlement maximum.
+  if (
+    newExpires < approvalDeadline + RENEWAL_MIN_WINDOW_SECONDS ||
+    newExpires > now + RENEWAL_MAX_WINDOW_SECONDS
   )
     throw Error("RENEWAL_WINDOW_INVALID");
   if (
@@ -114,7 +161,7 @@ export function bindingRenewalTerms(
             .get(original.orderId, generation) as { d: string }
         ).d;
   const body = {
-    version: 1 as const,
+    version: 2 as const,
     orderId: original.orderId,
     originalBindingDigest: row.binding_digest,
     previousBindingDigest: previous,
@@ -123,7 +170,8 @@ export function bindingRenewalTerms(
     paymentCommitment,
     ownershipDigest: original.sourceEvidenceDigest,
     payment: original.payment,
-    windowSeconds,
+    newExpires,
+    approvalDeadline,
   };
   return { ...body, termsDigest: digest(body) };
 }
@@ -339,7 +387,8 @@ export function renewMainnetOrderBinding(
   input: {
     original: MainnetOrderBinding;
     paymentCommitment: string;
-    windowSeconds: number;
+    /** The exact schedule the operator approved; never recomputed here. */
+    schedule: BindingRenewalSchedule;
     approval: string;
     snapshot: MainnetWatchSnapshot;
     facts: BindingRenewalFacts;
@@ -351,7 +400,7 @@ export function renewMainnetOrderBinding(
     journal,
     original,
     paymentCommitment,
-    input.windowSeconds,
+    input.schedule,
   );
   if (input.approval !== bindingRenewalApprovalText(terms))
     throw Error("RENEWAL_EXACT_APPROVAL_REQUIRED");
@@ -366,7 +415,7 @@ export function renewMainnetOrderBinding(
     throw Error("RENEWAL_ACTIVE_RENEWAL_EXISTS");
   assertBindingRenewalFacts(input.facts);
 
-  const expires = now + input.windowSeconds;
+  const expires = terms.newExpires;
   const renewed: MainnetOrderBinding = { ...original, expires };
   const evidence = reverifyBoundPayment(
     journal,
