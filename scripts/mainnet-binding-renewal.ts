@@ -122,7 +122,9 @@ async function main() {
       const now = journal.now();
       const terms = bindingRenewalTerms(journal, original, c.sourceCommitment, schedule);
       const activeRenewal = !!journal.db
-        .prepare("SELECT 1 FROM mainnet_watch_binding_renewals WHERE order_id=? AND expires>?")
+        .prepare(`SELECT 1 FROM mainnet_watch_binding_renewals r
+          LEFT JOIN mainnet_watch_binding_renewal_consumptions c ON c.renewal_id=r.renewal_id
+          WHERE r.order_id=? AND r.expires>? AND c.renewal_id IS NULL`)
         .get(original.orderId, now);
       const iso = (t: number) => new Date(t * 1000).toISOString();
       console.log(JSON.stringify({

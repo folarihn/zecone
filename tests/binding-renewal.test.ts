@@ -231,6 +231,36 @@ test("7-12: every immutable field is bound; a changed field cannot renew or bind
   }
 });
 
+test("a consumed renewal may be replaced only after an unsigned aborted session", async () => {
+  const t = await fixture();
+  try {
+    const first = await t.renew();
+    t.journal.consumeRenewal(first.renewedBinding, t.commitment, "unsigned-aborted-session");
+    t.clock.now += 1;
+    const second = await t.renew();
+    assert.equal(second.generation, 2);
+    assert.equal(t.renewals().length, 2);
+    assert.equal(t.renewals()[1].previous_binding_digest, first.renewedBindingDigest);
+  } finally {
+    t.close();
+  }
+  for (const facts of [
+    { ...GOOD, pilotSessionStates: ["ABORTED", "SIGNED"] },
+    { ...GOOD, sourceConsumed: true },
+    { ...GOOD, baseSubmissions: 1 },
+  ]) {
+    const u = await fixture();
+    try {
+      const first = await u.renew();
+      u.journal.consumeRenewal(first.renewedBinding, u.commitment, "blocked");
+      await assert.rejects(u.renew({ facts }), /RENEWAL_BASE_SETTLEMENT_EXISTS/);
+      assert.equal(u.renewals().length, 1);
+    } finally {
+      u.close();
+    }
+  }
+});
+
 test("13-15: no substitution by other payments at the shared address, and a reorganization invalidates renewal", async () => {
   const t = await fixture();
   try {

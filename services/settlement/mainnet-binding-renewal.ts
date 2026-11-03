@@ -408,7 +408,9 @@ export function renewMainnetOrderBinding(
   if (
     journal.db
       .prepare(
-        "SELECT 1 FROM mainnet_watch_binding_renewals WHERE order_id=? AND expires>?",
+        `SELECT 1 FROM mainnet_watch_binding_renewals r
+         LEFT JOIN mainnet_watch_binding_renewal_consumptions c ON c.renewal_id=r.renewal_id
+         WHERE r.order_id=? AND r.expires>? AND c.renewal_id IS NULL`,
       )
       .get(original.orderId, now)
   )
@@ -440,7 +442,9 @@ export function renewMainnetOrderBinding(
     if (
       journal.db
         .prepare(
-          "SELECT 1 FROM mainnet_watch_binding_renewals WHERE order_id=? AND expires>?",
+          `SELECT 1 FROM mainnet_watch_binding_renewals r
+           LEFT JOIN mainnet_watch_binding_renewal_consumptions c ON c.renewal_id=r.renewal_id
+           WHERE r.order_id=? AND r.expires>? AND c.renewal_id IS NULL`,
         )
         .get(original.orderId, now)
     )
