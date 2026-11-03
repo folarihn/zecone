@@ -14,6 +14,10 @@ import {
   type MainnetQuoteInput,
 } from "./mainnet-quote.ts";
 import type { MainnetTransferTerms } from "./mainnet-transfer.ts";
+import {
+  pilotSourceValueWei,
+  validatePilotSourceShortfall,
+} from "./mainnet-pilot-shortfall.ts";
 
 export async function fetchPilotMarketObservations(
   fetcher: typeof fetch = fetch,
@@ -131,11 +135,13 @@ export async function verifyPilotBroadcastMarket(
   clock = () => Math.floor(Date.now() / 1000),
 ) {
   if (pilotQuoteMaximumSeconds(profile, clock()) !== 300) return;
+  const shortfall = terms.sourceShortfall;
   if (
     !context?.input.pilotPrice ||
     context.quote.quoteDigest !== terms.quoteDigest ||
     context.quote.destinationUnits !== terms.amount ||
-    BigInt(context.quote.sourceZatoshis) > BigInt(terms.sourceZatoshis) ||
+    (BigInt(context.quote.sourceZatoshis) > BigInt(terms.sourceZatoshis) &&
+      !shortfall) ||
     context.quote.maximumDestinationDebit !== terms.maximumDestinationDebit
   )
     throw Error("PILOT_BROADCAST_MARKET_CONTEXT_REQUIRED");
@@ -147,6 +153,26 @@ export async function verifyPilotBroadcastMarket(
     observations,
     clock(),
   );
+  if (shortfall) {
+    validatePilotSourceShortfall(shortfall);
+    if (
+      shortfall.requiredSourceZatoshis !== context.quote.sourceZatoshis ||
+      BigInt(terms.sourceZatoshis) >= BigInt(context.quote.sourceZatoshis)
+    )
+      throw Error("PILOT_SHORTFALL_BROADCAST_CONTEXT_REQUIRED");
+    const currentValue = pilotSourceValueWei(
+        result.numerator,
+        result.denominator,
+        terms.sourceZatoshis,
+      ),
+      payout = BigInt(terms.amount),
+      currentSubsidy = payout > currentValue ? payout - currentValue : 0n;
+    if (
+      currentSubsidy === 0n ||
+      currentSubsidy > BigInt(shortfall.maximumSubsidyWei)
+    )
+      throw Error("PILOT_SHORTFALL_CAP_EXCEEDED_AT_BROADCAST");
+  }
   // Network reads must not allow an approval to cross its deadline.
   assertMainnetQuote(context.quote, { ...context.input, profile }, clock());
   return result;

@@ -58,6 +58,11 @@ import {
   verifySingleOperatorPilotPrice,
   type SingleOperatorPilotPrice,
 } from "../services/settlement/mainnet-pilot-pricing.ts";
+import {
+  authorizedPilotShortfall,
+  type PilotShortfallAuthorizationTerms,
+} from "../services/settlement/mainnet-pilot-shortfall.ts";
+import { PilotSessionJournal } from "../services/settlement/mainnet-pilot-session.ts";
 
 type RequestFile = {
   recipient: string;
@@ -67,6 +72,7 @@ type RequestFile = {
   sourcePaymentCommitment: string;
   /** Actual authenticated deposit. May exceed, but never trail, fresh pricing requirement. */
   sourceZatoshis?: string;
+  shortfallAuthorization?: PilotShortfallAuthorizationTerms;
   expires: number;
 };
 type PricingFile = {
@@ -256,7 +262,41 @@ async function prepare(values: Map<string, string>) {
   if (quote.sourceZatoshis !== price.zatoshis || quote.expires > price.expires)
     throw Error("QUOTE_PRICE_MISMATCH");
   const actualSourceZatoshis = request.sourceZatoshis ?? quote.sourceZatoshis;
-  assertSourcePaymentCoversQuote(actualSourceZatoshis, quote.sourceZatoshis);
+  let sourceShortfall;
+  if (BigInt(actualSourceZatoshis) < BigInt(quote.sourceZatoshis)) {
+    if (!pricing.pilotPrice || !request.shortfallAuthorization)
+      throw Error("SOURCE_PAYMENT_DOES_NOT_COVER_QUOTE");
+    const shortfallJournal = new PilotSessionJournal(
+      resolve(required(values, "shortfall-journal")),
+    );
+    try {
+      const authorization = shortfallJournal.shortfallAuthorization(
+        request.shortfallAuthorization.termsDigest,
+        {
+          orderId: request.shortfallAuthorization.orderId,
+          paymentCommitment: request.sourcePaymentCommitment,
+          recipient: request.recipient,
+          actualSourceZatoshis,
+          quotedPayoutWei: request.amount,
+        },
+        at,
+      );
+      if (digest(authorization) !== digest(request.shortfallAuthorization))
+        throw Error("PILOT_SHORTFALL_SCOPE_MISMATCH");
+      sourceShortfall = authorizedPilotShortfall(
+        authorization,
+        pricing.pilotPrice.statement,
+        quote.sourceZatoshis,
+        at,
+      );
+    } finally {
+      shortfallJournal.close();
+    }
+  } else {
+    assertSourcePaymentCoversQuote(actualSourceZatoshis, quote.sourceZatoshis);
+    if (request.shortfallAuthorization)
+      throw Error("PILOT_SHORTFALL_NOT_REQUIRED");
+  }
   const terms = mainnetTransferTerms(
     p,
     {
@@ -268,7 +308,15 @@ async function prepare(values: Map<string, string>) {
       sourcePaymentCommitment: request.sourcePaymentCommitment,
       destinationBinding: ownership.binding,
       quoteDigest: quote.quoteDigest,
-      expires: Math.min(request.expires, price.expires, quote.expires),
+      sourceShortfall,
+      // A shortfall grant is an additional authorization boundary; it may
+      // shorten, but can never extend, the signed quote/transaction lifetime.
+      expires: Math.min(
+        request.expires,
+        price.expires,
+        quote.expires,
+        request.shortfallAuthorization?.expires ?? Number.MAX_SAFE_INTEGER,
+      ),
     },
     at,
   );

@@ -59,6 +59,7 @@ import {
   validateProductionProfile,
   type ProductionProfile,
 } from "../services/settlement/production-safety.ts";
+import type { PilotShortfallAuthorizationTerms } from "../services/settlement/mainnet-pilot-shortfall.ts";
 
 type Config = {
   profiles: string;
@@ -85,6 +86,7 @@ type Config = {
   passphraseFile: string;
   signerLedger: string;
   checkoutPaymentId?: string;
+  shortfallAuthorizationDigest?: string;
 };
 const now = () => Math.floor(Date.now() / 1000);
 const json = <T>(path: string): T =>
@@ -288,7 +290,8 @@ async function main() {
     payment: MainnetWatchObservation | undefined,
     quote: MainnetQuote,
     price: MainnetQuoteInput["pilotPrice"],
-    ownership: { nonce: string; expires: number; signature: `0x${string}` };
+    ownership: { nonce: string; expires: number; signature: `0x${string}` },
+    shortfallAuthorization: PilotShortfallAuthorizationTerms | undefined;
   const scanner = pilotSessionWatchScanner(
     { ...c, receivingAddress: c.watchBinding.address },
     watchPolicy,
@@ -399,6 +402,19 @@ async function main() {
             join(work, "pricing.json"),
           );
           price = pricing.pilotPrice;
+          if (checkoutScope && c.shortfallAuthorizationDigest) {
+            shortfallAuthorization = sessions.shortfallAuthorization(
+              c.shortfallAuthorizationDigest,
+              {
+                orderId: c.watchBinding.orderId,
+                paymentCommitment: c.sourceCommitment,
+                recipient: c.recipient,
+                actualSourceZatoshis: c.sourceZatoshis,
+                quotedPayoutWei: c.quotedPayoutWei!,
+              },
+              now(),
+            );
+          }
           if (checkoutScope && priced.destinationUnits !== c.quotedPayoutWei)
             throw Error("CHECKOUT_QUOTED_PAYOUT_CHANGED");
           exclusiveJson(join(work, "request.json"), {
@@ -408,6 +424,7 @@ async function main() {
             l1DataFeeBound: c.l1DataFee,
             sourcePaymentCommitment: c.sourceCommitment,
             sourceZatoshis: c.sourceZatoshis,
+            ...(shortfallAuthorization ? { shortfallAuthorization } : {}),
             expires: now() + 900,
           });
           child("scripts/mainnet-quote.ts", [
@@ -440,6 +457,12 @@ async function main() {
             join(work, "ownership.json"),
             "--out",
             join(work, "plan.json"),
+            ...(shortfallAuthorization
+              ? [
+                  "--shortfall-journal",
+                  join(c.stateDirectory, "pilot-sessions.sqlite"),
+                ]
+              : []),
           ]);
           child("scripts/mainnet-operator.ts", [
             "simulate",
@@ -517,6 +540,12 @@ async function main() {
           }
         },
         sign: async (_plan, approval) => {
+          if (shortfallAuthorization)
+            sessions.consumeShortfallAuthorization(
+              shortfallAuthorization.termsDigest,
+              sessionId,
+              now(),
+            );
           exclusiveJson(join(work, "signing-approval.json"), approval);
           child("scripts/mainnet-offline-sign.ts", [
             "--plan",

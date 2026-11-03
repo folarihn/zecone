@@ -423,6 +423,49 @@ test("source maximum zatoshis caps the Zcash source side independently", () => {
   );
 });
 
+test("operator-funded shortfall is bound into exact transfer terms and cannot exceed payout", () => {
+  const profile = baseProfile(),
+    shortfall = {
+      policy: "single-use-exact-order-operator-shortfall-v1" as const,
+      authorizationDigest: "9".repeat(64),
+      requiredSourceZatoshis: "100001",
+      sourceValueWei: "900",
+      subsidyWei: "100",
+      maximumSubsidyWei: "101",
+    },
+    terms = mainnetTransferTerms(
+      profile,
+      request({ sourceShortfall: shortfall }),
+      now,
+    );
+  assert.deepEqual(terms.sourceShortfall, shortfall);
+  assert.throws(
+    () =>
+      mainnetTransferTerms(
+        profile,
+        request({
+          sourceShortfall: { ...shortfall, sourceValueWei: "899" },
+        }),
+        now,
+      ),
+    /SHORTFALL_TERMS_INVALID/,
+  );
+  assert.throws(
+    () =>
+      mainnetTransferTerms(
+        profile,
+        request({
+          sourceShortfall: {
+            ...shortfall,
+            requiredSourceZatoshis: "100000",
+          },
+        }),
+        now,
+      ),
+    /SHORTFALL_TERMS_INVALID/,
+  );
+});
+
 test("Base preparation and offline signature verification are exact and read-only", async () => {
   const profile = baseProfile(),
     terms = mainnetTransferTerms(profile, request(), now),

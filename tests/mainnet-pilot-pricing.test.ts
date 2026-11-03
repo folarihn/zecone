@@ -376,17 +376,27 @@ test("broadcast market gate requires exact signed quote and fetches fresh indepe
   );
   await verifyPilotBroadcastMarket(
     f.profile,
-    { ...f.terms, sourceZatoshis: (BigInt(f.terms.sourceZatoshis) + 1n).toString() },
+    {
+      ...f.terms,
+      sourceZatoshis: (BigInt(f.terms.sourceZatoshis) + 1n).toString(),
+    },
     { quote: f.quote, input: f.input },
     market(2000),
     () => now + 299,
   );
   assert.equal(
-    assertSourcePaymentCoversQuote((BigInt(f.quote.sourceZatoshis) + 1n).toString(), f.quote.sourceZatoshis),
+    assertSourcePaymentCoversQuote(
+      (BigInt(f.quote.sourceZatoshis) + 1n).toString(),
+      f.quote.sourceZatoshis,
+    ),
     (BigInt(f.quote.sourceZatoshis) + 1n).toString(),
   );
   assert.throws(
-    () => assertSourcePaymentCoversQuote((BigInt(f.quote.sourceZatoshis) - 1n).toString(), f.quote.sourceZatoshis),
+    () =>
+      assertSourcePaymentCoversQuote(
+        (BigInt(f.quote.sourceZatoshis) - 1n).toString(),
+        f.quote.sourceZatoshis,
+      ),
     /SOURCE_PAYMENT_DOES_NOT_COVER_QUOTE/,
   );
   await assert.rejects(
@@ -398,6 +408,72 @@ test("broadcast market gate requires exact signed quote and fetches fresh indepe
       () => now + 300,
     ),
     /EXPIRED/,
+  );
+});
+
+test("broadcast rechecks an authorized shortfall against fresh prices and its exact cap", async () => {
+  const f = extendedPriceFixture(),
+    actual = "1900000",
+    shortfallTerms = {
+      ...f.terms,
+      sourceZatoshis: actual,
+      sourceShortfall: {
+        policy: "single-use-exact-order-operator-shortfall-v1" as const,
+        authorizationDigest: "9".repeat(64),
+        requiredSourceZatoshis: f.quote.sourceZatoshis,
+        sourceValueWei: "950000000000000",
+        subsidyWei: "50000000000000",
+        maximumSubsidyWei: "60000000000000",
+      },
+    } as MainnetTransferTerms,
+    market =
+      (eth: number): typeof fetch =>
+      async (url) =>
+        new Response(
+          JSON.stringify(
+            String(url).includes("coingecko")
+              ? { ethereum: { usd: eth }, zcash: { usd: 100 } }
+              : {
+                  quotes: {
+                    USD: {
+                      price: String(url).includes("eth-ethereum") ? eth : 100,
+                    },
+                  },
+                },
+          ),
+        );
+  await verifyPilotBroadcastMarket(
+    f.profile,
+    shortfallTerms,
+    { quote: f.quote, input: f.input },
+    market(2000),
+    () => now + 10,
+  );
+  await assert.rejects(
+    verifyPilotBroadcastMarket(
+      f.profile,
+      shortfallTerms,
+      { quote: f.quote, input: f.input },
+      market(2040),
+      () => now + 10,
+    ),
+    /SHORTFALL_CAP_EXCEEDED_AT_BROADCAST/,
+  );
+  await assert.rejects(
+    verifyPilotBroadcastMarket(
+      f.profile,
+      {
+        ...shortfallTerms,
+        sourceShortfall: {
+          ...shortfallTerms.sourceShortfall!,
+          requiredSourceZatoshis: "1",
+        },
+      },
+      { quote: f.quote, input: f.input },
+      market(2000),
+      () => now + 10,
+    ),
+    /SHORTFALL_BROADCAST_CONTEXT_REQUIRED/,
   );
 });
 

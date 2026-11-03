@@ -48,6 +48,10 @@ import {
   type DestinationNetwork,
 } from "./mainnet-address.ts";
 import { readProductionRpc } from "./mainnet-probe.ts";
+import {
+  validatePilotSourceShortfall,
+  type PilotSourceShortfall,
+} from "./mainnet-pilot-shortfall.ts";
 
 export const GAS_PRICE_ORACLE =
   "0x420000000000000000000000000000000000000F" as const;
@@ -83,6 +87,7 @@ export type MainnetTransferRequest = {
   sourcePaymentCommitment: string;
   destinationBinding: string;
   quoteDigest?: string;
+  sourceShortfall?: PilotSourceShortfall;
   expires: number;
 };
 
@@ -101,6 +106,7 @@ export type MainnetTransferTerms = {
   sourcePaymentCommitment: string;
   destinationBinding: string;
   quoteDigest: string | null;
+  sourceShortfall?: PilotSourceShortfall;
   profileDigest: string;
   expires: number;
 };
@@ -148,6 +154,17 @@ export function mainnetTransferTerms(
     !/^[a-f0-9]{64}$/.test(request.quoteDigest)
   )
     throw Error("INVALID_QUOTE_DIGEST");
+  if (request.sourceShortfall !== undefined) {
+    validatePilotSourceShortfall(request.sourceShortfall);
+    if (
+      BigInt(request.sourceShortfall.requiredSourceZatoshis) <=
+        sourceZatoshis ||
+      BigInt(request.sourceShortfall.sourceValueWei) +
+        BigInt(request.sourceShortfall.subsidyWei) !==
+        amount
+    )
+      throw Error("PILOT_SHORTFALL_TERMS_INVALID");
+  }
   if (
     !Number.isSafeInteger(request.expires) ||
     request.expires <= now ||
@@ -176,6 +193,9 @@ export function mainnetTransferTerms(
     sourcePaymentCommitment: request.sourcePaymentCommitment,
     destinationBinding: request.destinationBinding,
     quoteDigest: request.quoteDigest ?? null,
+    ...(request.sourceShortfall === undefined
+      ? {}
+      : { sourceShortfall: request.sourceShortfall }),
     profileDigest: hash(profile),
     expires: request.expires,
   };
@@ -360,6 +380,7 @@ function assertTerms(
       sourcePaymentCommitment: terms.sourcePaymentCommitment,
       destinationBinding: terms.destinationBinding,
       quoteDigest: terms.quoteDigest ?? undefined,
+      sourceShortfall: terms.sourceShortfall,
       expires: terms.expires,
     },
     Math.min(now, terms.expires - 1),

@@ -14,7 +14,13 @@ import {
   type MainnetSignedBundle,
   type VerifiedMainnetBundle,
 } from "./mainnet-transfer.ts";
+import type { PilotSourceShortfall } from "./mainnet-pilot-shortfall.ts";
 import type { MainnetSigningApproval } from "./mainnet-signer.ts";
+import {
+  assertPilotShortfallAuthorizationTerms,
+  pilotShortfallApprovalText,
+  type PilotShortfallAuthorizationTerms,
+} from "./mainnet-pilot-shortfall.ts";
 
 export type PilotPlan = {
   terms: MainnetTransferTerms;
@@ -34,6 +40,7 @@ export type PilotReview = {
   preparedDigest: string;
   transactionId: string | null;
   signedDigest: string | null;
+  sourceShortfall: PilotSourceShortfall | null;
 };
 const hash = (value: unknown) =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -54,7 +61,102 @@ export class PilotSessionJournal {
         expires INTEGER, detail TEXT);
       CREATE UNIQUE INDEX IF NOT EXISTS pilot_active_source ON pilot_sessions(source)
         WHERE state IN ('RUNNING','SIGNING','SIGNED','SUBMITTING','UNCERTAIN_SIGNING','UNCERTAIN');
-      CREATE TABLE IF NOT EXISTS pilot_consumed_sources(source TEXT PRIMARY KEY, session_id TEXT NOT NULL);`);
+      CREATE TABLE IF NOT EXISTS pilot_consumed_sources(source TEXT PRIMARY KEY, session_id TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS pilot_shortfall_authorizations(
+        terms_digest TEXT PRIMARY KEY, order_id TEXT NOT NULL, payment_commitment TEXT NOT NULL,
+        body_json TEXT NOT NULL, expires INTEGER NOT NULL, created INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS pilot_shortfall_authorization_consumptions(
+        terms_digest TEXT PRIMARY KEY REFERENCES pilot_shortfall_authorizations(terms_digest),
+        session_id TEXT NOT NULL UNIQUE, consumed INTEGER NOT NULL);
+      CREATE TRIGGER IF NOT EXISTS pilot_shortfall_authorizations_no_update BEFORE UPDATE ON pilot_shortfall_authorizations BEGIN SELECT RAISE(ABORT, 'APPEND_ONLY_PILOT_SHORTFALL_JOURNAL'); END;
+      CREATE TRIGGER IF NOT EXISTS pilot_shortfall_authorizations_no_delete BEFORE DELETE ON pilot_shortfall_authorizations BEGIN SELECT RAISE(ABORT, 'APPEND_ONLY_PILOT_SHORTFALL_JOURNAL'); END;
+      CREATE TRIGGER IF NOT EXISTS pilot_shortfall_consumptions_no_update BEFORE UPDATE ON pilot_shortfall_authorization_consumptions BEGIN SELECT RAISE(ABORT, 'APPEND_ONLY_PILOT_SHORTFALL_JOURNAL'); END;
+      CREATE TRIGGER IF NOT EXISTS pilot_shortfall_consumptions_no_delete BEFORE DELETE ON pilot_shortfall_authorization_consumptions BEGIN SELECT RAISE(ABORT, 'APPEND_ONLY_PILOT_SHORTFALL_JOURNAL'); END;`);
+  }
+  authorizeShortfall(
+    terms: PilotShortfallAuthorizationTerms,
+    approval: string,
+    now = Math.floor(Date.now() / 1000),
+  ) {
+    assertPilotShortfallAuthorizationTerms(terms, now);
+    if (now >= terms.approvalDeadline)
+      throw Error("PILOT_SHORTFALL_APPROVAL_EXPIRED");
+    if (approval !== pilotShortfallApprovalText(terms))
+      throw Error("PILOT_SHORTFALL_EXACT_APPROVAL_REQUIRED");
+    try {
+      this.db
+        .prepare(
+          "INSERT INTO pilot_shortfall_authorizations(terms_digest,order_id,payment_commitment,body_json,expires,created) VALUES(?,?,?,?,?,?)",
+        )
+        .run(
+          terms.termsDigest,
+          terms.orderId,
+          terms.paymentCommitment,
+          JSON.stringify(terms),
+          terms.expires,
+          now,
+        );
+    } catch {
+      throw Error("PILOT_SHORTFALL_AUTHORIZATION_REPLAY");
+    }
+  }
+  shortfallAuthorization(
+    termsDigestValue: string,
+    expected: {
+      orderId: string;
+      paymentCommitment: string;
+      recipient: string;
+      actualSourceZatoshis: string;
+      quotedPayoutWei: string;
+    },
+    now = Math.floor(Date.now() / 1000),
+  ) {
+    const row = this.db
+      .prepare(
+        `SELECT a.body_json,c.session_id FROM pilot_shortfall_authorizations a
+         LEFT JOIN pilot_shortfall_authorization_consumptions c ON c.terms_digest=a.terms_digest
+         WHERE a.terms_digest=?`,
+      )
+      .get(termsDigestValue) as
+      { body_json: string; session_id: string | null } | undefined;
+    if (!row || row.session_id !== null)
+      throw Error("PILOT_SHORTFALL_AUTHORIZATION_UNAVAILABLE");
+    const terms = JSON.parse(row.body_json) as PilotShortfallAuthorizationTerms;
+    assertPilotShortfallAuthorizationTerms(terms, now);
+    if (
+      terms.orderId !== expected.orderId ||
+      terms.paymentCommitment !== expected.paymentCommitment ||
+      terms.recipient.toLowerCase() !== expected.recipient.toLowerCase() ||
+      terms.actualSourceZatoshis !== expected.actualSourceZatoshis ||
+      terms.quotedPayoutWei !== expected.quotedPayoutWei
+    )
+      throw Error("PILOT_SHORTFALL_SCOPE_MISMATCH");
+    return terms;
+  }
+  consumeShortfallAuthorization(
+    termsDigestValue: string,
+    sessionId: string,
+    now = Math.floor(Date.now() / 1000),
+  ) {
+    const row = this.db
+      .prepare(
+        "SELECT body_json FROM pilot_shortfall_authorizations WHERE terms_digest=?",
+      )
+      .get(termsDigestValue) as { body_json: string } | undefined;
+    if (!row) throw Error("PILOT_SHORTFALL_AUTHORIZATION_UNAVAILABLE");
+    assertPilotShortfallAuthorizationTerms(
+      JSON.parse(row.body_json) as PilotShortfallAuthorizationTerms,
+      now,
+    );
+    try {
+      this.db
+        .prepare(
+          "INSERT INTO pilot_shortfall_authorization_consumptions(terms_digest,session_id,consumed) VALUES(?,?,?)",
+        )
+        .run(termsDigestValue, sessionId, now);
+    } catch {
+      throw Error("PILOT_SHORTFALL_AUTHORIZATION_REPLAY");
+    }
   }
   begin(id: string, source: string) {
     this.db.exec("BEGIN IMMEDIATE");
@@ -194,6 +296,7 @@ export async function runPilotSession(
     preparedDigest: preparedDigest(plan!.prepared),
     transactionId: verified?.transactionId ?? null,
     signedDigest: verified?.signedDigest ?? null,
+    sourceShortfall: plan!.terms.sourceShortfall ?? null,
   });
   const confirm = async (action: PilotReview["action"]) => {
     check();
