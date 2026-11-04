@@ -29,6 +29,7 @@ No wallet, funds, faucet or account is needed for steps 1–3.
    Health reports `mode: monitor`, `realPayments: restricted-pilot`, and
    `livePayoutEnabled: false` / `zcashBroadcastEnabled: false` (nothing moves
    funds automatically). The quote preview is labeled as a fixed demo rate.
+
 4. **Developer integration.** Read the create-payment snippet in
    [zecone.xyz/docs](https://zecone.xyz/docs). In
    [zecone.xyz/dashboard](https://zecone.xyz/dashboard) you can sign in with any
@@ -47,8 +48,12 @@ operator, so judges cannot trigger one. Verified on 1 November 2026: order
 [`cad53524…032163`](https://mainnet.zcashexplorer.app/transactions/cad535249a27d4503f54ab23811fa9ea3ea4f40a1eb916231e5d267f9a032163)
 (block 3,538,167). The watcher confirmed it after 20 confirmations, checking two
 independent providers and the raw blocks (proof of work, Merkle inclusion,
-continuity). The order reached `ZEC_CONFIRMED`; Base payouts stay
-operator-approved and were not triggered.
+continuity). The order reached `ZEC_CONFIRMED`, then completed the separately
+approved Base payout on 4 November 2026. The finalized payout sent
+`4,424,465,524,565` wei in transaction
+[`0x8ab550cd…f321289`](https://basescan.org/tx/0x8ab550cd3419009fc4086260104d5e0a2ea8f2008b03d35cb087c5210f321289).
+This is evidence of the restricted operator-controlled path, not unrestricted
+public settlement.
 
 To build and run everything locally, see [Install and verify](#install-and-verify).
 

@@ -8,7 +8,8 @@ export const EVIDENCE = {
     block: 3529711,
   },
   basePayout: {
-    txHash: "0xc677e9fa956015732c79bfda0991369245bae9394b6f0b9e13425a8e247648a7",
+    txHash:
+      "0xc677e9fa956015732c79bfda0991369245bae9394b6f0b9e13425a8e247648a7",
     wei: "3284955372432969",
     eth: "0.003284955372432969",
     block: 53065894,
@@ -30,9 +31,24 @@ export const EVIDENCE = {
     confirmationsAtVerification: 11,
     status: "FINALIZED",
   },
+  completedLiveCheckout: {
+    orderId: "pay_d9aae1aea3104f6995e6c04746",
+    zcashTxid:
+      "cad535249a27d4503f54ab23811fa9ea3ea4f40a1eb916231e5d267f9a032163",
+    zatoshis: "810",
+    zec: "0.00000810",
+    zcashBlock: 3538167,
+    baseTxHash:
+      "0x8ab550cd3419009fc4086260104d5e0a2ea8f2008b03d35cb087c5210f321289",
+    wei: "4424465524565",
+    eth: "0.000004424465524565",
+    baseBlock: 53501701,
+    status: "COMPLETED",
+  },
 } as const;
 
-export const zcashTx = (txid: string) => `https://zcashblockexplorer.com/transactions/${txid}`;
+export const zcashTx = (txid: string) =>
+  `https://zcashblockexplorer.com/transactions/${txid}`;
 export const baseTx = (txHash: string) => `https://basescan.org/tx/${txHash}`;
 
 export const CHECKOUT_ADDRESS =
