@@ -11,6 +11,8 @@
 //      order (`recordCheckoutPayout`) so the checkout and receipt show the real
 //      Base transaction. It opens the journal read-only and trusts no typed hash.
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join, resolve, sep } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { getAddress, isAddress } from "viem";
 import type { MainnetBoundPayment } from "../settlement/mainnet-watch.ts";
@@ -20,7 +22,8 @@ import { assessWalletEvidence } from "./wallet-evidence.ts";
 
 const HEX64 = /^[a-f0-9]{64}$/;
 const BASE_TX = /^0x[a-f0-9]{64}$/;
-const digest = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
+const digest = (value: unknown) =>
+  createHash("sha256").update(JSON.stringify(value)).digest("hex");
 
 /** Watch-order id for a checkout payment; the watcher bridge binds the same id. */
 export const checkoutOrderId = (paymentId: string) =>
@@ -32,22 +35,39 @@ const fail = (code: string): never => {
 };
 
 /** A real deposit the watcher confirmed and bound to its payment digest. */
-function confirmedOrder(p: Payment | null): Payment & { chainEvidence: NonNullable<Payment["chainEvidence"]> } {
+function confirmedOrder(
+  p: Payment | null,
+): Payment & { chainEvidence: NonNullable<Payment["chainEvidence"]> } {
   if (!p) return fail("CHECKOUT_PAYMENT_NOT_FOUND");
   if (p.mode !== "monitor") return fail("CHECKOUT_NOT_REAL_MAINNET_ORDER");
-  if (p.evidenceKind !== "mainnet-observed") return fail("CHECKOUT_EVIDENCE_NOT_MAINNET_OBSERVED");
+  if (p.evidenceKind !== "mainnet-observed")
+    return fail("CHECKOUT_EVIDENCE_NOT_MAINNET_OBSERVED");
   const e = p.chainEvidence;
-  if (!e || !e.paymentDigest || !HEX64.test(e.paymentDigest) || !HEX64.test(e.ownershipDigest))
+  if (
+    !e ||
+    !e.paymentDigest ||
+    !HEX64.test(e.paymentDigest) ||
+    !HEX64.test(e.ownershipDigest)
+  )
     return fail("CHECKOUT_PAYMENT_DIGEST_MISSING");
   if (e.confirmations < e.minimumConfirmations || e.minimumConfirmations < 20)
     return fail("CHECKOUT_CONFIRMATIONS_INSUFFICIENT");
-  if (!p.quote || e.zatoshis !== p.quote.zecAmountZat || p.detectedZat !== p.quote.zecAmountZat || p.detectedTxid !== e.txid)
+  if (
+    !p.quote ||
+    e.zatoshis !== p.quote.zecAmountZat ||
+    p.detectedZat !== p.quote.zecAmountZat ||
+    p.detectedTxid !== e.txid
+  )
     return fail("CHECKOUT_AMOUNT_OR_SOURCE_MISMATCH");
-  if (!isAddress(p.request.recipient)) return fail("CHECKOUT_RECIPIENT_INVALID");
+  if (!isAddress(p.request.recipient))
+    return fail("CHECKOUT_RECIPIENT_INVALID");
   // The integrated wallet must have signed and broadcast this exact txid before
   // the payment deadline; height evidence alone never binds a payout.
-  if (assessWalletEvidence(p, p.walletEvidence)) return fail("CHECKOUT_WALLET_EVIDENCE_REQUIRED");
-  return p as Payment & { chainEvidence: NonNullable<Payment["chainEvidence"]> };
+  if (assessWalletEvidence(p, p.walletEvidence))
+    return fail("CHECKOUT_WALLET_EVIDENCE_REQUIRED");
+  return p as Payment & {
+    chainEvidence: NonNullable<Payment["chainEvidence"]>;
+  };
 }
 
 export interface CheckoutSettlementBinding {
@@ -78,21 +98,35 @@ export interface CheckoutSettlementBinding {
 export function checkoutSettlementBinding(
   store: PaymentStore,
   paymentId: string,
-  opts: { account: string; allowedRecipient: string; windowSeconds: number; now: number },
+  opts: {
+    account: string;
+    allowedRecipient: string;
+    windowSeconds: number;
+    now: number;
+  },
 ): CheckoutSettlementBinding {
   const p = confirmedOrder(store.getPayment(paymentId));
   if (p.state !== "ZEC_CONFIRMED") fail("CHECKOUT_NOT_ZEC_CONFIRMED");
   if (!HEX64.test(opts.account)) fail("NATIVE_ACCOUNT_INVALID");
-  if (!isAddress(opts.allowedRecipient) || getAddress(p.request.recipient) !== getAddress(opts.allowedRecipient))
+  if (
+    !isAddress(opts.allowedRecipient) ||
+    getAddress(p.request.recipient) !== getAddress(opts.allowedRecipient)
+  )
     fail("CHECKOUT_RECIPIENT_NOT_ALLOWLISTED");
-  if (!Number.isSafeInteger(opts.windowSeconds) || opts.windowSeconds < 300 || opts.windowSeconds > 6 * 3600)
+  if (
+    !Number.isSafeInteger(opts.windowSeconds) ||
+    opts.windowSeconds < 300 ||
+    opts.windowSeconds > 6 * 3600
+  )
     fail("SETTLEMENT_WINDOW_INVALID");
   const e = p.chainEvidence;
   // The exact attributed output and the order's window: on a shared checkout
   // address, the payout re-verifies this note only, never other deposits there.
   const [txid, pool, index] = e.noteKey.split(":");
-  const windowStart = p.allocationTip ?? fail("CHECKOUT_PAYMENT_OUTSIDE_ORDER_WINDOW");
-  const windowEnd = p.paymentExpiryHeight ?? fail("CHECKOUT_PAYMENT_OUTSIDE_ORDER_WINDOW");
+  const windowStart =
+    p.allocationTip ?? fail("CHECKOUT_PAYMENT_OUTSIDE_ORDER_WINDOW");
+  const windowEnd =
+    p.paymentExpiryHeight ?? fail("CHECKOUT_PAYMENT_OUTSIDE_ORDER_WINDOW");
   if (
     txid !== e.txid ||
     Number(pool) !== e.pool ||
@@ -148,8 +182,23 @@ type PlanTerms = {
 };
 
 export type RecordOutcome =
-  | { status: "submitted" | "completed"; state: Payment["state"]; txHash: string; wei: string }
-  | { status: "reconcile_required" | "not_submitted"; state: Payment["state"]; journalState: string | null };
+  | {
+      status: "submitted" | "completed";
+      state: Payment["state"];
+      txHash: string;
+      wei: string;
+    }
+  | {
+      status: "reconcile_required" | "not_submitted";
+      state: Payment["state"];
+      journalState: string | null;
+    };
+
+export type CheckoutSettlementSessionPaths = {
+  submissionJournal: string;
+  pilotJournal: string;
+  sessionsDirectory: string;
+};
 
 /**
  * Copy the payout outcome from the existing submission journal onto the order.
@@ -175,7 +224,8 @@ export function recordCheckoutPayout(
   } finally {
     journal.close();
   }
-  if (!row) return { status: "not_submitted", state: p.state, journalState: null };
+  if (!row)
+    return { status: "not_submitted", state: p.state, journalState: null };
   // The journal row, the reviewed plan terms and the checkout order must all agree.
   if (
     row.network !== "base" ||
@@ -198,7 +248,8 @@ export function recordCheckoutPayout(
     fail("PAYOUT_JOURNAL_BROADCAST_TXID_MISMATCH");
   if (
     row.state === "finalized" &&
-    (row.finalized_ref === null || !/^[1-9][0-9]{0,15}$/.test(row.finalized_ref))
+    (row.finalized_ref === null ||
+      !/^[1-9][0-9]{0,15}$/.test(row.finalized_ref))
   )
     fail("PAYOUT_JOURNAL_FINALITY_INVALID");
   if (row.state !== "broadcast" && row.state !== "finalized")
@@ -207,26 +258,110 @@ export function recordCheckoutPayout(
       state: p.state,
       journalState: row.state,
     };
-  if (p.payoutTxHash !== null && p.payoutTxHash !== row.transaction_id) fail("CHECKOUT_PAYOUT_ALREADY_RECORDED");
+  if (p.payoutTxHash !== null && p.payoutTxHash !== row.transaction_id)
+    fail("CHECKOUT_PAYOUT_ALREADY_RECORDED");
   store.tx(() => {
-    const evidence = { evidence: "mainnet-observed", sourceCommitment: e.paymentDigest, txHash: row!.transaction_id };
+    const evidence = {
+      evidence: "mainnet-observed",
+      sourceCommitment: e.paymentDigest,
+      txHash: row!.transaction_id,
+    };
     if (p.state === "ZEC_CONFIRMED") {
-      store.transition(p.id, "PAYOUT_PENDING", { ...evidence, settlement: "operator-approved" }, now);
+      store.transition(
+        p.id,
+        "PAYOUT_PENDING",
+        { ...evidence, settlement: "operator-approved" },
+        now,
+      );
       store.setPayout(p.id, row!.transaction_id, terms.amount, now);
     }
     if (store.getPayment(p.id)!.state === "PAYOUT_PENDING")
-      store.transition(p.id, "PAYOUT_SUBMITTED", { ...evidence, wei: terms.amount }, now);
-    if (row!.state === "finalized" && store.getPayment(p.id)!.state === "PAYOUT_SUBMITTED") {
-      store.transition(p.id, "PAYOUT_CONFIRMED", { ...evidence, block: row!.finalized_ref }, now);
+      store.transition(
+        p.id,
+        "PAYOUT_SUBMITTED",
+        { ...evidence, wei: terms.amount },
+        now,
+      );
+    if (
+      row!.state === "finalized" &&
+      store.getPayment(p.id)!.state === "PAYOUT_SUBMITTED"
+    ) {
+      store.transition(
+        p.id,
+        "PAYOUT_CONFIRMED",
+        { ...evidence, block: row!.finalized_ref },
+        now,
+      );
       store.transition(p.id, "COMPLETED", evidence, now);
     }
   });
   const final = store.getPayment(p.id)!;
-  if (final.payoutTxHash !== row.transaction_id) fail("CHECKOUT_PAYOUT_STATE_UNEXPECTED");
+  if (final.payoutTxHash !== row.transaction_id)
+    fail("CHECKOUT_PAYOUT_STATE_UNEXPECTED");
   return {
     status: final.state === "COMPLETED" ? "completed" : "submitted",
     state: final.state,
     txHash: row.transaction_id,
     wei: terms.amount,
   };
+}
+
+/**
+ * Discover the one consumed pilot session for this payment, load its exact
+ * immutable plan, and copy only the read-only submission outcome to checkout.
+ * This is the operator-sync bridge: it has no signer, key or submission method.
+ */
+export function recordCheckoutPayoutFromSession(
+  store: PaymentStore,
+  paymentId: string,
+  paths: CheckoutSettlementSessionPaths,
+  now: number,
+): RecordOutcome {
+  const p = confirmedOrder(store.getPayment(paymentId));
+  const pilot = new DatabaseSync(resolve(paths.pilotJournal), {
+    readOnly: true,
+  });
+  let session:
+    { id: string; state: string; transaction_id: string | null } | undefined;
+  try {
+    session = pilot
+      .prepare(
+        `SELECT s.id,s.state,s.transaction_id
+         FROM pilot_consumed_sources c
+         JOIN pilot_sessions s ON s.id=c.session_id
+         WHERE c.source=?`,
+      )
+      .get(p.chainEvidence!.paymentDigest) as typeof session;
+  } finally {
+    pilot.close();
+  }
+  if (!session)
+    return { status: "not_submitted", state: p.state, journalState: null };
+  if (!/^[a-f0-9]{32}$/.test(session.id)) fail("PILOT_SESSION_ID_INVALID");
+  const root = resolve(paths.sessionsDirectory),
+    planPath = resolve(join(root, session.id, "plan.json"));
+  if (!planPath.startsWith(`${root}${sep}`)) fail("PILOT_SESSION_PATH_INVALID");
+  let terms: PlanTerms;
+  try {
+    const plan = JSON.parse(readFileSync(planPath, "utf8")) as {
+      terms?: PlanTerms;
+    };
+    terms = plan.terms ?? fail("PILOT_SESSION_PLAN_INVALID");
+  } catch (error) {
+    if (error instanceof CheckoutSettlementError) throw error;
+    return fail("PILOT_SESSION_PLAN_INVALID");
+  }
+  const outcome = recordCheckoutPayout(
+    store,
+    paymentId,
+    paths.submissionJournal,
+    terms,
+    now,
+  );
+  if (
+    (outcome.status === "submitted" || outcome.status === "completed") &&
+    (session.state !== "BROADCAST" || session.transaction_id !== outcome.txHash)
+  )
+    fail("PILOT_SESSION_TRANSACTION_MISMATCH");
+  return outcome;
 }

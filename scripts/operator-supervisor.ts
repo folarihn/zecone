@@ -48,6 +48,9 @@ const config = JSON.parse(readFileSync(resolve(arg("config")), "utf8")) as {
   mirror: string;
   checkoutAddressFile: string;
   walletJournal: string;
+  submissionJournal?: string;
+  pilotJournal?: string;
+  pilotSessionsDirectory?: string;
   providerEndpointFile: string;
   alertLog: string;
   cycleSeconds?: number;
@@ -70,6 +73,13 @@ const checkoutAddress = readFileSync(
   resolve(config.checkoutAddressFile),
   "utf8",
 ).trim();
+const settlementPaths = [
+  config.submissionJournal,
+  config.pilotJournal,
+  config.pilotSessionsDirectory,
+];
+if (settlementPaths.some(Boolean) && !settlementPaths.every(Boolean))
+  throw Error("INCOMPLETE_SETTLEMENT_JOURNAL_CONFIG");
 const now = () => Math.floor(Date.now() / 1000);
 const log = (event: Record<string, unknown>) =>
   process.stdout.write(
@@ -234,6 +244,16 @@ const supervisor = new OperatorSupervisor(
           checkoutAddress,
           "--wallet-journal",
           resolve(config.walletJournal),
+          ...(settlementPaths.every(Boolean)
+            ? [
+                "--submission-journal",
+                resolve(config.submissionJournal!),
+                "--pilot-journal",
+                resolve(config.pilotJournal!),
+                "--pilot-sessions-dir",
+                resolve(config.pilotSessionsDirectory!),
+              ]
+            : []),
           "--once",
         ],
         // Targeted observation exports a candidate's raw-block segment from the

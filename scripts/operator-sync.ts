@@ -28,6 +28,10 @@ import { orderWindows } from "../services/payments/targeted-observation.ts";
 import type { Payment } from "../services/payments/types.ts";
 import type { SignedCheckoutPilotQuote } from "../services/payments/pilot-quote.ts";
 import {
+  recordCheckoutPayoutFromSession,
+  type CheckoutSettlementSessionPaths,
+} from "../services/payments/checkout-settlement.ts";
+import {
   assessWalletEvidence,
   readWalletJournalEvidence,
   type WalletEvidence,
@@ -39,6 +43,13 @@ function arg(name: string, fallback?: string) {
   const v = i >= 0 ? process.argv[i + 1] : fallback;
   if (!v || v.startsWith("--"))
     throw Error(`MISSING_${name.toUpperCase().replace(/-/g, "_")}`);
+  return v;
+}
+function optionalArg(name: string) {
+  const i = process.argv.indexOf(`--${name}`);
+  const v = i >= 0 ? process.argv[i + 1] : undefined;
+  if (v?.startsWith("--"))
+    throw Error(`INVALID_${name.toUpperCase().replace(/-/g, "_")}`);
   return v;
 }
 
@@ -111,7 +122,10 @@ export async function syncOnce(
   bridge: { tick(): Promise<{ ok: boolean; error?: string }> },
   remote: Remote,
   t = now(),
-  opts: { walletEvidence?: (txid: string) => WalletEvidence | null } = {},
+  opts: {
+    walletEvidence?: (txid: string) => WalletEvidence | null;
+    settlement?: CheckoutSettlementSessionPaths;
+  } = {},
 ) {
   const pushed: string[] = [];
   const remoteOrders = new Map((await remote.orders()).map((p) => [p.id, p]));
@@ -146,7 +160,7 @@ export async function syncOnce(
   if (!tick.ok) return { ok: false, error: tick.error, pushed };
   const absenceResolved: string[] = [];
   for (const r of remoteOrders.values()) {
-    const m = mirror.getPayment(r.id);
+    let m = mirror.getPayment(r.id);
     if (!m) continue;
     if (m.state === "EXPIRED" && r.state === "MANUAL_REVIEW") {
       const latest = [...mirror.listEvents(m.id)]
@@ -208,6 +222,10 @@ export async function syncOnce(
         });
         pushed.push(`${m.id}:${state}`);
       }
+    }
+    if (opts.settlement && CONFIRMED_OR_LATER.has(m.state)) {
+      recordCheckoutPayoutFromSession(mirror, m.id, opts.settlement, t);
+      m = mirror.getPayment(m.id)!;
     }
     // Recorded by `checkout:settlement record` from the existing submission journal.
     if (
@@ -279,6 +297,20 @@ async function main() {
   // Required: without the integrated wallet journal no deposit can qualify.
   const walletJournal = resolve(arg("wallet-journal"));
   if (!existsSync(walletJournal)) throw Error("WALLET_JOURNAL_NOT_FOUND");
+  const settlementValues = [
+      optionalArg("submission-journal"),
+      optionalArg("pilot-journal"),
+      optionalArg("pilot-sessions-dir"),
+    ],
+    settlement = settlementValues.every(Boolean)
+      ? {
+          submissionJournal: resolve(settlementValues[0]!),
+          pilotJournal: resolve(settlementValues[1]!),
+          sessionsDirectory: resolve(settlementValues[2]!),
+        }
+      : undefined;
+  if (settlementValues.some(Boolean) && !settlement)
+    throw Error("INCOMPLETE_SETTLEMENT_JOURNAL_CONFIG");
   const once = process.argv.includes("--once");
   const interval = Math.max(60, Number(arg("interval", "120")));
   try {
@@ -290,6 +322,7 @@ async function main() {
             ...(await syncOnce(mirror, bridge, remote, now(), {
               walletEvidence: (txid) =>
                 readWalletJournalEvidence(walletJournal, txid),
+              settlement,
             })),
           }),
         );
