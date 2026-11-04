@@ -38,6 +38,7 @@ test("localhost one-click review requires its unguessable path and one POST", as
   const url = await urlReady;
   const page = await fetch(url);
   assert.equal(page.status, 200);
+  assert.equal(page.headers.get("referrer-policy"), "same-origin");
   const html = await page.text();
   assert.match(html, /SIGN &amp; BROADCAST THIS EXACT TRANSACTION/);
   assert.match(html, /0x1111111111111111111111111111111111111111/);
@@ -48,6 +49,11 @@ test("localhost one-click review requires its unguessable path and one POST", as
     headers: { origin: "https://attacker.invalid" },
   });
   assert.equal(bad.status, 403);
+  const nullOrigin = await fetch(url, {
+    method: "POST",
+    headers: { origin: "null" },
+  });
+  assert.equal(nullOrigin.status, 403);
   const parsed = new URL(url);
   const ok = await fetch(url, {
     method: "POST",

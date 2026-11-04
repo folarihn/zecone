@@ -16,7 +16,10 @@ const headers = {
   "content-security-policy":
     "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
   "cross-origin-opener-policy": "same-origin",
-  "referrer-policy": "no-referrer",
+  // A basic HTML form POST serializes Origin as `null` under `no-referrer`.
+  // `same-origin` keeps the review URL private from other origins while letting
+  // this loopback page prove that its POST came from the exact loopback origin.
+  "referrer-policy": "same-origin",
   "x-content-type-options": "nosniff",
   "x-frame-options": "DENY",
 };
