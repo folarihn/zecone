@@ -51,6 +51,7 @@ import {
 import {
   productionPrice,
   validateProductionProfile,
+  validateProductionProfileForReconciliation,
   type ProductionProfile,
   type SignedPrice,
 } from "../services/settlement/production-safety.ts";
@@ -179,6 +180,19 @@ function planFile(file: string): Plan {
 function assertCurrentProfile(plan: Plan, file: string) {
   const current = profile(file, plan.network),
     validated = validateProductionProfile(current);
+  if (
+    digest(validated) !== digest(plan.profile) ||
+    plan.terms.profileDigest !== digest(validated)
+  )
+    throw Error("PLAN_PROFILE_CHANGED_OR_NOT_ACTIVE");
+  return validated;
+}
+function assertCurrentProfileForReconciliation(plan: Plan, file: string) {
+  const current = profile(file, plan.network),
+    validated = validateProductionProfileForReconciliation(
+      current,
+      plan.terms.expires,
+    );
   if (
     digest(validated) !== digest(plan.profile) ||
     plan.terms.profileDigest !== digest(validated)
@@ -579,7 +593,10 @@ async function execute(values: Map<string, string>) {
 
 async function reconcile(values: Map<string, string>) {
   const plan = planFile(required(values, "plan")),
-    p = assertCurrentProfile(plan, required(values, "profiles")),
+    p = assertCurrentProfileForReconciliation(
+      plan,
+      required(values, "profiles"),
+    ),
     leaseFile = required(values, "lease"),
     journalFile = required(values, "journal"),
     journal = journalFor(resolve(journalFile), p),

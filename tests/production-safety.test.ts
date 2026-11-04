@@ -9,6 +9,7 @@ import {
   ProductionReservations,
   productionPrice,
   validateProductionProfile,
+  validateProductionProfileForReconciliation,
   assertMainnetExecutionAvailable,
   type ProductionProfile,
   type PriceStatement,
@@ -90,6 +91,20 @@ test("single-device pilot is gated, expiring and honest about non-separation", (
     signer: { ...pilotProfile.signer!, publicKey: basePem },
   };
   validateProductionProfile(oneClickBase, now);
+  const expiredPilot = {
+    ...oneClickBase,
+    pilot: { ...oneClickBase.pilot!, expires: now - 10 },
+  };
+  assert.equal(
+    validateProductionProfileForReconciliation(expiredPilot, now - 11, now)
+      .pilot?.expires,
+    now - 10,
+  );
+  assert.throws(
+    () =>
+      validateProductionProfileForReconciliation(expiredPilot, now - 9, now),
+    /RECONCILIATION_OUTSIDE_PILOT_WINDOW/,
+  );
   assert.throws(
     () =>
       validateProductionProfile(

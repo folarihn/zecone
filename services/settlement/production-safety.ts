@@ -189,6 +189,28 @@ export function validateProductionProfile(
   // A declaration is not attestation verification; activation remains separately gated.
   return structuredClone(p);
 }
+
+/**
+ * Receipt reconciliation cannot authorize a new transaction. Allow an exact
+ * historical pilot profile to be revalidated after its operator window closes,
+ * but only when the already-signed transaction terms expired inside that same
+ * window. All signing and submission paths continue to use the current-time
+ * validator above.
+ */
+export function validateProductionProfileForReconciliation(
+  p: ProductionProfile,
+  termsExpires: number,
+  at = Math.floor(Date.now() / 1000),
+) {
+  if (!p.pilot || p.pilot.expires > at) return validateProductionProfile(p, at);
+  if (
+    !Number.isSafeInteger(termsExpires) ||
+    termsExpires < 1 ||
+    termsExpires > p.pilot.expires
+  )
+    throw Error("RECONCILIATION_OUTSIDE_PILOT_WINDOW");
+  return validateProductionProfile(p, p.pilot.expires - 1);
+}
 type Reservation = {
   order_id: string;
   terms: string;
