@@ -351,12 +351,13 @@ test("17: a renewal needs its own exact approval and grants no signing or broadc
     await assert.rejects(t.renew({ approval: exact.slice(0, -1) + (exact.endsWith("0") ? "1" : "0") }), /RENEWAL_EXACT_APPROVAL_REQUIRED/);
     const r = await t.renew();
     assert.deepEqual(Object.keys(r).sort(), ["evidence", "expires", "generation", "renewalId", "renewedBinding", "renewedBindingDigest", "termsDigest"]);
-    // The payout session consumes a renewal only for an execution, before it
-    // starts, and its SIGN and BROADCAST approvals are unchanged.
+    // Preparation and approval timeout do not consume the renewal. The live
+    // payout consumes it immediately before opening the signer.
     const session = readFileSync(new URL("../scripts/mainnet-pilot-session.ts", import.meta.url), "utf8");
-    assert.match(session, /if \(mode === "--run"\)\s+watch\.consumeRenewal\(c\.watchBinding, c\.sourceCommitment, sessionId\);\s+const result = await runPilotSession\(/);
+    assert.doesNotMatch(session, /if \(mode === "--run"\)\s+watch\.consumeRenewal/);
+    assert.match(session, /sign: async \(_plan, approval\) => \{[\s\S]*?watch\.consumeRenewal\([\s\S]*?c\.watchBinding,[\s\S]*?c\.sourceCommitment,[\s\S]*?sessionId/);
     const runner = readFileSync(new URL("../services/settlement/mainnet-pilot-session.ts", import.meta.url), "utf8");
-    assert.match(runner, /await confirm\("SIGN"\)/);
+    assert.match(runner, /await confirm\(options\.combinedApproval \? "SIGN_AND_BROADCAST" : "SIGN"\)/);
     assert.match(runner, /if \(options\.dryRun\)/);
   } finally {
     t.close();

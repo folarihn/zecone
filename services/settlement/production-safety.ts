@@ -15,6 +15,8 @@ export type SingleDevicePilot = {
   riskAccepted: string;
   quoteValiditySeconds?: 300;
   marketMovementBps?: number;
+  /** Localhost-only, exact-transaction combined SIGN+BROADCAST approval. */
+  oneClickExecution?: true;
 };
 export type ProductionProfile = {
   network: ProductionNetwork;
@@ -147,7 +149,9 @@ export function validateProductionProfile(
       (p.pilot.marketMovementBps !== undefined &&
         (!Number.isSafeInteger(p.pilot.marketMovementBps) ||
           p.pilot.marketMovementBps < 0 ||
-          p.pilot.marketMovementBps > 200))
+          p.pilot.marketMovementBps > 200)) ||
+      (p.pilot.oneClickExecution !== undefined &&
+        (p.network !== "base" || p.pilot.oneClickExecution !== true))
     )
       throw Error("SINGLE_DEVICE_PILOT_INVALID_OR_EXPIRED");
   }

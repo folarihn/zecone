@@ -20,6 +20,8 @@ import {
 import { mainnetApprovalPackage } from "../services/settlement/mainnet-approval-package.ts";
 const keys = generateKeyPairSync("ed25519"),
   pem = String(keys.publicKey.export({ format: "pem", type: "spki" }));
+const baseKeys = generateKeyPairSync("ec", { namedCurve: "secp256k1" }),
+  basePem = String(baseKeys.publicKey.export({ format: "pem", type: "spki" }));
 const profile = (): ProductionProfile => ({
   network: "solana",
   enabled: true,
@@ -79,6 +81,26 @@ test("single-device pilot is gated, expiring and honest about non-separation", (
       signer: { ...profile().signer!, separateDeviceValidated: false },
     };
   validateProductionProfile(pilotProfile, now);
+  const oneClickBase: ProductionProfile = {
+    ...pilotProfile,
+    network: "base",
+    relayer: "0x1111111111111111111111111111111111111111",
+    recipients: ["0x2222222222222222222222222222222222222222"],
+    pilot: { ...pilot, oneClickExecution: true },
+    signer: { ...pilotProfile.signer!, publicKey: basePem },
+  };
+  validateProductionProfile(oneClickBase, now);
+  assert.throws(
+    () =>
+      validateProductionProfile(
+        {
+          ...pilotProfile,
+          pilot: { ...pilot, oneClickExecution: true },
+        },
+        now,
+      ),
+    /SINGLE_DEVICE_PILOT_INVALID_OR_EXPIRED/,
+  );
   assert.throws(
     () =>
       validateProductionProfile(

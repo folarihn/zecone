@@ -27,7 +27,7 @@ export type PilotPlan = {
   prepared: MainnetPrepared;
 };
 export type PilotReview = {
-  action: "SIGN" | "BROADCAST";
+  action: "SIGN" | "BROADCAST" | "SIGN_AND_BROADCAST";
   sessionId: string;
   chainId: 8453;
   recipient: string;
@@ -38,6 +38,12 @@ export type PilotReview = {
   expires: number;
   termsDigest: string;
   preparedDigest: string;
+  nonce: number;
+  gas: string;
+  gasPrice: string;
+  blockNumber: string;
+  blockHash: string;
+  quoteDigest: string;
   transactionId: string | null;
   signedDigest: string | null;
   sourceShortfall: PilotSourceShortfall | null;
@@ -260,7 +266,7 @@ export async function runPilotSession(
   adapters: PilotSessionAdapters,
   now = () => Math.floor(Date.now() / 1000),
   id = randomBytes(16).toString("hex"),
-  options: { dryRun?: boolean } = {},
+  options: { dryRun?: boolean; combinedApproval?: boolean } = {},
 ) {
   if (!/^[a-f0-9]{64}$/.test(source))
     throw Error("PILOT_SOURCE_COMMITMENT_REQUIRED");
@@ -282,22 +288,33 @@ export async function runPilotSession(
       throw Error("PILOT_EXACT_SOURCE_AND_BASE_REQUIRED");
     assertPreparedMainnetTransfer(plan.terms, plan.prepared);
   };
-  const review = (action: PilotReview["action"]): PilotReview => ({
-    action,
-    sessionId: id,
-    chainId: 8453,
-    recipient: plan!.terms.recipient,
-    amount: plan!.terms.amount,
-    maximumDestinationDebit: plan!.terms.maximumDestinationDebit,
-    feeCap: plan!.terms.feeCap,
-    sourceCommitment: source,
-    expires: plan!.terms.expires,
-    termsDigest: termsDigest(plan!.terms),
-    preparedDigest: preparedDigest(plan!.prepared),
-    transactionId: verified?.transactionId ?? null,
-    signedDigest: verified?.signedDigest ?? null,
-    sourceShortfall: plan!.terms.sourceShortfall ?? null,
-  });
+  const review = (action: PilotReview["action"]): PilotReview => {
+    const prepared = plan!.prepared;
+    if (prepared.kind !== "base-unsigned")
+      throw Error("PILOT_EXACT_SOURCE_AND_BASE_REQUIRED");
+    return {
+      action,
+      sessionId: id,
+      chainId: 8453,
+      recipient: plan!.terms.recipient,
+      amount: plan!.terms.amount,
+      maximumDestinationDebit: plan!.terms.maximumDestinationDebit,
+      feeCap: plan!.terms.feeCap,
+      sourceCommitment: source,
+      expires: plan!.terms.expires,
+      termsDigest: termsDigest(plan!.terms),
+      preparedDigest: preparedDigest(prepared),
+      nonce: prepared.tx.nonce,
+      gas: prepared.tx.gas,
+      gasPrice: prepared.tx.gasPrice,
+      blockNumber: prepared.blockNumber,
+      blockHash: prepared.blockHash,
+      quoteDigest: prepared.quoteDigest,
+      transactionId: verified?.transactionId ?? null,
+      signedDigest: verified?.signedDigest ?? null,
+      sourceShortfall: plan!.terms.sourceShortfall ?? null,
+    };
+  };
   const confirm = async (action: PilotReview["action"]) => {
     check();
     const body = review(action),
@@ -338,7 +355,7 @@ export async function runPilotSession(
         secondsRemaining: plan.terms.expires - now(),
       };
     }
-    await confirm("SIGN");
+    await confirm(options.combinedApproval ? "SIGN_AND_BROADCAST" : "SIGN");
     journal.record(id, "SIGNING", plan);
     signingStarted = true;
     signed = await adapters.sign(plan, {
@@ -360,7 +377,13 @@ export async function runPilotSession(
     )
       throw Error("PILOT_SIGNED_BINDING_MISMATCH");
     journal.record(id, "SIGNED", plan, verified.transactionId);
-    await confirm("BROADCAST");
+    if (!options.combinedApproval) await confirm("BROADCAST");
+    else {
+      // The one-click approval binds the exact prepared transaction. The
+      // verified signed transaction must still match it before submission.
+      await adapters.validate(plan);
+      check();
+    }
     await adapters.preflight(journal.priorTransactions(source));
     check();
     journal.claim(id, source);

@@ -60,6 +60,7 @@ import {
   type ProductionProfile,
 } from "../services/settlement/production-safety.ts";
 import type { PilotShortfallAuthorizationTerms } from "../services/settlement/mainnet-pilot-shortfall.ts";
+import { waitForOneClickApproval } from "../services/settlement/pilot-one-click.ts";
 
 type Config = {
   profiles: string;
@@ -117,12 +118,12 @@ function child(script: string, args: string[]) {
 async function main() {
   const [mode, flag, path] = process.argv.slice(2);
   if (
-    !["--check", "--dry-run", "--run"].includes(mode) ||
+    !["--check", "--dry-run", "--run", "--one-click"].includes(mode) ||
     flag !== "--config" ||
     !path ||
     process.argv.length !== 5
   )
-    throw Error("USE_CHECK_DRY_RUN_OR_RUN_WITH_CONFIG");
+    throw Error("USE_CHECK_DRY_RUN_ONE_CLICK_OR_RUN_WITH_CONFIG");
   if (mode === "--run" && (!stdin.isTTY || !stdout.isTTY))
     throw Error("INTERACTIVE_OPERATOR_TERMINAL_REQUIRED");
   const c = json<Config>(path),
@@ -134,6 +135,8 @@ async function main() {
   validateProductionProfile(profile);
   if (!profile.enabled || !singleDevicePilotActive(profile, now()))
     throw Error("ACTIVE_BASE_PILOT_REQUIRED");
+  if (mode === "--one-click" && profile.pilot?.oneClickExecution !== true)
+    throw Error("PILOT_ONE_CLICK_NOT_ENABLED");
   for (const p of [c.stateDirectory, c.signerLedger])
     assertExternalPath(resolve(p));
   // Either the original first-pilot scope, or one confirmed checkout order bound
@@ -338,10 +341,8 @@ async function main() {
       }
     }, 60_000);
     timer.unref();
-    // A renewed order binding is single-use: an execution consumes it before
-    // anything else, so no other run (or dry run) can reuse it afterwards.
-    if (mode === "--run")
-      watch.consumeRenewal(c.watchBinding, c.sourceCommitment, sessionId);
+    // The execution lease serializes preparation. A renewed binding is not
+    // consumed until the exact approval passes and signing is about to begin.
     const result = await runPilotSession(
       sessions,
       c.sourceCommitment,
@@ -525,6 +526,18 @@ async function main() {
               2,
             ),
           );
+          if (mode === "--one-click") {
+            return waitForOneClickApproval(review, exactText, {
+              now,
+              onListening: () =>
+                console.log(
+                  JSON.stringify({
+                    action: "LOCAL_OPERATOR_REVIEW_OPENED",
+                    expires: review.expires,
+                  }),
+                ),
+            });
+          }
           const rl = createInterface({ input: stdin, output: stdout });
           try {
             return await rl.question(
@@ -540,6 +553,10 @@ async function main() {
           }
         },
         sign: async (_plan, approval) => {
+          // A live renewal remains reusable after preparation or approval
+          // timeout. It becomes permanently single-use only when signing is
+          // actually about to begin.
+          watch.consumeRenewal(c.watchBinding, c.sourceCommitment, sessionId);
           if (shortfallAuthorization)
             sessions.consumeShortfallAuthorization(
               shortfallAuthorization.termsDigest,
@@ -646,7 +663,10 @@ async function main() {
       },
       now,
       sessionId,
-      { dryRun: mode === "--dry-run" },
+      {
+        dryRun: mode === "--dry-run",
+        combinedApproval: mode === "--one-click",
+      },
     );
     exclusiveJson(join(work, "result.json"), result);
     console.log(JSON.stringify(result));

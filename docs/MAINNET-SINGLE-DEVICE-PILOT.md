@@ -37,9 +37,34 @@ this one transfer:
 - The 1800-second Base finality gate is unchanged.
 - Exact recipient/amount/fee/digest review is unchanged.
 - The 0.02 ZEC source cap and the exact destination allowlist are unchanged.
-- Funding, signing, and broadcast remain separate, explicit approvals.
+- Funding remains separate. The default CLI retains separate SIGN and BROADCAST
+  approvals. A profile may explicitly set `pilot.oneClickExecution: true` to
+  replace them with one exact, localhost-only `SIGN_AND_BROADCAST` approval for
+  the same capped pilot transaction.
 - One-shot submission, single-writer lease, emergency pause, and fail-closed
   replay/refund behavior are unchanged.
+
+## Optional localhost one-click execution
+
+`npm run mainnet:pilot-one-click -- --config <session.json>` performs the slow
+watcher, price, liquidity, nonce, ownership, preparation, and simulation checks
+before opening a temporary review page on `127.0.0.1`. The page has no external
+scripts, assets, signer material, or public listener. Its unguessable URL accepts
+one POST and then closes.
+
+The single button binds the chain ID, recipient, payout, maximum debit, fee cap,
+nonce, gas, gas price, prepared block, source commitment, quote expiry, quote
+digest, terms digest, and prepared transaction digest.
+After approval the operator process signs locally, verifies that the signature
+matches the exact prepared transaction, then repeats price, nonce, liquidity,
+expiry, duplicate-settlement, and source checks before one broadcast. Any changed
+or expired value aborts. A preparation or approval timeout does not consume a
+renewed payment binding; the binding becomes single-use immediately before the
+signer opens and remains consumed after any signing uncertainty.
+
+This mode is unavailable unless the active Base pilot profile explicitly contains
+`oneClickExecution: true`. It does not affect public services, normal production
+profiles, or the existing separate-approval CLI.
 
 ## Recovery policy (accepted residual risk)
 

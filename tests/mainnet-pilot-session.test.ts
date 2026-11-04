@@ -188,6 +188,55 @@ test("pilot runs two exact approvals consecutively and consumes a source once", 
   }
 });
 
+test("one-click pilot binds one exact approval to sign and one broadcast", async () => {
+  const f = fixture(),
+    actions: string[] = [];
+  f.adapters.approve = async (review, text) => {
+    actions.push(review.action);
+    assert.equal(review.action, "SIGN_AND_BROADCAST");
+    assert.equal(review.transactionId, null);
+    assert.equal(review.signedDigest, null);
+    assert.equal(text, pilotApprovalText(review));
+    return text;
+  };
+  try {
+    await runPilotSession(f.journal, source, f.adapters, f.now, "one-click", {
+      combinedApproval: true,
+    });
+    assert.deepEqual(actions, ["SIGN_AND_BROADCAST"]);
+    assert.deepEqual(f.counts(), { signs: 1, sends: 1 });
+  } finally {
+    f.journal.close();
+  }
+});
+
+test("one-click approval still fails closed on expiry and nonce movement", async () => {
+  for (const failure of ["expiry", "nonce"] as const) {
+    const f = fixture();
+    f.adapters.approve = async (_review, text) => {
+      if (failure === "expiry") f.advance();
+      else f.changeNonce();
+      return text;
+    };
+    try {
+      await assert.rejects(
+        runPilotSession(
+          f.journal,
+          source,
+          f.adapters,
+          f.now,
+          `one-click-${failure}`,
+          { combinedApproval: true },
+        ),
+        /EXPIRED|NONCE_CHANGED/,
+      );
+      assert.deepEqual(f.counts(), { signs: 0, sends: 0 });
+    } finally {
+      f.journal.close();
+    }
+  }
+});
+
 test("expiry while awaiting signing approval never signs", async () => {
   const f = fixture();
   f.adapters.approve = async (_r, t) => {
