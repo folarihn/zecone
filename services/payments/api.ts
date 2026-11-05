@@ -68,6 +68,8 @@ export interface PaymentsConfig {
    */
   pilot?: {
     merchantOwner: string;
+    /** Additional explicitly approved SIWE owners for a capped beta (nine maximum). */
+    additionalMerchantOwners?: string[];
     maxAmountUsd: string;
     maxPayoutWei: bigint;
     payout: BasePayoutCheck;
@@ -155,7 +157,18 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
       throw new Error("MONITOR_DEMO_MERCHANT_FORBIDDEN: the demo storefront cannot run against a real address");
     if (config.monitor.source === "operator" && (!config.pilot || !config.operatorToken || config.operatorToken.length < 32))
       throw new Error("OPERATOR_FEED_REQUIRES_PILOT_AND_OPERATOR_TOKEN");
-    if (config.pilot && !isAddress(config.pilot.merchantOwner)) throw new Error("PILOT_MERCHANT_OWNER_INVALID");
+    if (config.pilot) {
+      const owners = [
+        config.pilot.merchantOwner,
+        ...(config.pilot.additionalMerchantOwners ?? []),
+      ];
+      if (
+        owners.length > 10 ||
+        owners.some((owner) => !isAddress(owner)) ||
+        new Set(owners.map((owner) => getAddress(owner))).size !== owners.length
+      )
+        throw new Error("PILOT_MERCHANT_OWNER_INVALID");
+    }
     if (config.pilot) {
       if (config.monitor.source !== "operator" || !config.operatorListenerOnly)
         throw new Error("PILOT_OPERATOR_ISOLATION_REQUIRED");
@@ -925,11 +938,16 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
       let paymentMode: "demo" | "monitor" = MODE;
       if (MODE === "monitor" && config.pilot) {
         const m = pr.merchant;
-        const owner = getAddress(config.pilot.merchantOwner);
+        const owners = new Set(
+          [
+            config.pilot.merchantOwner,
+            ...(config.pilot.additionalMerchantOwners ?? []),
+          ].map((owner) => getAddress(owner)),
+        );
         if (m.keyId === DEMO_KEY_ID && config.demoMerchant) paymentMode = "demo";
         else if (
-          m.ownerAddress && getAddress(m.ownerAddress) === owner &&
-          m.baseRecipient && getAddress(m.baseRecipient) === owner && m.payoutVerification === "siwe"
+          m.ownerAddress && owners.has(getAddress(m.ownerAddress)) &&
+          m.baseRecipient && getAddress(m.baseRecipient) === getAddress(m.ownerAddress) && m.payoutVerification === "siwe"
         ) {
           if (parseUnits(request.amountUsd, "usd") > pilotCents!)
             throw new HttpError(400, "amount_too_large", `real payments are limited to ${config.pilot.maxAmountUsd} USD during the restricted pilot`);
@@ -1181,14 +1199,34 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): PaymentsCon
   if (!/^\d+$/.test(relayer)) throw new Error("ZECONE_RELAYER_AVAILABLE_WEI must be an integer wei amount");
   // Restricted mainnet pilot: real orders for one approved merchant, fed by the operator watcher.
   let pilot: PaymentsConfig["pilot"] = null;
+  if (
+    mode === "monitor" &&
+    env.ZECONE_PILOT_ADDITIONAL_MERCHANT_OWNERS &&
+    !env.ZECONE_PILOT_MERCHANT_OWNER
+  )
+    throw new Error("ZECONE_PILOT_MERCHANT_OWNER_REQUIRED");
   if (mode === "monitor" && env.ZECONE_PILOT_MERCHANT_OWNER) {
     const owner = env.ZECONE_PILOT_MERCHANT_OWNER;
+    const additionalOwners = (env.ZECONE_PILOT_ADDITIONAL_MERCHANT_OWNERS ?? "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
     const relayerAddress = env.ZECONE_RELAYER_ADDRESS ?? "";
     const maxPayout = env.ZECONE_PILOT_MAX_PAYOUT_WEI ?? "";
     const authority = env.ZECONE_PILOT_QUOTE_AUTHORITY ?? "";
     const publicKey = env.ZECONE_PILOT_QUOTE_PUBLIC_KEY_B64 ?? "";
-    if (!isAddress(owner) || !isAddress(relayerAddress))
+    if (
+      !isAddress(owner) ||
+      !isAddress(relayerAddress) ||
+      additionalOwners.length > 9 ||
+      additionalOwners.some((candidate) => !isAddress(candidate))
+    )
       throw new Error("ZECONE_PILOT_MERCHANT_OWNER and ZECONE_RELAYER_ADDRESS must be Base addresses");
+    const approvedOwners = [owner, ...additionalOwners].map((candidate) =>
+      getAddress(candidate),
+    );
+    if (new Set(approvedOwners).size !== approvedOwners.length)
+      throw new Error("ZECONE_PILOT_MERCHANT_OWNERS_DUPLICATED");
     if (!/^[1-9]\d{0,20}$/.test(maxPayout))
       throw new Error("ZECONE_PILOT_MAX_PAYOUT_WEI must be a positive integer wei amount");
     const maxAmountUsd = env.ZECONE_PILOT_MAX_AMOUNT_USD ?? "0.01";
@@ -1205,6 +1243,9 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): PaymentsCon
     const quoteTtlSeconds = Number(env.ZECONE_QUOTE_TTL_SECONDS ?? 300);
     pilot = {
       merchantOwner: getAddress(owner),
+      ...(additionalOwners.length
+        ? { additionalMerchantOwners: additionalOwners.map((candidate) => getAddress(candidate)) }
+        : {}),
       maxAmountUsd,
       maxPayoutWei: BigInt(maxPayout),
       payout: basePayoutCheck(
@@ -1214,7 +1255,7 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): PaymentsCon
       quoteEngine: new OperatorPilotQuoteEngine({
         authority,
         publicKey: publicDer,
-        recipient: getAddress(owner),
+        recipients: approvedOwners,
         ttlSeconds: quoteTtlSeconds,
         maximumSpreadBps: 200,
       }),

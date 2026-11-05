@@ -117,19 +117,29 @@ export class OperatorPilotQuoteEngine implements QuoteEngine {
   private pending = new Map<string, SignedCheckoutPilotQuote>();
   private consumed = new Set<string>();
   private readonly key!: ReturnType<typeof createPublicKey>;
-  private readonly recipient: string;
+  private readonly recipients: Set<string>;
 
   constructor(
     private readonly options: {
       authority: string;
       publicKey: string | Buffer;
-      recipient: string;
+      recipient?: string;
+      recipients?: string[];
       ttlSeconds: number;
       maximumSpreadBps?: number;
     },
   ) {
     if (!options.authority.trim()) fail("PILOT_QUOTE_AUTHORITY_REQUIRED");
-    if (!isAddress(options.recipient)) fail("PILOT_QUOTE_RECIPIENT_INVALID");
+    const configured = options.recipients ?? (options.recipient ? [options.recipient] : []);
+    if (
+      configured.length < 1 ||
+      configured.length > 10 ||
+      configured.some((recipient) => !isAddress(recipient))
+    )
+      fail("PILOT_QUOTE_RECIPIENT_INVALID");
+    const recipients = configured.map((recipient) => getAddress(recipient));
+    if (new Set(recipients).size !== recipients.length)
+      fail("PILOT_QUOTE_RECIPIENT_INVALID");
     if (!Number.isSafeInteger(options.ttlSeconds) || options.ttlSeconds < 1 || options.ttlSeconds > MAX_TTL_SECONDS)
       fail("PILOT_QUOTE_EXPIRY_INVALID");
     try {
@@ -140,7 +150,7 @@ export class OperatorPilotQuoteEngine implements QuoteEngine {
       fail("PILOT_QUOTE_PUBLIC_KEY_INVALID");
     }
     if (this.key.asymmetricKeyType !== "ed25519") fail("PILOT_QUOTE_PUBLIC_KEY_INVALID");
-    this.recipient = getAddress(options.recipient);
+    this.recipients = new Set(recipients);
   }
 
   accept(envelope: SignedCheckoutPilotQuote, now = Math.floor(Date.now() / 1000)) {
@@ -153,7 +163,7 @@ export class OperatorPilotQuoteEngine implements QuoteEngine {
       s.network !== "zcash-mainnet" ||
       s.payoutChain !== "base" ||
       !isAddress(s.recipient) ||
-      getAddress(s.recipient) !== this.recipient ||
+      !this.recipients.has(getAddress(s.recipient)) ||
       !/^\d{1,3}(?:\.\d{1,2})?$/.test(s.amountUsd) ||
       !Number.isSafeInteger(s.createdAt) ||
       !Number.isSafeInteger(s.expiresAt) ||

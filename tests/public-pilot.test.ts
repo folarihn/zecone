@@ -85,6 +85,7 @@ async function pilotHarness(
   check: BasePayoutCheck,
   quoteEngine: QuoteEngine = liveQuoteEngine,
   pilotWallet = newWallet(),
+  additionalMerchantOwners: string[] = [],
 ) {
   const h = await startHarness({
     mode: "monitor",
@@ -98,6 +99,7 @@ async function pilotHarness(
     },
     pilot: {
       merchantOwner: pilotWallet.address,
+      additionalMerchantOwners,
       maxAmountUsd: "1.00",
       maxPayoutWei: 10n ** 15n,
       payout: check,
@@ -210,6 +212,38 @@ test("public pilot: only the approved merchant gets real orders; demo stays simu
     assert.equal(health.realPayments, "restricted-pilot");
     assert.equal(health.livePayoutEnabled, false);
     assert.equal(health.watcher.tip, 1000);
+  } finally {
+    await t.close();
+  }
+});
+
+test("public beta: an additional allowlisted SIWE owner gets a capped real order", async () => {
+  const primary = newWallet();
+  const beta = newWallet();
+  const t = await pilotHarness(
+    { verify: async () => assert.fail("no payout") },
+    liveQuoteEngine,
+    primary,
+    [beta.address],
+  );
+  try {
+    await t.sync();
+    const merchant = await onboard(t.h, beta);
+    const created = await t.h.call("/api/v1/payments", {
+      key: merchant.apiKey,
+      body: { amountUsd: "0.01" },
+    });
+    assert.equal(created.status, 201);
+    assert.equal(created.body.payment.mode, "monitor");
+    assert.equal(created.body.payment.settlement, "operator-approved");
+
+    const unapproved = await onboard(t.h);
+    const refused = await t.h.call("/api/v1/payments", {
+      key: unapproved.apiKey,
+      body: { amountUsd: "0.01" },
+    });
+    assert.equal(refused.status, 403);
+    assert.equal(refused.body.error.code, "real_payments_restricted");
   } finally {
     await t.close();
   }

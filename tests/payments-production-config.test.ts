@@ -80,13 +80,15 @@ test("environment-only restricted pilot startup fails closed without a verified 
 
 test("restricted pilot config pins a public quote key and keeps private signing material absent", () => {
   const { publicKey } = generateKeyPairSync("ed25519");
-  const config = configFromEnv({
+  const additional = "0x000000000000000000000000000000000000dEaD";
+  const env: NodeJS.ProcessEnv = {
     NODE_ENV: "production",
     ZECONE_PAYMENTS_MODE: "monitor",
     ZECONE_CHECKOUT_ADDRESS: "u1-explicit-monitor-fixture",
     ZECONE_PUBLIC_URL: "https://pay.zecone.example",
     ZECONE_ALLOW_HTTP_WEBHOOKS: "0",
     ZECONE_PILOT_MERCHANT_OWNER: "0x4b5750d7675f14eB844B74477015302Bf31AE2dB",
+    ZECONE_PILOT_ADDITIONAL_MERCHANT_OWNERS: additional,
     ZECONE_RELAYER_ADDRESS: "0x0BccE2De6b41522a68e7A7915C6947CFE37B9f18",
     ZECONE_PILOT_MAX_AMOUNT_USD: "0.01",
     ZECONE_PILOT_MAX_PAYOUT_WEI: "300000000000000",
@@ -96,8 +98,19 @@ test("restricted pilot config pins a public quote key and keeps private signing 
     ZECONE_PILOT_QUOTE_PUBLIC_KEY_B64: publicKey.export({ format: "der", type: "spki" }).toString("base64"),
     ZECONE_QUOTE_TTL_SECONDS: "300",
     ZECONE_OPERATOR_TOKEN: "x".repeat(48),
-  });
+  };
+  const config = configFromEnv(env);
   assert.equal(config.pilot?.quoteEngine.enabled, true);
   assert.equal(config.pilot?.maxAmountUsd, "0.01");
+  assert.deepEqual(config.pilot?.additionalMerchantOwners, [additional]);
   assert.equal(JSON.stringify(config, (_, value) => typeof value === "bigint" ? value.toString() : value).includes("PRIVATE KEY"), false);
+  assert.throws(
+    () =>
+      configFromEnv({
+        ...env,
+        ZECONE_PILOT_ADDITIONAL_MERCHANT_OWNERS:
+          env.ZECONE_PILOT_MERCHANT_OWNER,
+      }),
+    /ZECONE_PILOT_MERCHANT_OWNERS_DUPLICATED/,
+  );
 });

@@ -9,6 +9,7 @@ import {
 
 const RECIPIENT = "0x4b5750d7675f14eB844B74477015302Bf31AE2dB";
 const OTHER = "0x000000000000000000000000000000000000dEaD";
+const UNAPPROVED = "0x0000000000000000000000000000000000000001";
 const NOW = 1_800_000_000;
 const observations = [
   { provider: "coingecko", ethUsd: "2500.00", zecUsd: "50.00", at: NOW },
@@ -79,4 +80,50 @@ test("signed checkout quote rejects tampering, stale data, duplicate sources and
     ttlSeconds: 300,
   });
   assert.throws(() => wrong.accept(f.envelope, NOW), /PILOT_QUOTE_STATEMENT_INVALID/);
+});
+
+test("beta quote authority accepts only explicitly allowlisted recipients", () => {
+  const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+  const engine = new OperatorPilotQuoteEngine({
+    authority: "pilot-operator",
+    publicKey: publicKey.export({ format: "der", type: "spki" }),
+    recipients: [RECIPIENT, OTHER],
+    ttlSeconds: 300,
+  });
+  const envelope = (recipient: string) =>
+    signCheckoutPilotQuote(
+      buildCheckoutPilotQuoteStatement({
+        authority: "pilot-operator",
+        recipient,
+        amountUsd: "0.01",
+        observations,
+        createdAt: NOW,
+        expiresAt: NOW + 300,
+      }),
+      privateKey,
+    );
+  engine.accept(envelope(RECIPIENT), NOW);
+  engine.accept(envelope(OTHER), NOW);
+  assert.throws(
+    () => engine.accept(envelope(UNAPPROVED), NOW),
+    /PILOT_QUOTE_STATEMENT_INVALID/,
+  );
+  assert.equal(
+    engine.quote({
+      amountUsd: "0.01",
+      payoutChain: "base",
+      recipient: RECIPIENT,
+      now: NOW,
+    }).ethPayoutWei,
+    "4000000000000",
+  );
+  assert.equal(
+    engine.quote({
+      amountUsd: "0.01",
+      payoutChain: "base",
+      recipient: OTHER,
+      now: NOW,
+    }).ethPayoutWei,
+    "4000000000000",
+  );
 });
