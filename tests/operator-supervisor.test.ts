@@ -25,6 +25,7 @@ import {
   validateDirectOperatorBaseUrl,
   validateOperatorTransportConfig,
   validateProtectedOperatorCredential,
+  validateWalletEvidenceSource,
   workerStepResult,
   type StepResult,
   type SupervisorAlert,
@@ -105,6 +106,26 @@ test("supervisor: Linux operator credential is a protected regular file", () => 
   assert.throws(
     () => validateProtectedOperatorCredential(file(0o100440), "short", "linux"),
     /TOKEN_INVALID/,
+  );
+});
+
+test("supervisor: wallet evidence comes from exactly one fail-closed source", () => {
+  assert.equal(
+    validateWalletEvidenceSource({ walletJournal: "D:/protected.sqlite" }),
+    "journal",
+  );
+  assert.equal(
+    validateWalletEvidenceSource({ remoteWalletEvidence: true }),
+    "remote",
+  );
+  assert.throws(() => validateWalletEvidenceSource({}), /SOURCE_INVALID/);
+  assert.throws(
+    () =>
+      validateWalletEvidenceSource({
+        walletJournal: "D:/protected.sqlite",
+        remoteWalletEvidence: true,
+      }),
+    /SOURCE_INVALID/,
   );
 });
 

@@ -304,6 +304,77 @@ test("public pilot: loopback operator uploads one exact signed live quote", asyn
   }
 });
 
+test("public pilot: watch-only sync consumes immutable wallet evidence uploaded before detection", async () => {
+  const t = await pilotHarness({
+    verify: async () => assert.fail("no payout"),
+  });
+  try {
+    const pilot = await onboard(t.h, t.pilotWallet);
+    await t.sync();
+    const p = (
+      await t.h.call("/api/v1/payments", {
+        key: pilot.apiKey,
+        body: { amountUsd: "0.01" },
+      })
+    ).body.payment;
+    const evidence = inTime(p, tx("a"));
+    t.w.mine(1);
+    t.w.update((chain) =>
+      chain.notes.push({
+        txid: evidence.txid,
+        height: 1001,
+        zatoshis: p.quote.zecAmountZat,
+        address: ADDR,
+      }),
+    );
+    // Detection can win the race with the Windows evidence upload. The
+    // watch-only host waits fail-closed; it neither confirms nor sends the
+    // order to review while the authenticated observation window remains open.
+    const waiting = await syncOnce(t.mirror, t.bridge, t.remote, realNow(), {
+      deferMissingWalletEvidence: true,
+    });
+    assert.equal(waiting.ok, true);
+    assert.equal(t.mirror.getPayment(p.id)!.state, "VERIFYING");
+    assert.equal(
+      (await t.remote.orders()).find((o) => o.id === p.id)!.state,
+      "AWAITING_PAYMENT",
+    );
+
+    await assert.rejects(
+      t.remote.walletEvidence(p.id, {
+        ...evidence,
+        signApprovedAt: p.createdAt + 120,
+        signedAt: p.createdAt + 121,
+        broadcastApprovedAt: p.createdAt + 122,
+        broadcastAttemptAt: p.createdAt + 123,
+      }),
+      /REMOTE_WALLET_EVIDENCE_FROM_FUTURE/,
+    );
+    await t.remote.walletEvidence(p.id, evidence);
+    await t.remote.walletEvidence(p.id, evidence); // exact retry is idempotent
+    await assert.rejects(
+      t.remote.walletEvidence(p.id, {
+        ...evidence,
+        signedDigest: "e".repeat(64),
+      }),
+      /REMOTE_WALLET_EVIDENCE_CHANGED/,
+    );
+    const uploaded = (await t.remote.orders()).find((o) => o.id === p.id)!;
+    assert.deepEqual(uploaded.walletEvidence, evidence);
+    const result = await syncOnce(t.mirror, t.bridge, t.remote, realNow(), {
+      deferMissingWalletEvidence: true,
+    });
+    assert.equal(result.ok, true);
+    assert.deepEqual(t.mirror.getPayment(p.id)!.walletEvidence, evidence);
+    assert.equal(
+      (await t.remote.orders()).find((o) => o.id === p.id)!.state,
+      "VERIFYING",
+    );
+  } finally {
+    await t.close();
+  }
+});
+
 test("public pilot: operator routes are never served on the public listener", async () => {
   const t = await pilotHarness({
     verify: async () => assert.fail("no payout"),

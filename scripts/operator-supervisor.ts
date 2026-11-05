@@ -31,6 +31,7 @@ import {
   validateDirectOperatorBaseUrl,
   validateOperatorTransportConfig,
   validateProtectedOperatorCredential,
+  validateWalletEvidenceSource,
   workerStepResult,
   type StepResult,
 } from "../services/operations/operator-supervisor.ts";
@@ -52,7 +53,8 @@ const config = JSON.parse(readFileSync(resolve(arg("config")), "utf8")) as {
   tokenFile: string;
   mirror: string;
   checkoutAddressFile: string;
-  walletJournal: string;
+  walletJournal?: string;
+  remoteWalletEvidence?: boolean;
   submissionJournal?: string;
   pilotJournal?: string;
   pilotSessionsDirectory?: string;
@@ -91,6 +93,7 @@ const checkoutAddress = readFileSync(
   resolve(config.checkoutAddressFile),
   "utf8",
 ).trim();
+const remoteWalletEvidence = validateWalletEvidenceSource(config) === "remote";
 const settlementPaths = [
   config.submissionJournal,
   config.pilotJournal,
@@ -264,8 +267,9 @@ const supervisor = new OperatorSupervisor(
           resolve(config.watchWorkerConfig),
           "--checkout-address",
           checkoutAddress,
-          "--wallet-journal",
-          resolve(config.walletJournal),
+          ...(remoteWalletEvidence
+            ? ["--remote-wallet-evidence"]
+            : ["--wallet-journal", resolve(config.walletJournal!)]),
           ...(settlementPaths.every(Boolean)
             ? [
                 "--submission-journal",

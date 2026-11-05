@@ -58,6 +58,7 @@ export interface Remote {
   heartbeat(b: Record<string, unknown>): Promise<unknown>;
   observe(id: string, b: Record<string, unknown>): Promise<unknown>;
   payout(id: string, b: Record<string, unknown>): Promise<unknown>;
+  walletEvidence(id: string, b: WalletEvidence): Promise<unknown>;
   quote(b: SignedCheckoutPilotQuote): Promise<unknown>;
 }
 
@@ -98,6 +99,11 @@ export function httpRemote(
       ),
     payout: (id, b) =>
       call(`/api/v1/operator/real-orders/${encodeURIComponent(id)}/payout`, b),
+    walletEvidence: (id, b) =>
+      call(
+        `/api/v1/operator/real-orders/${encodeURIComponent(id)}/wallet-evidence`,
+        b,
+      ),
     quote: (b) => call("/api/v1/operator/quote", b),
   };
 }
@@ -124,6 +130,7 @@ export async function syncOnce(
   t = now(),
   opts: {
     walletEvidence?: (txid: string) => WalletEvidence | null;
+    deferMissingWalletEvidence?: boolean;
     settlement?: CheckoutSettlementSessionPaths;
   } = {},
 ) {
@@ -147,6 +154,17 @@ export async function syncOnce(
           { reason: p.reviewReason, evidence: "operator-authenticated-state" },
           t,
         );
+      const local = mirror.getPayment(p.id);
+      if (p.walletEvidence && local) {
+        if (
+          local.walletEvidence &&
+          JSON.stringify(local.walletEvidence) !==
+            JSON.stringify(p.walletEvidence)
+        )
+          throw Error("REMOTE_WALLET_EVIDENCE_CHANGED");
+        if (!local.walletEvidence)
+          mirror.setWalletEvidence(p.id, p.walletEvidence, t);
+      }
     }
   mirror.expireDue(t);
   // Orders the public API no longer lists while still unpaid here were canceled or expired there.
@@ -187,6 +205,13 @@ export async function syncOnce(
         m.walletEvidence ?? opts.walletEvidence?.(m.detectedTxid) ?? null;
       const failure = assessWalletEvidence(m, ev);
       if (failure) {
+        if (
+          failure === "no_wallet_journal_evidence" &&
+          opts.deferMissingWalletEvidence &&
+          m.observationDeadline !== null &&
+          t < m.observationDeadline
+        )
+          continue;
         mirror.transition(
           m.id,
           "MANUAL_REVIEW",
@@ -294,9 +319,18 @@ async function main() {
     minimumConfirmations: w.minimumConfirmations,
     lock: w.lock,
   });
-  // Required: without the integrated wallet journal no deposit can qualify.
-  const walletJournal = resolve(arg("wallet-journal"));
-  if (!existsSync(walletJournal)) throw Error("WALLET_JOURNAL_NOT_FOUND");
+  // Exactly one evidence source is required: the local spend journal on the
+  // Windows operator, or immutable evidence pre-uploaded to the operator feed
+  // for the isolated watch-only VPS.
+  const walletJournalArg = optionalArg("wallet-journal"),
+    remoteWalletEvidence = process.argv.includes("--remote-wallet-evidence");
+  if (Boolean(walletJournalArg) === remoteWalletEvidence)
+    throw Error("WALLET_EVIDENCE_SOURCE_INVALID");
+  const walletJournal = walletJournalArg
+    ? resolve(walletJournalArg)
+    : undefined;
+  if (walletJournal && !existsSync(walletJournal))
+    throw Error("WALLET_JOURNAL_NOT_FOUND");
   const settlementValues = [
       optionalArg("submission-journal"),
       optionalArg("pilot-journal"),
@@ -320,8 +354,10 @@ async function main() {
           JSON.stringify({
             at: new Date().toISOString(),
             ...(await syncOnce(mirror, bridge, remote, now(), {
-              walletEvidence: (txid) =>
-                readWalletJournalEvidence(walletJournal, txid),
+              walletEvidence: walletJournal
+                ? (txid) => readWalletJournalEvidence(walletJournal, txid)
+                : undefined,
+              deferMissingWalletEvidence: remoteWalletEvidence,
               settlement,
             })),
           }),

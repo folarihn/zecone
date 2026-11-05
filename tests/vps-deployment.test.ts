@@ -256,6 +256,8 @@ test("optional watch supervisor is isolated and uses only the local operator lis
   assert.match(compose, /cap_drop: \["ALL"\]/);
   assert.match(compose, /no-new-privileges:true/);
   assert.equal(example.directOperatorBaseUrl, "http://127.0.0.1:4322");
+  assert.equal(example.remoteWalletEvidence, true);
+  assert.equal("walletJournal" in example, false);
   for (const forbidden of [
     "privateKey",
     "spendingKey",

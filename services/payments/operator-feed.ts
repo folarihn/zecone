@@ -163,6 +163,27 @@ export class OperatorWatchFeed {
     return p;
   }
 
+  /** Record non-secret pre-deadline wallet evidence before chain detection. */
+  walletEvidence(id: string, input: unknown): Payment {
+    const now = this.opts.now();
+    const p = this.real(id);
+    if (!["AWAITING_PAYMENT", "PAYMENT_DETECTED", "VERIFYING"].includes(p.state))
+      fail("WALLET_EVIDENCE_STATE_INVALID");
+    const ev = input as WalletEvidence;
+    if (p.detectedTxid && (!ev || typeof ev.txid !== "string" || p.detectedTxid !== ev.txid))
+      fail("WALLET_EVIDENCE_TXID_MISMATCH");
+    const evidenceFailure = assessWalletEvidence(
+      { ...p, detectedTxid: p.detectedTxid ?? (ev && typeof ev.txid === "string" ? ev.txid : null) },
+      ev,
+    );
+    if (evidenceFailure) fail(`WALLET_EVIDENCE_${evidenceFailure.toUpperCase()}`, 400);
+    if (ev.broadcastAttemptAt > now + 60) fail("WALLET_EVIDENCE_FROM_FUTURE", 400);
+    if (p.walletEvidence && JSON.stringify(p.walletEvidence) !== JSON.stringify(ev))
+      fail("WALLET_EVIDENCE_CHANGED");
+    if (!p.walletEvidence) this.store.setWalletEvidence(p.id, ev, now);
+    return this.store.getPayment(p.id)!;
+  }
+
   observe(
     id: string,
     o: {

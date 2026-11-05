@@ -322,6 +322,17 @@ export function validateProtectedOperatorCredential(
   return normalized;
 }
 
+export function validateWalletEvidenceSource(config: {
+  walletJournal?: unknown;
+  remoteWalletEvidence?: unknown;
+}): "journal" | "remote" {
+  const journal =
+    typeof config.walletJournal === "string" && config.walletJournal.length > 0;
+  const remote = config.remoteWalletEvidence === true;
+  if (journal === remote) throw Error("WALLET_EVIDENCE_SOURCE_INVALID");
+  return remote ? "remote" : "journal";
+}
+
 /** Parse the last JSON line of a worker `once` run into a step result. */
 export function workerStepResult(
   stdout: string,

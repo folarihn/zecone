@@ -4,7 +4,7 @@
   "tokenFile": "/etc/zecone/operator-token.txt",
   "mirror": "/var/lib/zecone/operator-mirror.sqlite",
   "checkoutAddressFile": "/etc/zecone/checkout-address.txt",
-  "walletJournal": "/var/lib/zecone/watch.sqlite",
+  "remoteWalletEvidence": true,
   "providerEndpointFile": "/etc/zecone/zcash-provider-endpoint.txt",
   "alertLog": "/var/log/zecone/operator-alerts.jsonl",
   "cycleSeconds": 120

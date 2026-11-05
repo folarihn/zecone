@@ -808,6 +808,8 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
             return send(res, 200, { health: feed.heartbeat((await readBody(req)) as never) });
           if (seg[3] === "real-orders" && seg.length === 4 && method === "GET")
             return send(res, 200, { orders: feed.realOrders() });
+          if (seg[3] === "real-orders" && seg[4] && seg[5] === "wallet-evidence" && method === "POST")
+            return send(res, 200, { payment: merchantPayment(feed.walletEvidence(seg[4], await readBody(req))) });
           if (seg[3] === "real-orders" && seg[4] && seg[5] === "observation" && method === "POST")
             return send(res, 200, { payment: merchantPayment(feed.observe(seg[4], await readBody(req))) });
           if (seg[3] === "real-orders" && seg[4] && seg[5] === "payout" && method === "POST")
