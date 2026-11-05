@@ -245,3 +245,26 @@ test("required dedicated state filesystem marker fails closed", async () => {
   assert.notEqual(child.exitCode, 0);
   assert.equal(existsSync(join(state, ".zecone-readonly-v1")), false);
 });
+
+test("optional watch supervisor is isolated and uses only the local operator listener", () => {
+  const compose = readFileSync("deploy/compose.yaml", "utf8");
+  const example = JSON.parse(
+    readFileSync("deploy/config/operator-supervisor.vps.example.json", "utf8"),
+  ) as Record<string, unknown>;
+  assert.match(compose, /watch-supervisor:/);
+  assert.match(compose, /profiles: \["watch"\]/);
+  assert.match(compose, /cap_drop: \["ALL"\]/);
+  assert.match(compose, /no-new-privileges:true/);
+  assert.equal(example.directOperatorBaseUrl, "http://127.0.0.1:4322");
+  for (const forbidden of [
+    "privateKey",
+    "spendingKey",
+    "broadcastControl",
+    "signer",
+  ])
+    assert.equal(forbidden in example, false);
+  assert.equal("sshTarget" in example, false);
+  assert.equal("submissionJournal" in example, false);
+  assert.equal("pilotJournal" in example, false);
+  assert.equal("pilotSessionsDirectory" in example, false);
+});

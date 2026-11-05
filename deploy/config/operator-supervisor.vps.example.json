@@ -1,0 +1,11 @@
+{
+  "directOperatorBaseUrl": "http://127.0.0.1:4322",
+  "watchWorkerConfig": "/etc/zecone/mainnet-watch-worker.json",
+  "tokenFile": "/etc/zecone/operator-token.txt",
+  "mirror": "/var/lib/zecone/operator-mirror.sqlite",
+  "checkoutAddressFile": "/etc/zecone/checkout-address.txt",
+  "walletJournal": "/var/lib/zecone/watch.sqlite",
+  "providerEndpointFile": "/etc/zecone/zcash-provider-endpoint.txt",
+  "alertLog": "/var/log/zecone/operator-alerts.jsonl",
+  "cycleSeconds": 120
+}

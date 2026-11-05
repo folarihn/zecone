@@ -22,6 +22,9 @@ import {
   OperatorSupervisor,
   scrubSecrets,
   syncStepResult,
+  validateDirectOperatorBaseUrl,
+  validateOperatorTransportConfig,
+  validateProtectedOperatorCredential,
   workerStepResult,
   type StepResult,
   type SupervisorAlert,
@@ -35,6 +38,75 @@ import {
 } from "../services/operations/mainnet-watch-worker.ts";
 
 const dead: LockOwnerProbe = { alive: () => false, holders: () => [] };
+
+test("supervisor: direct operator transport accepts only explicit IPv4 loopback", () => {
+  assert.equal(
+    validateDirectOperatorBaseUrl("http://127.0.0.1:4322"),
+    "http://127.0.0.1:4322",
+  );
+  for (const value of [
+    "https://127.0.0.1:4322",
+    "http://localhost:4322",
+    "http://10.0.0.1:4322",
+    "http://127.0.0.1:4322/api",
+    "http://user:secret@127.0.0.1:4322",
+    "not-a-url",
+  ])
+    assert.throws(
+      () => validateDirectOperatorBaseUrl(value),
+      /DIRECT_OPERATOR_URL_(?:INVALID|NOT_LOOPBACK)/,
+    );
+});
+
+test("supervisor: exactly one transport is required", () => {
+  assert.equal(
+    validateOperatorTransportConfig({ sshTarget: "root@example.invalid" }),
+    "ssh",
+  );
+  assert.equal(
+    validateOperatorTransportConfig({
+      directOperatorBaseUrl: "http://127.0.0.1:4322",
+    }),
+    "direct",
+  );
+  assert.throws(() => validateOperatorTransportConfig({}), /TRANSPORT_INVALID/);
+  assert.throws(
+    () =>
+      validateOperatorTransportConfig({
+        sshTarget: "root@example.invalid",
+        directOperatorBaseUrl: "http://127.0.0.1:4322",
+      }),
+    /TRANSPORT_INVALID/,
+  );
+});
+
+test("supervisor: Linux operator credential is a protected regular file", () => {
+  const file = (mode: number, regular = true) => ({
+    mode,
+    isFile: () => regular,
+  });
+  const token = "x".repeat(48);
+  assert.equal(
+    validateProtectedOperatorCredential(file(0o100440), ` ${token}\n`, "linux"),
+    token,
+  );
+  assert.throws(
+    () => validateProtectedOperatorCredential(file(0o100444), token, "linux"),
+    /PERMISSIONS_INVALID/,
+  );
+  assert.throws(
+    () => validateProtectedOperatorCredential(file(0o100660), token, "linux"),
+    /PERMISSIONS_INVALID/,
+  );
+  assert.throws(
+    () => validateProtectedOperatorCredential(file(0o040440, false), token, "linux"),
+    /FILE_INVALID/,
+  );
+  assert.throws(
+    () => validateProtectedOperatorCredential(file(0o100440), "short", "linux"),
+    /TOKEN_INVALID/,
+  );
+});
 
 function leftLocks() {
   const dir = mkdtempSync(join(tmpdir(), "zecone-locks-"));
@@ -128,7 +200,7 @@ function harness(
 ) {
   let now = 1_800_000_000;
   const alerts: SupervisorAlert[] = [];
-  const calls = { worker: 0, sync: 0, tunnels: 0 };
+  const calls = { worker: 0, sync: 0, tunnels: 0, sequence: [] as string[] };
   const tunnels: { exit(code: number): void; stopped: boolean }[] = [];
   const deps: SupervisorDeps = {
     now: () => now,
@@ -147,10 +219,12 @@ function harness(
     recoverLocks: opts.locks ?? (() => []),
     runWorkerOnce: async () => {
       calls.worker++;
+      calls.sequence.push("worker");
       return (opts.worker ?? (() => ({ ok: true, stage: null, code: null })))();
     },
     runSyncOnce: async () => {
       calls.sync++;
+      calls.sequence.push("sync");
       return (opts.sync ?? (() => ({ ok: true, stage: null, code: null })))();
     },
     health: async () => ({
@@ -167,6 +241,12 @@ function harness(
   });
   return { s, alerts, calls, tunnels, advance: (sec: number) => (now += sec) };
 }
+
+test("supervisor: live targeted sync runs before historical catch-up", async () => {
+  const h = harness();
+  await h.s.cycle();
+  assert.deepEqual(h.calls.sequence, ["sync", "worker"]);
+});
 
 test("supervisor: an unrecoverable lock stops the cycle (no worker, no sync) and alerts", async () => {
   const h = harness({

@@ -1,7 +1,8 @@
 // Supervised operator loop for the restricted pilot (see
-// services/operations/operator-supervisor.ts). Keeps the SSH loopback tunnel,
-// the read-only watch worker and the operator sync heartbeat together; never
-// signs or broadcasts.
+// services/operations/operator-supervisor.ts). Keeps either an SSH loopback
+// tunnel (Windows operator) or a strictly local direct connection (VPS), the
+// read-only watch worker and operator sync heartbeat together; never signs or
+// broadcasts.
 //
 //   npm run operator:supervise -- --config <protected/operator-supervisor.json>
 //
@@ -14,7 +15,7 @@
 // the environment; every logged line is scrubbed of them. Alerts are appended
 // to `alertLog` as JSON lines (point any external alerting at that file).
 import { spawn, execFileSync } from "node:child_process";
-import { appendFileSync, readFileSync } from "node:fs";
+import { appendFileSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ExclusiveFileLock } from "../services/operations/mainnet-watch-worker.ts";
@@ -27,6 +28,9 @@ import {
   OperatorSupervisor,
   scrubSecrets,
   syncStepResult,
+  validateDirectOperatorBaseUrl,
+  validateOperatorTransportConfig,
+  validateProtectedOperatorCredential,
   workerStepResult,
   type StepResult,
 } from "../services/operations/operator-supervisor.ts";
@@ -40,7 +44,8 @@ function arg(name: string) {
 }
 
 const config = JSON.parse(readFileSync(resolve(arg("config")), "utf8")) as {
-  sshTarget: string;
+  sshTarget?: string;
+  directOperatorBaseUrl?: string;
   localPort?: number;
   remotePort?: number;
   watchWorkerConfig: string;
@@ -57,8 +62,20 @@ const config = JSON.parse(readFileSync(resolve(arg("config")), "utf8")) as {
 };
 const local = config.localPort ?? 14322;
 const remote = config.remotePort ?? 4322;
-if (!/^[a-z0-9_.-]+@[A-Za-z0-9.-]+$/.test(config.sshTarget))
+const transport = validateOperatorTransportConfig(config);
+const hasSsh = transport === "ssh";
+const hasDirect = transport === "direct";
+if (hasSsh && !/^[a-z0-9_.-]+@[A-Za-z0-9.-]+$/.test(config.sshTarget!))
   throw Error("SSH_TARGET_INVALID");
+const operatorBaseUrl = hasDirect
+  ? validateDirectOperatorBaseUrl(config.directOperatorBaseUrl!)
+  : `http://127.0.0.1:${local}`;
+const tokenPath = resolve(config.tokenFile);
+const tokenStat = statSync(tokenPath);
+const operatorToken = validateProtectedOperatorCredential(
+  tokenStat,
+  readFileSync(tokenPath, "utf8"),
+);
 const worker = JSON.parse(
   readFileSync(resolve(config.watchWorkerConfig), "utf8"),
 ) as {
@@ -68,6 +85,7 @@ const worker = JSON.parse(
 const stateDir = resolve(worker.stateDirectory);
 const secrets = [
   readFileSync(resolve(config.providerEndpointFile), "utf8").trim(),
+  operatorToken,
 ];
 const checkoutAddress = readFileSync(
   resolve(config.checkoutAddressFile),
@@ -169,6 +187,11 @@ const supervisor = new OperatorSupervisor(
       process.stderr.write(line + "\n");
     },
     startTunnel() {
+      if (hasDirect) {
+        // OperatorSupervisor models connectivity as a tunnel handle. On the VPS
+        // the listener is already on loopback, so no socket or child is opened.
+        return { exited: new Promise<number | null>(() => {}), stop() {} };
+      }
       const child = spawn(
         "ssh",
         [
@@ -181,7 +204,7 @@ const supervisor = new OperatorSupervisor(
           "ServerAliveInterval=30",
           "-L",
           `127.0.0.1:${local}:127.0.0.1:${remote}`,
-          config.sshTarget,
+          config.sshTarget!,
         ],
         { windowsHide: true, stdio: "ignore" },
       );
@@ -229,13 +252,12 @@ const supervisor = new OperatorSupervisor(
       const r = await run(
         process.execPath,
         [
-          "--import",
-          "tsx",
+          "--experimental-transform-types",
           join(repo, "scripts", "operator-sync.ts"),
           "--remote",
-          `http://127.0.0.1:${local}`,
+          operatorBaseUrl,
           "--token-file",
-          resolve(config.tokenFile),
+          tokenPath,
           "--mirror",
           resolve(config.mirror),
           "--watch-worker-config",
@@ -270,7 +292,7 @@ const supervisor = new OperatorSupervisor(
     async health() {
       let heartbeatObservedAt: number | null = null;
       try {
-        const r = await fetch(`http://127.0.0.1:${local}/api/v1/health`, {
+        const r = await fetch(`${operatorBaseUrl}/api/v1/health`, {
           signal: AbortSignal.timeout(10_000),
         });
         const j = (await r.json()) as {

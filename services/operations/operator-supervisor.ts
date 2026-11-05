@@ -3,8 +3,8 @@
 //
 // One cycle: keep the tunnel up (restart with backoff after it exits), check
 // both watch locks (evidence-preserving recovery only for abandoned locks;
-// anything else stops the cycle), run one read-only worker cycle, then one
-// sync cycle, then compare heartbeat and scan age with their limits. Worker and
+// anything else stops the cycle), run the live targeted sync first, then one
+// historical read-only worker cycle, then compare heartbeat and scan age. Sync and
 // sync run one after the other as separate processes, so they never contend
 // for the watch wallet, and each run is a fresh process: a crash only fails
 // that step. Every failure names its stage. Nothing here signs, broadcasts or
@@ -204,12 +204,15 @@ export class OperatorSupervisor {
       );
     } else {
       this.streaks.delete("lock");
-      worker = await this.deps.runWorkerOnce();
-      this.record("worker", worker, alerts);
       if (tunnelUp) {
         sync = await this.deps.runSyncOnce();
         this.record("sync", sync, alerts);
       }
+      // Live checkout verification is targeted and must not wait behind a large
+      // historical catch-up batch. The historical corpus still advances every
+      // cycle, immediately after the time-sensitive sync.
+      worker = await this.deps.runWorkerOnce();
+      this.record("worker", worker, alerts);
     }
     const h = await this.deps.health();
     const now = this.deps.now();
@@ -266,6 +269,57 @@ export function scrubSecrets(text: string, secrets: string[]): string {
   for (const s of secrets)
     if (s.length >= 8) out = out.split(s).join("<redacted>");
   return out;
+}
+
+/**
+ * The always-on VPS supervisor talks only to the payments operator listener on
+ * the same host. Refuse DNS names, public addresses, credentials and paths so a
+ * configuration mistake cannot send the operator token off-box.
+ */
+export function validateDirectOperatorBaseUrl(value: string): string {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw Error("DIRECT_OPERATOR_URL_INVALID");
+  }
+  if (
+    url.protocol !== "http:" ||
+    url.hostname !== "127.0.0.1" ||
+    !url.port ||
+    url.username ||
+    url.password ||
+    url.pathname !== "/" ||
+    url.search ||
+    url.hash
+  )
+    throw Error("DIRECT_OPERATOR_URL_NOT_LOOPBACK");
+  return `http://127.0.0.1:${url.port}`;
+}
+
+export function validateOperatorTransportConfig(config: {
+  sshTarget?: unknown;
+  directOperatorBaseUrl?: unknown;
+}): "ssh" | "direct" {
+  const hasSsh = typeof config.sshTarget === "string";
+  const hasDirect = typeof config.directOperatorBaseUrl === "string";
+  if (hasSsh === hasDirect) throw Error("OPERATOR_TRANSPORT_INVALID");
+  return hasDirect ? "direct" : "ssh";
+}
+
+export function validateProtectedOperatorCredential(
+  file: { isFile(): boolean; mode: number },
+  token: string,
+  platform: NodeJS.Platform = process.platform,
+): string {
+  if (!file.isFile()) throw Error("OPERATOR_TOKEN_FILE_INVALID");
+  // Linux permits root-owned 0440 for container group 10001, but never group
+  // write or any access by other users. Windows ACLs are managed separately.
+  if (platform !== "win32" && (file.mode & 0o027) !== 0)
+    throw Error("OPERATOR_TOKEN_FILE_PERMISSIONS_INVALID");
+  const normalized = token.trim();
+  if (normalized.length < 48) throw Error("OPERATOR_TOKEN_INVALID");
+  return normalized;
 }
 
 /** Parse the last JSON line of a worker `once` run into a step result. */
