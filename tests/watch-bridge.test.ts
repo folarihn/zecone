@@ -157,13 +157,17 @@ test("monitor: real checkout needs a fresh watcher snapshot, then attributes, co
     const wh = delivered.find((d) => JSON.parse(d.body).type === "payment.zec_confirmed");
     assert.ok(wh);
     assert.ok(verifySignature(hook.body.webhook.secret, wh!.body, wh!.sig));
-    // Address released: a second checkout can start.
+    // Address released: a second checkout can start once the chain passes the
+    // first order's inclusion height (post-NU7 bounds span more 25 s blocks).
+    w.mine(Math.max(0, p.paymentExpiryHeight - w.chain.tip + 1));
+    await h.app.bridge!.tick();
     assert.equal((await pay(h, m.apiKey)).status, 201);
     // Health exposes the watcher state, payouts stay off.
     const health = (await h.call("/api/v1/health", { key: null })).body;
     assert.equal(health.mode, "monitor");
     assert.equal(health.livePayoutEnabled, false);
-    assert.equal(health.watcher.tip, 1050);
+    assert.equal(health.watcher.tip, w.chain.tip);
+    assert.ok(health.watcher.tip >= 1050);
   } finally {
     await h.close();
   }

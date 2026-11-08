@@ -573,8 +573,14 @@ test("public pilot: deposit → confirmations → ZEC_CONFIRMED → verified Bas
     assert.equal(receipt.zcash.txid, tx("2"));
     assert.equal(receipt.payout.txHash, BASE_TX);
     assert.equal(receipt.payout.wei, p.quote.ethPayoutWei);
-    // Completed orders drop out of the operator feed; a second checkout can start.
+    // Completed orders drop out of the operator feed; a second checkout can start
+    // once the chain passes the first order's inclusion height.
     assert.equal((await t.remote.orders()).length, 0);
+    t.w.mine(Math.max(0, p.paymentExpiryHeight - t.w.chain.tip + 1));
+    await syncOnce(t.mirror, t.bridge, t.remote, realNow(), {
+      walletEvidence: (txid) => readWalletJournalEvidence(t.journal.path, txid),
+      settlement,
+    });
     assert.equal(
       (
         await t.h.call("/api/v1/payments", {

@@ -38,6 +38,7 @@ import {
   MIN_OBSERVATION_GRACE_SECONDS,
   PaymentWindowError,
   paymentWindow,
+  ZCASH_TARGET_SPACING_SECONDS,
 } from "./payment-window.ts";
 import type { ApiError, Merchant, Payment, PaymentRequest, PaymentState, Principal } from "./types.ts";
 import type { Quote } from "./types.ts";
@@ -993,7 +994,7 @@ export function createPaymentsApp(config: PaymentsConfig): PaymentsApp {
           const floor = store.inclusionFloor(config.checkoutAddress);
           if (floor !== null && health.tip <= floor)
             throw new HttpError(409, "checkout_busy", "The previous checkout's on-chain payment window has not closed yet.", {
-              retryAfter: (floor - health.tip + 1) * 75,
+              retryAfter: (floor - health.tip + 1) * ZCASH_TARGET_SPACING_SECONDS,
             });
           let window: ReturnType<typeof paymentWindow>;
           try {

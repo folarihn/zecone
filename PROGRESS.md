@@ -1,5 +1,15 @@
 # ZecOne progress
 
+## 8 November 2026 - NU7 network upgrade support
+
+Zcash mainnet activated NU7 at height **3,543,405** (branch `0x77190AD9`), with 25-second blocks (was 75 s). The pinned `zcash_protocol 0.11.0-pre.0` had no mainnet NU7 height, so from about 5 November every watcher probe failed with `unsupported_consensus`: the authenticated export stopped at 3,542,578, the operator heartbeat went stale for ~59 h and real checkouts stayed paused (fail-closed; no payment was misclassified).
+
+Upgraded all four Rust crates (watch, mainnet spend, legacy wallet, refund signer) to the final releases `zcash_protocol 0.11.0`, `zcash_primitives/zcash_proofs 0.31.0`, `zcash_client_backend 0.25.0`, `zcash_client_sqlite 0.23.0`, `zcash_keys 0.17.0`, `zcash_address 0.14.0`, `zip321/pczt 0.10.0`; MSRV 1.89 (matches the Docker builder). The removed `DEFAULT_TX_EXPIRY_DELTA` is replaced by the branch-aware `default_tx_expiry_delta` (40 blocks before NU7, 120 after; the same ~50 minutes). The payment window now uses 25 s spacing with the inclusion margin (15 blocks) and stale-tip limit (72 blocks) scaled to keep their previous wall-clock values; without this a customer paying near the deadline could have been mined above the inclusion bound and not credited.
+
+Verified live, read-only: the upgraded probe passes at the tip and across the activation; the native verifier checks proof of work and transaction Merkle roots of real mainnet blocks 3,543,404-3,543,406 and 3,550,500; the running supervisor's worker and sync succeed again and the heartbeat is fresh. Validation: Rust 24 watch + 39 spend + 17 legacy + 4 refund-signer tests; Node 751 pass / 0 fail / 1 skipped; both typechecks and lint pass. No funds moved; nothing signed, broadcast or deployed.
+
+**Open:** the VPS image still contains the pre-NU7 verifier and must be rebuilt and redeployed. The 20-confirmation policy now means ~8 minutes instead of ~25 and needs an explicit policy decision. The watcher's 75 s interval / 10-block batch catches up on the ~8,000-block backlog only slowly.
+
 ## 26 October 2026 (afternoon) - Windows verification fixes
 
 The first Windows verification run reported six failures. All six trace to ZecOne services started from pre-update code still listening on 4321/4333: the script launched duplicates that could not bind, then tested the old API (no quote preview; old request format → HTTP 400), the old Access Pass (no `/api/config`) and an Edge suite that refused to start on occupied ports. Fixes: the website proxies public API reads through a runtime route handler (`ZECONE_BASE_URL` is no longer frozen at build time); the API, web app and Access Pass expose service identity; services exit with a clear message on port conflicts; the browser suite and the verification script run isolated instances on dedicated ports and stop only the processes they start; the script identifies existing listeners, flags outdated ZecOne services, shows API error bodies and saves logs under `.state/verify-windows/`. No financial controls changed.

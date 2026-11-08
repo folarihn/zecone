@@ -1112,13 +1112,25 @@ pub fn prepared_digest(prepared: &PreparedTransaction) -> Result<String> {
     Ok(hex::encode(hasher.finalize()))
 }
 
+/// The SDK's default expiry delta for the consensus branch active at `target`
+/// on mainnet: 40 blocks before NU7, 120 blocks (the same ~50 minutes at the
+/// 25-second spacing) from NU7 activation onward (ZIP 203 / ZIP 218).
+pub fn default_expiry_delta(target: u32) -> u32 {
+    zcash_primitives::transaction::builder::default_tx_expiry_delta(
+        zcash_protocol::consensus::BranchId::for_height(
+            &NET,
+            zcash_protocol::consensus::BlockHeight::from(target),
+        ),
+    )
+}
+
 /// Zcash expiry height for a transaction targeting `target`: the SDK default
 /// delta, lowered to `max_expiry_height` when a checkout bound applies. Nodes
 /// refuse transactions expiring within 3 blocks (ZIP-203), so a bound that
 /// close is rejected here instead of producing an unbroadcastable transaction.
 pub fn bounded_expiry(target: u32, max_expiry_height: Option<u32>) -> Result<u32> {
     let default = target
-        .checked_add(zcash_primitives::transaction::builder::DEFAULT_TX_EXPIRY_DELTA)
+        .checked_add(default_expiry_delta(target))
         .context("expiry height overflow")?;
     let Some(max) = max_expiry_height else {
         return Ok(default);
@@ -1266,7 +1278,7 @@ fn write_new(path: &Path, bytes: &[u8]) -> Result<()> {
 mod tests {
     #[test]
     fn checkout_bound_lowers_expiry_and_refuses_unbroadcastable_bounds() {
-        let delta = zcash_primitives::transaction::builder::DEFAULT_TX_EXPIRY_DELTA;
+        let delta = super::default_expiry_delta(1_000);
         assert_eq!(super::bounded_expiry(1_000, None).unwrap(), 1_000 + delta);
         assert_eq!(super::bounded_expiry(1_000, Some(1_010)).unwrap(), 1_010);
         // A bound above the default never extends it.
@@ -1281,6 +1293,17 @@ mod tests {
                 "{bound}"
             );
         }
+    }
+
+    #[test]
+    fn expiry_delta_follows_mainnet_nu7_activation() {
+        // NU7 activated on mainnet at 3_543_405 with 25-second blocks.
+        assert_eq!(super::default_expiry_delta(3_543_404), 40);
+        assert_eq!(super::default_expiry_delta(3_543_405), 120);
+        assert_eq!(
+            super::bounded_expiry(3_550_000, None).unwrap(),
+            3_550_000 + 120
+        );
     }
 
     use super::*;

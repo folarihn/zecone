@@ -32,6 +32,7 @@ import {
   MAX_INCLUSION_BLOCKS,
   PaymentWindowError,
   paymentWindow,
+  ZCASH_TARGET_SPACING_SECONDS,
 } from "../services/payments/payment-window.ts";
 import { httpRemote, syncOnce } from "../scripts/operator-sync.ts";
 import { presentCheckout } from "../sdk/src/checkout.ts";
@@ -204,11 +205,13 @@ test("window: bound derivation is persisted, bounded and refuses stale tips", ()
     tipObservedAt: now - 60,
     observationGraceSeconds: 2700,
   });
-  // ceil((60 + 300) / 75) = 5 blocks expected, plus the ZIP-203 margin.
+  // Post-NU7 25 s blocks: ceil((60 + 300) / 25) = 15 blocks expected, plus
+  // the ZIP-203 margin.
+  assert.equal(ZCASH_TARGET_SPACING_SECONDS, 25);
   assert.deepEqual(w, {
     paymentDeadline: now + 300,
     observationDeadline: now + 3000,
-    paymentExpiryHeight: 1000 + 5 + INCLUSION_MARGIN_BLOCKS,
+    paymentExpiryHeight: 1000 + 15 + INCLUSION_MARGIN_BLOCKS,
   });
   assert.throws(
     () =>
@@ -216,7 +219,7 @@ test("window: bound derivation is persisted, bounded and refuses stale tips", ()
         now,
         paymentDeadline: now + 300,
         tip: 1000,
-        tipObservedAt: now - 75 * MAX_INCLUSION_BLOCKS,
+        tipObservedAt: now - ZCASH_TARGET_SPACING_SECONDS * MAX_INCLUSION_BLOCKS,
         observationGraceSeconds: 2700,
       }),
     (e: Error) =>

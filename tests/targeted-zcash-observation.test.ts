@@ -615,8 +615,8 @@ test("an unrelated owned deposit cannot be substituted for the order's payment",
 });
 
 test("a checkout completes inside the unchanged observation grace period", () => {
-  // Expected chain time to a height = blocks past the allocation tip at 75 s,
-  // less the tip's age. Worst case: paid at the last allowed height.
+  // Expected chain time to a height = blocks past the allocation tip at the
+  // target spacing, less the tip's age. Worst case: paid at the last allowed height.
   const now = 1_800_000_000;
   let checked = 0;
   for (const windowSeconds of [60, 300]) {
@@ -672,13 +672,16 @@ test("an integrated-wallet payment to the checkout address is counted, never pro
   try {
     const { key, payment } = await openOrder(t.h);
     const expiry = (await state(t.h, key, payment.id)).paymentExpiryHeight as number;
-    t.w.mine(1);
-    t.w.update((c) => c.notes.push({ txid: tx("2"), height: TIP + 1, zatoshis: "2000000", address: ADDR, walletInternal: true }));
+    // Mined just inside the inclusion bound. With post-NU7 25 s blocks the bound
+    // can exceed 20 blocks, so a note at TIP + 1 would already be confirmed.
+    const noteHeight = expiry - 1;
+    t.w.mine(noteHeight - t.w.chain.tip);
+    t.w.update((c) => c.notes.push({ txid: tx("2"), height: noteHeight, zatoshis: "2000000", address: ADDR, walletInternal: true }));
     // Past the inclusion height but before 20 confirmations: pending, never EXPIRED.
     t.w.mine(expiry + 1 - t.w.chain.tip);
     assert.equal((await t.h.app.bridge!.tick()).error, CANDIDATE_PENDING);
     assert.equal((await state(t.h, key, payment.id)).state, "AWAITING_PAYMENT");
-    t.w.mine(TIP + N - t.w.chain.tip);
+    t.w.mine(noteHeight + N - 1 - t.w.chain.tip);
     assert.equal((await t.h.app.bridge!.tick()).ok, true);
     const cur = await state(t.h, key, payment.id);
     assert.equal(cur.state, "ZEC_CONFIRMED");

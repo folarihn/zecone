@@ -170,7 +170,11 @@ fn checked(pczt_bytes: &[u8], p: &Policy, now: u64) -> Result<(Pczt, Review, Vec
     let expiry = *g.expiry_height();
     ensure!(
         expiry > p.tip
-            && expiry <= p.tip.saturating_add(40)
+            // At most the SDK default window for NU7 (120 x 25 s blocks, ~50 min).
+            && expiry
+                <= p.tip.saturating_add(
+                    zcash_primitives::transaction::builder::default_tx_expiry_delta(BranchId::Nu7),
+                )
             && BranchId::for_height(&Network::TestNetwork, expiry.into()) == BranchId::Nu7,
         "transaction_expiry"
     );

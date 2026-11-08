@@ -9,16 +9,24 @@
 // authenticates blocks behind the tip, so detection may come after the payment
 // deadline; the order stays allocated until `observationDeadline`.
 
-/** Zcash target block spacing since Blossom (seconds). */
-export const ZCASH_TARGET_SPACING_SECONDS = 75;
+/**
+ * Zcash target block spacing since NU7 (seconds). Mainnet activated NU7 at
+ * height 3,543,405 and moved from 75 s to 25 s blocks (ZIP 218). Real checkouts
+ * only allocate above a verified post-NU7 tip, so the 25 s spacing applies.
+ */
+export const ZCASH_TARGET_SPACING_SECONDS = 25;
 /**
  * Blocks added after the expected end of the payment window. Zcash nodes refuse
  * transactions that expire within 3 blocks (ZIP-203), so a payment submitted at
- * the deadline needs an expiry comfortably above the tip at that moment.
+ * the deadline needs an expiry comfortably above the tip at that moment. Scaled
+ * with NU7 to keep the pre-NU7 wall-clock cushion (5 x 75 s = 15 x 25 s).
  */
-export const INCLUSION_MARGIN_BLOCKS = 5;
-/** Refuse to allocate when the bound would be implausibly far (stale tip). */
-export const MAX_INCLUSION_BLOCKS = 24;
+export const INCLUSION_MARGIN_BLOCKS = 15;
+/**
+ * Refuse to allocate when the bound would be implausibly far (stale tip).
+ * Same 30-minute wall-clock limit as before NU7 (24 x 75 s = 72 x 25 s).
+ */
+export const MAX_INCLUSION_BLOCKS = 72;
 export const DEFAULT_OBSERVATION_GRACE_SECONDS = 2700;
 export const MIN_OBSERVATION_GRACE_SECONDS = 900;
 export const MAX_OBSERVATION_GRACE_SECONDS = 7200;

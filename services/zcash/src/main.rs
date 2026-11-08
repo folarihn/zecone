@@ -559,7 +559,12 @@ async fn send(
     let expiry_override = if prepare_only {
         Some(
             zcash_protocol::consensus::BlockHeight::from(proposal.min_target_height())
-                + zcash_primitives::transaction::builder::DEFAULT_TX_EXPIRY_DELTA,
+                + zcash_primitives::transaction::builder::default_tx_expiry_delta(
+                    zcash_protocol::consensus::BranchId::for_height(
+                        &NET,
+                        proposal.min_target_height().into(),
+                    ),
+                ),
         )
     } else {
         None
