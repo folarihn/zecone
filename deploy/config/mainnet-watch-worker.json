@@ -7,7 +7,7 @@
   "startHeight": 1,
   "minimumConfirmations": 20,
   "exportMinimumConfirmations": 10,
-  "batchSize": 20,
+  "batchSize": 15,
   "maxRetries": 3,
   "retryBaseMs": 1000,
   "maximumLagBlocks": 2,

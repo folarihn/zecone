@@ -15,10 +15,21 @@
 // the environment; every logged line is scrubbed of them. Alerts are appended
 // to `alertLog` as JSON lines (point any external alerting at that file).
 import { spawn, execFileSync } from "node:child_process";
-import { appendFileSync, readFileSync, statSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ExclusiveFileLock } from "../services/operations/mainnet-watch-worker.ts";
+import {
+  TelegramAlerts,
+  telegramSender,
+  validateTelegramChatId,
+  validateTelegramToken,
+} from "../services/operations/telegram-alerts.ts";
+import {
+  parseKnownUpgrades,
+  parseScheduledUpgrades,
+  unsupportedUpgrades,
+} from "../services/operations/consensus-upgrades.ts";
 import {
   recoverStaleLock,
   type LockOwnerProbe,
@@ -61,6 +72,9 @@ const config = JSON.parse(readFileSync(resolve(arg("config")), "utf8")) as {
   providerEndpointFile: string;
   alertLog: string;
   cycleSeconds?: number;
+  /** Protected file holding only the Telegram bot token. Set with telegramChatId. */
+  telegramBotTokenFile?: string;
+  telegramChatId?: string | number;
 };
 const local = config.localPort ?? 14322;
 const remote = config.remotePort ?? 4322;
@@ -83,6 +97,7 @@ const worker = JSON.parse(
 ) as {
   stateDirectory: string;
   walletDirectory: string;
+  publicProbeConfig?: string;
 };
 const stateDir = resolve(worker.stateDirectory);
 const secrets = [
@@ -109,6 +124,19 @@ const log = (event: Record<string, unknown>) =>
       secrets,
     ) + "\n",
   );
+if (Boolean(config.telegramBotTokenFile) !== (config.telegramChatId != null))
+  throw Error("TELEGRAM_CONFIG_INCOMPLETE");
+let telegram: TelegramAlerts | null = null;
+if (config.telegramBotTokenFile) {
+  const token = validateTelegramToken(
+    readFileSync(resolve(config.telegramBotTokenFile), "utf8"),
+  );
+  secrets.push(token);
+  telegram = new TelegramAlerts(
+    telegramSender(token, validateTelegramChatId(config.telegramChatId)),
+    { now, log },
+  );
+}
 
 // Processes that can hold the watch profile. The supervisor itself is excluded.
 const RELEVANT =
@@ -324,11 +352,79 @@ const supervisor = new OperatorSupervisor(
       }
       return { heartbeatObservedAt, scanObservedAt };
     },
+    async consensusCheck() {
+      // Upgrades compiled into the watch binary vs. those the header node schedules.
+      const name =
+        process.platform === "win32"
+          ? "zecone-zcash-watch.exe"
+          : "zecone-zcash-watch";
+      const binary = [
+        process.env.ZECONE_WATCH_BIN,
+        join(repo, "services", "zcash-watch", "target", "debug", name),
+        join(repo, "target", "debug", name),
+        join("/usr/local/bin", name),
+      ].find((p): p is string => Boolean(p) && existsSync(p!));
+      if (!binary) throw Error("WATCH_BINARY_MISSING");
+      const known = parseKnownUpgrades(
+        JSON.parse(
+          execFileSync(binary, ["--wallet", ".unused", "consensus-info"], {
+            encoding: "utf8",
+            timeout: 30_000,
+            windowsHide: true,
+          }),
+        ),
+      );
+      if (!worker.publicProbeConfig) throw Error("PROBE_CONFIG_MISSING");
+      const endpoint = (
+        JSON.parse(readFileSync(resolve(worker.publicProbeConfig), "utf8")) as {
+          zcash?: { headerRpc?: { endpoint?: string } };
+        }
+      ).zcash?.headerRpc?.endpoint;
+      if (!endpoint || new URL(endpoint).protocol !== "https:")
+        throw Error("HEADER_RPC_MISSING");
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "getblockchaininfo",
+          params: [],
+        }),
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!response.ok) throw Error("BLOCKCHAIN_INFO_UNAVAILABLE");
+      const { tip, upgrades } = parseScheduledUpgrades(
+        ((await response.json()) as { result?: unknown }).result,
+      );
+      return unsupportedUpgrades(known, upgrades, tip);
+    },
   },
   DEFAULT_SUPERVISOR_POLICY,
 );
 
 async function main() {
+  // `--telegram-test`: send one message and exit. Takes no lock and starts nothing,
+  // so it is safe while the real supervisor runs.
+  if (process.argv.includes("--telegram-test")) {
+    if (!telegram) throw Error("TELEGRAM_NOT_CONFIGURED");
+    const failures: Record<string, unknown>[] = [];
+    await new TelegramAlerts(
+      telegramSender(
+        validateTelegramToken(
+          readFileSync(resolve(config.telegramBotTokenFile!), "utf8"),
+        ),
+        validateTelegramChatId(config.telegramChatId),
+      ),
+      { now, log: (e) => failures.push(e) },
+    ).notice(
+      "Test message from the operator supervisor. Alerts are connected.",
+    );
+    if (failures.length)
+      throw Error(String(failures[0].code ?? "TELEGRAM_SEND_FAILED"));
+    log({ event: "TELEGRAM_TEST_SENT" });
+    return;
+  }
   // One supervisor at a time; its own lock is recovered only under the same rules.
   const own = join(stateDir, "operator-supervisor.lock");
   const pre = recoverStaleLock(
@@ -351,10 +447,12 @@ async function main() {
   };
   process.on("SIGINT", stop);
   process.on("SIGTERM", stop);
+  await telegram?.notice("Operator supervisor started.");
   while (!stopping) {
     const started = Date.now();
     try {
-      await supervisor.cycle();
+      const report = await supervisor.cycle();
+      await telegram?.onCycle(report.alerts);
     } catch (e) {
       log({
         event: "CYCLE_FAILED",
@@ -363,6 +461,9 @@ async function main() {
             ? e.message
             : "SUPERVISOR_CYCLE_FAILED",
       });
+      await telegram?.notice(
+        `Supervisor cycle failed (${e instanceof Error && /^[A-Z0-9_]{1,96}$/.test(e.message) ? e.message : "SUPERVISOR_CYCLE_FAILED"}).`,
+      );
     }
     await new Promise((r) =>
       setTimeout(r, Math.max(1_000, cycle - (Date.now() - started))),

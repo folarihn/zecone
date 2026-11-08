@@ -69,6 +69,9 @@ enum Command {
         #[arg(long)]
         height: Option<u32>,
     },
+    /// Offline: the mainnet network upgrades this build's Zcash libraries know,
+    /// with branch IDs and activation heights. No network, wallet or keys.
+    ConsensusInfo,
     /// Parse and verify a public mainnet header without contacting the network.
     VerifyHeader {
         #[arg(long)]
@@ -476,6 +479,23 @@ fn read_bounded(path: &Path) -> Result<Vec<u8>> {
 
 fn verify_header_file(path: &Path, expected_hash: &str) -> Result<Value> {
     mainnet_evidence::verify_header(&read_bounded(path)?, expected_hash)
+}
+
+/// Mainnet upgrades compiled into this build, so an operator check can compare
+/// them with the upgrades a live node schedules and alert before activation.
+fn consensus_info() -> Result<Value> {
+    use zcash_protocol::consensus::{Parameters, UPGRADES_IN_ORDER};
+    let upgrades: Vec<Value> = UPGRADES_IN_ORDER
+        .iter()
+        .map(|nu| {
+            json!({
+                "name": nu.to_string(),
+                "branchId": format!("{:08x}", u32::from(nu.branch_id())),
+                "activationHeight": Network::MainNetwork.activation_height(*nu).map(u32::from),
+            })
+        })
+        .collect();
+    Ok(json!({"network": "zcash-mainnet", "readOnly": true, "upgrades": upgrades}))
 }
 
 fn verify_block_file(
@@ -1343,6 +1363,7 @@ async fn main() {
             peer,
             height,
         } => probe_mainnet(&server, &peer, height).await,
+        Command::ConsensusInfo => consensus_info(),
         Command::VerifyHeader {
             header_file,
             expected_hash,

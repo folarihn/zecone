@@ -1,5 +1,11 @@
 # ZecOne progress
 
+## 8 November 2026 (later) - Network-upgrade early warning, watcher batch sizing
+
+The supervisor now raises `NETWORK_UPGRADE_UNSUPPORTED` when a live node schedules a Zcash upgrade that the watch binary does not follow (unknown branch ID, or a missing/different mainnet activation height), with the blocks remaining until activation, every 6 hours until fixed. The binary gained an offline `consensus-info` command listing its compiled mainnet upgrades. Checked live: the upgraded build reports no issues against the current 11 mainnet upgrades, and a simulated pre-NU7 build is flagged for NU7. Alerting only; it never pauses or approves payments.
+
+Measured export cost is about 8 s per block, so catch-up speed is bounded by per-block work, not batch size (~26 h for the ~8,000-block post-outage backlog). The live and template `batchSize` is 15 so one cycle fits the 120 s interval: a 30-block trial ran 246 s cycles back to back, delaying live checks and blocking the clean-stop script.
+
 ## 8 November 2026 - NU7 network upgrade support
 
 Zcash mainnet activated NU7 at height **3,543,405** (branch `0x77190AD9`), with 25-second blocks (was 75 s). The pinned `zcash_protocol 0.11.0-pre.0` had no mainnet NU7 height, so from about 5 November every watcher probe failed with `unsupported_consensus`: the authenticated export stopped at 3,542,578, the operator heartbeat went stale for ~59 h and real checkouts stayed paused (fail-closed; no payment was misclassified).

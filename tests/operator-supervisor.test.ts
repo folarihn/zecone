@@ -100,7 +100,12 @@ test("supervisor: Linux operator credential is a protected regular file", () => 
     /PERMISSIONS_INVALID/,
   );
   assert.throws(
-    () => validateProtectedOperatorCredential(file(0o040440, false), token, "linux"),
+    () =>
+      validateProtectedOperatorCredential(
+        file(0o040440, false),
+        token,
+        "linux",
+      ),
     /FILE_INVALID/,
   );
   assert.throws(
@@ -217,16 +222,19 @@ function harness(
     sync?: () => StepResult;
     heartbeatAge?: number | null;
     scanAge?: number | null;
+    consensus?: SupervisorDeps["consensusCheck"];
   } = {},
 ) {
   let now = 1_800_000_000;
   const alerts: SupervisorAlert[] = [];
+  const logs: Record<string, unknown>[] = [];
   const calls = { worker: 0, sync: 0, tunnels: 0, sequence: [] as string[] };
   const tunnels: { exit(code: number): void; stopped: boolean }[] = [];
   const deps: SupervisorDeps = {
     now: () => now,
-    log: () => undefined,
+    log: (e) => logs.push(e),
     alert: (a) => alerts.push(a),
+    consensusCheck: opts.consensus,
     startTunnel(): TunnelHandle {
       calls.tunnels++;
       let exit!: (c: number) => void;
@@ -259,9 +267,68 @@ function harness(
     scanStaleSeconds: 1800,
     failureAlertAfter: 3,
     tunnelBackoffMs: { initial: 1_000, max: 8_000 },
+    consensusCheckSeconds: 3600,
   });
-  return { s, alerts, calls, tunnels, advance: (sec: number) => (now += sec) };
+  return {
+    s,
+    alerts,
+    logs,
+    calls,
+    tunnels,
+    advance: (sec: number) => (now += sec),
+  };
 }
+
+test("supervisor: unsupported network upgrade alerts, repeats per interval, and a failed check never alerts", async () => {
+  const issue = {
+    name: "NU8",
+    branchId: "deadbeef",
+    activationHeight: 3_600_000,
+    blocksUntilActivation: 5_000,
+    reason: "UNKNOWN_BRANCH" as const,
+    knownActivationHeight: null,
+  };
+  let calls = 0;
+  let fail = true;
+  const h = harness({
+    consensus: async () => {
+      calls++;
+      if (fail) throw Error("BLOCKCHAIN_INFO_UNAVAILABLE");
+      return [issue];
+    },
+  });
+  // A provider failure is logged and retried next cycle, never alerted.
+  await h.s.cycle();
+  assert.equal(
+    h.alerts.some((a) => a.alert === "NETWORK_UPGRADE_UNSUPPORTED"),
+    false,
+  );
+  assert.ok(
+    h.logs.some(
+      (l) =>
+        l.event === "CONSENSUS_CHECK_FAILED" &&
+        l.code === "BLOCKCHAIN_INFO_UNAVAILABLE",
+    ),
+  );
+  fail = false;
+  h.advance(120);
+  const r = await h.s.cycle();
+  assert.deepEqual(
+    r.alerts.filter((a) => a.alert === "NETWORK_UPGRADE_UNSUPPORTED"),
+    [{ alert: "NETWORK_UPGRADE_UNSUPPORTED", ...issue }],
+  );
+  // Not re-checked within the interval; checked and re-alerted after it.
+  h.advance(120);
+  await h.s.cycle();
+  assert.equal(calls, 2);
+  h.advance(3600);
+  await h.s.cycle();
+  assert.equal(calls, 3);
+  assert.equal(
+    h.alerts.filter((a) => a.alert === "NETWORK_UPGRADE_UNSUPPORTED").length,
+    2,
+  );
+});
 
 test("supervisor: live targeted sync runs before historical catch-up", async () => {
   const h = harness();

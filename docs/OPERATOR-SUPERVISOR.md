@@ -52,6 +52,21 @@ The config holds paths only:
    900 s (or missing); `SCAN_STALE` when the last wallet scan is older than
    1800 s (or missing).
 
+6. **Network upgrades.** Every 6 hours the supervisor compares the mainnet
+   upgrades compiled into the watch binary (`zecone-zcash-watch consensus-info`)
+   with those the configured header RPC node schedules (`getblockchaininfo`).
+   Any scheduled upgrade with an unknown branch ID or a different/missing
+   activation height raises `NETWORK_UPGRADE_UNSUPPORTED` with
+   `blocksUntilActivation`, repeated every 6 hours until the build is upgraded.
+   This is alerting only; a failed check is logged (`CONSENSUS_CHECK_FAILED`)
+   and retried next cycle. It exists because NU7 activated at 3,543,405 while
+   the build had no mainnet NU7 height and the watcher stopped for days.
+
+Size the worker's `batchSize` so one cycle fits `cycleSeconds`: an export
+costs about 8 s per block with the free providers, so 15 blocks fill a
+120-second cycle. Larger batches do not catch up faster (per-block cost is the
+limit) but delay live checks and leave the clean-stop script no idle gap.
+
 Each failure names its stage: `probe`, `export` or `scan` (worker), `sync`, or
 `lock`. A stage failing three cycles in a row raises `STAGE_FAILING` with its
 code. Alerts are appended as JSON lines to `alertLog`; point external alerting

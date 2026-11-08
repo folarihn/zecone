@@ -10,6 +10,7 @@
 // that step. Every failure names its stage. Nothing here signs, broadcasts or
 // relaxes a check; when anything is wrong the pilot stays paused.
 import type { LockRecovery } from "./stale-lock.ts";
+import type { UnsupportedUpgrade } from "./consensus-upgrades.ts";
 
 export type SupervisorStage =
   "tunnel" | "lock" | "probe" | "export" | "scan" | "sync";
@@ -47,7 +48,8 @@ export type SupervisorAlert =
       ageSeconds: number | null;
       limitSeconds: number;
     }
-  | { alert: "SCAN_STALE"; ageSeconds: number | null; limitSeconds: number };
+  | { alert: "SCAN_STALE"; ageSeconds: number | null; limitSeconds: number }
+  | ({ alert: "NETWORK_UPGRADE_UNSUPPORTED" } & UnsupportedUpgrade);
 
 export interface SupervisorDeps {
   now(): number;
@@ -62,6 +64,11 @@ export interface SupervisorDeps {
   }>;
   alert(a: SupervisorAlert): void;
   log(event: Record<string, unknown>): void;
+  /**
+   * Optional: scheduled network upgrades this build does not follow. Alerting
+   * only; a failure is logged and retried on the next cycle, never fatal.
+   */
+  consensusCheck?(): Promise<UnsupportedUpgrade[]>;
 }
 
 export interface SupervisorPolicy {
@@ -70,6 +77,8 @@ export interface SupervisorPolicy {
   /** Alert once a stage has failed this many cycles in a row. */
   failureAlertAfter: number;
   tunnelBackoffMs: { initial: number; max: number };
+  /** Seconds between successful network-upgrade checks (alerts repeat at this rate). */
+  consensusCheckSeconds: number;
 }
 
 export const DEFAULT_SUPERVISOR_POLICY: SupervisorPolicy = {
@@ -77,6 +86,7 @@ export const DEFAULT_SUPERVISOR_POLICY: SupervisorPolicy = {
   scanStaleSeconds: 1800,
   failureAlertAfter: 3,
   tunnelBackoffMs: { initial: 1_000, max: 60_000 },
+  consensusCheckSeconds: 6 * 3600,
 };
 
 export interface CycleReport {
@@ -93,6 +103,38 @@ export class OperatorSupervisor {
   private tunnelBackoff: number;
   private tunnelRestartAt = 0;
   private streaks = new Map<SupervisorStage, number>();
+  private consensusCheckedAt: number | null = null;
+
+  /** Run the optional upgrade check when due; alerts for each unsupported upgrade. */
+  private async checkConsensus(alerts: SupervisorAlert[]) {
+    const check = this.deps.consensusCheck;
+    const now = this.deps.now();
+    if (
+      !check ||
+      (this.consensusCheckedAt !== null &&
+        now - this.consensusCheckedAt < this.policy.consensusCheckSeconds)
+    )
+      return;
+    let issues: UnsupportedUpgrade[];
+    try {
+      issues = await check();
+    } catch (error) {
+      this.deps.log({
+        event: "CONSENSUS_CHECK_FAILED",
+        code:
+          error instanceof Error && /^[A-Z0-9_]{1,96}$/.test(error.message)
+            ? error.message
+            : "CONSENSUS_CHECK_FAILED",
+      });
+      return;
+    }
+    this.consensusCheckedAt = now;
+    for (const issue of issues) {
+      const a = { alert: "NETWORK_UPGRADE_UNSUPPORTED" as const, ...issue };
+      alerts.push(a);
+      this.deps.alert(a);
+    }
+  }
 
   constructor(
     private readonly deps: SupervisorDeps,
@@ -238,6 +280,7 @@ export class OperatorSupervisor {
       alerts.push(a);
       this.deps.alert(a);
     }
+    await this.checkConsensus(alerts);
     const report = { tunnelUp, locks, worker, sync, alerts };
     this.deps.log({
       event: "CYCLE",
