@@ -12,7 +12,7 @@
 // relayer or any broadcast function, and it never advances a payment past
 // ZEC_CONFIRMED — settlement stays a separate, operator-approved, disabled path.
 import { join, resolve } from "node:path";
-import { mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import {
   MainnetWatchScanner,
   verifyOwnedNote,
@@ -355,9 +355,12 @@ export function watcherFromWorkerConfig(
     confirmations: cfg.minimumConfirmations,
   };
   const state = resolve(cfg.stateDirectory);
+  // Same lookup order as the watch worker: explicit override, dev build, then
+  // the image's installed binary (the VPS container has no target/ directory).
+  const devBinary = resolve(`services/zcash-watch/target/debug/zecone-zcash-watch${process.platform === "win32" ? ".exe" : ""}`);
   const binary =
     process.env.ZECONE_WATCH_BIN ??
-    resolve(`services/zcash-watch/target/debug/zecone-zcash-watch${process.platform === "win32" ? ".exe" : ""}`);
+    (existsSync(devBinary) || process.platform === "win32" ? devBinary : "/usr/local/bin/zecone-zcash-watch");
   const segments = orderWindows
     ? candidateSegmentExporter({
         stateDirectory: state,
