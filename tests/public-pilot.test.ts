@@ -31,6 +31,7 @@ import {
   signCheckoutPilotQuote,
 } from "../services/payments/pilot-quote.ts";
 import { httpRemote, syncOnce } from "../scripts/operator-sync.ts";
+import { pushPayout } from "../scripts/operator-payout-push.ts";
 import { readWalletJournalEvidence } from "../services/payments/wallet-evidence.ts";
 import { fakeWalletJournal } from "./helpers/fake-wallet-journal.ts";
 import { checkoutOrderId } from "../services/payments/checkout-settlement.ts";
@@ -538,6 +539,18 @@ test("public pilot: deposit → confirmations → ZEC_CONFIRMED → verified Bas
     writeFileSync(
       join(sessionsDirectory, sessionId, "plan.json"),
       JSON.stringify({ terms }),
+    );
+    // Watcher on another host: the operator machine reports the verified payout
+    // directly, through the same settlement check, without the operator mirror.
+    assert.deepEqual(await pushPayout(t.remote, p.id, settlement), {
+      ok: true,
+      status: "submitted",
+      payoutTxHash: BASE_TX,
+    });
+    assert.equal((await view()).state, "PAYOUT_SUBMITTED");
+    await assert.rejects(
+      pushPayout(t.remote, "pay_" + "0".repeat(26), settlement),
+      /REAL_ORDER_NOT_FOUND/,
     );
     await syncOnce(t.mirror, t.bridge, t.remote, realNow(), {
       walletEvidence: (txid) => readWalletJournalEvidence(t.journal.path, txid),

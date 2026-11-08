@@ -23,6 +23,7 @@
     "checkout:settlement": "tsx scripts/checkout-settlement.ts",
     "operator:sync": "tsx scripts/operator-sync.ts",
     "operator:wallet-evidence": "tsx scripts/operator-wallet-evidence-push.ts",
+    "operator:payout": "tsx scripts/operator-payout-push.ts",
     "operator:supervise": "tsx scripts/operator-supervisor.ts",
     "checkout:pilot-quote": "tsx scripts/checkout-pilot-quote.ts",
     "operator:quote-push": "tsx scripts/operator-quote-push.ts",
