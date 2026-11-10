@@ -121,6 +121,24 @@ export class TelegramAlerts {
     await this.deliver(text);
   }
 
+  /**
+   * Record a failed cycle as one lasting condition. Do not resolve the last
+   * healthy cycle's alerts because the failed cycle could not re-evaluate them.
+   */
+  async onCycleFailure(code: string) {
+    const key = "SUPERVISOR_CYCLE_FAILED";
+    const now = this.options.now();
+    const remind = this.options.remindSeconds ?? 6 * 3600;
+    const since = this.active.get(key);
+    if (since === undefined) {
+      this.active.set(key, now);
+      await this.deliver(`ALERT Supervisor cycle failed (${code}).`);
+    } else if (now - since >= remind) {
+      this.active.set(key, now);
+      await this.deliver(`STILL Supervisor cycle failed (${code}).`);
+    }
+  }
+
   /** Call once per cycle with every alert that cycle raised. */
   async onCycle(alerts: SupervisorAlert[]) {
     const now = this.options.now();

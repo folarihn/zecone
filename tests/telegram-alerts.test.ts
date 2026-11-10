@@ -103,6 +103,23 @@ test("telegram: send failures are logged with a code and never thrown", async ()
   );
 });
 
+test("telegram: repeated cycle failures are bounded and resolve after recovery", async () => {
+  const h = harness();
+  await h.t.onCycleFailure("PROCESS_TABLE_UNAVAILABLE");
+  h.advance(120);
+  await h.t.onCycleFailure("PROCESS_TABLE_UNAVAILABLE");
+  assert.equal(h.sent.length, 1, "must not notify on every supervisor cycle");
+  assert.match(h.sent[0], /ALERT Supervisor cycle failed/);
+
+  h.advance(3600);
+  await h.t.onCycleFailure("PROCESS_TABLE_UNAVAILABLE");
+  assert.equal(h.sent.length, 2);
+  assert.match(h.sent[1], /STILL Supervisor cycle failed/);
+
+  await h.t.onCycle([]);
+  assert.equal(h.sent[2], "ZecOne: RESOLVED SUPERVISOR_CYCLE_FAILED");
+});
+
 test("telegram: sender posts to the Bot API only; token and chat id are validated", async () => {
   const token = "123456789:" + "A".repeat(35);
   const calls: { url: string; body: unknown }[] = [];

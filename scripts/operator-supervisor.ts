@@ -34,6 +34,7 @@ import {
   recoverStaleLock,
   type LockOwnerProbe,
 } from "../services/operations/stale-lock.ts";
+import { linuxProcessHolders } from "../services/operations/process-holders.ts";
 import {
   DEFAULT_SUPERVISOR_POLICY,
   OperatorSupervisor,
@@ -151,22 +152,21 @@ const probe: LockOwnerProbe = {
     }
   },
   holders() {
-    const rows =
-      process.platform === "win32"
-        ? execFileSync(
-            "powershell.exe",
-            [
-              "-NoProfile",
-              "-Command",
-              'Get-CimInstance Win32_Process | ForEach-Object { "$($_.ProcessId)`t$($_.CommandLine)" }',
-            ],
-            {
-              encoding: "utf8",
-              windowsHide: true,
-              maxBuffer: 16 * 1024 * 1024,
-            },
-          )
-        : execFileSync("ps", ["-eo", "pid=,args="], { encoding: "utf8" });
+    if (process.platform !== "win32")
+      return linuxProcessHolders(RELEVANT, process.pid);
+    const rows = execFileSync(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-Command",
+        'Get-CimInstance Win32_Process | ForEach-Object { "$($_.ProcessId)`t$($_.CommandLine)" }',
+      ],
+      {
+        encoding: "utf8",
+        windowsHide: true,
+        maxBuffer: 16 * 1024 * 1024,
+      },
+    );
     return rows
       .split(/\r?\n/)
       .map((l) => l.trim().match(/^(\d+)\s+(.*)$/))
@@ -461,8 +461,10 @@ async function main() {
             ? e.message
             : "SUPERVISOR_CYCLE_FAILED",
       });
-      await telegram?.notice(
-        `Supervisor cycle failed (${e instanceof Error && /^[A-Z0-9_]{1,96}$/.test(e.message) ? e.message : "SUPERVISOR_CYCLE_FAILED"}).`,
+      await telegram?.onCycleFailure(
+        e instanceof Error && /^[A-Z0-9_]{1,96}$/.test(e.message)
+          ? e.message
+          : "SUPERVISOR_CYCLE_FAILED",
       );
     }
     await new Promise((r) =>
